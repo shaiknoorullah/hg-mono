@@ -50,7 +50,7 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | Customer app | 20 | 3 | 0 | 13 | 4 |
 | Restaurant portal | 22 | 6 | 3 | 5 | 0 |
 | Rider app | 23 | 6 | 2 | 1 | 3 |
-| Admin console | 10 | 5 | 12 | 15 | 0 |
+| Admin console | 13 | 2 | 12 | 15 | 0 |
 | Platform | 30 | 6 | 0 | 0 | 3 |
 
 ## Customer app
@@ -195,12 +195,12 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [A-10](spec/05-admin.md#a-10--scheduled-reports-and-data-export) | Scheduled reports | — | Not in V1 | — |
 | [A-11](spec/05-admin.md#a-11--support-team-oversight) | Support team oversight | — | Not in V1 | — |
 | [A-12](spec/05-admin.md#a-12--escalation-routing-and-tiering) | Escalation routing | No case operations yet | Missing | [#190](https://github.com/shaiknoorullah/hg-mono/issues/190) |
-| [A-13](spec/05-admin.md#a-13--restaurant-onboarding-review-queue) | Restaurant onboarding queue | `docs-review` and `docs-rejected`; no full application waits | Partial | [#678](https://github.com/shaiknoorullah/hg-mono/issues/678) |
+| [A-13](spec/05-admin.md#a-13--restaurant-onboarding-review-queue) | Restaurant onboarding queue | `docs-review` and `docs-rejected`; `s=application-in-review` leaves a full application waiting (certificate `PENDING`, no check recorded) | Covered | — |
 | [A-14](spec/05-admin.md#a-14--kyc-document-review-non-halal-documents) | Review a document | `make dev-scenario s=docs-approve` or `s=docs-reject`; the seeded file opens as a generated PDF | Covered | — |
-| [A-15](spec/05-admin.md#a-15--halal-certification-verification--core-product-function) | Halal seven-check verification | Only inside `s=onboard-restaurant`; no certificate waits for checks after a reset | Partial | [#678](https://github.com/shaiknoorullah/hg-mono/issues/678) |
+| [A-15](spec/05-admin.md#a-15--halal-certification-verification--core-product-function) | Halal seven-check verification | `s=application-in-review`, then record the checks as `admin-seed`; `s=application-reject` fails the address-match check and the approval is refused (`CHECK_FAILED`) | Covered | — |
 | [A-16](spec/05-admin.md#a-16--halal-issuing-body-registry) | Issuing bodies | `admin-seed`; the reference seed has accepted bodies | Covered | — |
 | [A-17](spec/05-admin.md#a-17--halal-certificate-expiry-monitoring-and-lapse-handling) | Certificate expiry and lapse | `expiring-halal`, `expired-halal`; `s=halal-lapse` runs the expiry job for `expiring-halal` (`EXPIRED`, delisted, owner notified); reminders are not produced | Partial | [#685](https://github.com/shaiknoorullah/hg-mono/issues/685) |
-| [A-18](spec/05-admin.md#a-18--restaurant-approval--rejection-decision) | Approve or reject a restaurant | Approval inside `s=onboard-restaurant`; a rejection only seeded (`docs-rejected`) | Partial | [#678](https://github.com/shaiknoorullah/hg-mono/issues/678) |
+| [A-18](spec/05-admin.md#a-18--restaurant-approval--rejection-decision) | Approve or reject a restaurant | Approval inside `s=onboard-restaurant`; `s=application-reject` rejects live (`DOCUMENTS_REJECTED`, `HALAL_CERTIFICATION_INVALID`, owner notified) | Covered | — |
 | [A-19](spec/05-admin.md#a-19--menu-approval-queue) | Menu review queue | `menu`, then `s=menu-approve` or `s=menu-reject` | Covered | — |
 | [A-20](spec/05-admin.md#a-20--restaurant-compliance-monitoring-violations-register) | Violations register | — | Not in V1 | — |
 | [A-21](spec/05-admin.md#a-21--restaurant-performance-monitoring) | Restaurant performance | — | Not in V1 | — |
