@@ -4,7 +4,7 @@ covers:
   - services/hg/internal/devworld/**
   - services/hg/migrations/devworld/**
   - docs/playbooks/**
-reviewed: 2026-10-13
+reviewed: 2026-10-14
 ---
 
 # Dev world coverage map
@@ -51,7 +51,7 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | Restaurant portal | 22 | 6 | 3 | 5 | 0 |
 | Rider app | 23 | 6 | 2 | 1 | 3 |
 | Admin console | 12 | 3 | 12 | 15 | 0 |
-| Platform | 28 | 8 | 0 | 0 | 3 |
+| Platform | 29 | 7 | 0 | 0 | 3 |
 
 ## Customer app
 
@@ -348,7 +348,7 @@ Every platform feature, for completeness. Most are exercised by any journey abov
 | [P-25](spec/01-platform.md#p-25--push-notifications-expo) | Push | See [notifications](#notifications) | Blocked by external (push) | [#58](https://github.com/shaiknoorullah/hg-mono/issues/58) |
 | [P-26](spec/01-platform.md#p-26--sms-and-email) | Text and email | See [notifications](#notifications) | Blocked by external (Twilio) | [#59](https://github.com/shaiknoorullah/hg-mono/issues/59) |
 | [P-27](spec/01-platform.md#p-27--bucket-layout-and-private-by-default) | Private buckets | Local storage from `make up` | Covered | — |
-| [P-28](spec/01-platform.md#p-28--presigned-upload-and-download) | Signed upload and download | Uploads: the onboarding scenarios and the journey photo. Downloads of seeded files fail | Partial | [#686](https://github.com/shaiknoorullah/hg-mono/issues/686) |
+| [P-28](spec/01-platform.md#p-28--presigned-upload-and-download) | Signed upload and download | Uploads: the onboarding scenarios and the journey photo. Downloads: seeded documents and certificates open as generated PDFs | Covered | — |
 | [P-29](spec/01-platform.md#p-29--document-lifecycle-review-and-retention) | Document lifecycle | The restaurant and rider onboarding personas | Covered | — |
 | [P-30](spec/01-platform.md#p-30--canonical-geography-schema-one-column-no-split-brain) | Locations | The catalogue around Danforth and downtown Toronto | Covered | — |
 | [P-31](spec/01-platform.md#p-31--distance-duration-and-eta) | Distance and arrival times | The journey | Covered | — |
@@ -384,7 +384,7 @@ Not filed as dev world issues:
 | Restaurant | [#683](https://github.com/shaiknoorullah/hg-mono/issues/683) manager and staff logins, hours overrides | personas `bismillah-manager`, `bismillah-staff` |
 | Rider | [#684](https://github.com/shaiknoorullah/hg-mono/issues/684) offers rejected, ignored, raced, and no rider found | `offer-reject`, `offer-ignored`, `offer-race`, `no-rider`; persona `rider-sim-2` |
 | Time passing | [#685](https://github.com/shaiknoorullah/hg-mono/issues/685) a certificate lapses and is renewed | `halal-lapse`, `halal-renew` |
-| Other | [#686](https://github.com/shaiknoorullah/hg-mono/issues/686) seeded documents and certificates open as files | part of `make dev-reset` |
+| Other | [#686](https://github.com/shaiknoorullah/hg-mono/issues/686) seeded documents and certificates can be opened as files | part of `make dev-reset` |
 | Other | [#687](https://github.com/shaiknoorullah/hg-mono/issues/687) restaurant playbooks name personas and commands that exist | playbook fixes |
 
 Order deadlines are reached by waiting, by design: the [harness design's non-goals](superpowers/specs/2026-09-28-devworld-harness-design.md#2-goals-and-non-goals) rule out a dev clock that moves `deadline_at` ([every non-terminal order state carries a deadline (invariant 4)](../AGENTS.md#3-non-negotiable-invariants)). A shorter local response window is asked for in [#676](https://github.com/shaiknoorullah/hg-mono/issues/676).
