@@ -30,7 +30,7 @@ func (c *countingTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 }
 
 func TestOnboardingScenariosRefuseNonLocalAPIBeforeAnyRequest(t *testing.T) {
-	for _, name := range []string{"onboard-restaurant", "onboard-rider", "onboard-admin"} {
+	for _, name := range []string{"onboard-restaurant", "onboard-rider", "onboard-admin", "application-in-review", "application-reject"} {
 		t.Run(name, func(t *testing.T) {
 			rec := &countingTransport{}
 			prev := http.DefaultTransport

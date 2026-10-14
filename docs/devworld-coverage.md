@@ -47,10 +47,10 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 
 | Table | Covered | Partial | Missing | Not in V1 | Blocked by external |
 |---|---:|---:|---:|---:|---:|
-| Customer app | 19 | 4 | 0 | 13 | 4 |
+| Customer app | 21 | 2 | 0 | 13 | 4 |
 | Restaurant portal | 22 | 6 | 3 | 5 | 0 |
 | Rider app | 23 | 6 | 2 | 1 | 3 |
-| Admin console | 10 | 5 | 12 | 15 | 0 |
+| Admin console | 13 | 2 | 12 | 15 | 0 |
 | Platform | 30 | 6 | 0 | 0 | 3 |
 
 ## Customer app
@@ -70,7 +70,7 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [C-11](spec/02-customer.md#c-11--filters-and-sort-advanced-filters) | Advanced filters and sort | — | Not in V1 | — |
 | [C-12](spec/02-customer.md#c-12--halal-certification-display-and-verification--critical) | See the halal badge and the certification panel | `amina`: Bismillah Grill is certified, Bamyan Kebab House (`expiring-halal`) is expiring; `expired-halal` and the onboarding restaurants are never listed. "View certificate" opens a generated PDF after `make dev-reset` | Covered | — |
 | [C-13](spec/02-customer.md#c-13--restaurant-detail-page) | Restaurant page | `amina`, any catalogue restaurant | Covered | — |
-| [C-14](spec/02-customer.md#c-14--restaurant-availability--serviceability-gating) | Closed, paused or out-of-range restaurant | `amina`: Galata Pide & Grill (`paused`), `padma-river-kitchen` (no hours on the reset day), the ordering pause in the admin console. The catalogue test checks that every catalogue restaurant closed by its hours refuses a cart line. No saved address is out of range | Partial | [#681](https://github.com/shaiknoorullah/hg-mono/issues/681) |
+| [C-14](spec/02-customer.md#c-14--restaurant-availability--serviceability-gating) | Closed, paused or out-of-range restaurant | `amina`: Galata Pide & Grill (`paused`), `padma-river-kitchen` (no hours on the reset day), the ordering pause in the admin console. The catalogue test checks that every catalogue restaurant closed by its hours refuses a cart line. Out of range: `amina`'s `Cottage` address (Huntsville), where the restaurant list by coordinates reads `OUT_OF_RANGE` for all 14; the API still prices a quote there ([#723](https://github.com/shaiknoorullah/hg-mono/issues/723)) and the list ignores `delivery_address_id` ([#724](https://github.com/shaiknoorullah/hg-mono/issues/724)) | Partial | [#723](https://github.com/shaiknoorullah/hg-mono/issues/723), [#724](https://github.com/shaiknoorullah/hg-mono/issues/724) |
 | [C-15](spec/02-customer.md#c-15--food-item-detail) | Dish detail | `amina`, any catalogue dish | Covered | — |
 | [C-16](spec/02-customer.md#c-16--variant-and-add-on-selection) | Choose a size and add-ons | `amina`: catalogue dishes with a size group, required and optional add-ons, and sold-out options | Covered | — |
 | [C-17](spec/02-customer.md#c-17--favourite-restaurants) | Favourite restaurants | — | Not in V1 | — |
@@ -86,10 +86,10 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [C-27](spec/02-customer.md#c-27--order-receipts) | Receipt | `amina` after `make dev-journey auto=all speed=max` (the journey reads it) | Covered | — |
 | [C-28](spec/02-customer.md#c-28--reorder) | Reorder | — | Not in V1 | [#187](https://github.com/shaiknoorullah/hg-mono/issues/187) |
 | [C-29](spec/02-customer.md#c-29--order-cancellation-by-the-customer) | Cancel before the restaurant accepts | `make dev-scenario s=customer-cancels`, or cancel in the app after `s=new-order` | Covered | — |
-| [C-30](spec/02-customer.md#c-30--delivery-address-management) | Saved delivery addresses | `amina` has one (Home); `nour` has none until a scenario adds one | Partial | [#681](https://github.com/shaiknoorullah/hg-mono/issues/681) |
+| [C-30](spec/02-customer.md#c-30--delivery-address-management) | Saved delivery addresses | `amina` has three (`Home` default, `Work`, `Cottage`); `nour` has none | Covered | — |
 | [C-31](spec/02-customer.md#c-31--address-entry-autocomplete-geocoding-and-map-pin) | Address search and map pin | Needs a Mapbox token; without one, type the address | Blocked by external (Mapbox token) | [#57](https://github.com/shaiknoorullah/hg-mono/issues/57) |
 | [C-32](spec/02-customer.md#c-32--live-order-tracking) | Live tracking | `amina` in the app during `make dev-journey auto=all speed=1x` | Covered | — |
-| [C-33](spec/02-customer.md#c-33--delivery-instructions) | Delivery instructions | None seeded; type them at checkout | Partial | [#681](https://github.com/shaiknoorullah/hg-mono/issues/681) |
+| [C-33](spec/02-customer.md#c-33--delivery-instructions) | Delivery instructions | `amina`'s `Work` address has a unit, buzzer and delivery instructions | Covered | — |
 | [C-34](spec/02-customer.md#c-34--contacting-the-rider) | Call or message the rider | Masked calling goes through Twilio | Blocked by external (Twilio) | [#181](https://github.com/shaiknoorullah/hg-mono/issues/181) |
 | [C-35](spec/02-customer.md#c-35--contacting-the-restaurant) | Contact the restaurant | — | Not in V1 | — |
 | [C-36](spec/02-customer.md#c-36--tipping-the-rider) | Tip the rider | — | Not in V1 | — |
@@ -195,12 +195,12 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [A-10](spec/05-admin.md#a-10--scheduled-reports-and-data-export) | Scheduled reports | — | Not in V1 | — |
 | [A-11](spec/05-admin.md#a-11--support-team-oversight) | Support team oversight | — | Not in V1 | — |
 | [A-12](spec/05-admin.md#a-12--escalation-routing-and-tiering) | Escalation routing | No case operations yet | Missing | [#190](https://github.com/shaiknoorullah/hg-mono/issues/190) |
-| [A-13](spec/05-admin.md#a-13--restaurant-onboarding-review-queue) | Restaurant onboarding queue | `docs-review` and `docs-rejected`; no full application waits | Partial | [#678](https://github.com/shaiknoorullah/hg-mono/issues/678) |
+| [A-13](spec/05-admin.md#a-13--restaurant-onboarding-review-queue) | Restaurant onboarding queue | `docs-review` and `docs-rejected`; `s=application-in-review` leaves a full application waiting (certificate `PENDING`, no check recorded) | Covered | — |
 | [A-14](spec/05-admin.md#a-14--kyc-document-review-non-halal-documents) | Review a document | `make dev-scenario s=docs-approve` or `s=docs-reject`; the seeded file opens as a generated PDF | Covered | — |
-| [A-15](spec/05-admin.md#a-15--halal-certification-verification--core-product-function) | Halal seven-check verification | Only inside `s=onboard-restaurant`; no certificate waits for checks after a reset | Partial | [#678](https://github.com/shaiknoorullah/hg-mono/issues/678) |
+| [A-15](spec/05-admin.md#a-15--halal-certification-verification--core-product-function) | Halal seven-check verification | `s=application-in-review`, then record the checks as `admin-seed`; `s=application-reject` fails the address-match check and the approval is refused (`CHECK_FAILED`) | Covered | — |
 | [A-16](spec/05-admin.md#a-16--halal-issuing-body-registry) | Issuing bodies | `admin-seed`; the reference seed has accepted bodies | Covered | — |
 | [A-17](spec/05-admin.md#a-17--halal-certificate-expiry-monitoring-and-lapse-handling) | Certificate expiry and lapse | `expiring-halal`, `expired-halal`; `s=halal-lapse` runs the expiry job for `expiring-halal` (`EXPIRED`, delisted, owner notified); reminders are not produced | Partial | [#685](https://github.com/shaiknoorullah/hg-mono/issues/685) |
-| [A-18](spec/05-admin.md#a-18--restaurant-approval--rejection-decision) | Approve or reject a restaurant | Approval inside `s=onboard-restaurant`; a rejection only seeded (`docs-rejected`) | Partial | [#678](https://github.com/shaiknoorullah/hg-mono/issues/678) |
+| [A-18](spec/05-admin.md#a-18--restaurant-approval--rejection-decision) | Approve or reject a restaurant | Approval inside `s=onboard-restaurant`; `s=application-reject` rejects live (`DOCUMENTS_REJECTED`, `HALAL_CERTIFICATION_INVALID`, owner notified) | Covered | — |
 | [A-19](spec/05-admin.md#a-19--menu-approval-queue) | Menu review queue | `menu`, then `s=menu-approve` or `s=menu-reject` | Covered | — |
 | [A-20](spec/05-admin.md#a-20--restaurant-compliance-monitoring-violations-register) | Violations register | — | Not in V1 | — |
 | [A-21](spec/05-admin.md#a-21--restaurant-performance-monitoring) | Restaurant performance | — | Not in V1 | — |
