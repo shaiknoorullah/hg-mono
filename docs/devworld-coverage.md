@@ -4,7 +4,7 @@ covers:
   - services/hg/internal/devworld/**
   - services/hg/migrations/devworld/**
   - docs/playbooks/**
-reviewed: 2026-10-13
+reviewed: 2026-10-14
 ---
 
 # Dev world coverage map
@@ -47,11 +47,11 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 
 | Table | Covered | Partial | Missing | Not in V1 | Blocked by external |
 |---|---:|---:|---:|---:|---:|
-| Customer app | 17 | 6 | 0 | 13 | 4 |
+| Customer app | 18 | 5 | 0 | 13 | 4 |
 | Restaurant portal | 22 | 7 | 2 | 5 | 0 |
 | Rider app | 23 | 6 | 2 | 1 | 3 |
-| Admin console | 9 | 6 | 12 | 15 | 0 |
-| Platform | 29 | 7 | 0 | 0 | 3 |
+| Admin console | 10 | 5 | 12 | 15 | 0 |
+| Platform | 30 | 6 | 0 | 0 | 3 |
 
 ## Customer app
 
@@ -93,7 +93,7 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [C-34](spec/02-customer.md#c-34--contacting-the-rider) | Call or message the rider | Masked calling goes through Twilio | Blocked by external (Twilio) | [#181](https://github.com/shaiknoorullah/hg-mono/issues/181) |
 | [C-35](spec/02-customer.md#c-35--contacting-the-restaurant) | Contact the restaurant | — | Not in V1 | — |
 | [C-36](spec/02-customer.md#c-36--tipping-the-rider) | Tip the rider | — | Not in V1 | — |
-| [C-37](spec/02-customer.md#c-37--refund-requests-and-refund-tracking) | Ask for a refund and follow it | The journey ends with a full refund request; no staff decision follows | Partial | [#679](https://github.com/shaiknoorullah/hg-mono/issues/679) |
+| [C-37](spec/02-customer.md#c-37--refund-requests-and-refund-tracking) | Ask for a refund and follow it | `s=refund-decisions` asks for a full and a partial refund; the journey also ends with a full refund request | Covered | — |
 | [C-38](spec/02-customer.md#c-38--reviews-and-ratings-submission-restaurant-food-rider) | Rate the food and the rider | The journey submits both ratings | Not in V1 | [#185](https://github.com/shaiknoorullah/hg-mono/issues/185) |
 | [C-39](spec/02-customer.md#c-39--grievances-and-dispute-escalation) | Grievances and disputes | — | Not in V1 | [#190](https://github.com/shaiknoorullah/hg-mono/issues/190) |
 | [C-40](spec/02-customer.md#c-40--notifications-push-in-app-inbox-and-alerts) | Notifications | In-app rows are written during the journey; emails go to the API log; push needs a device and Expo | Blocked by external (push) | [#58](https://github.com/shaiknoorullah/hg-mono/issues/58) |
@@ -215,7 +215,7 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [A-30](spec/05-admin.md#a-30--review-moderation) | Review moderation | — | Not in V1 | — |
 | [A-31](spec/05-admin.md#a-31--abuse-and-fraud-report-handling) | Abuse and fraud reports | — | Not in V1 | — |
 | [A-32](spec/05-admin.md#a-32--feedback-and-ratings-review) | Feedback and ratings review | — | Not in V1 | — |
-| [A-33](spec/05-admin.md#a-33--refund-issuance-and-authority-limits) | Approve, decline or issue a refund | The journey leaves one refund request; decide it by hand | Partial | [#679](https://github.com/shaiknoorullah/hg-mono/issues/679) |
+| [A-33](spec/05-admin.md#a-33--refund-issuance-and-authority-limits) | Approve, decline or issue a refund | `s=refund-decisions`: `admin-seed` approves one refund and declines the other (the approved one stays `SUBMITTED` on the fake gateway) | Covered | — |
 | [A-34](spec/05-admin.md#a-34--goodwill-credit-issuance) | Goodwill credit | — | Not in V1 | — |
 | [A-35](spec/05-admin.md#a-35--dispute-case-management) | Dispute cases | — | Not in V1 | [#186](https://github.com/shaiknoorullah/hg-mono/issues/186) |
 | [A-36](spec/05-admin.md#a-36--rider-earnings-and-payout-dispute-assistance) | Rider pay disputes | — | Not in V1 | — |
@@ -241,7 +241,7 @@ All local money runs on the fake payment gateway, which the API uses when `HG_EN
 | [P-16](spec/01-platform.md#p-16--paymentintent-lifecycle-and-capture-timing) | A card is declined, or never paid | `s=payment-failed` (`FAILED`, no payment, no ledger batch), `s=payment-unpaid` (`CREATED`, intent never confirmed) | Covered | — |
 | [P-16](spec/01-platform.md#p-16--paymentintent-lifecycle-and-capture-timing) | The capture fails at acceptance | `s=capture-fails` (`PREPARING`, payment `REQUIRES_CAPTURE`, no ledger batch); the capture is never retried ([#741](https://github.com/shaiknoorullah/hg-mono/issues/741)) | Covered | — |
 | [P-18](spec/01-platform.md#p-18--refunds-cancellations-and-compensation) | The customer asks for a refund | `make dev-journey auto=all speed=max` (last step) | Covered | — |
-| [P-18](spec/01-platform.md#p-18--refunds-cancellations-and-compensation) | Staff approve, decline or issue a refund | By hand in the admin console | Missing | [#679](https://github.com/shaiknoorullah/hg-mono/issues/679) |
+| [P-18](spec/01-platform.md#p-18--refunds-cancellations-and-compensation) | Staff approve or decline a refund | `s=refund-decisions` (issuing one outside a request is not covered) | Covered | — |
 | [P-17](spec/01-platform.md#p-17--webhooks-idempotency-and-reconciliation) | A card dispute (chargeback) | Stripe test mode, its dispute test card and `stripe listen` ([card payments playbook](playbooks/customer/card-payments.md)) | Blocked by external (Stripe test keys) | — |
 | [P-19](spec/01-platform.md#p-19--stripe-connect-onboarding-and-payouts-canada) | Weekly payouts to restaurants and riders | `s=payout-run`; `NOTHING_DUE` until an order's week closes and three days pass (wait) | Partial | [#676](https://github.com/shaiknoorullah/hg-mono/issues/676) |
 | [P-13](spec/01-platform.md#p-13--the-ledger-and-the-zero-residual-invariant) | Every order nets to zero in the ledger | After `make dev-journey auto=all`, sum the order's ledger lines in the database | Covered | — |
@@ -338,7 +338,7 @@ Every platform feature, for completeness. Most are exercised by any journey abov
 | [P-15](spec/01-platform.md#p-15--deadlines-and-timeout-actions-waits-forever-is-unrepresentable) | Deadlines | See [order states and deadlines](#order-states-and-deadlines) | Covered | — |
 | [P-16](spec/01-platform.md#p-16--paymentintent-lifecycle-and-capture-timing) | Payment authorise and capture | See [money](#money) | Covered | — |
 | [P-17](spec/01-platform.md#p-17--webhooks-idempotency-and-reconciliation) | Stripe webhooks | Stripe test keys and `stripe listen` ([card payments playbook](playbooks/customer/card-payments.md)) | Blocked by external (Stripe test keys) | — |
-| [P-18](spec/01-platform.md#p-18--refunds-cancellations-and-compensation) | Refunds and cancellations | See [money](#money) | Partial | [#679](https://github.com/shaiknoorullah/hg-mono/issues/679) |
+| [P-18](spec/01-platform.md#p-18--refunds-cancellations-and-compensation) | Refunds and cancellations | See [money](#money) | Covered | — |
 | [P-19](spec/01-platform.md#p-19--stripe-connect-onboarding-and-payouts-canada) | Connect accounts and payouts | Accounts: `payout`, `s=onboard-rider`. Payouts: `s=payout-run` | Partial | [#676](https://github.com/shaiknoorullah/hg-mono/issues/676) |
 | [P-20](spec/01-platform.md#p-20--websocket-connection-authentication) | Socket sign-in | See [realtime](#realtime) | Covered | — |
 | [P-21](spec/01-platform.md#p-21--channels-and-subscriptions) | Channels | See [realtime](#realtime) | Covered | — |
@@ -376,7 +376,6 @@ Not filed as dev world issues:
 |---|---|---|
 | Admin | [#677](https://github.com/shaiknoorullah/hg-mono/issues/677) support agent and admin staff who can sign in | personas `support-seed` (enrolled), `ops-admin` |
 | Admin | [#678](https://github.com/shaiknoorullah/hg-mono/issues/678) a restaurant application waiting for halal verification | `application-in-review`, `application-reject` |
-| Money | [#679](https://github.com/shaiknoorullah/hg-mono/issues/679) staff refund decisions | `refund-decisions` |
 | Money | [#680](https://github.com/shaiknoorullah/hg-mono/issues/680) a declined card and an unpaid order without Stripe keys | `payment-failed`, `payment-unpaid` |
 | Money | [#676](https://github.com/shaiknoorullah/hg-mono/issues/676), already filed: payout run, capture failure | `payout-run`, `capture-fails` |
 | Customer account | [#681](https://github.com/shaiknoorullah/hg-mono/issues/681) an address book with an address out of range | personas: three addresses for `amina`, none for `nour` |

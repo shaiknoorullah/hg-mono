@@ -38,12 +38,12 @@ const (
 // and, at a met handover, the customer's delivery code. A refused seal does not
 // stop it. The
 // customer follow-ups run after delivery even when the order stays delivered.
-func deliverLeg(ctx context.Context, cust, kitchen, rider *apiClient, order placedOrder, assignmentID string, pickup routePoint) error {
+func deliverLeg(ctx context.Context, cust, kitchen, rider *apiClient, order placedOrder, assignmentID string, pickup routePoint, refund bool) error {
 	if err := riderDelivers(ctx, cust, kitchen, rider, order, assignmentID, pickup); err != nil {
 		return err
 	}
 	_, serr := pollSettled(ctx, cust, order.ID)
-	ferr := customerFollowUps(ctx, cust, kitchen, order.ID)
+	ferr := customerFollowUps(ctx, cust, kitchen, order.ID, refund)
 	return errors.Join(serr, ferr)
 }
 
@@ -423,13 +423,16 @@ func pollSettled(ctx context.Context, cust *apiClient, orderID string) (orderVie
 	}
 }
 
-func customerFollowUps(ctx context.Context, cust, kitchen *apiClient, orderID string) error {
-	return errors.Join(
+func customerFollowUps(ctx context.Context, cust, kitchen *apiClient, orderID string, refund bool) error {
+	errs := []error{
 		readReceipt(ctx, cust, orderID),
 		rateOrder(ctx, cust, orderID),
 		readRestaurantOrder(ctx, kitchen, orderID),
-		requestRefund(ctx, cust, orderID),
-	)
+	}
+	if refund {
+		errs = append(errs, requestRefund(ctx, cust, orderID))
+	}
+	return errors.Join(errs...)
 }
 
 func readReceipt(ctx context.Context, cust *apiClient, orderID string) error {

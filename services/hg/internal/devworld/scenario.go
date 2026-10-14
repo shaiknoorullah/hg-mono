@@ -62,6 +62,7 @@ var ScenarioNames = []string{
 	"pickup-lapse-cancelled",
 	"cert-lapse-mid-order",
 	"order-completed",
+	"refund-decisions",
 	"halal-lapse",
 	"halal-renew",
 }
@@ -93,6 +94,7 @@ var scenarioSummaries = map[string]string{
 	"pickup-lapse-cancelled": "rider-sim offline; a ready order lapses to the cap (CANCELLED, NO_RIDER_FOUND, full refund)",
 	"cert-lapse-mid-order":   "an accepted order is live when bismillah-grill's certificate lapses (EXPIRED, delisted until dev-reset)",
 	"order-completed":        "rider-sim delivers an order and it settles (COMPLETED, receipt, rider earnings)",
+	"refund-decisions":       "amina's full refund is approved (SUBMITTED), her partial refund declined (DECLINED); every ledger batch sums to zero",
 	"payment-failed":         "amina's order is declined by the fake payment client (FAILED, no payment, no active order)",
 	"payment-unpaid":         "amina's order waits for a card nobody confirms (CREATED, 15 min deadline)",
 	"capture-fails":          "nour's order is accepted but the fake refuses its capture (PREPARING, payment REQUIRES_CAPTURE, no ledger batch)",
@@ -162,6 +164,8 @@ func RunScenario(ctx context.Context, baseURL, name string) error {
 		return scenarioPickupLapse(ctx, baseURL, true)
 	case "cert-lapse-mid-order":
 		return scenarioCertLapse(ctx, baseURL)
+	case "refund-decisions":
+		return scenarioRefundDecisions(ctx, baseURL)
 	case "order-completed":
 		return scenarioOrderCompleted(ctx, baseURL)
 	case "halal-lapse":
