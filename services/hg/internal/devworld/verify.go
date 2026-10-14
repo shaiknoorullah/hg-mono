@@ -177,6 +177,11 @@ func verifyTo(ctx context.Context, dsn string, out io.Writer) error {
 	}
 	problems = append(problems, staffProblems...)
 
+	ledgerProblems, err := verifyLedger(ctx, conn, out)
+	if err != nil {
+		return err
+	}
+	problems = append(problems, ledgerProblems...)
 	appProblems, err := verifyApplications(ctx, conn, out)
 	if err != nil {
 		return err
