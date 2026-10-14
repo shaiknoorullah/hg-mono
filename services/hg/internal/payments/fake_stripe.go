@@ -44,6 +44,9 @@ func (fakeStripe) CreatePaymentIntent(_ context.Context, in CreateIntentInput) (
 }
 
 func (fakeStripe) CapturePaymentIntent(_ context.Context, id string, amount int64, _ string) (*StripeIntent, error) {
+	if fakeCaptureFails(id) {
+		return nil, ErrFakeCaptureFailed
+	}
 	return &StripeIntent{ID: id, Status: "succeeded", AmountCents: amount, AmountCapturableCents: 0, AmountReceivedCents: amount, Currency: "cad"}, nil
 }
 

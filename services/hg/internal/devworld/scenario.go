@@ -48,6 +48,8 @@ var ScenarioNames = []string{
 	"onboard-rider",
 	"payment-failed",
 	"payment-unpaid",
+	"capture-fails",
+	"payout-run",
 	"onboard-admin",
 	"offer-to-rider",
 	"restaurant-timeout",
@@ -83,6 +85,8 @@ var scenarioSummaries = map[string]string{
 	"order-completed":        "rider-sim delivers an order and it settles (COMPLETED, receipt, rider earnings)",
 	"payment-failed":         "amina's order is declined by the fake payment client (FAILED, no payment, no active order)",
 	"payment-unpaid":         "amina's order waits for a card nobody confirms (CREATED, 15 min deadline)",
+	"capture-fails":          "nour's order is accepted but the fake refuses its capture (PREPARING, payment REQUIRES_CAPTURE, no ledger batch)",
+	"payout-run":             "admin-seed runs the weekly payout for bismillah-grill (NOTHING_DUE until its week closes)",
 }
 
 // RunScenario signs in as the personas the scenario needs and calls the API
@@ -126,6 +130,10 @@ func RunScenario(ctx context.Context, baseURL, name string) error {
 		return scenarioPaymentFailed(ctx, baseURL)
 	case "payment-unpaid":
 		return scenarioPaymentUnpaid(ctx, baseURL)
+	case "capture-fails":
+		return scenarioCaptureFails(ctx, baseURL)
+	case "payout-run":
+		return scenarioPayoutRun(ctx, baseURL)
 	case "onboard-admin":
 		return scenarioOnboardAdmin(ctx, baseURL)
 	case "offer-to-rider":
