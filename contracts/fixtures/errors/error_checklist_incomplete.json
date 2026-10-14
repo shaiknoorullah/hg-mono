@@ -1,0 +1,30 @@
+{
+  "scenario": "error_checklist_incomplete",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `CHECKLIST_INCOMPLETE`. Approving before every check has a result. `details.check_keys` lists the checks still `NOT_ASSESSED`.",
+  "operations": [
+    "decideHalalCertificate"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "admin",
+    "halal"
+  ],
+  "payload": {
+    "error": {
+      "code": "CHECKLIST_INCOMPLETE",
+      "message": "The seven checks are not all present and PASS.",
+      "request_id": "M56FG32183VF3ZRJKT9QJYDT09",
+      "details": {
+        "check_keys": [
+          "H1_LEGIBLE_COMPLETE",
+          "H3_NAME_MATCH",
+          "H4_ADDRESS_MATCH"
+        ]
+      }
+    }
+  }
+}

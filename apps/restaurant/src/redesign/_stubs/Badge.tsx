@@ -13,7 +13,8 @@ export type BadgeVariant = 'neutral' | 'info' | 'warning' | 'danger' | 'brand';
 export interface BadgeProps {
   label: ReactNode;
   variant?: BadgeVariant;
-  appearance?: 'tint' | 'solid';
+  /** `outline`: MH "Details open", "Not on your menu yet", "Withdrawn", "Default", "Changed". */
+  appearance?: 'tint' | 'solid' | 'outline';
   size?: 'sm' | 'md' | 'lg';
   icon?: IconName;
   className?: string;
@@ -36,6 +37,8 @@ const SOLID: Record<BadgeVariant, string> = {
   brand: 'bg-action-primary-bg text-action-primary-fg border-transparent',
 };
 
+const OUTLINE = 'bg-transparent text-fg-primary border-line-interactive';
+
 const SIZE = {
   sm: 'min-h-5 px-1.5 text-[12px] gap-1',
   md: 'min-h-6 px-2 text-[13px] gap-1',
@@ -43,7 +46,7 @@ const SIZE = {
 } as const;
 
 export function Badge({ label, variant = 'neutral', appearance = 'tint', size = 'md', icon, className, testId }: BadgeProps) {
-  const tone = appearance === 'solid' ? SOLID[variant] : TINT[variant];
+  const tone = appearance === 'solid' ? SOLID[variant] : appearance === 'outline' ? OUTLINE : TINT[variant];
   return (
     <span
       data-testid={testId}

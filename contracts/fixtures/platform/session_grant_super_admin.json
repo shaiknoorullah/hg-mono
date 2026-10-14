@@ -1,0 +1,38 @@
+{
+  "scenario": "session_grant_super_admin",
+  "domain": "platform",
+  "schema": "SessionGrant",
+  "describes": "`login` on the web console for a `SUPER_ADMIN`: the `principal_super_admin` principal, a 15-minute access token and `refresh_token: null` (the refresh token is the `hg_rt` cookie on web).",
+  "operations": [
+    "login",
+    "refreshSession"
+  ],
+  "status": 200,
+  "tags": [
+    "platform",
+    "auth",
+    "staff"
+  ],
+  "payload": {
+    "access_token": "eyJhbGciOiJFZERTQSJ9.staff-session.signature",
+    "refresh_token": null,
+    "expires_in": 900,
+    "is_new_account": false,
+    "principal": {
+      "account_id": "a0000000-0000-4000-8000-000000000001",
+      "session_id": "29074233-663c-487a-affb-bbaa2616bdb7",
+      "roles": [
+        {
+          "role": "SUPER_ADMIN",
+          "scope_type": "GLOBAL",
+          "scope_id": null
+        }
+      ],
+      "amr": "pwd+totp",
+      "status": "ACTIVE",
+      "locale": "en-CA",
+      "timezone": "America/Toronto",
+      "next_route": "HOME"
+    }
+  }
+}

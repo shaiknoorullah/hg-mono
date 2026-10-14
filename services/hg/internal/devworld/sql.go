@@ -32,9 +32,9 @@ func migrationsRoot() (string, error) {
 	return "", fmt.Errorf("devworld: could not locate migrations/devworld/001_personas.sql from %s", start)
 }
 
-// ApplyPersonas loads the persona SQL: 001_personas.sql first, then every
-// other .sql file in migrations/devworld in name order. Each file is
-// idempotent and wraps itself in one transaction. None is applied by goose.
+// ApplyPersonas loads the persona SQL: 001_personas.sql, then every other
+// file in migrations/devworld in name order. Each file is idempotent and wraps
+// itself in one transaction. None is applied by goose.
 func ApplyPersonas(ctx context.Context, dsn string) error {
 	root, err := migrationsRoot()
 	if err != nil {
@@ -65,22 +65,18 @@ func ApplyPersonas(ctx context.Context, dsn string) error {
 	return nil
 }
 
-// personaSQLFiles lists migrations/devworld/*.sql with 001_personas.sql first.
-// The later files add to the world 001 creates, so each can grow on its own.
+// personaSQLFiles lists migrations/devworld/*.sql in name order, so
+// 001_personas.sql, which creates the persona table, runs first.
 func personaSQLFiles(root string) ([]string, error) {
 	files, err := filepath.Glob(filepath.Join(root, "devworld", "*.sql"))
 	if err != nil {
-		return nil, fmt.Errorf("devworld: list persona SQL: %w", err)
+		return nil, err
 	}
 	sort.Strings(files)
-	first := filepath.Join(root, "devworld", "001_personas.sql")
-	out := []string{first}
-	for _, f := range files {
-		if f != first {
-			out = append(out, f)
-		}
+	if len(files) == 0 || filepath.Base(files[0]) != "001_personas.sql" {
+		return nil, fmt.Errorf("devworld: migrations/devworld must start with 001_personas.sql")
 	}
-	return out, nil
+	return files, nil
 }
 
 func connect(ctx context.Context, dsn string) (*pgx.Conn, error) {

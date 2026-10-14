@@ -33,12 +33,14 @@ type Identity struct {
 var World = []Identity{
 	{Slug: "admin-seed", AccountID: "a0000000-0000-4000-8000-000000000001", Email: AdminEmail},
 	{Slug: "support-seed", AccountID: "a0000000-0000-4000-8000-000000000002", Email: "support-seed@seed.hg"},
+	{Slug: "ops-admin", AccountID: "a0000000-0000-4000-8000-000000000003", Email: "ops-admin@seed.hg"},
 	{Slug: "amina", AccountID: "a0000000-0000-4000-8000-000000000101", Phone: "+15550100101"},
 	{Slug: "nour", AccountID: "a0000000-0000-4000-8000-000000000102", Phone: "+15550100102"},
 	{Slug: "rider-sim", AccountID: "a0000000-0000-4000-8000-000000000151", Phone: "+15550100151"},
 	{Slug: "rider-docs", AccountID: "a0000000-0000-4000-8000-000000000152", Phone: "+15550100152"},
 	{Slug: "rider-rejected", AccountID: "a0000000-0000-4000-8000-000000000153", Phone: "+15550100153"},
 	{Slug: "rider-registered", AccountID: "a0000000-0000-4000-8000-000000000154", Phone: "+15550100154"},
+	{Slug: "rider-sim-2", AccountID: "a0000000-0000-4000-8000-000000000155", Phone: "+15550100155"},
 	{Slug: "fresh", AccountID: "a0000000-0000-4000-8000-000000000201", RestaurantID: "b0000000-0000-4000-8000-000000000201", Email: "fresh@seed.hg"},
 	{Slug: "profile", AccountID: "a0000000-0000-4000-8000-000000000202", RestaurantID: "b0000000-0000-4000-8000-000000000202", Email: "profile@seed.hg"},
 	{Slug: "docs-todo", AccountID: "a0000000-0000-4000-8000-000000000203", RestaurantID: "b0000000-0000-4000-8000-000000000203", Email: "docs-todo@seed.hg"},
@@ -57,9 +59,10 @@ var World = []Identity{
 	{Slug: "suspended", AccountID: "a0000000-0000-4000-8000-000000000212", RestaurantID: "b0000000-0000-4000-8000-000000000212", Email: "suspended@seed.hg"},
 }
 
-// AdminTOTPSecret derives the local admin authenticator secret from the email.
+// AdminTOTPSecret derives a local staff authenticator secret from the email.
 // The same input always yields the same secret, so a reset can re-enrol it
-// without storing the secret in the repository. Only the admin persona is enrolled.
+// without storing the secret in the repository. Reset enrols every persona in
+// Staff.
 func AdminTOTPSecret(email string) (string, error) {
 	email = strings.TrimSpace(strings.ToLower(email))
 	if email == "" {

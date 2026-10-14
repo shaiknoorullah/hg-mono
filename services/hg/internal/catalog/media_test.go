@@ -3,6 +3,8 @@ package catalog
 import (
 	"context"
 	"testing"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/testseed"
 )
 
 // TestResolverURLForKey pins the pure URL-construction rules: a media-bucket key
@@ -120,18 +122,17 @@ func TestResolverPublicURLReadsStoredObject(t *testing.T) {
 		) RETURNING id`, mediaID).Scan(&restID); err != nil {
 		t.Fatalf("seed restaurant: %v", err)
 	}
-	// halal_status is trigger-derived from the certificate chain (I-34.1); for a
-	// read-only visibility fixture we set it directly — no trigger fires on a
-	// restaurant UPDATE, so this sticks and is confined to the test row.
-	if _, err := pool.Exec(ctx, `UPDATE restaurant SET halal_status='CERTIFIED' WHERE id=$1`, restID); err != nil {
-		t.Fatalf("force visible: %v", err)
-	}
-
 	t.Cleanup(func() {
 		_, _ = pool.Exec(ctx, `DELETE FROM restaurant WHERE id=$1`, restID)
 		_, _ = pool.Exec(ctx, `DELETE FROM stored_object WHERE id = ANY($1)`, []string{mediaID, kycID, pendingID})
 		_, _ = pool.Exec(ctx, `DELETE FROM account WHERE id=$1`, acctID)
 	})
+	// Visible through the real certificate chain: the catalog shows the halal
+	// state as of now (halal_certification_at), so a hand-set
+	// restaurant.halal_status no longer makes a restaurant visible
+	// (https://github.com/shaiknoorullah/hg-mono/issues/346). Its cleanup runs
+	// before the one above.
+	testseed.CertifyRestaurant(t, pool, restID, 300)
 
 	wantURL := "http://localhost:9000/hg-media/" + mediaKey
 

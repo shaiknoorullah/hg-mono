@@ -25,10 +25,10 @@ func TestWorldLiteralsAreInTheSQL(t *testing.T) {
 		}
 		one := string(raw)
 		if strings.Contains(one, "+goose") {
-			t.Fatalf("%s must not be a goose migration", filepath.Base(path))
+			t.Fatalf("%s: devworld SQL must not be a goose migration", filepath.Base(path))
 		}
 		if !strings.Contains(one, "BEGIN;") || !strings.Contains(one, "COMMIT;") {
-			t.Fatalf("%s must be one transaction so its rows commit together", filepath.Base(path))
+			t.Fatalf("%s: devworld SQL must be one transaction so certificate checks commit together", filepath.Base(path))
 		}
 		all.WriteString(one)
 	}

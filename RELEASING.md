@@ -160,6 +160,11 @@ Outside `local`, the binary refuses to boot if any dependency still points at `l
 `HG_MINIO_PRESIGN_BASE_URL` is unset or not `https` (every signed link is a bearer credential),
 or if `HG_SMS_PROVIDER=twilio` with incomplete creds — misconfig fails loudly, never silently.
 
+Leave `HG_DEADLINE_RUNNER_HOLD=false`. Set it to `true` only for a failover or a restore: the order
+deadline runner then starts held and fires nothing until ops inserts a `deadline_runner_release`
+row, and the deadlines that fell in the gap are handled as outage actions, never by editing
+`deadline_at` by hand ([deadlines spec, "Outages"](docs/spec/01-platform.md#p-15--deadlines-and-timeout-actions-waits-forever-is-unrepresentable)).
+
 ## 5. Verify the gate (any time)
 
 ```bash
