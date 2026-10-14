@@ -167,6 +167,15 @@ func verifyTo(ctx context.Context, dsn string, out io.Writer) error {
 		return err
 	}
 	problems = append(problems, catProblems...)
+	if err := verifyDocumentFiles(ctx, conn, out); err != nil {
+		return err
+	}
+
+	staffProblems, err := verifyStaff(ctx, conn, out)
+	if err != nil {
+		return err
+	}
+	problems = append(problems, staffProblems...)
 
 	appProblems, err := verifyApplications(ctx, conn, out)
 	if err != nil {

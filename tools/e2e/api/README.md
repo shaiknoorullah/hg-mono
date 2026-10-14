@@ -1,7 +1,7 @@
 ---
 covers:
   - tools/e2e/api/**
-reviewed: 2026-10-05
+reviewed: 2026-10-10
 ---
 
 # API journey runner
@@ -41,6 +41,8 @@ The runner uses an issuing body that is already accepted. It does not propose on
 At the end the runner turns accepting-orders off when this run turned it on, and it cancels customer orders this run created when that order is still cancellable. It does not delete the restaurant, the accounts, or the documents. This API has no such delete. Point the runner at a database that a dev-world reset wipes.
 
 ## Reports and log access
+
+At pickup the rider sends the 4-digit pickup code the kitchen reads out, as the rider app does. The runner takes it from the restaurant's ready response, or from `GET /v1/restaurant/orders/{orderId}`, the only views that carry it. With no code on either, the delivery step fails as `PICKUP_CODE_MISSING`.
 
 Each run writes `steps.md` and `report.json` under `tools/e2e/api/.reports/<timestamp>/`. That directory is git-ignored. `--report-dir` chooses a different directory. The report records the payment-key mode and never the key.
 

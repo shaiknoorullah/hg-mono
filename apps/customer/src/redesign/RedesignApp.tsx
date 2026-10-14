@@ -3,8 +3,16 @@
  *
  * Light and dark follow the phone (`ThemeProvider` with no `scheme`), unlike the legacy app which
  * pins light. Fonts, Stripe and the safe area are the same as the legacy root.
+ *
+ * NativeWind (redesign N0): this root imports the compiled tokens (`global.customer.css`), bridges
+ * the colour scheme (no scheme given, so NativeWind follows the phone like `ThemeProvider`) and
+ * mounts the `@rn-primitives/portal` host last, so RNR overlays render above the shell.
  */
+import '@hg/ui-native/global.customer.css';
+
 import * as React from 'react';
+import { PortalHost } from '@rn-primitives/portal';
+import { HgColorSchemeBridge } from '@hg/ui-native/lib';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -34,11 +42,13 @@ export default function RedesignApp(): React.ReactElement | null {
     <StripeRoot>
       <SafeAreaProvider>
         <ThemeProvider theme="customer">
+          <HgColorSchemeBridge />
           <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
           <OrderingPauseProvider>
             <Shell />
             <PaymentSheetHost />
           </OrderingPauseProvider>
+          <PortalHost />
         </ThemeProvider>
       </SafeAreaProvider>
     </StripeRoot>
