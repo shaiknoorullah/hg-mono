@@ -1,0 +1,101 @@
+{
+  "scenario": "rider_application_under_18",
+  "domain": "admin",
+  "schema": "RiderApplication",
+  "describes": "The ID's date of birth makes the rider 17 (`computed_age_years: 17`), so the first blocker is \"Rider is under 18\". Approval is refused and no role can override it (`error_rider_under_18`).",
+  "operations": [
+    "getRiderApplication",
+    "takeNextRiderApplication"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "review-queue",
+    "rider",
+    "error-path"
+  ],
+  "payload": {
+    "rider_account_id": "83e44264-b412-45ea-ab23-804e6ed50d97",
+    "display_name": "Ayesha R.",
+    "vehicle_type": "BICYCLE",
+    "onboarding_state": "DOCUMENTS_REVIEW",
+    "attempt_number": 1,
+    "assigned_admin_id": "138fa339-791b-4547-ae91-5fb049a39a3c",
+    "review_lock_expires_at": "2026-08-10T19:07:11.412Z",
+    "submitted_at": "2026-08-09T22:42:11.412Z",
+    "sla_due_at": "2026-08-11T22:42:11.412Z",
+    "profile": {
+      "account_id": "83e44264-b412-45ea-ab23-804e6ed50d97",
+      "first_name": "Ayesha",
+      "last_name": "Rahman",
+      "email": "ayesha.r@example.com",
+      "date_of_birth": "2009-05-02",
+      "timezone": "America/Toronto"
+    },
+    "vehicle": {
+      "id": "81b5afc3-46cb-4bc1-a281-cec5c51194a8",
+      "vehicle_type": "BICYCLE",
+      "make": null,
+      "model": null,
+      "year": null,
+      "colour": null,
+      "licence_plate": null,
+      "is_active": true
+    },
+    "documents": [
+      {
+        "id": "3482b6d1-a507-40e9-a1aa-9a644eb21e8c",
+        "subject_type": "RIDER",
+        "subject_id": "83e44264-b412-45ea-ab23-804e6ed50d97",
+        "doc_type": "GOVERNMENT_ID",
+        "state": "IN_REVIEW",
+        "issuer": "Province of Ontario",
+        "certificate_number": null,
+        "issued_on": "2026-03-09",
+        "valid_until": "2027-09-14",
+        "version": 1,
+        "rejection_reason_code": null,
+        "review_note": null,
+        "reviewed_at": null,
+        "created_at": "2026-08-04T18:42:11.412Z"
+      },
+      {
+        "id": "f554e74e-d282-48d9-ac9a-a146ebae47bc",
+        "subject_type": "RIDER",
+        "subject_id": "83e44264-b412-45ea-ab23-804e6ed50d97",
+        "doc_type": "WORK_ELIGIBILITY",
+        "state": "IN_REVIEW",
+        "issuer": "Province of Ontario",
+        "certificate_number": null,
+        "issued_on": "2026-03-09",
+        "valid_until": "2027-09-14",
+        "version": 1,
+        "rejection_reason_code": null,
+        "review_note": null,
+        "reviewed_at": null,
+        "created_at": "2026-08-04T18:42:11.412Z"
+      },
+      {
+        "id": "554daf48-d3f7-4092-a14f-a5bc2063f2ab",
+        "subject_type": "RIDER",
+        "subject_id": "83e44264-b412-45ea-ab23-804e6ed50d97",
+        "doc_type": "PROFILE_PHOTO",
+        "state": "IN_REVIEW",
+        "issuer": "Province of Ontario",
+        "certificate_number": null,
+        "issued_on": "2026-03-09",
+        "valid_until": null,
+        "version": 1,
+        "rejection_reason_code": null,
+        "review_note": null,
+        "reviewed_at": null,
+        "created_at": "2026-08-04T18:42:11.412Z"
+      }
+    ],
+    "computed_age_years": 17,
+    "blockers": [
+      "Rider is under 18",
+      "No approved identity/vehicle document"
+    ]
+  }
+}

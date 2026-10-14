@@ -1,0 +1,79 @@
+{
+  "scenario": "realtime_admin_ops_truncated_resume",
+  "domain": "realtime",
+  "schema": "RealtimeEvent[]",
+  "describes": "The console comes back after a long sleep: the first `admin:ops` frame is `seq` 4812 where it last saw 2, it sends `resume {after_seq: 2}`, and the server answers `resume_complete {truncated: true, replayed: 0}` because the gap is older than the 7-day retention. The client refetches the queues over REST and resets its cursor; it never shows the gap as \"no alerts\".",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "realtime",
+    "script",
+    "admin",
+    "edge"
+  ],
+  "payload": [
+    {
+      "id": "BXCBRN7BTAT646N7NGZS1TZHFE",
+      "seq": 1,
+      "channel": "admin:ops",
+      "type": "admin.queue_depth",
+      "v": 1,
+      "ts": "2026-08-10T18:42:11.412Z",
+      "data": {
+        "pending_restaurant_reviews": 3,
+        "pending_rider_reviews": 5,
+        "open_disputes": 1,
+        "failed_refunds": 0
+      },
+      "_delay_ms": 0
+    },
+    {
+      "id": "S3EE3WQAAKA3P79JE4STW9C4Q4",
+      "seq": 2,
+      "channel": "admin:ops",
+      "type": "admin.alert",
+      "v": 1,
+      "ts": "2026-08-10T18:42:13.412Z",
+      "data": {
+        "severity": "high",
+        "kind": "webhook_refused",
+        "subject_type": "stripe_event",
+        "subject_id": "evt_3QkR7mE8xVn2LbQ1",
+        "message": "A Stripe webhook was refused: its signature did not verify.",
+        "at": "2026-08-10T18:42:13.412Z"
+      },
+      "_delay_ms": 2000
+    },
+    {
+      "id": "J6M6G9G969GNT6E15QF5Q016BD",
+      "seq": 4812,
+      "channel": "admin:ops",
+      "type": "admin.queue_depth",
+      "v": 1,
+      "ts": "2026-08-10T18:42:17.412Z",
+      "data": {
+        "pending_restaurant_reviews": 2,
+        "pending_rider_reviews": 7,
+        "open_disputes": 0,
+        "failed_refunds": 1
+      },
+      "_delay_ms": 6000
+    },
+    {
+      "id": "4WR64VC2SJHJJ962RR4CYMNV1T",
+      "seq": 0,
+      "channel": "",
+      "type": "resume_complete",
+      "v": 1,
+      "ts": "2026-08-10T18:42:17.812Z",
+      "data": {
+        "channel": "admin:ops",
+        "from_seq": 2,
+        "to_seq": 4812,
+        "replayed": 0,
+        "truncated": true
+      },
+      "_delay_ms": 6400
+    }
+  ]
+}
