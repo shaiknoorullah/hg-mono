@@ -132,7 +132,8 @@ Reset also seeds 14 live, certified restaurants within 8 km of both the Danforth
 
 | Persona | Role | Purpose |
 |---|---|---|
-| `customer-amina` | CUSTOMER, phone `+15550100101`, 3 saved addresses (near, far, unit/buzzer) | places every scenario order |
+| `customer-amina` | CUSTOMER, phone `+15550100101`, 3 saved addresses: `Home` (default, beside `bismillah-grill`), `Work` downtown (unit, buzzer and delivery instructions) and `Cottage` in Huntsville, outside every restaurant's delivery range | places every scenario order, from `Home`; `verify` checks the address book ([#681](https://github.com/shaiknoorullah/hg-mono/issues/681)) |
+| `nour` | CUSTOMER, phone `+15550100102`, no saved address | the empty address book |
 | `rider-sim` | RIDER, ACTIVE, Connect enabled, phone `+15550100151` | the journey's rider |
 | `rider-sim-2` | RIDER, ACTIVE, bicycle, Connect stand-in, offline, phone `+15550100155` | the second rider of the offer scenarios |
 | `admin-seed` | SUPER_ADMIN, email + password + TOTP | admin-decision scenarios |
@@ -179,6 +180,7 @@ The four offer scenarios ([#684](https://github.com/shaiknoorullah/hg-mono/issue
 | `offer-ignored` | as `offer-reject`, but `rider-sim` lets the offer expire | READY_FOR_PICKUP, assigned to `rider-sim-2` |
 | `offer-race` | both riders are online, both get the first wave's offer and accept at once | one assignment; the other accept is refused with a 409 |
 | `no-rider` | both riders offline; the order is made ready and the search runs to `NO_RIDER_FOUND` (about two minutes) | READY_FOR_PICKUP with no rider; prints the pickup deadline, 15 minutes after ready |
+| `application-in-review` / `application-reject` | the first half of `onboard-restaurant` stops once the documents are submitted; then `admin-seed` approves the documents, records the halal seven-check with the address check failing, sees approval refused, and rejects the certificate and the application ([#678](https://github.com/shaiknoorullah/hg-mono/issues/678)) | a new restaurant waits in `DOCUMENTS_REVIEW` with a pending certificate and no checks recorded, second in the console's take-next after `docs-review`; then it is `DOCUMENTS_REJECTED` and its owner has the reason as a notification, and `verify` counts both |
 | `onboard-admin` | `admin-seed` invites a new admin; the invitee sets the first password from the invitation link, signs in with the password alone, then turns two-step sign-in on and signs in again with password and code | the new admin reads the review queue and holds a password-and-code session that may move money; `make dev-totp email=…` prints its current code ([playbook](../../playbooks/admin/onboarding.md)) |
 | `offer-to-rider` | `rider-sim` goes online at `bismillah-grill`; an order is accepted and marked ready; dispatch offers it | `rider-sim` holds a pending offer (30 s, real TTL) for a ready order; answer it in the rider app |
 | `restaurant-timeout` | `new-order`, then the order's restaurant deadline is brought forward to 30 s (clock) | the ticker cancels it: `CANCELLED`, `RESTAURANT_TIMEOUT`, authorisation voided |

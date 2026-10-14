@@ -185,6 +185,17 @@ func verifyTo(ctx context.Context, dsn string, out io.Writer) error {
 		return err
 	}
 	problems = append(problems, ledgerProblems...)
+	appProblems, err := verifyApplications(ctx, conn, out)
+	if err != nil {
+		return err
+	}
+	problems = append(problems, appProblems...)
+
+	addrProblems, err := verifyAddresses(ctx, conn, out)
+	if err != nil {
+		return err
+	}
+	problems = append(problems, addrProblems...)
 
 	if adminHash == "" {
 		problems = append(problems, "admin password hash missing")

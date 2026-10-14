@@ -55,6 +55,8 @@ var ScenarioNames = []string{
 	"offer-race",
 	"no-rider",
 	"onboard-admin",
+	"application-in-review",
+	"application-reject",
 	"offer-to-rider",
 	"restaurant-timeout",
 	"admin-cancel",
@@ -87,6 +89,8 @@ var scenarioSummaries = map[string]string{
 	"offer-race":             "rider-sim and rider-sim-2 accept at once; one assignment, one refused",
 	"no-rider":               "both riders offline; the search ends NO_RIDER_FOUND (READY_FOR_PICKUP, no rider)",
 	"onboard-admin":          "an invited admin sets a password, signs in, turns on two-step sign-in and signs in with a code",
+	"application-in-review":  "a new restaurant waits in DOCUMENTS_REVIEW with a pending certificate and no checks",
+	"application-reject":     "admin-seed fails the address check, approval is refused, the application is rejected (DOCUMENTS_REJECTED)",
 	"offer-to-rider":         "rider-sim is online at bismillah-grill with a pending 30 s offer for a ready order",
 	"restaurant-timeout":     "an order's restaurant window is cut to 30 s; it times out (CANCELLED, RESTAURANT_TIMEOUT)",
 	"admin-cancel":           "admin-seed cancels an accepted order (CANCELLED, SUPPORT_CANCELLED, full refund)",
@@ -150,6 +154,10 @@ func RunScenario(ctx context.Context, baseURL, name string) error {
 		return scenarioPayoutRun(ctx, baseURL)
 	case "offer-reject", "offer-ignored", "offer-race", "no-rider":
 		return runOfferScenario(ctx, baseURL, name)
+	case "application-in-review":
+		return scenarioApplicationInReview(ctx, baseURL)
+	case "application-reject":
+		return scenarioApplicationReject(ctx, baseURL)
 	case "onboard-admin":
 		return scenarioOnboardAdmin(ctx, baseURL)
 	case "offer-to-rider":
