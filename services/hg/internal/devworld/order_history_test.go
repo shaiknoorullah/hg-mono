@@ -11,6 +11,9 @@ func TestOrderHistoryGetsLongerThanFiveMinutes(t *testing.T) {
 	if got := ScenarioTimeout("order-history"); got < 8*time.Minute {
 		t.Fatalf("order-history timeout %s; it needs the deadline, the journey and the settle wait", got)
 	}
+	if got := ScenarioTimeout("refund-decisions"); got < 8*time.Minute {
+		t.Fatalf("refund-decisions timeout %s; it drives two journeys to completion", got)
+	}
 	if got := ScenarioTimeout("new-order"); got != 5*time.Minute {
 		t.Fatalf("new-order timeout %s, want 5m", got)
 	}

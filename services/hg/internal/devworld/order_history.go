@@ -29,9 +29,12 @@ import (
 const OrderHistoryTimeout = 10 * time.Minute
 
 // ScenarioTimeout is how long `devworld scenario name` may run: five minutes,
-// or OrderHistoryTimeout for order-history.
+// or longer for the scenarios that drive journeys to completion.
 func ScenarioTimeout(name string) time.Duration {
-	if name == "order-history" {
+	switch name {
+	case "refund-decisions":
+		return RefundDecisionsTimeout
+	case "order-history":
 		return OrderHistoryTimeout
 	}
 	return 5 * time.Minute

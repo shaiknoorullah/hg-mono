@@ -449,10 +449,18 @@ type offerPickupWire struct {
 // offerDropoffWire is the drop-off's approximate area only: no street number,
 // no unit, and a point about a kilometre across, never the address's own.
 type offerDropoffWire struct {
-	Area string  `json:"area"`
-	Lat  float64 `json:"lat"`
-	Lng  float64 `json:"lng"`
+	Area    string  `json:"area"`
+	Lat     float64 `json:"lat"`
+	Lng     float64 `json:"lng"`
+	RadiusM int32   `json:"radius_m"`
 }
+
+// offerAreaRadiusM is the radius of the circle around the rounded drop-off
+// point that is sure to contain the address. areaDegrees moves each
+// coordinate by at most 0.005 degrees: about 556 m north–south, and at most
+// 414 m east–west south of Canada's southernmost point (41.7° N), so the
+// address is within 693 m.
+const offerAreaRadiusM = 700
 
 // areaDegrees rounds a coordinate to two decimals: a cell about 1.1 km
 // north–south and 0.8 km east–west at Ontario's latitudes. That is a
@@ -480,7 +488,7 @@ func dispatchOfferPayload(s DispatchOffer) dispatchOfferWire {
 			RestaurantName: s.Pickup.RestaurantName, AddressShort: s.Pickup.AddressShort,
 			Lat: s.Pickup.Lat, Lng: s.Pickup.Lng,
 		},
-		Dropoff:   offerDropoffWire{Area: s.Dropoff.Area, Lat: lat, Lng: lng},
+		Dropoff:   offerDropoffWire{Area: s.Dropoff.Area, Lat: lat, Lng: lng, RadiusM: offerAreaRadiusM},
 		DistanceM: s.DistanceM, EstDurationS: s.EstDurationS,
 		EarningsCents: s.EarningsCents, TipCentsEstimate: s.TipCentsEstimate, ItemsCount: s.ItemsCount,
 	}
