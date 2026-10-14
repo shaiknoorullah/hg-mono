@@ -50,6 +50,10 @@ var ScenarioNames = []string{
 	"payment-unpaid",
 	"capture-fails",
 	"payout-run",
+	"offer-reject",
+	"offer-ignored",
+	"offer-race",
+	"no-rider",
 	"onboard-admin",
 	"offer-to-rider",
 	"restaurant-timeout",
@@ -58,6 +62,8 @@ var ScenarioNames = []string{
 	"pickup-lapse-cancelled",
 	"cert-lapse-mid-order",
 	"order-completed",
+	"halal-lapse",
+	"halal-renew",
 }
 
 // scenarioSummaries is what `devworld scenario list` prints beside each name:
@@ -75,6 +81,10 @@ var scenarioSummaries = map[string]string{
 	"menu-reject":            "admin-seed rejects the oldest menu version waiting (menu persona)",
 	"onboard-restaurant":     "a new restaurant signs up and is approved to take orders",
 	"onboard-rider":          "a new rider signs up, is approved and goes online",
+	"offer-reject":           "rider-sim rejects the offer; rider-sim-2 accepts the next wave (READY_FOR_PICKUP, assigned)",
+	"offer-ignored":          "rider-sim lets the offer expire; rider-sim-2 accepts the next wave (READY_FOR_PICKUP, assigned)",
+	"offer-race":             "rider-sim and rider-sim-2 accept at once; one assignment, one refused",
+	"no-rider":               "both riders offline; the search ends NO_RIDER_FOUND (READY_FOR_PICKUP, no rider)",
 	"onboard-admin":          "an invited admin sets a password, signs in, turns on two-step sign-in and signs in with a code",
 	"offer-to-rider":         "rider-sim is online at bismillah-grill with a pending 30 s offer for a ready order",
 	"restaurant-timeout":     "an order's restaurant window is cut to 30 s; it times out (CANCELLED, RESTAURANT_TIMEOUT)",
@@ -87,6 +97,8 @@ var scenarioSummaries = map[string]string{
 	"payment-unpaid":         "amina's order waits for a card nobody confirms (CREATED, 15 min deadline)",
 	"capture-fails":          "nour's order is accepted but the fake refuses its capture (PREPARING, payment REQUIRES_CAPTURE, no ledger batch)",
 	"payout-run":             "admin-seed runs the weekly payout for bismillah-grill (NOTHING_DUE until its week closes)",
+	"halal-lapse":            "the certificate expiry job runs as of two days ahead; expiring-halal reads EXPIRED and is delisted (local only, dev-reset undoes it)",
+	"halal-renew":            "after halal-lapse: the owner attaches a new certificate and admin-seed approves it; expiring-halal is CERTIFIED and LIVE again",
 }
 
 // RunScenario signs in as the personas the scenario needs and calls the API
@@ -134,6 +146,8 @@ func RunScenario(ctx context.Context, baseURL, name string) error {
 		return scenarioCaptureFails(ctx, baseURL)
 	case "payout-run":
 		return scenarioPayoutRun(ctx, baseURL)
+	case "offer-reject", "offer-ignored", "offer-race", "no-rider":
+		return runOfferScenario(ctx, baseURL, name)
 	case "onboard-admin":
 		return scenarioOnboardAdmin(ctx, baseURL)
 	case "offer-to-rider":
@@ -150,6 +164,10 @@ func RunScenario(ctx context.Context, baseURL, name string) error {
 		return scenarioCertLapse(ctx, baseURL)
 	case "order-completed":
 		return scenarioOrderCompleted(ctx, baseURL)
+	case "halal-lapse":
+		return scenarioHalalLapse(ctx, baseURL)
+	case "halal-renew":
+		return scenarioHalalRenew(ctx, baseURL)
 	default:
 		return fmt.Errorf("devworld: unknown scenario %q", name)
 	}

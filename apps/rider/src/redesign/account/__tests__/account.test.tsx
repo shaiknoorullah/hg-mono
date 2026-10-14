@@ -256,7 +256,7 @@ describe.each(SCHEMES)('Account tab (%s)', (scheme) => {
   });
 
   it('Delete account by request: Call support, Email support only with an address (PA/Account-Delete-Request)', async () => {
-    api = mockApi({ getRiderMe: riderMe(), getPublicConfig: config() });
+    api = mockApi({ getRiderMe: riderMe(), getPublicConfig: config({ support_email: null }) });
     renderAccount(scheme);
     await screen.findByText('Yusuf Ahmed');
     fireEvent.press(screen.getByTestId('row-delete'));

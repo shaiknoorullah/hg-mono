@@ -2,11 +2,8 @@
   "scenario": "payout_transferring",
   "domain": "rider",
   "schema": "Payout",
-  "describes": "Submitted to Stripe Connect.",
-  "operations": [
-    "listRiderPayouts",
-    "listRestaurantPayouts"
-  ],
+  "describes": "Submitted to Stripe Connect. A single `Payout` row; the list operations serve `payout_list_*`.",
+  "operations": [],
   "status": 200,
   "tags": [
     "payout-state-matrix",

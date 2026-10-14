@@ -1,0 +1,28 @@
+{
+  "scenario": "error_check_failed",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `CHECK_FAILED`. Approving with a check that failed. `details.check_keys` lists the failed checks; the certificate can only be rejected.",
+  "operations": [
+    "decideHalalCertificate"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "admin",
+    "halal"
+  ],
+  "payload": {
+    "error": {
+      "code": "CHECK_FAILED",
+      "message": "The seven checks are not all present and PASS.",
+      "request_id": "CQ0CDCNS9QRWG22Z9HWQC5083J",
+      "details": {
+        "check_keys": [
+          "H2_ISSUER_ACCEPTED"
+        ]
+      }
+    }
+  }
+}
