@@ -169,6 +169,7 @@ The four offer scenarios ([#684](https://github.com/shaiknoorullah/hg-mono/issue
 | `menu-approve` / `menu-reject` | `admin-seed` decides the pending menu version | review badge resolves |
 | `onboard-restaurant` | a new restaurant signs up and completes onboarding; `admin-seed` approves its documents, halal certificate, application and first menu item | the new restaurant is `ACTIVE` and its approved item is on the customer menu ([playbook](../../playbooks/restaurant/onboarding.md)) |
 | `onboard-rider` | a new rider signs in with a fresh number, submits profile, bicycle and documents; `admin-seed` approves them and the application; the rider sets up payouts and goes online | the new rider is `ACTIVE` and online beside `bismillah-grill` ([playbook](../../playbooks/rider/onboarding.md)) |
+| `refund-decisions` | `amina` asks for a full refund and a partial refund on two completed orders; `admin-seed`, signed in with its authenticator code, approves the first and declines the second ([#679](https://github.com/shaiknoorullah/hg-mono/issues/679)). Orders are reused across runs; when amina has too few, it drives up to two journeys first, without their refund request, and ends the rider's shift | one refund `SUBMITTED` (the local fake payment client never reports it succeeded), one `DECLINED` with its notification; each order's ledger entries sum to zero |
 | `offer-reject` | only `rider-sim` is online when the order is ready; it rejects the offer, `rider-sim-2` comes online and accepts the next wave's offer | READY_FOR_PICKUP, assigned to `rider-sim-2` |
 | `offer-ignored` | as `offer-reject`, but `rider-sim` lets the offer expire | READY_FOR_PICKUP, assigned to `rider-sim-2` |
 | `offer-race` | both riders are online, both get the first wave's offer and accept at once | one assignment; the other accept is refused with a 409 |
@@ -233,7 +234,7 @@ Two runners, same playbook:
 
 ## 8. Verification
 
-1. **World verify in CI** — `devworld reset` against an empty migrated database; `devworld verify` asserts every manifest persona is in its declared state (signing in through the API as each persona where the state is visible that way). Non-zero exit fails CI.
+1. **World verify in CI** — `devworld reset` against an empty migrated database; `devworld verify` asserts every manifest persona is in its declared state (signing in through the API as each persona where the state is visible that way). Non-zero exit fails CI. It also reads the whole ledger and fails when any batch or order does not sum to zero, so it can be run after the money scenarios too.
 2. **Journey** — `journey --auto=all --speed=max` stops when the restaurant cannot bind a seal. Delivered, and a ledger that sums to zero, wait on an issued seal. The command does not insert one.
 3. **Acceptance** — the restaurant `journey.md` playbook run end to end in the user's Chrome via Claude in Chrome, in front of the user.
 
