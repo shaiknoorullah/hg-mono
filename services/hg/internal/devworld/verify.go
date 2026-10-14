@@ -183,6 +183,12 @@ func verifyTo(ctx context.Context, dsn string, out io.Writer) error {
 	}
 	problems = append(problems, ledgerProblems...)
 
+	addrProblems, err := verifyAddresses(ctx, conn, out)
+	if err != nil {
+		return err
+	}
+	problems = append(problems, addrProblems...)
+
 	if adminHash == "" {
 		problems = append(problems, "admin password hash missing")
 	} else if ok, err := PasswordMatches(ctx, adminHash); err != nil {
