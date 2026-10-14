@@ -376,7 +376,7 @@ Not filed as dev world issues:
 | Area | Issue | Proposed |
 |---|---|---|
 | Admin | [#677](https://github.com/shaiknoorullah/hg-mono/issues/677) support agent and admin staff who can sign in | personas `support-seed` (enrolled), `ops-admin` |
-| Admin | [#678](https://github.com/shaiknoorullah/hg-mono/issues/678) a restaurant application waiting for halal verification | `application-in-review`, `application-reject` |
+| Admin | [#678](https://github.com/shaiknoorullah/hg-mono/issues/678) a restaurant application held for halal verification | `application-in-review`, `application-reject` |
 | Money | [#680](https://github.com/shaiknoorullah/hg-mono/issues/680) a declined card and an unpaid order without Stripe keys | `payment-failed`, `payment-unpaid` |
 | Money | [#676](https://github.com/shaiknoorullah/hg-mono/issues/676), already filed: payout run, capture failure | `payout-run`, `capture-fails` |
 | Customer account | [#681](https://github.com/shaiknoorullah/hg-mono/issues/681) an address book with an address out of range | personas: three addresses for `amina`, none for `nour` |
