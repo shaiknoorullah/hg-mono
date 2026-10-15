@@ -11,8 +11,9 @@
  * reads the restaurant's state first and puts it back at the end through the API, because
  * other suites share `bismillah-grill`.
  */
+import { copyShot, shoot } from './shots';
 import { expect, test, type APIRequestContext, type Page, type Route } from '@playwright/test';
-import { mkdirSync, copyFileSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 import { LIVE_OWNER, MOCK_API, MODE, REAL_API, documentScrolls, openSignedIn } from './redesign-restaurant.support';
 
 const SHOTS = process.env.E2E_SHOTS_DIR ?? '/tmp/claude-0/-home-user-hg-mono/d41301d3-8d3a-541d-a6f4-40d847c8b738/scratchpad/shots/wp9';
@@ -22,10 +23,10 @@ async function shot(page: Page, name: string) {
   const info = test.info();
   const viewport = info.project.name;
   const out = info.outputPath(`${viewport}-${name}.png`);
-  await page.screenshot({ path: out });
+  await shoot(page, out);
   try {
     mkdirSync(SHOTS, { recursive: true });
-    copyFileSync(out, `${SHOTS}/${viewport}-${name}.png`);
+    copyShot(out, `${SHOTS}/${viewport}-${name}.png`);
   } catch {
     /* screenshots are evidence, not a test result */
   }

@@ -8,9 +8,10 @@
  * with deadlines moved to now (fixture request: live-deadline pending orders, #676). Accept
  * answers from `restaurant_order_preparing`, errors from `error_capture_failed`.
  */
+import { copyShot, shoot } from './shots';
 import { expect, test, type Page, type Request, type TestInfo } from '@playwright/test';
 import { execSync } from 'node:child_process';
-import { copyFileSync, mkdirSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { DEVWORLD, MOCK_API, MODE, REAL_API, documentScrolls, liveAccessToken, openSignedIn } from './redesign-restaurant.support';
 import { projectMeta } from './mode';
@@ -19,10 +20,10 @@ const SHOTS = process.env.WP3_SHOTS_DIR;
 
 async function shot(page: Page, info: TestInfo, state: string) {
   const file = info.outputPath(`${state}.png`);
-  await page.screenshot({ path: file });
+  await shoot(page, file);
   if (SHOTS) {
     mkdirSync(SHOTS, { recursive: true });
-    copyFileSync(file, join(SHOTS, `${info.project.name}-${state}.png`));
+    copyShot(file, join(SHOTS, `${info.project.name}-${state}.png`));
   }
 }
 

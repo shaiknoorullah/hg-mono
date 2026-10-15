@@ -1,6 +1,8 @@
 import { test, type Page } from '@playwright/test';
-import { mkdirSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { resolveBrowser } from '@hg/design-diff/browser';
+import { snapshotLayout } from '@hg/design-diff/page-scripts';
 import { OUT as out } from '../lib/paths.mjs';
 
 /**
@@ -23,7 +25,7 @@ export function stepper(app: string, prefix: string) {
     await test.step(name, async () => {
       await body();
       const file = path.join(dir, `${label}.png`);
-      await page.screenshot({ path: file, fullPage: true });
+      await shoot(page, file, { fullPage: true });
       await test.info().attach(label, { path: file, contentType: 'image/png' });
     });
   };
@@ -34,4 +36,23 @@ function variantDir(): string {
   if (!meta.flag || !meta.viewport) return '';
   const variant = `${meta.flag}-${meta.viewport}${meta.mode === 'mock' ? '-mock' : ''}`;
   return variant === 'legacy-desktop' ? '' : variant;
+}
+
+/**
+ * A screenshot with its layout snapshot and the browser that took it beside it, so design-diff can
+ * word the differences and accept the pair (tools/design-diff/README.md, "One browser for both sides").
+ */
+export async function shoot(page: Page, file: string, options: { fullPage?: boolean } = {}): Promise<void> {
+  await page.screenshot({ path: file, ...options });
+  writeFileSync(file.replace(/\.png$/, '.layout.json'), JSON.stringify(await page.evaluate(snapshotLayout)));
+  const chromium = page.context().browser()?.version() ?? null;
+  writeFileSync(file.replace(/\.png$/, '.capture.json'), JSON.stringify({ browser: resolveBrowser().label, chromium }));
+}
+
+/** Copies a screenshot with the layout and capture records `shoot` wrote beside it. */
+export function copyShot(from: string, to: string): void {
+  for (const ext of ['.png', '.layout.json', '.capture.json']) {
+    const src = from.replace(/\.png$/, ext);
+    if (existsSync(src)) copyFileSync(src, to.replace(/\.png$/, ext));
+  }
 }
