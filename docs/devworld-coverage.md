@@ -138,7 +138,7 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [R-33](spec/03-restaurant.md#r-33--escalations-and-disputes) | Escalations and disputes | — | Not in V1 | — |
 | [R-34](spec/03-restaurant.md#r-34--notifications-and-alerts) | Notifications | In-app rows and emails in the API log; the inbox comes after launch | Partial | [#185](https://github.com/shaiknoorullah/hg-mono/issues/185) |
 | [R-35](spec/03-restaurant.md#r-35--support-and-help) | Support and help | Phone line from the public config; tickets come after launch | Partial | [#190](https://github.com/shaiknoorullah/hg-mono/issues/190) |
-| [R-36](spec/03-restaurant.md#r-36--account-status-suspension-reinstatement-and-in-flight-orders) | Suspended, and back again | `suspended` shows a suspended restaurant; no operation suspends or reinstates | Partial | [#253](https://github.com/shaiknoorullah/hg-mono/issues/253) |
+| [R-36](spec/03-restaurant.md#r-36--account-status-suspension-reinstatement-and-in-flight-orders) | Suspended, and back again | `suspended` shows a suspended restaurant; the admin console can suspend and reinstate it, but no scenario does | Partial | [#858](https://github.com/shaiknoorullah/hg-mono/issues/858) |
 
 ## Rider app
 
@@ -205,14 +205,14 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [A-19](spec/05-admin.md#a-19--menu-approval-queue) | Menu review queue | `menu`, then `s=menu-approve` or `s=menu-reject` | Covered | — |
 | [A-20](spec/05-admin.md#a-20--restaurant-compliance-monitoring-violations-register) | Violations register | — | Not in V1 | — |
 | [A-21](spec/05-admin.md#a-21--restaurant-performance-monitoring) | Restaurant performance | — | Not in V1 | — |
-| [A-22](spec/05-admin.md#a-22--restaurant-account-state-actions-suspend--ban--deactivate--reinstate--delist) | Suspend, delist or reinstate a restaurant | `suspended`, `expired-halal` (delisted) and `paused` are seeded; no operation changes them | Missing | [#253](https://github.com/shaiknoorullah/hg-mono/issues/253) |
+| [A-22](spec/05-admin.md#a-22--restaurant-account-state-actions-suspend--ban--deactivate--reinstate--delist) | Suspend, delist or reinstate a restaurant | `suspended`, `expired-halal` (delisted) and `paused` are seeded; the admin console can change them, but no scenario does | Missing | [#858](https://github.com/shaiknoorullah/hg-mono/issues/858) |
 | [A-23](spec/05-admin.md#a-23--rider-onboarding-review-and-approval) | Rider onboarding review | `rider-docs`, `rider-rejected`, `make dev-scenario s=onboard-rider` | Covered | — |
 | [A-24](spec/05-admin.md#a-24--rider-document-expiry-monitoring) | Rider document expiry | No expiry job for rider documents yet | Missing | — |
 | [A-25](spec/05-admin.md#a-25--rider-performance-monitoring) | Rider performance | — | Not in V1 | — |
 | [A-26](spec/05-admin.md#a-26--rider-incident-handling) | Rider incidents | — | Not in V1 | — |
-| [A-27](spec/05-admin.md#a-27--rider-account-state-actions) | Suspend or reinstate a rider | No operation yet | Missing | [#253](https://github.com/shaiknoorullah/hg-mono/issues/253) |
-| [A-28](spec/05-admin.md#a-28--customer-account-state-actions) | Suspend or reinstate a customer | No operation yet | Missing | [#253](https://github.com/shaiknoorullah/hg-mono/issues/253) |
-| [A-29](spec/05-admin.md#a-29--in-flight-order-treatment-on-entity-state-change) | Orders in flight when an account changes | Waits on the account operations | Missing | [#253](https://github.com/shaiknoorullah/hg-mono/issues/253) |
+| [A-27](spec/05-admin.md#a-27--rider-account-state-actions) | Suspend or reinstate a rider | The admin console can; no scenario does | Missing | [#858](https://github.com/shaiknoorullah/hg-mono/issues/858) |
+| [A-28](spec/05-admin.md#a-28--customer-account-state-actions) | Suspend or reinstate a customer | The admin console can; no scenario does | Missing | [#858](https://github.com/shaiknoorullah/hg-mono/issues/858) |
+| [A-29](spec/05-admin.md#a-29--in-flight-order-treatment-on-entity-state-change) | Orders in flight when an account changes | Needs a scenario that changes an account | Missing | [#858](https://github.com/shaiknoorullah/hg-mono/issues/858) |
 | [A-30](spec/05-admin.md#a-30--review-moderation) | Review moderation | — | Not in V1 | — |
 | [A-31](spec/05-admin.md#a-31--abuse-and-fraud-report-handling) | Abuse and fraud reports | — | Not in V1 | — |
 | [A-32](spec/05-admin.md#a-32--feedback-and-ratings-review) | Feedback and ratings review | — | Not in V1 | — |
