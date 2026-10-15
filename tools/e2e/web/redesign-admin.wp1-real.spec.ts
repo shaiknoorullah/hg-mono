@@ -6,7 +6,7 @@ import { world } from '../lib/api.mjs';
 import { OUT } from '../lib/paths.mjs';
 import { freshTotp } from '../lib/totp.mjs';
 import { E2E_MODE } from './mode';
-import { stepper } from './shots';
+import { stepper, type StepBoard } from './shots';
 import { signOutAndExpectNotice } from './redesign-admin.support';
 
 // The real-API twin of redesign-admin.wp1.spec.ts (which runs in mock mode only): the same
@@ -84,10 +84,23 @@ const codeField = (page: Page) => page.getByRole('textbox', { name: 'Authenticat
 const appBar = (page: Page) => page.locator('#app-bar-heading');
 const nav = (page: Page) => page.getByRole('navigation', { name: 'Admin' });
 
+const SIGN_IN_ERRORS = {
+  unpairable: 'admin/restaurant-verification/SignIn-Errors',
+  reason: 'a composite: three sign-in error states drawn side by side in one board, so one screenshot cannot be compared with it',
+} as const;
+
+/** The design board each step must match, by step name; the boards are drawn at 1440 wide. Other steps have no board identified. */
+const REAL_BOARDS: Record<string, StepBoard> = {
+  'sign-in': { 1440: 'admin/restaurant-verification/Main' },
+  'wrong-password': SIGN_IN_ERRORS,
+  'code-needed': SIGN_IN_ERRORS,
+  'signed-out': { 1440: 'admin/restaurant-verification/Shell-SignedOut' },
+};
+
 test('admin signs in against the real API with password and TOTP, sees the admin sidebar, signs out', async ({ page }) => {
   const admin = liveAdmin();
   expect(admin.totpSecret, 'no TOTP secret: seed the e2e world, run `make dev-admin`, or set E2E_ADMIN_TOTP_SECRET').not.toBe('');
-  const step = stepper('redesign-admin', 'wp1-real');
+  const step = stepper('redesign-admin', 'wp1-real', REAL_BOARDS);
   const logins: number[] = [];
   page.on('response', (response) => {
     if (response.url().endsWith('/v1/auth/login') && response.request().method() === 'POST') logins.push(response.status());

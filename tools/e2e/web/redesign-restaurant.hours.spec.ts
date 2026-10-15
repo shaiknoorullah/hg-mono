@@ -12,6 +12,7 @@
  * other suites share `bismillah-grill`.
  */
 import { copyShot, shoot } from './shots';
+import { declareUnpairable, expectDesignFor, type BoardFor } from './design';
 import { expect, test, type APIRequestContext, type Page, type Route } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { LIVE_OWNER, MOCK_API, MODE, REAL_API, documentScrolls, openSignedIn } from './redesign-restaurant.support';
@@ -19,8 +20,28 @@ import { LIVE_OWNER, MOCK_API, MODE, REAL_API, documentScrolls, openSignedIn } f
 const SHOTS = process.env.E2E_SHOTS_DIR ?? '/tmp/claude-0/-home-user-hg-mono/d41301d3-8d3a-541d-a6f4-40d847c8b738/scratchpad/shots/wp9';
 
 /** Saves a screenshot in the test's output and, named `<viewport>-<state>.png`, in SHOTS. */
+
+/** The design board each state must match; a state with no entry has no board that could be identified. */
+const BOARD: Record<string, BoardFor> = {
+  view: { 1440: 'restaurant/menu-hours/HoursView', 1024: 'restaurant/menu-hours/Tablet-Hours' },
+  paused: 'restaurant/menu-hours/HoursPaused',
+  edit: { 1440: 'restaurant/menu-hours/HoursEdit', 1024: 'restaurant/menu-hours/Tablet-HoursEdit' },
+  overlap: 'restaurant/menu-hours/HoursOverlap',
+  saved: 'restaurant/menu-hours/HoursSaved',
+  unsaved: 'restaurant/menu-hours/HoursUnsaved',
+  'special-panel': 'restaurant/menu-hours/HoursOverrideModal',
+  error: 'restaurant/menu-hours/HoursError',
+  none: 'restaurant/menu-hours/HoursNone',
+  suspended: 'restaurant/menu-hours/HoursSuspended',
+};
+
 async function shot(page: Page, name: string) {
   const info = test.info();
+  const board = BOARD[name];
+  if (board) await expectDesignFor(page, board);
+  if (name === 'pause-menu') {
+    await declareUnpairable(page, 'restaurant/menu-hours/HoursPauseMenu', 'the board is a 1440x1900 sheet that draws the pause choices at a size the page never has; a 1440x900 capture has no region to compare');
+  }
   const viewport = info.project.name;
   const out = info.outputPath(`${viewport}-${name}.png`);
   await shoot(page, out);

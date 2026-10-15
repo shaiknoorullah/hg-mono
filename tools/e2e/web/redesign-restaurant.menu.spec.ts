@@ -11,6 +11,7 @@
  *   (`bismillah-grill`, `suspended`). Every change a journey makes is put back at its end.
  */
 import { copyShot, shoot } from './shots';
+import { declareUnpairable, expectDesignFor, type BoardFor } from './design';
 import { execSync } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import { expect, test, type APIRequestContext, type Page, type TestInfo } from '@playwright/test';
@@ -20,7 +21,35 @@ import { projectMeta } from './mode';
 const SHOTS = process.env.E2E_SHOTS_DIR ?? '/tmp/claude-0/-home-user-hg-mono/d41301d3-8d3a-541d-a6f4-40d847c8b738/scratchpad/shots/wp8';
 
 /** Saves a screenshot to the test output and to the WP shots folder as `<viewport>-<state>.png`. */
+
+/** The design board each state must match; a state with no entry has no board that could be identified. */
+const BOARD: Record<string, BoardFor> = {
+  default: { 1440: 'restaurant/menu-hours/Main', 1024: 'restaurant/menu-hours/Tablet-Menu' },
+  'category-all-out': 'restaurant/menu-hours/MenuCategoryOut',
+  loading: 'restaurant/menu-hours/MenuLoading',
+  error: 'restaurant/menu-hours/MenuError',
+  'first-run': 'restaurant/menu-hours/MenuFirstRun',
+  'category-panel': 'restaurant/menu-hours/MenuCreateCategory',
+  'category-taken': 'restaurant/menu-hours/MenuCategoryTaken',
+  'availability-length-menu': { 1440: 'restaurant/menu-hours/MenuAvailabilitySwitch', 1024: 'restaurant/menu-hours/Tablet-MenuAvailability' },
+  details: { 1440: 'restaurant/menu-hours/MenuRowDetails', 1024: 'restaurant/menu-hours/Tablet-MenuDetails' },
+  'editor-new': { 1440: 'restaurant/menu-hours/EditorNew', 1024: 'restaurant/menu-hours/Tablet-ItemEditor' },
+  'editor-errors': 'restaurant/menu-hours/EditorErrors',
+  'editor-pending': 'restaurant/menu-hours/EditorPending',
+  'editor-rejected': 'restaurant/menu-hours/EditorRejected',
+  search: 'restaurant/menu-hours/MenuSearchResults',
+  'filtered-empty': 'restaurant/menu-hours/MenuFilteredEmpty',
+  suspended: 'restaurant/menu-hours/MenuSuspended',
+  'cert-expired': 'restaurant/menu-hours/MenuCertificateExpired',
+  deactivated: 'restaurant/menu-hours/MenuDeactivated',
+};
+
 async function shot(page: Page, info: TestInfo, state: string) {
+  const board = BOARD[state];
+  if (board) await expectDesignFor(page, board);
+  if (state === 'availability-blocked-refusal') {
+    await declareUnpairable(page, 'restaurant/menu-hours/MenuAvailability', 'a composite: saving, a failed change, a blocked refusal and a stored end time are drawn side by side in one board');
+  }
   const file = info.outputPath(`${state}.png`);
   await shoot(page, file);
   try {
