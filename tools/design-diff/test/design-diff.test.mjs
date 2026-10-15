@@ -3,11 +3,11 @@
 
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
-import { exitCodeFor, referenceIncomplete, unusableReference } from '../src/diff.mjs';
+import { declaredBoard, exitCodeFor, findCaptures, referenceIncomplete, unusableReference } from '../src/diff.mjs';
 import { compare } from '../src/compare.mjs';
 import { parseInsets } from '../src/insets.mjs';
 import { compareLayouts } from '../src/layout-diff.mjs';
@@ -93,7 +93,8 @@ test('layout findings: copy, type, colour, box and spacing in words', () => {
 
 test('the diff fails by default: any non-PASS verdict exits 1, --no-strict exits 0', () => {
   assert.equal(exitCodeFor([{ verdict: 'PASS' }]), 0);
-  for (const verdict of ['FAIL', 'NO BOARD', 'DEFECTIVE REFERENCE', 'NOT COMPARED', 'BROWSER MISMATCH', 'NO PROVENANCE']) {
+  assert.equal(exitCodeFor([{ verdict: 'PASS' }, { verdict: 'UNPAIRABLE' }]), 0, 'a declared, reasoned exclusion is not a failure');
+  for (const verdict of ['FAIL', 'NO BOARD', 'UNCOVERED', 'DEFECTIVE REFERENCE', 'NOT COMPARED', 'BROWSER MISMATCH', 'NO PROVENANCE']) {
     assert.equal(exitCodeFor([{ verdict: 'PASS' }, { verdict }]), 1, `${verdict} fails the run`);
     assert.equal(exitCodeFor([{ verdict }], false), 0, `${verdict} under --no-strict`);
   }
@@ -134,7 +135,7 @@ test('browser guard: matching browsers compare; another or unrecorded browser is
     const app = path.join(caps, 'restaurant');
     mkdirSync(app);
     writePng(path.join(app, 'design--home--Board.png'), canvas(20, 20, WHITE));
-    if (sidecar) writeFileSync(path.join(app, 'design--home--Board.capture.json'), JSON.stringify(sidecar));
+    if (sidecar) writeFileSync(path.join(app, 'design--home--Board.capture.json'), JSON.stringify({ board: 'restaurant/home/Board', ...sidecar }));
     return spawnSync(process.execPath, [path.join(import.meta.dirname, '../src/diff.mjs'), '--refs', refs, '--captures', caps, '--out', path.join(dir, 'out'), ...extra], { encoding: 'utf8' });
   };
 
@@ -153,7 +154,7 @@ test('browser guard: matching browsers compare; another or unrecorded browser is
   assert.equal(otherVersion.status, 1);
   assert.match(otherVersion.stdout, /Chromium 148\.0\.1.*Chromium 147\.0\.0/);
 
-  for (const none of [null, {}]) {
+  for (const none of [{}]) {  // a declared board and no browser recorded
     const unknown = run(none);
     assert.equal(unknown.status, 1, unknown.stdout);
     assert.match(unknown.stdout, /BROWSER MISMATCH.*records no browser/);
@@ -216,11 +217,11 @@ test('a reference with assets that failed to load is DEFECTIVE REFERENCE: named,
   const root = path.join(dir, 'caps');
   const caps = path.join(root, 'restaurant');
   mkdirSync(caps, { recursive: true });
-  const sidecar = JSON.stringify({ browser: 'chrome-linux64/chrome', chromium: '148.0.1' });
+  const sidecar = (name) => JSON.stringify({ board: `restaurant/home/${name}`, browser: 'chrome-linux64/chrome', chromium: '148.0.1' });
   for (const name of ['Broken', 'Board']) {
     // A capture that differs from the board: were the broken one compared it would FAIL with a percentage.
     writePng(path.join(caps, `design--home--${name}.png`), name === 'Broken' ? paint(canvas(20, 20, WHITE), 0, 0, 20, 20) : canvas(20, 20, WHITE));
-    writeFileSync(path.join(caps, `design--home--${name}.capture.json`), sidecar);
+    writeFileSync(path.join(caps, `design--home--${name}.capture.json`), sidecar(name));
   }
   const run = (...extra) => spawnSync(process.execPath, [path.join(import.meta.dirname, '../src/diff.mjs'), '--refs', refs, '--captures', root, '--out', path.join(dir, 'out'), ...extra], { encoding: 'utf8' });
   const r = run();
@@ -245,4 +246,94 @@ test('wordmark: each surface gets the packaged artwork with the letterforms in t
   assert.doesNotMatch(wordmarkSvg('dark', css), /#D0D0D1/);
   assert.throws(() => wordmarkSvg('dark', ':root {}'), /cannot resolve/);
   assert.ok(Object.values(WORDMARK_UPLOADS).every((u) => ['dark', 'light', 'chrome'].includes(u.surface)));
+});
+
+/** A refs dir with the given board ids, and a captures dir holding the given [relative path, sidecar] pairs. */
+function declaredRun(boardIds, captures) {
+  const dir = mkdtempSync(path.join(tmpdir(), 'dd-'));
+  const refs = path.join(dir, 'refs');
+  const caps = path.join(dir, 'caps');
+  mkdirSync(refs);
+  writePng(path.join(refs, 'b.png'), canvas(20, 20, WHITE));
+  const board = { file: 'b.png', w: 20, h: 20, scale: 1, errors: [], notes: [], caveats: [], browser: { chromium: '148.0.7778.96', binary: 'chrome-linux64/chrome' } };
+  writeFileSync(path.join(refs, 'manifest.json'), JSON.stringify({ boards: Object.fromEntries(boardIds.map((id) => [id, board])), areas: {} }));
+  for (const [rel, sidecar] of captures) {
+    const file = path.join(caps, rel);
+    mkdirSync(path.dirname(file), { recursive: true });
+    writePng(file, canvas(20, 20, WHITE));
+    if (sidecar) writeFileSync(file.replace(/\.png$/, '.capture.json'), JSON.stringify(sidecar));
+  }
+  const run = () => spawnSync(process.execPath, [path.join(import.meta.dirname, '../src/diff.mjs'), '--refs', refs, '--captures', caps, '--out', path.join(dir, 'out'), '--no-strict'], { encoding: 'utf8' });
+  return { caps, run, results: () => JSON.parse(readFileSync(path.join(dir, 'out/results.json'), 'utf8')) };
+}
+
+test('declared boards: the sidecar says which board; a file name that says another is ignored', () => {
+  assert.deepEqual(declaredBoard({ board: 'admin/orders/Main' }), { kind: 'declared', id: 'admin/orders/Main' });
+  assert.deepEqual(declaredBoard({ board: null }), { kind: 'none' });
+  assert.deepEqual(declaredBoard({ browser: 'x' }), { kind: 'absent' });
+  assert.equal(declaredBoard(null).kind, 'absent');
+  const { caps, run, results } = declaredRun(['admin/orders/Main', 'admin/orders/Other'], [['admin/1440x900/design--orders--Other.png', { board: 'admin/orders/Main' }]]);
+  const [c] = findCaptures(caps);
+  assert.equal(c.id, 'admin/orders/Main');
+  assert.equal(c.pairing, 'declared');
+  assert.match(run().stdout, /paired by declaration: 1/);
+  assert.equal(results().pairs[0].id, 'admin/orders/Main');
+  assert.throws(() => findCaptures(caps, { map: { 'admin/1440x900/design--orders--Other.png': 'admin/orders/Other' } }), /a declared board wins/);
+});
+
+test('a declared board that is not in the references is NO BOARD, naming it, never matched to another', () => {
+  const { run, results } = declaredRun(['admin/orders/Main'], [['admin/1440x900/design--orders--Main.png', { board: 'admin/orders/Mian' }]]);
+  run();
+  const [p] = results().pairs;
+  assert.equal(p.verdict, 'NO BOARD');
+  assert.equal(p.id, 'admin/orders/Mian');
+  assert.match(p.reason, /names admin\/orders\/Mian, which is not in the reference manifest/);
+});
+
+test('unpairable: never compared, carries the spec\'s reason, counted apart, does not fail the run', () => {
+  const sidecar = { board: null, unpairable: { board: 'admin/restaurant-verification/SignIn-Errors', reason: 'a composite of three states' } };
+  const { caps, run, results } = declaredRun(['admin/restaurant-verification/SignIn-Errors'], [['admin/unpairable/1440x900/design--restaurant-verification--SignIn-Errors.png', sidecar]]);
+  const out = run();
+  const [p] = results().pairs;
+  assert.equal(p.verdict, 'UNPAIRABLE');
+  assert.equal(p.reason, 'a composite of three states');
+  assert.equal(p.mismatchPct, undefined);
+  assert.match(out.stdout, /1 unpairable/);
+  assert.match(out.stdout, /uncaptured boards: 0/, 'a board the spec declared unpairable is not missing');
+  assert.equal(spawnSync(process.execPath, [path.join(import.meta.dirname, '../src/diff.mjs'), '--refs', path.join(caps, '../refs'), '--captures', caps, '--out', path.join(caps, '../o2')]).status, 0);
+});
+
+test('board: null and a web capture with no declaration are UNCOVERED, not guessed from the file name', () => {
+  const { run, results } = declaredRun(['admin/orders/Main'], [
+    ['admin/1440x900/design--orders--Main.png', { board: null }],
+    ['admin/390x844/design--orders--Main.png', {}],
+    ['admin/768x1024/design--orders--Main.png', null],
+  ]);
+  const out = run();
+  const pairs = results().pairs;
+  assert.deepEqual(pairs.map((p) => p.verdict), ['UNCOVERED', 'UNCOVERED', 'UNCOVERED']);
+  assert.match(pairs[0].reason, /board: null/);
+  assert.match(out.stdout, /3 uncovered/);
+  assert.match(out.stdout, /uncaptured boards: 1/);
+});
+
+test('--map still names a board for a capture that declares none; a native capture pairs by its file name', () => {
+  const { caps } = declaredRun(['admin/orders/Main', 'customer/home/Main'], [
+    ['admin/odd-name.png', null],
+    ['customer/design--home--Main.png', null],
+  ]);
+  const found = Object.fromEntries(findCaptures(caps, { map: { 'admin/odd-name.png': 'admin/orders/Main' } }).map((c) => [c.rel, c]));
+  assert.equal(found['admin/odd-name.png'].pairing, 'map');
+  assert.equal(found['admin/odd-name.png'].id, 'admin/orders/Main');
+  assert.equal(found['customer/design--home--Main.png'].pairing, 'name');
+  assert.equal(found['customer/design--home--Main.png'].id, 'customer/home/Main');
+});
+
+test('layout: a box drawn on one side only, or whose text is shared by several boxes, is reported', () => {
+  const box = (key, more = {}) => ({ key, x: 0, y: 0, w: 100, h: 40, radius: 8, bg: null, border: '1px solid rgb(0, 0, 0)', shadow: null, ...more });
+  const none = { texts: [] };
+  const words = compareLayouts({ ...none, boxes: [box('Save'), box('Item'), box('Item')] }, { ...none, boxes: [box('Item'), box('Item'), box('Cancel')] }).findings.map((f) => f.text).join('\n');
+  assert.match(words, /Box holding “Save” \(100×40, bordered\) is drawn in the design and not in the app/);
+  assert.match(words, /Box holding “Cancel” .* is drawn in the app and not in the design/);
+  assert.match(words, /Boxes holding “Item”: the text names more than one box on a side, so they were not compared/);
 });

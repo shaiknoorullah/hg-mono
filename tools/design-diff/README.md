@@ -1,7 +1,7 @@
 ---
 covers:
   - tools/design-diff/**
-reviewed: 2026-10-15
+reviewed: 2026-10-16
 ---
 
 # Design diff
@@ -92,7 +92,7 @@ browser, so this rule is for the web apps (restaurant, admin) only; see "Native 
 
 ## Compare
 
-`diff` (`src/diff.mjs`) pairs each capture under `--captures` with its board by name (below),
+`diff` (`src/diff.mjs`) pairs each capture under `--captures` with the board its spec declared (see Pairing),
 compares them (`src/compare.mjs`) and writes `<out>/results.json` and, per pair, `diff.png` and
 `side-by-side.png` (design, app, difference) under `<out>/pairs/`.
 
@@ -106,7 +106,8 @@ compared; a taller one is cut to the board, a shorter one padded, and the paddin
 different. A board with any `failedAssets` is `DEFECTIVE REFERENCE`: the diff names the assets and does
 not compare it, because the missing picture is the renderer's and would be charged to the app as a UI
 difference. The diff fails by default: it exits 1 when any pair is FAIL, NO BOARD (including a board whose
-reference recorded errors), DEFECTIVE REFERENCE, NOT COMPARED, BROWSER MISMATCH or NO PROVENANCE; `--no-strict` reports and exits 0, `--strict` is an accepted
+reference recorded errors, and a declared board missing from the manifest), UNCOVERED, DEFECTIVE REFERENCE, NOT COMPARED, BROWSER MISMATCH or NO PROVENANCE;
+UNPAIRABLE, a capture its spec declared cannot be compared, does not fail the run; `--no-strict` reports and exits 0, `--strict` is an accepted
 alias of the default, and a crash or usage error exits 2. The summary also lists the uncaptured boards
 (boards of the rendered apps with no capture); that count alone does not fail the run.
 
@@ -115,9 +116,29 @@ matches texts and boxes with the board's and words what differs, most telling fi
 the design or only in the app, type ("28/34 bold in the design, 24/32 semibold in the app"),
 text colour, a box's radius, fill, border or shadow, and where the spacing starts to drift.
 
-**Pairing.** A capture is `design--<area>--<Board>.png`; its app is the nearest folder named for
-an app, or `--app`. `--map pairs.json` adds screenshots named otherwise:
-`{ "<path under --captures>": "<app>/<area>/<Board>" }`.
+**Pairing.** A pair is declared, never inferred. A web capture's `.capture.json` names its board
+(`board`, `<app>/<area>/<Board>`, written by the spec: `tools/e2e/README.md`, "Design captures"), and
+that board wins over the file name and over `--map`. Nothing is matched by similarity. The outcomes:
+
+| The capture's sidecar | Verdict | Why |
+|---|---|---|
+| `board` names a board in the manifest | compared (PASS, FAIL, ...) | declared |
+| `board` names a board that is not in the manifest | `NO BOARD`, naming it | a typo or an unrendered area; never matched to another board |
+| `unpairable: { board, reason }` (written under `<app>/unpairable/`) | `UNPAIRABLE`, carrying the reason | a composite board no single screenshot can match; no mismatch percentage, and the run does not fail on it |
+| `board: null`, or no `board` at all (an older capture) | `UNCOVERED` | nothing says which board it is for; re-run the capture or declare one in the spec |
+
+`--map pairs.json` (`{ "<path under --captures>": "<app>/<area>/<Board>" }`) names a board for a
+screenshot that declares none; it never overrides a declaration, and a map entry that disagrees with a
+declared board stops the run. A native capture (customer, rider) cannot declare: a Maestro flow only
+names its file, `design--<area>--<Board>.png` in a folder named for the app (or `--app`), so that exact
+name is its declaration and is read as one. A web capture is never paired by its file name.
+`results.json` records `pairing` (counts of declared, map and name) and each pair's `pairing`; the
+summary prints the same.
+
+Layout findings also say a box drawn on one side only, or whose text names several boxes (so it was not
+compared). A box with no text is not in the layout snapshot, so a difference confined to one (a border
+on a button with no label) is still missed; widening the snapshot, and putting layout findings into the
+verdicts, is [issue 844](https://github.com/shaiknoorullah/hg-mono/issues/844).
 
 ## Report
 
