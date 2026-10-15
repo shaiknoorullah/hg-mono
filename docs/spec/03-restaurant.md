@@ -1702,6 +1702,10 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   codes have locked it and the order is with support. The rider must type it to pick up a ready
   order they hold; nothing stands in for it but a support override
   ([handover codes](https://github.com/shaiknoorullah/hg-mono/issues/310)).
+  The live order queue shows a ready order's 4-digit `pickup_code` in large type, labelled as the
+  code the rider must type, for the kitchen to read out at the counter; when the order carries no
+  code it shows nothing, never a placeholder
+  ([kitchen shows the pickup code](https://github.com/shaiknoorullah/hg-mono/issues/659)).
 
   *(In the current system this is unreachable: the transition table lives in a workflow that starts
   at `RIDER_ASSIGNED`, the `updateStatus()` function on the order page is defined and never called,

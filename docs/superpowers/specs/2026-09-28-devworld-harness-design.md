@@ -124,7 +124,7 @@ Reset also seeds 14 live, certified restaurants within 8 km of both the Danforth
 
 - **Menu** — 3 categories; one item per review state the portal shows (APPROVED, PENDING_REVIEW, REJECTED with `UNSUBSTANTIATED_HALAL_CLAIM`, DRAFT); one item per availability state (AVAILABLE, OUT_OF_STOCK, HIDDEN); at least one item with variants and add-ons so order lines carry them.
 - **Hours** — weekday standard, Friday/Saturday overnight (11:00–01:00), one closed-holiday override and one late-opening override, dated relative to now.
-- **Staff** — `bismillah-manager@seed.hg` (RESTAURANT_MANAGER, ACTIVE), `bismillah-staff@seed.hg` (RESTAURANT_STAFF, ACTIVE), one INVITED, one SUSPENDED. Manager and staff can sign in to test the role matrix.
+- **Staff** — `bismillah-manager@seed.hg` (RESTAURANT_MANAGER, ACTIVE), `bismillah-staff@seed.hg` (RESTAURANT_STAFF, ACTIVE), `bismillah-invited@seed.hg` (INVITED, no password yet), `bismillah-suspended@seed.hg` (SUSPENDED, its account refused at sign-in). Manager and staff can sign in to test the role matrix. *Seeded by reset, with the two overrides below, and checked by `verify` ([#683](https://github.com/shaiknoorullah/hg-mono/issues/683)): opening late at 14:00 three days ahead and closed all day seven days ahead, counted from today in Toronto.*
 - **Payouts** — one per state (DRAFT, READY, TRANSFERRING, TRANSFERRED, PAID, FAILED, HELD). See the payout-seeds risk in [risks to settle in planning](#12-risks-to-settle-in-planning).
 - **Order history** — produced by bootstrap scenarios, not SQL (see [bootstrap](#62-bootstrap-not-run-by-reset)).
 
@@ -132,7 +132,8 @@ Reset also seeds 14 live, certified restaurants within 8 km of both the Danforth
 
 | Persona | Role | Purpose |
 |---|---|---|
-| `customer-amina` | CUSTOMER, phone `+15550100101`, 3 saved addresses (near, far, unit/buzzer) | places every scenario order |
+| `customer-amina` | CUSTOMER, phone `+15550100101`, 3 saved addresses: `Home` (default, beside `bismillah-grill`), `Work` downtown (unit, buzzer and delivery instructions) and `Cottage` in Huntsville, outside every restaurant's delivery range | places every scenario order, from `Home`; `verify` checks the address book ([#681](https://github.com/shaiknoorullah/hg-mono/issues/681)) |
+| `nour` | CUSTOMER, phone `+15550100102`, no saved address | the empty address book |
 | `rider-sim` | RIDER, ACTIVE, Connect enabled, phone `+15550100151` | the journey's rider |
 | `rider-sim-2` | RIDER, ACTIVE, bicycle, Connect stand-in, offline, phone `+15550100155` | the second rider of the offer scenarios |
 | `admin-seed` | SUPER_ADMIN, email + password + TOTP | admin-decision scenarios |
@@ -150,6 +151,7 @@ These are the seed for the customer, rider and admin coverage tables that [exten
 - Menu approve and reject sign in as `admin-seed`, take the oldest version waiting in the menu review queue for the `menu` persona, and decide it. Reset seeds that persona with two versions waiting for review (Draft Stew and Draft Soup), so each scenario runs once per reset, in either order; a third run says to reset. They do not call the restaurant save: it numbers the next version from the live version only and saves `DRAFT`, never `PENDING_REVIEW`, so it cannot put a version in the queue ([#594](https://github.com/shaiknoorullah/hg-mono/issues/594)). Reset also closes the running API's database sessions, whose prepared statements point at the dropped schema, and waits for it to reconnect.
 
 - Halal lapse runs the certificate expiry job itself, once, as of two days from now, on the local database only; it writes no halal row by hand, and halal renew brings the restaurant back through the API, reading only the new certificate's id from the local database because no admin operation lists a renewal yet ([#685](https://github.com/shaiknoorullah/hg-mono/issues/685), [#174](https://github.com/shaiknoorullah/hg-mono/issues/174)).
+- Order history runs the customer cancel, the restaurant rejection, a pending order left to the 180-second restaurant deadline and the journey (`auto=all`, `speed=max`) one after another, so `amina` ends with a past order in each end state, and it has ten minutes instead of five ([#682](https://github.com/shaiknoorullah/hg-mono/issues/682)).
 
 The four offer scenarios ([#684](https://github.com/shaiknoorullah/hg-mono/issues/684)) wait on the running dispatch runner, a 30-second offer and the next wave, and never move a deadline; they start from an order no rider has been offered, so a second run needs `make dev-reset`, and three ignored offers in a row take `rider-sim` offline, as the spec's unresponsive-rider rule says. The loser of `offer-race` is told `OFFER_EXPIRED` where the spec says `OFFER_ALREADY_TAKEN` ([#696](https://github.com/shaiknoorullah/hg-mono/issues/696)); the scenario prints which.
 
@@ -169,10 +171,13 @@ The four offer scenarios ([#684](https://github.com/shaiknoorullah/hg-mono/issue
 | `menu-approve` / `menu-reject` | `admin-seed` decides the pending menu version | review badge resolves |
 | `onboard-restaurant` | a new restaurant signs up and completes onboarding; `admin-seed` approves its documents, halal certificate, application and first menu item | the new restaurant is `ACTIVE` and its approved item is on the customer menu ([playbook](../../playbooks/restaurant/onboarding.md)) |
 | `onboard-rider` | a new rider signs in with a fresh number, submits profile, bicycle and documents; `admin-seed` approves them and the application; the rider sets up payouts and goes online | the new rider is `ACTIVE` and online beside `bismillah-grill` ([playbook](../../playbooks/rider/onboarding.md)) |
+| `refund-decisions` | `amina` asks for a full refund and a partial refund on two completed orders; `admin-seed`, signed in with its authenticator code, approves the first and declines the second ([#679](https://github.com/shaiknoorullah/hg-mono/issues/679)). Orders are reused across runs; when amina has too few, it drives up to two journeys first, without their refund request, and ends the rider's shift | one refund `SUBMITTED` (the local fake payment client never reports it succeeded), one `DECLINED` with its notification; each order's ledger entries sum to zero |
 | `offer-reject` | only `rider-sim` is online when the order is ready; it rejects the offer, `rider-sim-2` comes online and accepts the next wave's offer | READY_FOR_PICKUP, assigned to `rider-sim-2` |
 | `offer-ignored` | as `offer-reject`, but `rider-sim` lets the offer expire | READY_FOR_PICKUP, assigned to `rider-sim-2` |
 | `offer-race` | both riders are online, both get the first wave's offer and accept at once | one assignment; the other accept is refused with a 409 |
 | `no-rider` | both riders offline; the order is made ready and the search runs to `NO_RIDER_FOUND` (about two minutes) | READY_FOR_PICKUP with no rider; prints the pickup deadline, 15 minutes after ready |
+| `application-in-review` / `application-reject` | the first half of `onboard-restaurant` stops once the documents are submitted; then `admin-seed` approves the documents, records the halal seven-check with the address check failing, sees approval refused, and rejects the certificate and the application ([#678](https://github.com/shaiknoorullah/hg-mono/issues/678)) | a new restaurant sits in `DOCUMENTS_REVIEW` with an unreviewed certificate and no checks recorded, second in the console's take-next after `docs-review`; then it is `DOCUMENTS_REJECTED` and its owner has the reason as a notification, and `verify` counts both |
+| `order-history` | `customer-cancels`, `restaurant-rejected`, one order left to the restaurant deadline, then the journey to `COMPLETED`; checks the customer, restaurant and admin order lists | `amina` has four past orders (cancelled by her, rejected, cancelled by the deadline, completed with a receipt) and no active order |
 | `onboard-admin` | `admin-seed` invites a new admin; the invitee sets the first password from the invitation link, signs in with the password alone, then turns two-step sign-in on and signs in again with password and code | the new admin reads the review queue and holds a password-and-code session that may move money; `make dev-totp email=…` prints its current code ([playbook](../../playbooks/admin/onboarding.md)) |
 | `offer-to-rider` | `rider-sim` goes online at `bismillah-grill`; an order is accepted and marked ready; dispatch offers it | `rider-sim` holds a pending offer (30 s, real TTL) for a ready order; answer it in the rider app |
 | `restaurant-timeout` | `new-order`, then the order's restaurant deadline is brought forward to 30 s (clock) | the ticker cancels it: `CANCELLED`, `RESTAURANT_TIMEOUT`, authorisation voided |
@@ -233,7 +238,7 @@ Two runners, same playbook:
 
 ## 8. Verification
 
-1. **World verify in CI** — `devworld reset` against an empty migrated database; `devworld verify` asserts every manifest persona is in its declared state (signing in through the API as each persona where the state is visible that way). Non-zero exit fails CI.
+1. **World verify in CI** — `devworld reset` against an empty migrated database; `devworld verify` asserts every manifest persona is in its declared state (signing in through the API as each persona where the state is visible that way). Non-zero exit fails CI. It also reads the whole ledger and fails when any batch or order does not sum to zero, so it can be run after the money scenarios too.
 2. **Journey** — `journey --auto=all --speed=max` stops when the restaurant cannot bind a seal. Delivered, and a ledger that sums to zero, wait on an issued seal. The command does not insert one.
 3. **Acceptance** — the restaurant `journey.md` playbook run end to end in the user's Chrome via Claude in Chrome, in front of the user.
 
