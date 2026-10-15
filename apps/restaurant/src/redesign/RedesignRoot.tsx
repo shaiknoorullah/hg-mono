@@ -25,7 +25,8 @@ import { AvailabilityProvider } from './data/availability';
 import { ConsoleRealtime } from './data/realtime';
 import { ConsoleLayout } from './shell/ConsoleLayout';
 import { ConsoleStatus } from './shell/ConsoleStatus';
-import { LEGACY } from './routes/legacy';
+import { AccountPage } from './payouts/AccountPage';
+import { HistoryPage } from './payouts/HistoryPage';
 import { PendingRoute } from './routes/PendingRoute';
 import { MenuPage } from './menu/MenuPage';
 import { AuthLayout } from './auth/frame';
@@ -150,7 +151,6 @@ export function RedesignApp() {
     root.setAttribute('data-theme', 'light');
     root.style.colorScheme = 'light';
   }, []);
-  const { Payouts } = LEGACY;
   return (
     <div {...themeAttributes('restaurant')} className="relative h-dvh overflow-hidden bg-surface-sunken text-fg-primary" data-redesign="">
       <AuthProvider>
@@ -196,7 +196,10 @@ export function RedesignApp() {
             />
             <Route path="/menu" element={<MenuPage />} />
             <Route path="/hours" element={<HoursPage />} />
-            <Route path="/payouts" element={<LegacyPane><Payouts /></LegacyPane>} />
+            <Route path="/payouts" element={<AccountPage />} />
+            <Route path="/payouts/return" element={<AccountPage />} />
+            <Route path="/payouts/refresh" element={<AccountPage />} />
+            <Route path="/payouts/history" element={<HistoryPage />} />
             <Route path="/settings/*" element={<SettingsPage />} />
           </Route>
           {/* No Staff screen at launch (manifest §0). */}
@@ -217,11 +220,6 @@ function OnboardingEntry() {
 function FreshSignIn() {
   const location = useLocation();
   return <SignInScreen key={location.key} />;
-}
-
-/** A legacy screen inside the redesigned shell scrolls inside its pane, never the page. */
-function LegacyPane({ children }: { children: ReactNode }) {
-  return <div className="relative min-h-0 flex-1 overflow-y-auto" data-legacy-screen="">{children}</div>;
 }
 
 export default function RedesignRoot() {

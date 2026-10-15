@@ -1,0 +1,46 @@
+/** Your account copy, verbatim from `ASS/Account` and `ASS/Account-States` unless noted. */
+export const ACCOUNT = {
+  signedInAs: 'Signed in as',
+  sessionLength: 'Staff sessions end after 30 minutes without activity, and always 12 hours after you sign in.',
+  // Shown only to a person whose session used an authenticator code (sign-in with a code is opt-in
+  // since the owner's two-step decision, so the board's sentence is not true for everyone).
+  lostAuthenticator: 'Lost your authenticator app? A super admin resets it after calling you back on the phone number on your account and checking two account details.',
+  password: {
+    heading: 'Change password',
+    current: 'Current password',
+    next: 'New password',
+    helper: 'At least 12 characters. We check it against passwords exposed in data breaches.',
+    keepsHere: 'Saving keeps you signed in here and signs you out on every other device.',
+    save: 'Save new password',
+    saving: 'Saving your new password.',
+    wrongCurrent: 'That isn’t your current password.',
+    breached: 'This password has appeared in a data breach, so it isn’t safe. Choose a different one of at least 12 characters.',
+    tooShort: 'Use at least 12 characters.',
+    missingCurrent: 'Enter your current password.',
+    sameAsCurrent: 'Choose a password that’s different from the current one.',
+    fixTitle: 'Password not changed.',
+    fixBody: 'Fix the fields below. Nothing else was changed and you are still signed in.',
+    failedTitle: 'Password not changed.',
+    failedBody: 'Nothing was sent, or we couldn’t confirm it. Try again.',
+    busy: 'The server is busy. Nothing was changed. Try again in a moment.',
+    limited: (at: string) => `Too many tries. Nothing was changed. You can try again at ${at}.`,
+    savedTitle: 'Password changed.',
+    savedBody: 'You’re still signed in here; every other device was signed out.',
+  },
+  signOut: {
+    heading: 'Sign out everywhere',
+    body: 'Lost a phone or laptop, or think someone else is using your account? This ends every session on your account, including this one, within 10 seconds. Then sign in again.',
+    open: 'Sign out everywhere…',
+    later: 'Seeing each device and signing out just one comes in a later version (My sessions).',
+    panelTitle: 'Sign out everywhere, including here?',
+    panelBody: 'Every session, including this one, ends within 10 seconds. You’ll need to sign in again.',
+    keep: 'Keep me signed in',
+    confirm: 'Sign out everywhere',
+    working: 'Signing you out everywhere.',
+    unknownTitle: 'We couldn’t confirm you were signed out everywhere.',
+    unknownBody:
+      'The server didn’t answer in time, so some of your sessions, this one included, may still be active. Try again: signing out everywhere twice does no harm.',
+    close: 'Close',
+    tryAgain: 'Try again',
+  },
+} as const;
