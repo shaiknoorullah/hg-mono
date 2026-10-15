@@ -2,6 +2,7 @@
 // placed by a second customer, a lookup of what the apps just did. Same calls the apps make
 // (contracts/openapi.yaml); no shortcut around the API.
 //
+//   node tools/e2e/lib/api.mjs heartbeat                     the restaurant's order screen checks in
 //   node tools/e2e/lib/api.mjs place-order <customer key>    places an order, prints {id, code, state}
 //   node tools/e2e/lib/api.mjs order <order id>              the order as the admin sees it
 //
@@ -116,6 +117,17 @@ export async function placeOrder(customerKey) {
   return { id, code, state };
 }
 
+/**
+ * The restaurant's order screen checking in. A restaurant whose screen has not checked in for five
+ * minutes is closed to orders (CLOSED_OFFLINE, R-22), and the browser specs that keep it fresh
+ * have long finished when a later flow places an order.
+ */
+export async function restaurantHeartbeat() {
+  const w = world();
+  const token = await signInByEmail(w.restaurant.ownerEmail, w.password, { client: 'restaurant-web' });
+  return call('POST', '/v1/restaurant/heartbeat', { token });
+}
+
 /** The admin's view of one order (state, dispatch state, timeline). */
 export async function adminOrder(orderId) {
   const w = world();
@@ -127,10 +139,12 @@ async function main([command, arg]) {
   switch (command) {
     case 'place-order':
       return placeOrder(arg);
+    case 'heartbeat':
+      return restaurantHeartbeat();
     case 'order':
       return adminOrder(arg);
     default:
-      throw new Error('usage: api.mjs place-order <customer key> | order <order id>');
+      throw new Error('usage: api.mjs place-order <customer key> | heartbeat | order <order id>');
   }
 }
 

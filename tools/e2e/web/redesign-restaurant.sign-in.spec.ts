@@ -13,6 +13,7 @@
 import { execSync } from 'node:child_process';
 import { copyFileSync, mkdirSync } from 'node:fs';
 import { expect, test, type Page, type Route, type TestInfo } from '@playwright/test';
+import { expectDesign } from './design';
 import { DEVWORLD, documentScrolls, LIVE_OWNER, MODE, REAL_API, restaurantPrincipal } from './redesign-restaurant.support';
 
 const SHOTS = process.env.WP2_SHOTS_DIR ?? '/tmp/claude-0/-home-user-hg-mono/d41301d3-8d3a-541d-a6f4-40d847c8b738/scratchpad/shots/wp2';
@@ -24,6 +25,29 @@ async function expectNoDocumentScroll(page: Page) {
   expect(m.scrollWidth, 'document must not scroll horizontally').toBeLessThanOrEqual(m.innerWidth);
 }
 
+/**
+ * The sign-in canvas board each state must match, by viewport width (the 1440 boards on desktop,
+ * the one tablet board, the 320 reflow board). The design-diff harness compares each capture with
+ * its board: tools/e2e/README.md, "Design captures". The busy state shares the Offline board and
+ * is not captured twice.
+ */
+const BOARD: Record<number, Record<string, string>> = {
+  1440: {
+    main: 'Main', submitting: 'SignIn-Submitting', invalid: 'SignIn-Invalid', unverified: 'SignIn-Unverified',
+    'check-email-cooldown': 'CheckEmail-Cooldown', 'too-many': 'SignIn-TooMany', locked: 'SignIn-Locked', offline: 'SignIn-Offline',
+    'session-expired': 'SignIn-SessionExpired', 'reuse-detected': 'SignIn-ReuseDetected', 'not-restaurant': 'SignIn-NotRestaurant',
+    'locked-permanent': 'SignIn-LockedPermanent', suspended: 'SignIn-Suspended', 'not-active': 'SignIn-NotActive',
+    'register-default': 'Register-Default', 'register-errors': 'Register-Errors', 'register-email-taken': 'Register-EmailTaken',
+    'register-terms-updated': 'Register-TermsUpdated', 'register-net-error': 'Register-NetError', 'register-rate-limited': 'Register-RateLimited',
+    'check-email-default': 'CheckEmail-Default', 'check-email-daily': 'CheckEmail-DailyLimit', 'check-email-offline': 'CheckEmail-Offline',
+    'verify-working': 'Verify-Working', 'verify-used': 'Verify-Used', 'verify-expired': 'Verify-Expired', 'verify-expired-error': 'Verify-ExpiredError', 'verify-error': 'Verify-Error',
+    forgot: 'Forgot-Password', 'forgot-error': 'Forgot-Error', 'forgot-sent': 'Forgot-Sent',
+    reset: 'Reset-Password', 'reset-password-error': 'Reset-PasswordError', 'reset-done': 'Reset-Done', 'reset-link-invalid': 'Reset-LinkInvalid',
+  },
+  1024: { main: 'Tab-SignIn-1024' },
+  320: { 'register-320': 'Phone-Register-320' },
+};
+
 async function shot(page: Page, info: TestInfo, state: string) {
   const name = `${info.project.name}-${state}.png`;
   const path = info.outputPath(name);
@@ -34,6 +58,8 @@ async function shot(page: Page, info: TestInfo, state: string) {
   } catch {
     /* the copy is a convenience for review */
   }
+  const board = BOARD[page.viewportSize()?.width ?? 0]?.[state];
+  if (board) await expectDesign(page, `restaurant/sign-in/${board}`);
 }
 
 /** Settled, measured, saved: the three checks every state gets. */
