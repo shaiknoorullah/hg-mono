@@ -1,0 +1,40 @@
+# Customer redesign WP9 (#656), CI: the Orders tab (manifest T9) for the seeded world. Amina is
+# still signed in from 1-sign-in.yaml, in the same app process. Her order from the legacy flow is still active (accepted,
+# readied, offered to the rider), so Active orders lists it from RESTAURANT; if that flow placed
+# nothing, the tab says so. Past orders, the row menu and the receipt need a finished delivery:
+# devworld/9-orders.yaml, where the mission completes one first.
+# Env: RESTAURANT.
+appId: com.halalgoes.customer.dev
+name: customer redesign, Orders tab
+---
+# The legacy rider app, left online by the cross-app flow, opens its offer screen over this app
+# when an offer re-waves; stopped, it stays out of the way.
+- stopApp: com.halalgoes.rider.dev
+# The app holds its session in memory only (src/api/token.ts), so a relaunch signs out: bring the
+# running app back without restarting it, then step back to Home if a flow left it deeper.
+- launchApp:
+    stopApp: false
+- repeat:
+    while:
+      notVisible:
+        id: "Home-title"
+    times: 4
+    commands:
+      - tapOn:
+          id: "AppBar-back"
+          optional: true
+- extendedWaitUntil:
+    visible: "Account"
+    timeout: 90000
+- tapOn: "Orders"
+- extendedWaitUntil:
+    visible: "(Active orders|Past orders|No orders yet)"
+    timeout: 30000
+- runFlow:
+    when:
+      visible: "Active orders"
+    commands:
+      - assertVisible: ".*${RESTAURANT}.*"
+- assertNotVisible: "Order again"
+- assertNotVisible: "Rate"
+- takeScreenshot: redesign-wp9-01-orders

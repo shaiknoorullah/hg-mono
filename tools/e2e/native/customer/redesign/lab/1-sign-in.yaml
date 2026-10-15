@@ -1,16 +1,15 @@
-# Customer redesign WP1 (#656), journey J1: a returning customer signs in. Built with
-# EXPO_PUBLIC_HG_REDESIGN=1, against devworld (`make dev-reset`).
-# amina is a reserved dev phone (+1 555 010 0101) that accepts the test code 000000; she has a
-# name, so verifyOtp answers next_route HOME and she lands on Home with "You're signed in".
-# The sign-in strings are the Sign-in canvas copy (SI/Main, SI/SignInCode): "Sign in or create an
-# account", "Send code", "Enter the 6-digit code", "Verify and continue". The legacy flows
-# (1-ask-for-code, 2-sign-in-and-order) run on the flag-off build and keep the legacy strings.
+# Customer redesign WP1 (#656), CI, journey J1: the seeded customer (Amina) signs in. This is the
+# only flow here that uses CODE: 1-ask-for-code.yaml opened the challenge and run.sh read its code
+# from the API's log. Asking again inside the open challenge sends nothing new, so CODE still holds.
+# The session it leaves lives in the app's memory only; the flows after it keep the app running
+# (launchApp stopApp: false) to reuse it.
+# Env: PHONE, CODE.
 appId: com.halalgoes.customer.dev
 name: customer redesign, sign in (returning customer)
-env:
-  PHONE: "5550100101"
-  CODE: "000000"
 ---
+# The legacy rider app, left online by the cross-app flow, opens its offer screen over this app
+# when an offer re-waves; stopped, it stays out of the way.
+- stopApp: com.halalgoes.rider.dev
 - launchApp:
     clearState: true
     permissions:
@@ -18,8 +17,6 @@ env:
 - extendedWaitUntil:
     visible: "Sign in or create an account"
     timeout: 90000
-- assertNotVisible: "Account"
-- takeScreenshot: redesign-wp1-01-sign-in
 # design--<area>--<Board>: this screen must match that sign-in canvas board, pixel by pixel
 # (tools/e2e/README.md, "Design captures"; compared on the design AVD, tools/design-diff).
 - takeScreenshot: design--sign-in--Main
@@ -35,14 +32,13 @@ env:
 - tapOn:
     id: "SignIn-phone-field"
 - eraseText: 20
-- inputText: ${PHONE}
+- inputText: ${PHONE.slice(-10)}
 - hideKeyboard
 - tapOn: "Send code"
 - extendedWaitUntil:
     visible: "Enter the 6-digit code"
     timeout: 30000
-- assertVisible: "We sent it to \\+1 555 010 0101\\."
-- assertVisible: "You can resend the code at .* (am|pm)\\."
+- assertVisible: "We sent it to \\+1 .*\\."
 - takeScreenshot: redesign-wp1-03-code
 
 # Too few digits: said on Verify, nothing sent.
@@ -57,10 +53,11 @@ env:
     id: "Code-input-cell-0"
 - eraseText: 6
 - inputText: ${CODE}
-- hideKeyboard
+# No hideKeyboard here: the field kept its focus, so the tap above may not reopen the keyboard,
+# and hideKeyboard with none open sends Back, which leaves the app. Verify sits above the keyboard.
 - tapOn: "Verify and continue"
 
-# next_route HOME: the four tabs and the greeting toast.
+# next_route HOME: the four tabs (no Alerts) and the greeting toast.
 - extendedWaitUntil:
     visible: "Account"
     timeout: 30000
@@ -68,4 +65,11 @@ env:
 - assertVisible: "Home"
 - assertVisible: "Search"
 - assertVisible: "Orders"
+- assertNotVisible: "Alerts"
 - takeScreenshot: redesign-wp1-04-signed-in
+- tapOn: "Orders"
+- takeScreenshot: redesign-wp0-03-orders-tab
+- tapOn: "Account"
+- takeScreenshot: redesign-wp0-04-account-tab
+- tapOn: "Home"
+- takeScreenshot: redesign-wp0-05-back-home

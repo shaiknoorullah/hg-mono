@@ -1,0 +1,71 @@
+# Customer redesign WP1 (#656), CI, journey J1: the seeded customer (Amina) signs in. This is the
+# only flow here that uses CODE: 1-ask-for-code.yaml opened the challenge and run.sh read its code
+# from the API's log. Asking again inside the open challenge sends nothing new, so CODE still holds.
+# The session it leaves lives in the app's memory only; the flows after it keep the app running
+# (launchApp stopApp: false) to reuse it.
+# Env: PHONE, CODE.
+appId: com.halalgoes.customer.dev
+name: customer redesign, sign in (returning customer)
+---
+# The legacy rider app, left online by the cross-app flow, opens its offer screen over this app
+# when an offer re-waves; stopped, it stays out of the way.
+- stopApp: com.halalgoes.rider.dev
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Sign in or create an account"
+    timeout: 90000
+
+# Send code validates on press: a short number is refused with the board's message.
+- tapOn:
+    id: "SignIn-phone-field"
+- inputText: "41655501"
+- hideKeyboard
+- tapOn: "Send code"
+- assertVisible: ".*Enter all 10 digits of your mobile number.*"
+- takeScreenshot: redesign-wp1-02-invalid
+- tapOn:
+    id: "SignIn-phone-field"
+- eraseText: 20
+- inputText: ${PHONE.slice(-10)}
+- hideKeyboard
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "Enter the 6-digit code"
+    timeout: 30000
+- assertVisible: "We sent it to \\+1 .*\\."
+- takeScreenshot: redesign-wp1-03-code
+
+# Too few digits: said on Verify, nothing sent.
+- tapOn:
+    id: "Code-input-cell-0"
+- inputText: "000"
+- hideKeyboard
+- tapOn: "Verify and continue"
+- assertVisible: ".*Enter all 6 digits of the code\\..*"
+- tapOn:
+    id: "Code-input-cell-0"
+- eraseText: 6
+- inputText: ${CODE}
+# No hideKeyboard here: the field kept its focus, so the tap above may not reopen the keyboard,
+# and hideKeyboard with none open sends Back, which leaves the app. Verify sits above the keyboard.
+- tapOn: "Verify and continue"
+
+# next_route HOME: the four tabs (no Alerts) and the greeting toast.
+- extendedWaitUntil:
+    visible: "Account"
+    timeout: 30000
+- assertVisible: "You're signed in"
+- assertVisible: "Home"
+- assertVisible: "Search"
+- assertVisible: "Orders"
+- assertNotVisible: "Alerts"
+- takeScreenshot: redesign-wp1-04-signed-in
+- tapOn: "Orders"
+- takeScreenshot: redesign-wp0-03-orders-tab
+- tapOn: "Account"
+- takeScreenshot: redesign-wp0-04-account-tab
+- tapOn: "Home"
+- takeScreenshot: redesign-wp0-05-back-home

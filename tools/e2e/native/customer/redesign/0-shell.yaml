@@ -1,0 +1,23 @@
+# Customer redesign WP0 (#656), CI: the flagged shell signed out. Sign-in is the whole screen: no
+# tab bar until a session exists. The four tabs (Home, Search, Orders, Account; no Alerts) are
+# checked once signed in, at the end of 1-sign-in.yaml.
+# The device lab's version, with devworld's amina, is devworld/0-shell.yaml.
+appId: com.halalgoes.customer.dev
+name: customer redesign, shell signed out
+---
+# The legacy rider app, left online by the cross-app flow, opens its offer screen over this app
+# when an offer re-waves; stopped, it stays out of the way.
+- stopApp: com.halalgoes.rider.dev
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Sign in or create an account"
+    timeout: 90000
+- assertVisible:
+    id: "SignIn-phone-field"
+- assertVisible: "Send code"
+- assertNotVisible: "Orders"
+- assertNotVisible: "Account"
+- takeScreenshot: redesign-wp0-01-signed-out
