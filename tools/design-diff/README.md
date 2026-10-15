@@ -79,7 +79,7 @@ another. Each web capture gets a `.capture.json` beside it with the browser that
 diff enforces the match: a capture from a different browser, or one with no recorded browser (taken
 before this existed), is reported as `BROWSER MISMATCH`, is not compared, and fails the run like
 any other non-PASS verdict. Retake such a capture. Android captures (customer, rider) come from no
-browser and are not checked. Why 1223: playwright 1.50.1 ships build 1155, which cannot parse
+browser, so this rule is for the web apps (restaurant, admin) only; see "Native boards" below. Why 1223: playwright 1.50.1 ships build 1155, which cannot parse
 `var(--icon-md)` in an SVG `width`, so most sign-in boards do not render on it.
 
 ## Compare
@@ -169,3 +169,27 @@ the board's size, and loses Android's status and navigation bars before the comp
 | `src/vendor-fonts.mjs`, `third-party/` | React and the fonts the boards load, and their licences |
 | `android/` | The capture AVDs and the device state |
 | `test/` | `pnpm --filter @hg/design-diff test:unit`: the verdict, the bars, the names, the findings |
+
+## Native boards (customer, rider)
+
+Web and native are measured differently, on purpose. A customer or rider board is HTML drawn by
+Chromium; its capture is a React Native screen drawn by Android. They use different text
+rasterisers, hinting and subpixel behaviour, so they never agree pixel for pixel: "at most 0.1 % of
+pixels differ" is the wrong measurement for them, and no amount of good UI work would meet it. The
+pixel criterion stays with the web boards, where both sides are the same Chromium.
+
+What the harness does for a native capture today:
+
+- **Provenance is required instead of a browser.** Beside the screenshot, a `.capture.json` must
+  record `device` (the device or emulator) and `appBuild` (the app version or commit). With neither
+  the pair is `NO PROVENANCE`: untrusted, not compared, and the run fails.
+- **With provenance, the pair is `NOT COMPARED`.** The pixel figure is kept in `results.json` as
+  `informationalMismatchPct` only. An honest "not measured yet" beats a native board that passes for
+  the wrong reason. Both verdicts fail the run by default, like every non-PASS verdict.
+
+The intended criterion is layout geometry: element boxes, positions and sizes, plus colours where the
+capture can supply them. It is not built. `src/layout-diff.mjs` already words such differences, but
+it is only run after the pixel comparison and never sets a verdict, and native captures write no
+layout snapshot (`snapshotLayout` runs inside a web page). Wiring it needs a view-hierarchy snapshot
+from Android, a tolerance for each of geometry and colour, and a verdict in `src/diff.mjs`. Tracked in
+[#844](https://github.com/shaiknoorullah/hg-mono/issues/844).

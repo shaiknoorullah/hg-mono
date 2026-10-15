@@ -91,7 +91,9 @@ export default defineConfig({
     actionTimeout: 20_000,
     launchOptions: {
       // The Chromium the design boards are drawn with (tools/design-diff/src/browser.mjs), so a
-      // capture and its board agree by construction. $PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH overrides it.
+      // capture and its board agree by construction. $PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH overrides it. If the pinned build is not
+      // installed this falls back to the bundled one ON PURPOSE: the capture records which browser it
+      // used and the diff reports BROWSER MISMATCH loudly, so nothing is silently compared.
       ...(webBrowser.executablePath ? { executablePath: webBrowser.executablePath, args: webBrowser.args } : {}),
     },
   },

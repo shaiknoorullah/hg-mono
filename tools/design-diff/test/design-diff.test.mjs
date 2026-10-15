@@ -93,7 +93,7 @@ test('layout findings: copy, type, colour, box and spacing in words', () => {
 
 test('the diff fails by default: any non-PASS verdict exits 1, --no-strict exits 0', () => {
   assert.equal(exitCodeFor([{ verdict: 'PASS' }]), 0);
-  for (const verdict of ['FAIL', 'NO BOARD', 'NOT COMPARED', 'BROWSER MISMATCH']) {
+  for (const verdict of ['FAIL', 'NO BOARD', 'NOT COMPARED', 'BROWSER MISMATCH', 'NO PROVENANCE']) {
     assert.equal(exitCodeFor([{ verdict: 'PASS' }, { verdict }]), 1, `${verdict} fails the run`);
     assert.equal(exitCodeFor([{ verdict }], false), 0, `${verdict} under --no-strict`);
   }
@@ -170,4 +170,32 @@ test('the browser pin: the committed build is used unless the env override names
   const empty = mkdtempSync(path.join(tmpdir(), 'pw-'));
   assert.throws(() => resolveBrowser({ required: true, env: { PLAYWRIGHT_BROWSERS_PATH: empty } }), new RegExp(`build ${CHROMIUM_BUILD}`));
   assert.equal(resolveBrowser({ env: { PLAYWRIGHT_BROWSERS_PATH: empty } }).label, 'playwright default');
+});
+
+test('native captures: no browser rule; no provenance is untrusted; with it the pair is not pixel-compared', () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'dd-'));
+  const refs = path.join(dir, 'refs');
+  mkdirSync(refs);
+  writePng(path.join(refs, 'b.png'), canvas(20, 20, WHITE));
+  const board = { file: 'b.png', w: 20, h: 20, scale: 1, errors: [], notes: [], caveats: [], browser: 'chrome-linux64/chrome' };
+  writeFileSync(path.join(refs, 'manifest.json'), JSON.stringify({ boards: { 'customer/home/Board': board }, areas: {} }));
+  const run = (sidecar, ...extra) => {
+    const caps = mkdtempSync(path.join(dir, 'caps-'));
+    const app = path.join(caps, 'customer');
+    mkdirSync(app);
+    writePng(path.join(app, 'design--home--Board.png'), canvas(20, 20, WHITE));
+    if (sidecar) writeFileSync(path.join(app, 'design--home--Board.capture.json'), JSON.stringify(sidecar));
+    return spawnSync(process.execPath, [path.join(import.meta.dirname, '../src/diff.mjs'), '--refs', refs, '--captures', caps, '--out', path.join(dir, 'out'), ...extra], { encoding: 'utf8' });
+  };
+  for (const bad of [null, {}, { device: 'Pixel_7' }, { appBuild: 'abc123' }, { device: ' ', appBuild: 'abc123' }]) {
+    const r = run(bad);
+    assert.equal(r.status, 1, r.stdout);
+    assert.match(r.stdout, /NO PROVENANCE/);
+    assert.doesNotMatch(r.stdout, /BROWSER MISMATCH|^PASS/m);
+  }
+  const ok = run({ device: 'Pixel_7_API_34 (emulator-5554)', appBuild: 'abc123' });
+  assert.equal(ok.status, 1, ok.stdout);
+  assert.match(ok.stdout, /NOT COMPARED.*geometry criterion not implemented/);
+  assert.doesNotMatch(ok.stdout, /^PASS|BROWSER MISMATCH|NO PROVENANCE/m);
+  assert.equal(run({ device: 'Pixel_7', appBuild: 'abc123' }, '--no-strict').status, 0);
 });

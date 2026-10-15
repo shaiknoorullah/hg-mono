@@ -71,3 +71,15 @@ export function browserMismatch(ref, captured) {
   if (ref.chromium && captured.chromium && ref.chromium !== captured.chromium) return `the board was drawn by Chromium ${ref.chromium} and the capture was taken by Chromium ${captured.chromium} (both ${want})`;
   return null;
 }
+
+/**
+ * Why a native (Android) capture is untrusted, or null. A device capture has no browser, so the
+ * browser rule does not apply; instead it must record the device or emulator and the app build it
+ * came from, in its `.capture.json` sidecar: { "device": "<name or serial>", "appBuild": "<version or commit>" }.
+ * @param {{ device?: string, appBuild?: string } | null} captured
+ */
+export function provenanceProblem(captured) {
+  const missing = ['device', 'appBuild'].filter((k) => typeof captured?.[k] !== 'string' || !captured[k].trim());
+  if (!missing.length) return null;
+  return `the capture records no ${missing.map((k) => (k === 'device' ? 'device or emulator' : 'app build')).join(' and no ')} (a .capture.json beside it with "device" and "appBuild"), so where it came from is unknown`;
+}
