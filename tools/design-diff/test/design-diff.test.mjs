@@ -7,7 +7,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
-import { exitCodeFor, unusableReference } from '../src/diff.mjs';
+import { exitCodeFor, referenceIncomplete, unusableReference } from '../src/diff.mjs';
 import { compare } from '../src/compare.mjs';
 import { parseInsets } from '../src/insets.mjs';
 import { compareLayouts } from '../src/layout-diff.mjs';
@@ -93,7 +93,7 @@ test('layout findings: copy, type, colour, box and spacing in words', () => {
 
 test('the diff fails by default: any non-PASS verdict exits 1, --no-strict exits 0', () => {
   assert.equal(exitCodeFor([{ verdict: 'PASS' }]), 0);
-  for (const verdict of ['FAIL', 'NO BOARD', 'NOT COMPARED', 'BROWSER MISMATCH', 'NO PROVENANCE']) {
+  for (const verdict of ['FAIL', 'NO BOARD', 'DEFECTIVE REFERENCE', 'NOT COMPARED', 'BROWSER MISMATCH', 'NO PROVENANCE']) {
     assert.equal(exitCodeFor([{ verdict: 'PASS' }, { verdict }]), 1, `${verdict} fails the run`);
     assert.equal(exitCodeFor([{ verdict }], false), 0, `${verdict} under --no-strict`);
   }
@@ -198,4 +198,51 @@ test('native captures: no browser rule; no provenance is untrusted; with it the 
   assert.match(ok.stdout, /NOT COMPARED.*geometry criterion not implemented/);
   assert.doesNotMatch(ok.stdout, /^PASS|BROWSER MISMATCH|NO PROVENANCE/m);
   assert.equal(run({ device: 'Pixel_7', appBuild: 'abc123' }, '--no-strict').status, 0);
+});
+
+test('a reference with assets that failed to load is DEFECTIVE REFERENCE: named, not compared, fails the run', () => {
+  assert.equal(referenceIncomplete({ failedAssets: [], missingBlobs: [] }), null);
+  assert.equal(referenceIncomplete({}), null);
+  assert.match(referenceIncomplete({ failedAssets: [{ url: '/_blob/aaaa', status: 404 }, { url: '/img/x.png', status: 500 }] }), /defective: 2 assets.*\/_blob\/aaaa \(404\), \/img\/x\.png \(500\)/);
+  assert.match(referenceIncomplete({ missingBlobs: ['b'.repeat(32)] }), /1 asset .*\/_blob\/b{32}/, 'a manifest from before failedAssets');
+
+  const dir = mkdtempSync(path.join(tmpdir(), 'dd-'));
+  const refs = path.join(dir, 'refs');
+  mkdirSync(refs);
+  writePng(path.join(refs, 'b.png'), canvas(20, 20, WHITE));
+  const board = { file: 'b.png', w: 20, h: 20, scale: 1, errors: [], notes: [], caveats: [], browser: 'chrome-linux64/chrome', chromium: '148.0.1' };
+  const broken = { ...board, failedAssets: [{ url: '/_blob/cafe', status: 404 }], missingBlobs: ['cafe'] };
+  writeFileSync(path.join(refs, 'manifest.json'), JSON.stringify({ boards: { 'restaurant/home/Broken': broken, 'restaurant/home/Board': board }, areas: {} }));
+  const root = path.join(dir, 'caps');
+  const caps = path.join(root, 'restaurant');
+  mkdirSync(caps, { recursive: true });
+  const sidecar = JSON.stringify({ browser: 'chrome-linux64/chrome', chromium: '148.0.1' });
+  for (const name of ['Broken', 'Board']) {
+    // A capture that differs from the board: were the broken one compared it would FAIL with a percentage.
+    writePng(path.join(caps, `design--home--${name}.png`), name === 'Broken' ? paint(canvas(20, 20, WHITE), 0, 0, 20, 20) : canvas(20, 20, WHITE));
+    writeFileSync(path.join(caps, `design--home--${name}.capture.json`), sidecar);
+  }
+  const run = (...extra) => spawnSync(process.execPath, [path.join(import.meta.dirname, '../src/diff.mjs'), '--refs', refs, '--captures', root, '--out', path.join(dir, 'out'), ...extra], { encoding: 'utf8' });
+  const r = run();
+  assert.equal(r.status, 1, r.stdout + r.stderr);
+  assert.match(r.stdout, /DEFECTIVE REFERENCE.*restaurant\/home\/Broken.*\/_blob\/cafe \(404\)/);
+  assert.doesNotMatch(r.stdout, /FAIL .*Broken/, 'no mismatch percentage for a defective reference');
+  assert.match(r.stdout, /^PASS.*restaurant\/home\/Board/m, 'the sound board beside it is still compared');
+  assert.match(r.stdout, /1 with a defective reference/);
+  assert.equal(run('--no-strict').status, 0);
+});
+
+test('wordmark: each surface gets the packaged artwork with the letterforms in the theme colour the app paints', async () => {
+  const { WORDMARK_UPLOADS, tokenValue, wordmarkSvg } = await import('../src/wordmark.mjs');
+  const css = ':root, [data-theme="light"] {\n --color-neutral-0: #ffffff;\n --color-neutral-100: #f6efdd;\n --color-neutral-900: #232323;\n --text-primary: var(--color-neutral-900);\n --text-on-accent: var(--color-neutral-0);\n}\n[data-theme="dark"] {\n --text-primary: var(--color-neutral-100);\n}\n';
+  assert.equal(tokenValue(css, 'light', 'text-primary'), '#232323');
+  assert.equal(tokenValue(css, 'dark', 'text-primary'), '#f6efdd');
+  assert.equal(tokenValue(css, 'dark', 'text-on-accent'), '#ffffff', 'a dark theme inherits what it does not set');
+  assert.match(wordmarkSvg('dark', css), /fill="#f6efdd"/);
+  assert.match(wordmarkSvg('chrome', css), /fill="#ffffff"/);
+  assert.match(wordmarkSvg('light', css), /fill="#232323"/);
+  assert.match(wordmarkSvg('dark', css), /#F1521E/, 'the swash stays the brand orange');
+  assert.doesNotMatch(wordmarkSvg('dark', css), /#D0D0D1/);
+  assert.throws(() => wordmarkSvg('dark', ':root {}'), /cannot resolve/);
+  assert.ok(Object.values(WORDMARK_UPLOADS).every((u) => ['dark', 'light', 'chrome'].includes(u.surface)));
 });

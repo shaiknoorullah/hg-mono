@@ -44,7 +44,8 @@ the board shows, for the worded findings) and `<out>/manifest.json`, per board:
 | `widthVariant` | `phone-390`, `phone-360`, `web-1440`, `web-1024`… |
 | `notes` | The designers' notes hidden from the picture: `{ kind, text }` |
 | `caveats` | The notes (or the title) saying the drawing is not the approved design |
-| `missingBlobs` | Uploaded images (`/_blob/<id>`) the mirror does not carry; they render empty |
+| `missingBlobs` | Uploaded images (`/_blob/<id>`) the mirror does not carry and the renderer does not draw; they render empty |
+| `failedAssets` | Every request the board made of the local server that failed: `[{ url, status }]`. Any entry makes the board a defective reference (see Compare) |
 | `browser` | The Chromium binary that drew it |
 | `blocked`, `errors` | Requests to other hosts that were refused; what went wrong |
 
@@ -64,7 +65,12 @@ design".
 loads, checked against its integrity hashes) is in the page before the design system's bundle reads
 it. The web fonts are in `third-party/fonts/` (SIL Open Font License, `OFL-*.txt`), as Google Fonts
 served them to the canvases; `node src/vendor-fonts.mjs --src <canvases>` refreshes them when a
-canvas asks for a new family or weight. Every other request off the local server is blocked and
+canvas asks for a new family or weight. **The wordmark.** The boards load the HalalGoes logo as `/_blob/<id>`, bytes that live only in Claude
+Design's blob store. The renderer answers those requests with the artwork the apps ship, from
+`packages/brand` (`src/wordmark.mjs`), the dark or light file by the surface the board puts it on, with the
+letterforms in the theme colour the app paints them. Each upload's surface is listed in `WORDMARK_UPLOADS`
+and checked against the drawn board; a new upload id is not drawn and fails its boards until it is listed.
+Every other request off the local server is blocked and
 listed. The clock is fixed at 9:41 on 1 October 2026 (Toronto), animations are off, and Chromium
 starts with the web flows' flags. Each board records the `browser` that drew it, and the Chromium version, in the manifest.
 
@@ -97,8 +103,10 @@ Both limits, the 0.1 % and the 4 × 4 cap, are measured in device pixels, not de
 Anything else fails, with the regions in dp. `--max-mismatch`, `--max-region` and `--threshold`
 (pixelmatch's colour threshold, 0.1) change the bars. A capture of another width is listed as not
 compared; a taller one is cut to the board, a shorter one padded, and the padding counts as
-different. The diff fails by default: it exits 1 when any pair is FAIL, NO BOARD (including a board whose
-reference recorded errors), NOT COMPARED or BROWSER MISMATCH; `--no-strict` reports and exits 0, `--strict` is an accepted
+different. A board with any `failedAssets` is `DEFECTIVE REFERENCE`: the diff names the assets and does
+not compare it, because the missing picture is the renderer's and would be charged to the app as a UI
+difference. The diff fails by default: it exits 1 when any pair is FAIL, NO BOARD (including a board whose
+reference recorded errors), DEFECTIVE REFERENCE, NOT COMPARED, BROWSER MISMATCH or NO PROVENANCE; `--no-strict` reports and exits 0, `--strict` is an accepted
 alias of the default, and a crash or usage error exits 2. The summary also lists the uncaptured boards
 (boards of the rendered apps with no capture); that count alone does not fail the run.
 
