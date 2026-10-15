@@ -2,7 +2,7 @@
 covers:
   - apps/admin/**
   - services/hg/internal/admin/**
-reviewed: 2026-10-13
+reviewed: 2026-10-15
 ---
 
 # HalalGoes — ADMIN / SUPER ADMIN / SUPPORT AGENT Specification
@@ -1604,7 +1604,7 @@ These six words mean exactly this everywhere in the product, in the API, and in 
   super admin did not make the proposer staff, was not made staff by them, and held the role before
   the proposal), and writes the state, the history and the audit together. Sign-in still writes the
   session rows under the same role, so a connection that can insert one can mint a session
-  ([#372](https://github.com/shaiknoorullah/hg-mono/issues/372)). The system's (completing onboarding, out of `PENDING` only;
+  ([#372](https://github.com/shaiknoorullah/hg-mono/issues/372)). The system's (completing onboarding, out of `PENDING` only, which for a rider is the one `account_state_complete_rider_onboarding` runs when payouts become ready ([rider payout setup](04-rider.md#d-08--payout-account-onboarding-stripe-connect));
   the halal expiry, which only delists; the halal renewal and a certifying body given back, which
   only list a `DELISTED` restaurant again) take no actor and decide from the data
   ([certificate expiry](#a-17--halal-certificate-expiry-monitoring-and-lapse-handling)). Completing
