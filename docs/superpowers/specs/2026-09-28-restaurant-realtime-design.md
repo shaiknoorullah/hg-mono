@@ -18,6 +18,8 @@ reviewed: 2026-10-11
 > dispatch events (rider assigned, rider here, picked up, cancelled) update the row and are kept
 > only while the page is open, because the REST view does not carry them after a reload.
 
+> **2026-10-10 — pickup code on the card** ([#659](https://github.com/shaiknoorullah/hg-mono/issues/659)). A ready order's card in the queue shows `pickup_code` from the order it already holds, large, for the kitchen to read out; a refetch after a realtime event refreshes it, and a card without one shows nothing.
+
 **Companion spec:** [`2026-09-28-devworld-harness-design.md`](2026-09-28-devworld-harness-design.md) — the dev/QA harness used for this feature's end-to-end acceptance.
 
 ## 1. Problem
