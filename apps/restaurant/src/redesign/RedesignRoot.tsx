@@ -36,6 +36,7 @@ import { VerifyEmailScreen } from './auth/VerifyEmailScreen';
 import { ForgotPasswordScreen } from './auth/ForgotPasswordScreen';
 import { ResetPasswordScreen } from './auth/ResetPasswordScreen';
 import { HoursPage } from './hours/HoursPage';
+import { SettingsPage } from './settings/SettingsPage';
 import { NewOrdersProvider } from './strip/NewOrdersProvider';
 import { OrdersGate } from './orders/GoLiveGate';
 import { LiveOrdersPage } from './orders/LiveOrdersPage';
@@ -149,7 +150,7 @@ export function RedesignApp() {
     root.setAttribute('data-theme', 'light');
     root.style.colorScheme = 'light';
   }, []);
-  const { Payouts, Settings } = LEGACY;
+  const { Payouts } = LEGACY;
   return (
     <div {...themeAttributes('restaurant')} className="relative h-dvh overflow-hidden bg-surface-sunken text-fg-primary" data-redesign="">
       <AuthProvider>
@@ -196,7 +197,7 @@ export function RedesignApp() {
             <Route path="/menu" element={<MenuPage />} />
             <Route path="/hours" element={<HoursPage />} />
             <Route path="/payouts" element={<LegacyPane><Payouts /></LegacyPane>} />
-            <Route path="/settings/*" element={<LegacyPane><Settings /></LegacyPane>} />
+            <Route path="/settings/*" element={<SettingsPage />} />
           </Route>
           {/* No Staff screen at launch (manifest §0). */}
           <Route path="*" element={<Navigate to={getSession() ? '/orders' : '/login'} replace />} />
