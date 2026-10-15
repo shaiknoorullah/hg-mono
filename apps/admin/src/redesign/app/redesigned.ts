@@ -53,9 +53,9 @@ export const REDESIGNED: Partial<Record<RouteId, Screen>> = {
   // ·
   // alert: WP-9
   // ·
-  // staff: WP-11
+  staff: lazy(() => import('../staff/StaffRoute')),
   // ·
-  // staffMember: WP-11
+  staffMember: lazy(() => import('../staff/StaffRoute')),
   // ·
   // account: WP-10
   // ·
