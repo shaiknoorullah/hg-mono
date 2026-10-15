@@ -62,6 +62,16 @@ now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 # One Maestro flow (a path under tools/e2e/native/<app>/), from the app's screenshot folder
 # (screenshots/<app>/redesign/ for a redesign flow); its report, debug output and any screenshot
 # it took end up under $E2E_OUT.
+# stop_other_apps closes every HalalGoes app on the emulator except the one named, so an app left
+# running by an earlier flow (the cross-app rider, still online, showing "Offer expired") cannot
+# come to the front over the app under test.
+stop_other_apps() {
+  local keep="$1" other
+  for other in customer rider; do
+    [ "$other" = "$keep" ] || adb shell am force-stop "com.halalgoes.$other.dev" >/dev/null 2>&1 || true
+  done
+}
+
 maestro_flow() {
   local app="$1" flow="$2"
   shift 2
@@ -170,7 +180,12 @@ if [ "$mode" = all ]; then
       else
         record restaurant-ready fail "see the Playwright report and trace"
       fi
-      if wait "$rider_pid"; then
+      rider_ok=true
+      wait "$rider_pid" || rider_ok=false
+      # The rider's part ends at the offer, passed or not: close the app so its expiring offer
+      # cannot pop up over the flows that follow.
+      stop_other_apps none
+      if [ "$rider_ok" = true ]; then
         record rider pass "went online at the restaurant and received the offer for $cross_code"
         record cross-app pass "$cross_code: placed on the phone, accepted and readied in the browser, offered to the rider"
       else
@@ -216,6 +231,45 @@ for app in restaurant admin; do
   fi
 done
 
+# The redesigned rider's offer: the flow waits online at the restaurant while an order is placed
+# through the API, accepted in the restaurant web app and, once the rider is online, marked ready,
+# the way section 4 does it for the legacy app. Dispatch offers only to riders already online.
+# redesign_offer <label> <maestro -e args…>
+redesign_offer() {
+  local label="$1" placed id code pid online=false
+  shift
+  # The browser specs before this keep the restaurant's order screen fresh only while they run; a
+  # screen unseen for 5 minutes is closed to orders (RESTAURANT_CLOSED).
+  (cd "$e2e" && node lib/api.mjs heartbeat >/dev/null) || echo "::warning::the restaurant's heartbeat was refused"
+  if ! placed="$(cd "$e2e" && node lib/api.mjs place-order redesign)"; then
+    record "$label" fail "could not place an order through the API"
+    return
+  fi
+  read -r id code <<<"$(node -e 'const o=JSON.parse(process.argv[1]);console.log(o.id, o.code)' "$placed")"
+  export E2E_CROSS_ORDER_ID="$id" E2E_CROSS_ORDER_CODE="$code"
+  if ! playwright redesign-rider-offer-accept --project restaurant-legacy-desktop --grep @cross-accept; then
+    record "$label" fail "the restaurant could not accept $code (see the Playwright report)"
+    return
+  fi
+  maestro_flow rider redesign/3-offer.yaml "$@" &
+  pid=$!
+  for _ in $(seq 1 120); do
+    if [ "$(sql "SELECT availability_state FROM rider_profile WHERE account_id = '$(w rider.id)'")" = ONLINE_IDLE ]; then
+      online=true
+      break
+    fi
+    sleep 1
+  done
+  [ "$online" = true ] || echo "::warning::the redesigned rider did not go online within 120 s; marking $code ready anyway"
+  playwright redesign-rider-offer-ready --project restaurant-legacy-desktop --grep @cross-ready ||
+    echo "::warning::the restaurant could not mark $code ready"
+  if wait "$pid"; then
+    record "$label" pass "offered $code at the restaurant, saw the drop-off area only, declined it with a reason"
+  else
+    record "$label" fail "see the Maestro output and screenshots (online: $online)"
+  fi
+}
+
 # --- 7. the redesign, on the emulator ----------------------------------------------------------
 # The redesign APK replaces the legacy one (same package), with its data cleared. Its flows run in
 # name order, each with the world's values; a 1-ask-for-code.yaml among them runs first, and the
@@ -238,6 +292,7 @@ if [ "$mode" = all ]; then
       record "redesign-$app" fail "adb install of the redesign APK"
       continue
     fi
+    stop_other_apps "$app"
     if [ "$app" = customer ]; then phone="$(w customers.app.phone)"; else phone="$(w rider.phone)"; fi
     vars=(-e PHONE="$phone" -e RESTAURANT="$(w restaurant.name)" -e DISH="$(w restaurant.menuItemName)"
       -e EXPIRED_RESTAURANT="$(w expiredRestaurant.name)"
@@ -254,6 +309,10 @@ if [ "$mode" = all ]; then
       flow="redesign/$(basename "$flow")"
       [ "$flow" != redesign/1-ask-for-code.yaml ] || continue
       label="redesign-$app-$(basename "$flow" .yaml)"
+      if [ "$app" = rider ] && [ "$flow" = redesign/3-offer.yaml ]; then
+        redesign_offer "$label" "${vars[@]}"
+        continue
+      fi
       if maestro_flow "$app" "$flow" "${vars[@]}"; then
         record "$label" pass "$flow"
       else

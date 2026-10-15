@@ -20,6 +20,9 @@ env:
     timeout: 90000
 - assertNotVisible: "Account"
 - takeScreenshot: redesign-wp1-01-sign-in
+# design--<area>--<Board>: this screen must match that sign-in canvas board, pixel by pixel
+# (tools/e2e/README.md, "Design captures"; compared on the design AVD, tools/design-diff).
+- takeScreenshot: design--sign-in--Main
 
 # Send code validates on press: a short number is refused with the board's message.
 - tapOn:
@@ -49,6 +52,7 @@ env:
 - hideKeyboard
 - tapOn: "Verify and continue"
 - assertVisible: ".*Enter all 6 digits of the code\\..*"
+- takeScreenshot: design--sign-in--Code-short
 - tapOn:
     id: "Code-input-cell-0"
 - eraseText: 6
