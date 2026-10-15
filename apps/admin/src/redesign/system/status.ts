@@ -111,6 +111,7 @@ const INITIAL: StatusState = {
 };
 
 let state: StatusState = INITIAL;
+let inFlight: Promise<void> | null = null;
 const listeners = new Set<() => void>();
 
 function emit(next: StatusState): void {
@@ -133,6 +134,7 @@ export function useStatus(): StatusState {
 
 /** Forgets everything (sign out, and between tests). */
 export function resetStatus(): void {
+  inFlight = null;
   emit(INITIAL);
 }
 
@@ -205,8 +207,6 @@ async function probeHealth(): Promise<HealthResult> {
     t.done();
   }
 }
-
-let inFlight: Promise<void> | null = null;
 
 /**
  * Runs both probes. A second call while one is running joins it. Offline is not a reading: the

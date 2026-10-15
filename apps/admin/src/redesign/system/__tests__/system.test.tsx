@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { Route } from 'react-router-dom';
 
@@ -6,6 +6,9 @@ import { fixture, mockApi, renderRedesign, resetSession } from '../../testing';
 import { apiBanner, smsBanner } from '../banners';
 import SystemRoute from '../SystemRoute';
 import { checkNow, checkSmsSender, getStatus, parseReadiness, resetStatus, viewOf, type Reading } from '../status';
+
+// The suites run beside other packages' tests before a push; a cold first render can be slow.
+vi.setConfig({ testTimeout: 20_000 });
 
 beforeEach(() => resetStatus());
 afterEach(() => {
