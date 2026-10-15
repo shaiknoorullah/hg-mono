@@ -16,6 +16,16 @@
  * N4 adds the halal family (`HalalSection`): `/ds` HalalBadge in its four states on every surface
  * and size (with the approved amber expiring look), HalalCertificationPanel ready, expiring with
  * the certificate not viewable, expired, loading and error, and `/proposed` RestaurantHalalStatus.
+ * N3 adds the forms (`FormsSection`): `/ds` Input (tel, the 6-cell sign-in code and the rider's
+ * 4-cell handover code at the 56 field size, error, password, search), a customer-style item
+ * option group (RadioGroup roomy 72 with prices, a disabled reason and the group error),
+ * Checkbox, Switch (loading holds), Select, SegmentedControl in both tones, and `/proposed`
+ * CheckboxGroup with a maximum, QuantityStepper (Remove at 1, the limit), DateInput, Textarea
+ * and ErrorSummary.
+ *
+ * N5 adds the feedback family from `@hg/ui-native/proposed` (Banner, InlineAlert in every tone
+ * including the halal slate, ErrorState, EmptyState, loading and status indicators), so each
+ * can be seen in both schemes.
  */
 import * as React from 'react';
 import { ScrollView, View } from 'react-native';
@@ -24,8 +34,27 @@ import { Button, Text } from '@hg/ui-native/lib';
 import * as ds from '@hg/ui-native/ds';
 import * as proposed from '@hg/ui-native/proposed';
 import { cents } from '@hg/api-client';
+import {
+  Banner,
+  EmptyState,
+  ErrorState,
+  InlineAlert,
+  ProgressBar,
+  ProgressSteps,
+  Skeleton,
+  Spinner,
+  StatusLabel,
+  WaitingState,
+  WaitProgress,
+} from '@hg/ui-native/proposed';
 
 const VARIANTS = ['default', 'secondary', 'outline', 'ghost', 'destructive'] as const;
+
+const TONES = ['neutral', 'info', 'warning', 'danger', 'slate'] as const;
+
+/** A reply-by deadline three minutes after the gallery opens, on a server clock equal to the device's. */
+const WAIT_START = new Date();
+const WAIT_DEADLINE = new Date(WAIT_START.getTime() + 180_000);
 
 const SWATCHES = [
   ['bg-background', 'background'],
@@ -159,6 +188,66 @@ function HalalSection(): React.ReactElement {
       <ds.HalalCertificationPanel restaurantId="gallery" certification={{ ...CERTIFICATION, display_state: 'EXPIRED' }} />
       <ds.HalalCertificationPanel restaurantId="gallery" status="loading" />
       <ds.HalalCertificationPanel restaurantId="gallery" status="error" onRetry={() => {}} />
+/** The N3 form parts, in the states the canvases draw. */
+function FormsSection(): React.ReactElement {
+  const [phone, setPhone] = React.useState('4165550161');
+  const [signIn, setSignIn] = React.useState('1234');
+  const [handover, setHandover] = React.useState('');
+  const [size, setSize] = React.useState<string | null>(null);
+  const [addOns, setAddOns] = React.useState<string[]>(['hummus', 'garlic']);
+  const [qty, setQty] = React.useState(1);
+  const [online, setOnline] = React.useState(true);
+  const [period, setPeriod] = React.useState('week');
+  const [mode, setMode] = React.useState('delivery');
+  const [province, setProvince] = React.useState<string | null>('ON');
+  return (
+    <View className="gap-5">
+      <proposed.Text variant="heading.md">N3 forms</proposed.Text>
+      <proposed.ErrorSummary
+        errors={[{ message: 'Enter your date of birth' }, { message: 'Choose a size' }]}
+      />
+      <ds.Input label="Mobile number" variant="tel" value={phone} onValueChange={setPhone} helperText="We text a code to sign you in." required />
+      <ds.Input label="Sign-in code" variant="otp" value={signIn} onValueChange={setSignIn} helperText="Sent to +1 416 555 0161" />
+      <ds.Input label="Customer's code" variant="otp" cells={4} value={handover} onValueChange={setHandover} helperText="Ask the customer for their 4-digit code" />
+      <ds.Input label="Email" variant="email" defaultValue="bilal@" errorText="Enter an email address like name@example.com" announceError={false} />
+      <ds.Input label="Password" variant="password" defaultValue="hunter22" />
+      <ds.Input label="Search" variant="search" placeholder="Restaurants or dishes" />
+      <ds.RadioGroup
+        label="Size"
+        required
+        roomy
+        value={size}
+        onValueChange={setSize}
+        error={size ? null : 'Choose a size'}
+        options={[
+          { value: 'regular', label: 'Regular', description: 'Serves 1' },
+          { value: 'large', label: 'Large', description: 'Serves 2', priceDeltaCents: 250 },
+          { value: 'family', label: 'Family', priceDeltaCents: 900, disabled: true, disabledReason: 'Out of stock' },
+        ]}
+      />
+      <proposed.CheckboxGroup
+        label="Add-ons"
+        max={2}
+        value={addOns}
+        onValueChange={setAddOns}
+        options={[
+          { value: 'hummus', label: 'Hummus', priceDeltaCents: 200 },
+          { value: 'garlic', label: 'Garlic sauce', priceDeltaCents: 150 },
+          { value: 'pickles', label: 'Pickles' },
+        ]}
+      />
+      <ds.Checkbox label="Leave at the door" description="We’ll photograph the drop-off" checked />
+      <View className="flex-row flex-wrap items-start gap-4">
+        <proposed.QuantityStepper value={qty} min={0} max={3} removeAtZero itemName="Chicken shawarma" maxReason="Only 3 left today" onChange={setQty} />
+        <proposed.QuantityStepper variant="tonal" value={3} max={3} maxReason="Only 3 left today" onChange={() => {}} />
+      </View>
+      <ds.Switch label="Online for deliveries" stateLabel={{ on: 'Online', off: 'Offline' }} checked={online} onCheckedChange={setOnline} />
+      <ds.Switch label="Torch" stateLabel={{ on: 'On', off: 'Off' }} checked={false} loading />
+      <ds.Select label="Province" value={province} onValueChange={setProvince} options={[{ value: 'ON', label: 'Ontario' }, { value: 'QC', label: 'Quebec' }]} />
+      <ds.SegmentedControl label="Period" value={period} onValueChange={setPeriod} options={[{ value: 'day', label: 'Day' }, { value: 'week', label: 'Week' }, { value: 'month', label: 'Month' }]} />
+      <ds.SegmentedControl label="Fulfilment" tone="chrome" value={mode} onValueChange={setMode} options={[{ value: 'delivery', label: 'Delivery' }, { value: 'pickup', label: 'Pickup' }]} />
+      <proposed.DateInput label="Date of birth" defaultValue="1994-03-07" helperText="You must be 18 or over" max="2008-10-10" />
+      <proposed.Textarea label="Why are you overriding the geofence?" maxLength={500} defaultValue="The building entrance is on the side street." />
     </View>
   );
 }
@@ -187,6 +276,7 @@ export function DsGallery({
       <HalalSection />
 
       <CoreSection />
+      <FormsSection />
 
       {VARIANTS.map((variant) => (
         <Button key={variant} variant={variant} accessibilityLabel={`${variant} button`}>
@@ -209,6 +299,50 @@ export function DsGallery({
           </View>
         ))}
       </View>
+
+      <Text className="text-heading-lg">Feedback and status (N5)</Text>
+      <Banner tone="info" title="You're offline" description="Showing what we last saw." announce={false} />
+      {TONES.map((tone) => (
+        <InlineAlert
+          key={tone}
+          tone={tone}
+          title={`InlineAlert · ${tone}`}
+          description="Cause, then what to do next."
+          dismissible
+          announce={false}
+        />
+      ))}
+      <InlineAlert
+        halal
+        title="This restaurant's certification has lapsed"
+        description="We can't currently vouch for it."
+        action={{ label: 'View certification', onPress: () => undefined }}
+        announce={false}
+      />
+      <ErrorState errorCode="TIMEOUT" onRetry={() => undefined} autoFocus={false} />
+      <ErrorState errorCode="RESTAURANT_UNAVAILABLE" autoFocus={false} />
+      <EmptyState
+        placement="inline"
+        title="No trips yet today"
+        description="Go online to start getting offers."
+        primaryAction={{ label: 'Go online', onPress: () => undefined }}
+      />
+      <WaitingState description="You can lock your phone. When an offer arrives, it fills the screen and plays a sound. You have 30 seconds to answer." />
+      <ProgressSteps step={2} label="Go to the restaurant" showCaption />
+      <WaitProgress
+        deadlineAt={WAIT_DEADLINE.toISOString()}
+        serverNow={WAIT_START.toISOString()}
+        windowSeconds={180}
+        label="Waiting for Zaytoun Grill to reply"
+      />
+      <ProgressBar value={40} label="Uploading your licence" />
+      <ProgressBar indeterminate label="Checking" />
+      <View className="flex-row gap-4">
+        <StatusLabel icon="clock" label="Pending" tone="warning" />
+        <StatusLabel icon="check" label="Paid" />
+      </View>
+      <Spinner label="Loading your earnings" />
+      <Skeleton variant="card" />
 
       <Button variant="outline" onPress={onToggleScheme}>
         <Text>Toggle dark scheme</Text>

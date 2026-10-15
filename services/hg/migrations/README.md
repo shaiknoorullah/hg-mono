@@ -30,6 +30,8 @@ than local and every database that is not on this machine. It loads
 `001_personas.sql` first, then every other file in `devworld/` in name order.
 `010_admin_staff.sql` adds ops-admin, so each staff role has one sign-in-ready
 account; reset then sets the shared password and enrols each authenticator.
+`020_customer_addresses.sql` gives amina a Work and an out-of-range Cottage
+address beside Home.
 
 ## Running
 

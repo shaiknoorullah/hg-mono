@@ -266,10 +266,32 @@ module.exports = {
             'on-solid': 'var(--hg-feedback-info-on-solid)',
             'tint-border': 'var(--hg-feedback-info-tint-border)',
           },
+          neutral: {
+            tint: 'var(--hg-feedback-neutral-tint)',
+            border: 'var(--hg-feedback-neutral-border)',
+            icon: 'var(--hg-feedback-neutral-icon)',
+          },
+          slate: {
+            tint: 'var(--hg-feedback-slate-tint)',
+            border: 'var(--hg-feedback-slate-border)',
+            icon: 'var(--hg-feedback-slate-icon)',
+          },
         },
         skeleton: {
           base: 'var(--hg-skeleton-base)',
           highlight: 'var(--hg-skeleton-highlight)',
+        },
+        action: {
+          control: 'var(--hg-action-control)',
+          'track-on': 'var(--hg-action-track-on)',
+        },
+        state: {
+          'hover-overlay': 'var(--hg-state-hover-overlay)',
+          'pressed-overlay': 'var(--hg-state-pressed-overlay)',
+          'selected-tint': 'var(--hg-state-selected-tint)',
+        },
+        progress: {
+          fill: 'var(--hg-progress-fill)',
         },
       },
       spacing: {

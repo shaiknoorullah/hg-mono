@@ -419,6 +419,77 @@ function cssOnlyRoleColors(color: ThemeColorsLoose): Record<string, unknown> {
   return { feedback, skeleton };
 }
 
+/**
+ * Form-control roles for the className tier (design-system N3): the `action` group's control
+ * fills (`--hg-action-control`, the checkbox tick box and radio dot; `--hg-action-track-on`, the
+ * switch track when on). Like `cssOnlyRoleVars`, written to `global.<theme>.css` only, so
+ * `vars.ts` and the released apps' bundle are unchanged. Kept apart from `cssOnlyRoleVars` so
+ * work packages that add roles in parallel merge without touching each other's lines.
+ */
+export function formRoleVars(color: ThemeColorsLoose): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const leaf of ['control', 'trackOn'] as const) {
+    const value = color.action?.[leaf];
+    if (typeof value === 'string') out[`--hg-action-${kebab(leaf)}`] = value;
+  }
+  return out;
+}
+
+/**
+ * Tailwind colour utilities for the form roles: `bg-action-control`, `bg-action-track-on`, and
+ * the `state` overlays that `vars.ts` already writes (`--hg-state-pressed-overlay`) but the
+ * preset never exposed (`active:bg-state-pressed-overlay`, `bg-state-selected-tint`).
+ */
+function formRoleColors(color: ThemeColorsLoose): Record<string, unknown> {
+  const state = Object.fromEntries(
+    Object.entries(color.state ?? {})
+      .filter(([, v]) => typeof v === 'string')
+      .map(([leaf]) => [kebab(leaf), `var(--hg-state-${kebab(leaf)})`]),
+  );
+  return {
+    action: { control: 'var(--hg-action-control)', 'track-on': 'var(--hg-action-track-on)' },
+    state,
+  };
+}
+
+/**
+ * Status roles for the feedback family (N5), beside `cssOnlyRoleVars` and, like it, written to
+ * `global.<theme>.css` only (`themes.ts` and `vars.ts` are untouched):
+ *
+ *   - `--hg-feedback-neutral-{tint,border,icon}`: the warm surface plate the legacy Banner used;
+ *   - `--hg-feedback-slate-{tint,border,icon}`: the tone for HALAL messages (invariant 9: never
+ *     red for a halal state). It is the expired-certification palette (foundations §2.4, "cool
+ *     slate: we can't currently vouch"), reached through these roles so components never name
+ *     `color.halal.*` (lint L-3);
+ *   - `--hg-progress-fill`: the neutral indicator of WaitProgress and ProgressSteps (#197 asks
+ *     for a fill that is not `text.primary`): `text.secondary`, never brand, green or urgency.
+ */
+export function statusRoleVars(
+  color: ThemeColorsLoose,
+  scheme: 'light' | 'dark',
+  ramps: Record<string, any>,
+): Record<string, string> {
+  const expired = ramps.halal.expired as Record<string, string>;
+  const slate =
+    scheme === 'dark'
+      ? { tint: expired.tintDark!, border: expired.seal!, icon: expired.sealDark! }
+      : { tint: expired.tint!, border: expired.border!, icon: expired.seal! };
+  const neutral = { tint: color.surface!.subtle, border: color.border!.decorative, icon: color.text!.secondary };
+  const out: Record<string, string> = {};
+  for (const [tone, parts] of Object.entries({ neutral, slate })) {
+    for (const [part, value] of Object.entries(parts)) out[`--hg-feedback-${tone}-${part}`] = value;
+  }
+  out['--hg-progress-fill'] = color.text!.secondary;
+  return out;
+}
+
+/** Tailwind colour utilities for `statusRoleVars` (`bg-feedback-slate-tint`, `bg-progress-fill`). */
+const STATUS_ROLE_COLORS = {
+  neutral: { tint: 'var(--hg-feedback-neutral-tint)', border: 'var(--hg-feedback-neutral-border)', icon: 'var(--hg-feedback-neutral-icon)' },
+  slate: { tint: 'var(--hg-feedback-slate-tint)', border: 'var(--hg-feedback-slate-border)', icon: 'var(--hg-feedback-slate-icon)' },
+  progress: { fill: 'var(--hg-progress-fill)' },
+};
+
 /* ----------------------------------------------------------------- builder */
 
 export function buildFiles(doc: Dtcg): Record<string, string> {
@@ -625,6 +696,8 @@ export function buildFiles(doc: Dtcg): Record<string, string> {
     const withRoles = (scheme: 'light' | 'dark') => ({
       ...(varsOut[themeName]![scheme] as Record<string, string>),
       ...cssOnlyRoleVars(t[scheme].color, scheme, tokens.color),
+      ...formRoleVars(t[scheme].color),
+      ...statusRoleVars(t[scheme].color, scheme, tokens.color),
     });
     files[`global.${themeName}.css`] = nativewindGlobalCss(
       themeName,
@@ -653,6 +726,11 @@ export function buildFiles(doc: Dtcg): Record<string, string> {
    */
   Object.assign(presetColors, RNR_PRESET_COLORS);
   Object.assign(presetColors, cssOnlyRoleColors((themes.customer as any).light.color));
+  Object.assign(presetColors, formRoleColors((themes.customer as any).light.color));
+  const feedback = presetColors.feedback as Record<string, unknown>;
+  feedback.neutral = STATUS_ROLE_COLORS.neutral;
+  feedback.slate = STATUS_ROLE_COLORS.slate;
+  presetColors.progress = STATUS_ROLE_COLORS.progress;
   presetColors.border = { DEFAULT: 'var(--border)', ...(presetColors.border as object) };
   presetColors.accent = {
     ...(presetColors.accent as object),

@@ -33,3 +33,18 @@ export type { KeyValueListProps, KeyValueRow, StatCardProps } from './ui/key-val
 export { useHgColorScheme, HgColorSchemeBridge } from './useHgColorScheme';
 // The N4 halal parts (`ui/halal-*.tsx`) are deliberately NOT exported here: a seal may only be
 // drawn through `/ds` HalalBadge, which applies the state rules (invariants 8–10).
+// N3 forms.
+export { FieldLabel, FieldMessage, ErrorSummaryBox, fieldFrameVariants, frameState, FIELD_MIN_H } from './ui/field';
+export type { FieldSize, FieldLabelProps, FieldMessageProps, ErrorSummaryItem, ErrorSummaryBoxProps } from './ui/field';
+export { TextField, OtpField, affix } from './ui/input';
+export type { TextFieldProps, OtpFieldProps } from './ui/input';
+export { CheckboxRow, RadioRow, ChoiceGroup } from './ui/choice';
+export type { ChoiceRowProps, ChoiceRowSize, CheckboxRowProps, RadioRowProps, ChoiceGroupProps } from './ui/choice';
+export { SwitchRow } from './ui/switch';
+export type { SwitchRowProps } from './ui/switch';
+export { Segmented } from './ui/segmented';
+export type { SegmentedProps, SegmentOption } from './ui/segmented';
+export { SelectField } from './ui/select';
+export type { SelectFieldProps, SelectListOption } from './ui/select';
+export { Stepper } from './ui/stepper';
+export type { StepperProps, StepperSize } from './ui/stepper';
