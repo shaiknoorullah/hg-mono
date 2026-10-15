@@ -21,13 +21,13 @@ type Screen = ComponentType | LazyExoticComponent<ComponentType>;
 export const REDESIGNED: Partial<Record<RouteId, Screen>> = {
   // certificates: (shell page, Q7) WP-3 may replace it once the register has an API
   // ·
-  // certificate: WP-3
+  certificate: lazy(() => import('../verification/console/CertificateConsoleRoute')),
   // ·
   // certificateViewer: WP-3
   // ·
-  // restaurants: WP-2
+  restaurants: lazy(() => import('../verification/queue/RestaurantQueueRoute')),
   // ·
-  // restaurant: WP-2
+  restaurant: lazy(() => import('../verification/application/RestaurantApplicationRoute')),
   // ·
   // menuItem: WP-4
   // ·

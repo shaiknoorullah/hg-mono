@@ -93,3 +93,16 @@ condition = "AND"
 paths = ['''^tools/e2e/web/redesign-restaurant\.sign-in\.spec\.ts$''']
 regexTarget = "secret"
 regexes = ['''^tok_e2e_0123456789abcdefghijklmnopqrstuv$''']
+
+# The key of a document-checklist item (expiry at least 14 days away) that an admin reviewer ticks when checking a
+# food safety certificate (DOC_CHECKLISTS in the redesign verification code). It is
+# a name for a question, not a credential: its siblings are ISSUING_HEALTH_UNIT_PRESENT, PREMISES_ADDRESS_MATCHES,
+# and HOLDER_NAME_MATCHES. The generic-api-key rule fires on
+# its length and shape. Exact value, and only in that file, so any other long
+# identifier-shaped string in the admin app is still checked.
+[[allowlists]]
+description = "Document-checklist item key shown to an admin reviewer, not a credential"
+condition = "AND"
+paths = ['''^apps/admin/src/redesign/verification/application/checklists\.ts$''']
+regexTarget = "secret"
+regexes = ['''^EXPIRY_AT_LEAST_14_DAYS$''']

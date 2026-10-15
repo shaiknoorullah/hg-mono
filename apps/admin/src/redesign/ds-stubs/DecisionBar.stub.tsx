@@ -31,6 +31,11 @@ export interface DecisionAction {
   buttonRef?: Ref<HTMLButtonElement>;
   /** Hide this action entirely (e.g. no Ask on a decided certificate). */
   hidden?: boolean;
+  /**
+   * Overrides the button's default variant. Once a check fails, Reject… leads (primary) and Approve…
+   * steps back (tertiary); with no certificate document, Ask for a new certificate… leads. Never `danger`.
+   */
+  variant?: 'ghost' | 'tertiary' | 'primary' | 'secondary';
 }
 
 export interface DecisionBarProps {
@@ -59,7 +64,7 @@ function ActionButton({ action, fallback, variant }: { action: DecisionAction; f
   return (
     <Button
       {...(action.buttonRef ? { ref: action.buttonRef } : {})}
-      variant={variant}
+      variant={action.variant ?? variant}
       disabled={Boolean(action.disabled)}
       aria-expanded={Boolean(action.expanded)}
       {...(action.controls ? { 'aria-controls': action.controls } : {})}
