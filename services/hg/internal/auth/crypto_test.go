@@ -1,7 +1,9 @@
 package auth
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
 	"regexp"
 	"strings"
 	"testing"
@@ -74,5 +76,19 @@ func TestRefreshTokenShapeAndHash(t *testing.T) {
 	}
 	if got := HashRefreshToken(tok); !ConstantTimeEqual(got, hash) {
 		t.Fatal("HashRefreshToken does not reproduce the stored hash")
+	}
+}
+
+// TestHashAccessTokenIsTheSHA256OfTheToken: the hash written to session.access_hash
+// is the plain SHA-256 of the signed token, which is what the database computes
+// from the raw token a staff account action presents (migration 00045).
+func TestHashAccessTokenIsTheSHA256OfTheToken(t *testing.T) {
+	got := HashAccessToken("a.signed.token")
+	want := sha256.Sum256([]byte("a.signed.token"))
+	if !bytes.Equal(got, want[:]) {
+		t.Fatalf("HashAccessToken = %x, want %x", got, want)
+	}
+	if bytes.Equal(got, HashAccessToken("another.signed.token")) {
+		t.Fatal("two different tokens hash alike")
 	}
 }

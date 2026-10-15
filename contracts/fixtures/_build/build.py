@@ -20,6 +20,7 @@ sys.path.insert(0, HERE)
 
 import yaml  # noqa: E402
 
+import dom_account_actions  # noqa: E402
 import dom_catalogue  # noqa: E402
 import dom_errors  # noqa: E402
 import dom_geo  # noqa: E402
@@ -56,6 +57,7 @@ def main() -> int:
     dom_geo.build(reg, synth)
     dom_redesign.build(reg, synth)
     dom_redesign_2.build(reg, synth)
+    dom_account_actions.build(reg, synth)
 
     write_vocabulary(reg)
 

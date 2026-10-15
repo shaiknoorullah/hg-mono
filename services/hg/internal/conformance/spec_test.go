@@ -49,7 +49,10 @@ func TestConformance_SpecLoadsAndEnumerates(t *testing.T) {
 	// https://github.com/shaiknoorullah/hg-mono/issues/212) + getSmsSenderStatus
 	// (the text-message sender check every staff role reads for the admin
 	// banner, docs/decisions/README.md round 2, "Admin"); no handlers yet.
-	const wantOps = 175
+	// applyRestaurantAccountAction/applyRiderAccountAction/applyCustomerAccountAction
+	// (an admin suspends, reinstates, delists, deactivates or bans an account:
+	// https://github.com/shaiknoorullah/hg-mono/issues/253).
+	const wantOps = 178
 	if got := len(spec.Operations); got != wantOps {
 		ids := make([]string, 0, len(spec.Operations))
 		for id := range spec.Operations {

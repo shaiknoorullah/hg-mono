@@ -2,7 +2,7 @@
 covers:
   - apps/rider/**
   - services/hg/internal/rider/**
-reviewed: 2026-10-10
+reviewed: 2026-10-15
 ---
 
 # HalalGoes — RIDER Domain Specification
@@ -67,7 +67,7 @@ REGISTERED → PHONE_VERIFIED → PROFILE_PENDING → VEHICLE_PENDING → DOCUME
 ```
 
 **`rider.account_status`**: `PENDING | ACTIVE | SUSPENDED | DEACTIVATED`
-(orthogonal to onboarding_state; only `ACTIVE` + onboarding `ACTIVE` can be dispatched)
+(orthogonal to onboarding_state; only `ACTIVE` + onboarding `ACTIVE` can be dispatched). The application never writes this column itself: its database role has no write right on it, and every change goes through a database function ([how account state is written](05-admin.md#a-22--restaurant-account-state-actions-suspend--ban--deactivate--reinstate--delist)). The one the system uses on its own, with no admin involved, completes a rider's onboarding: it moves a `PENDING` rider to `ACTIVE` once `onboarding_state` is `ACTIVE`, and does nothing else. Admin actions on a rider are described in [rider account state actions](05-admin.md#a-27--rider-account-state-actions).
 
 **`rider.availability_state`** — single source of truth, column on `rider`, mutated only by the server:
 ```
@@ -304,7 +304,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 ### D-08 — Payout account onboarding (Stripe Connect)
 
 - **SOW trace**: *"Earnings Support: Assist riders with payout related disputes/grievances."* (Support Agent) — the payout account is the precondition for every earnings feature in SOW Rider item 5.
-- **Behaviour**: After `DOCUMENTS_APPROVED` the rider enters `PAYOUT_PENDING`. `POST /api/v1/riders/:id/payout-account` creates a **Stripe Connect Express** account (country `CA`, currency `cad`, capability `transfers`) and returns a single-use Account Link URL, opened in an in-app browser (`expo-web-browser`). Stripe redirects back to `halalgoes-rider://payout/return` or `…/refresh`. The server does **not** trust the redirect: account readiness is set only from the `account.updated` webhook when `payouts_enabled=true && charges_enabled` and `requirements.currently_due` is empty. On readiness, `onboarding_state → ACTIVE` and `account_status → ACTIVE`. The rider's open app hears of it on their own `account:{id}` channel: `connect.requirements_changed` whenever what Stripe asks for changes, and `onboarding.state_changed` for `PAYOUT_PENDING → ACTIVE` ([realtime contract](../../contracts/websocket.md#4-event-catalogue)).
+- **Behaviour**: After `DOCUMENTS_APPROVED` the rider enters `PAYOUT_PENDING`. `POST /api/v1/riders/:id/payout-account` creates a **Stripe Connect Express** account (country `CA`, currency `cad`, capability `transfers`) and returns a single-use Account Link URL, opened in an in-app browser (`expo-web-browser`). Stripe redirects back to `halalgoes-rider://payout/return` or `…/refresh`. The server does **not** trust the redirect: account readiness is set only from the `account.updated` webhook when `payouts_enabled=true && charges_enabled` and `requirements.currently_due` is empty. On readiness the server sets `onboarding_state → ACTIVE` and, in the same transaction, calls the database function `account_state_complete_rider_onboarding`, which moves `account_status` from `PENDING` to `ACTIVE` (the application cannot write `account_status` itself; [how account state is written](05-admin.md#a-22--restaurant-account-state-actions-suspend--ban--deactivate--reinstate--delist)). The function changes nothing for a rider whose `account_status` is anything but `PENDING`, so a suspended or deactivated rider whose Stripe account becomes ready stays suspended or deactivated; the readiness event is repeatable and moves a rider forward once. The rider's open app hears of it on their own `account:{id}` channel: `connect.requirements_changed` whenever what Stripe asks for changes, and `onboarding.state_changed` for `PAYOUT_PENDING → ACTIVE` ([realtime contract](../../contracts/websocket.md#4-event-catalogue)).
 - **Data**: `rider_payout_account(id, rider_id, provider='STRIPE', provider_account_id, payouts_enabled, first_enabled_at, requirements_due jsonb, disabled_reason, default_external_account_last4, created_at, updated_at)`; `webhook_event(id, provider, provider_event_id UNIQUE, type, payload, processed_at)`.
 - **States**: `PAYOUT_PENDING → ACTIVE` (readiness, which also sets `first_enabled_at`, never cleared). If Stripe later reports `payouts_enabled=false`, only transfers are held; `account_status` stays `ACTIVE`.
 - **Rules**:
