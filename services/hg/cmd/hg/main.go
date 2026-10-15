@@ -343,7 +343,9 @@ func (g orderPaymentGateway) CreateOrderIntent(ctx context.Context, in orders.Cr
 	if err != nil {
 		return orders.CreateIntentResult{}, err
 	}
-	if g.advanceLocal {
+	// Only an authorised intent advances: the fake's switch can leave one
+	// unconfirmed (fake_stripe_switch.go), and that order waits in CREATED.
+	if g.advanceLocal && payments.PaymentState(row.State) == payments.StateRequiresCapture {
 		_ = g.store.Transition(ctx, orders.TransitionRequest{
 			OrderID: in.OrderID, To: machine.StateAuthorized, Actor: machine.ActorSystem,
 			Reason: "payment authorised (local fake)",
@@ -743,6 +745,11 @@ func run() error {
 	paymentsSvc := payments.NewService(paymentsRepo, stripeClient, cfg.Stripe, log).
 		WithOrderHooks(ordersStore).
 		WithOutbox(notifyClient.Enqueue)
+	if !cfg.Stripe.Configured() && cfg.Env.IsLocal() {
+		// The fake sends no payment_intent.succeeded event, so the capture
+		// posts its own ledger batch, as that event would (#676).
+		paymentsSvc.WithLocalCaptureLedger()
+	}
 	// The weekly payout run (issue #251): Monday 09:00 America/Toronto, for
 	// every rider and restaurant, and on demand through createPayoutRun. It
 	// needs Stripe, so without a client there is no runner and createPayoutRun

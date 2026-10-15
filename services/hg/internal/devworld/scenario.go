@@ -46,6 +46,10 @@ var ScenarioNames = []string{
 	"menu-reject",
 	"onboard-restaurant",
 	"onboard-rider",
+	"payment-failed",
+	"payment-unpaid",
+	"capture-fails",
+	"payout-run",
 	"offer-reject",
 	"offer-ignored",
 	"offer-race",
@@ -96,6 +100,10 @@ var scenarioSummaries = map[string]string{
 	"cert-lapse-mid-order":   "an accepted order is live when bismillah-grill's certificate lapses (EXPIRED, delisted until dev-reset)",
 	"order-completed":        "rider-sim delivers an order and it settles (COMPLETED, receipt, rider earnings)",
 	"refund-decisions":       "amina's full refund is approved (SUBMITTED), her partial refund declined (DECLINED); every ledger batch sums to zero",
+	"payment-failed":         "amina's order is declined by the fake payment client (FAILED, no payment, no active order)",
+	"payment-unpaid":         "amina's order waits for a card nobody confirms (CREATED, 15 min deadline)",
+	"capture-fails":          "nour's order is accepted but the fake refuses its capture (PREPARING, payment REQUIRES_CAPTURE, no ledger batch)",
+	"payout-run":             "admin-seed runs the weekly payout for bismillah-grill (NOTHING_DUE until its week closes)",
 	"halal-lapse":            "the certificate expiry job runs as of two days ahead; expiring-halal reads EXPIRED and is delisted (local only, dev-reset undoes it)",
 	"halal-renew":            "after halal-lapse: the owner attaches a new certificate and admin-seed approves it; expiring-halal is CERTIFIED and LIVE again",
 	"order-history":          "amina has four past orders in every end state (cancelled by her, rejected, deadline-cancelled, completed) and no active order",
@@ -138,6 +146,14 @@ func RunScenario(ctx context.Context, baseURL, name string) error {
 		return scenarioOnboardRestaurant(ctx, baseURL)
 	case "onboard-rider":
 		return scenarioOnboardRider(ctx, baseURL)
+	case "payment-failed":
+		return scenarioPaymentFailed(ctx, baseURL)
+	case "payment-unpaid":
+		return scenarioPaymentUnpaid(ctx, baseURL)
+	case "capture-fails":
+		return scenarioCaptureFails(ctx, baseURL)
+	case "payout-run":
+		return scenarioPayoutRun(ctx, baseURL)
 	case "offer-reject", "offer-ignored", "offer-race", "no-rider":
 		return runOfferScenario(ctx, baseURL, name)
 	case "application-in-review":
@@ -548,6 +564,7 @@ type apiClient struct {
 	surface           string
 	token             string
 	addressID         string
+	paymentMethod     string // sent with each order; see scenario_payments.go
 	http              *http.Client
 	positionNotBefore time.Time
 }
@@ -698,9 +715,11 @@ func (c *apiClient) place(ctx context.Context) (placedOrder, error) {
 	if jerr := json.Unmarshal(quoteData, &quote); jerr != nil || quote.ID == "" {
 		return placedOrder{}, errors.New("devworld: quote returned no id")
 	}
-	_, orderData, err := c.call(ctx, http.MethodPost, "/v1/orders", map[string]any{
-		"quote_id": quote.ID,
-	}, true)
+	orderBody := map[string]any{"quote_id": quote.ID}
+	if c.paymentMethod != "" {
+		orderBody["payment_method_id"] = c.paymentMethod
+	}
+	_, orderData, err := c.call(ctx, http.MethodPost, "/v1/orders", orderBody, true)
 	if err != nil {
 		return placedOrder{}, fmt.Errorf("devworld: order: %w", err)
 	}

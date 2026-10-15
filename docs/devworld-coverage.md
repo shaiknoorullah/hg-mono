@@ -49,7 +49,7 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | Table | Covered | Partial | Missing | Not in V1 | Blocked by external |
 |---|---:|---:|---:|---:|---:|
 | Customer app | 21 | 2 | 0 | 13 | 4 |
-| Restaurant portal | 23 | 5 | 3 | 5 | 0 |
+| Restaurant portal | 23 | 6 | 2 | 5 | 0 |
 | Rider app | 23 | 6 | 2 | 1 | 3 |
 | Admin console | 13 | 2 | 12 | 15 | 0 |
 | Platform | 30 | 6 | 0 | 0 | 3 |
@@ -82,7 +82,7 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [C-22](spec/02-customer.md#c-22--price-breakdown-pricing-authority) | Price breakdown from the server | `amina` at checkout | Covered | — |
 | [C-23](spec/02-customer.md#c-23--order-placement-checkout) | Place an order | `amina` at checkout, or `make dev-scenario s=new-order`. With no `HG_STRIPE_SECRET_KEY` the local fake gateway authorises at once | Covered | — |
 | [C-24](spec/02-customer.md#c-24--payment-methods) | Saved cards | Stripe test keys and the [card payments playbook](playbooks/customer/card-payments.md) | Blocked by external (Stripe test keys) | — |
-| [C-25](spec/02-customer.md#c-25--payment-execution-and-3ds) | Pay, a declined card, 3-D Secure | Paying works on the fake gateway. A decline or a challenge needs Stripe test keys and the [card payments playbook](playbooks/customer/card-payments.md) | Partial | [#680](https://github.com/shaiknoorullah/hg-mono/issues/680) |
+| [C-25](spec/02-customer.md#c-25--payment-execution-and-3ds) | Pay, a declined card, 3-D Secure | Paying works on the fake gateway; `s=payment-failed` is a declined card (503, order `FAILED`), `s=payment-unpaid` an order nobody pays. A 3-D Secure challenge needs Stripe test keys and the [card payments playbook](playbooks/customer/card-payments.md) | Partial | — |
 | [C-26](spec/02-customer.md#c-26--order-history-and-active-order-resume) | Order history, and resume an active order | Run `s=order-history` (a cancelled, a rejected, a deadline-cancelled and a completed order for `amina`); resume: `s=order-preparing`, then reopen the app | Covered | — |
 | [C-27](spec/02-customer.md#c-27--order-receipts) | Receipt | `amina` after `make dev-journey auto=all speed=max` (the journey reads it) | Covered | — |
 | [C-28](spec/02-customer.md#c-28--reorder) | Reorder | — | Not in V1 | [#187](https://github.com/shaiknoorullah/hg-mono/issues/187) |
@@ -134,11 +134,11 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [R-29](spec/03-restaurant.md#r-29--sales-dashboard-and-analytics) | Sales dashboard | — | Not in V1 | [#146](https://github.com/shaiknoorullah/hg-mono/issues/146) |
 | [R-30](spec/03-restaurant.md#r-30--performance-reports) | Performance reports | — | Not in V1 | — |
 | [R-31](spec/03-restaurant.md#r-31--earnings-ledger-statements-and-payment-history) | Earnings ledger | No operation yet; only the payouts list | Missing | [#147](https://github.com/shaiknoorullah/hg-mono/issues/147) |
-| [R-32](spec/03-restaurant.md#r-32--payout-schedule-preferences-and-payout-requests) | Weekly payouts | `payout` and new restaurants show the empty state; no history until a payout run | Missing | [#676](https://github.com/shaiknoorullah/hg-mono/issues/676) |
+| [R-32](spec/03-restaurant.md#r-32--payout-schedule-preferences-and-payout-requests) | Weekly payouts | `payout` and new restaurants show the empty state. `s=payout-run` runs the payout and `bismillah-grill` reads its payouts; a paid line needs an order's week to close and three days to pass (wait), so a fresh world shows `NOTHING_DUE` | Partial | [#676](https://github.com/shaiknoorullah/hg-mono/issues/676) |
 | [R-33](spec/03-restaurant.md#r-33--escalations-and-disputes) | Escalations and disputes | — | Not in V1 | — |
 | [R-34](spec/03-restaurant.md#r-34--notifications-and-alerts) | Notifications | In-app rows and emails in the API log; the inbox comes after launch | Partial | [#185](https://github.com/shaiknoorullah/hg-mono/issues/185) |
 | [R-35](spec/03-restaurant.md#r-35--support-and-help) | Support and help | Phone line from the public config; tickets come after launch | Partial | [#190](https://github.com/shaiknoorullah/hg-mono/issues/190) |
-| [R-36](spec/03-restaurant.md#r-36--account-status-suspension-reinstatement-and-in-flight-orders) | Suspended, and back again | `suspended` shows a suspended restaurant; no operation suspends or reinstates | Partial | [#253](https://github.com/shaiknoorullah/hg-mono/issues/253) |
+| [R-36](spec/03-restaurant.md#r-36--account-status-suspension-reinstatement-and-in-flight-orders) | Suspended, and back again | `suspended` shows a suspended restaurant; the admin console can suspend and reinstate it, but no scenario does | Partial | [#858](https://github.com/shaiknoorullah/hg-mono/issues/858) |
 
 ## Rider app
 
@@ -172,7 +172,7 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [D-25](spec/04-rider.md#d-25--restaurant-communication) | Contact the restaurant | The arrival shows during the journey; issue codes come after launch; calls need Twilio | Partial | [#190](https://github.com/shaiknoorullah/hg-mono/issues/190) |
 | [D-26](spec/04-rider.md#d-26--earnings-formula-and-per-delivery-ledger) | Earnings per delivery | `rider-sim` after `make dev-journey auto=all` | Covered | — |
 | [D-27](spec/04-rider.md#d-27--earnings-dashboard-daily--weekly--monthly) | Earnings by day and week | One day's lines only, and the summary reads zero ([#590](https://github.com/shaiknoorullah/hg-mono/issues/590)) | Partial | [#590](https://github.com/shaiknoorullah/hg-mono/issues/590) |
-| [D-28](spec/04-rider.md#d-28--payouts) | Payouts | No payout run | Missing | [#676](https://github.com/shaiknoorullah/hg-mono/issues/676) |
+| [D-28](spec/04-rider.md#d-28--payouts) | Payouts | `s=payout-run` runs the payout, but only a restaurant reads its payouts; no rider history until a run pays one | Missing | [#676](https://github.com/shaiknoorullah/hg-mono/issues/676) |
 | [D-29](spec/04-rider.md#d-29--performance-metrics) | Performance figures | `rider-sim` after a few journeys | Covered | — |
 | [D-30](spec/04-rider.md#d-30--delivery-history) | Delivery history | `rider-sim` after `make dev-journey auto=all` | Covered | — |
 | [D-31](spec/04-rider.md#d-31--ratings-received-from-customers) | Ratings received | The journey rates `rider-sim` five | Covered | — |
@@ -205,14 +205,14 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [A-19](spec/05-admin.md#a-19--menu-approval-queue) | Menu review queue | `menu`, then `s=menu-approve` or `s=menu-reject` | Covered | — |
 | [A-20](spec/05-admin.md#a-20--restaurant-compliance-monitoring-violations-register) | Violations register | — | Not in V1 | — |
 | [A-21](spec/05-admin.md#a-21--restaurant-performance-monitoring) | Restaurant performance | — | Not in V1 | — |
-| [A-22](spec/05-admin.md#a-22--restaurant-account-state-actions-suspend--ban--deactivate--reinstate--delist) | Suspend, delist or reinstate a restaurant | `suspended`, `expired-halal` (delisted) and `paused` are seeded; no operation changes them | Missing | [#253](https://github.com/shaiknoorullah/hg-mono/issues/253) |
+| [A-22](spec/05-admin.md#a-22--restaurant-account-state-actions-suspend--ban--deactivate--reinstate--delist) | Suspend, delist or reinstate a restaurant | `suspended`, `expired-halal` (delisted) and `paused` are seeded; the admin console can change them, but no scenario does | Missing | [#858](https://github.com/shaiknoorullah/hg-mono/issues/858) |
 | [A-23](spec/05-admin.md#a-23--rider-onboarding-review-and-approval) | Rider onboarding review | `rider-docs`, `rider-rejected`, `make dev-scenario s=onboard-rider` | Covered | — |
 | [A-24](spec/05-admin.md#a-24--rider-document-expiry-monitoring) | Rider document expiry | No expiry job for rider documents yet | Missing | — |
 | [A-25](spec/05-admin.md#a-25--rider-performance-monitoring) | Rider performance | — | Not in V1 | — |
 | [A-26](spec/05-admin.md#a-26--rider-incident-handling) | Rider incidents | — | Not in V1 | — |
-| [A-27](spec/05-admin.md#a-27--rider-account-state-actions) | Suspend or reinstate a rider | No operation yet | Missing | [#253](https://github.com/shaiknoorullah/hg-mono/issues/253) |
-| [A-28](spec/05-admin.md#a-28--customer-account-state-actions) | Suspend or reinstate a customer | No operation yet | Missing | [#253](https://github.com/shaiknoorullah/hg-mono/issues/253) |
-| [A-29](spec/05-admin.md#a-29--in-flight-order-treatment-on-entity-state-change) | Orders in flight when an account changes | Waits on the account operations | Missing | [#253](https://github.com/shaiknoorullah/hg-mono/issues/253) |
+| [A-27](spec/05-admin.md#a-27--rider-account-state-actions) | Suspend or reinstate a rider | The admin console can; no scenario does | Missing | [#858](https://github.com/shaiknoorullah/hg-mono/issues/858) |
+| [A-28](spec/05-admin.md#a-28--customer-account-state-actions) | Suspend or reinstate a customer | The admin console can; no scenario does | Missing | [#858](https://github.com/shaiknoorullah/hg-mono/issues/858) |
+| [A-29](spec/05-admin.md#a-29--in-flight-order-treatment-on-entity-state-change) | Orders in flight when an account changes | Needs a scenario that changes an account | Missing | [#858](https://github.com/shaiknoorullah/hg-mono/issues/858) |
 | [A-30](spec/05-admin.md#a-30--review-moderation) | Review moderation | — | Not in V1 | — |
 | [A-31](spec/05-admin.md#a-31--abuse-and-fraud-report-handling) | Abuse and fraud reports | — | Not in V1 | — |
 | [A-32](spec/05-admin.md#a-32--feedback-and-ratings-review) | Feedback and ratings review | — | Not in V1 | — |
@@ -231,20 +231,20 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 
 ### Money
 
-All local money runs on the fake payment gateway, which the API uses when `HG_ENV` is `local` and `HG_STRIPE_SECRET_KEY` is unset. It authorises, captures, voids and refunds at once and never fails.
+All local money runs on the fake payment gateway, which the API uses when `HG_ENV` is `local` and `HG_STRIPE_SECRET_KEY` is unset. It authorises, captures, voids and refunds at once and fails only on request: the payment method `pm_fake_declined` is declined, `pm_fake_unpaid` is never confirmed, `pm_fake_capture_fails` is authorised but refuses its capture. A capture posts its order's `CAPTURE` ledger batch, as the webhook would.
 
 | Feature | Journey | How to reach it | Status | Gap |
 |---|---|---|---|---|
-| [P-16](spec/01-platform.md#p-16--paymentintent-lifecycle-and-capture-timing) | Capture when the restaurant accepts | `make dev-scenario s=order-preparing`; with a test key the payment turns from Uncaptured to Succeeded ([card payments playbook](playbooks/customer/card-payments.md)) | Covered | — |
+| [P-16](spec/01-platform.md#p-16--paymentintent-lifecycle-and-capture-timing) | Capture when the restaurant accepts | `make dev-scenario s=order-preparing`; the fake posts its `CAPTURE` ledger batch; with a test key the payment turns from Uncaptured to Succeeded ([card payments playbook](playbooks/customer/card-payments.md)) | Covered | — |
 | [P-16](spec/01-platform.md#p-16--paymentintent-lifecycle-and-capture-timing) | Void when the restaurant rejects | `s=restaurant-rejected` | Covered | — |
 | [P-16](spec/01-platform.md#p-16--paymentintent-lifecycle-and-capture-timing) | Void when the restaurant lets it time out | `s=restaurant-timeout` (30 seconds), or `s=new-order`, then wait 180 seconds | Covered | — |
 | [P-16](spec/01-platform.md#p-16--paymentintent-lifecycle-and-capture-timing) | Void when the customer cancels | `s=customer-cancels` | Covered | — |
-| [P-16](spec/01-platform.md#p-16--paymentintent-lifecycle-and-capture-timing) | A card is declined, or never paid | Only with Stripe test keys | Partial | [#680](https://github.com/shaiknoorullah/hg-mono/issues/680) |
-| [P-16](spec/01-platform.md#p-16--paymentintent-lifecycle-and-capture-timing) | The capture fails at acceptance | Not produced | Missing | [#676](https://github.com/shaiknoorullah/hg-mono/issues/676) |
+| [P-16](spec/01-platform.md#p-16--paymentintent-lifecycle-and-capture-timing) | A card is declined, or never paid | `s=payment-failed` (`FAILED`, no payment, no ledger batch), `s=payment-unpaid` (`CREATED`, intent never confirmed) | Covered | — |
+| [P-16](spec/01-platform.md#p-16--paymentintent-lifecycle-and-capture-timing) | The capture fails at acceptance | `s=capture-fails` (`PREPARING`, payment `REQUIRES_CAPTURE`, no ledger batch); the capture is never retried ([#741](https://github.com/shaiknoorullah/hg-mono/issues/741)) | Covered | — |
 | [P-18](spec/01-platform.md#p-18--refunds-cancellations-and-compensation) | The customer asks for a refund | `make dev-journey auto=all speed=max` (last step) | Covered | — |
 | [P-18](spec/01-platform.md#p-18--refunds-cancellations-and-compensation) | Staff approve or decline a refund | `s=refund-decisions` (issuing one outside a request is not covered) | Covered | — |
 | [P-17](spec/01-platform.md#p-17--webhooks-idempotency-and-reconciliation) | A card dispute (chargeback) | Stripe test mode, its dispute test card and `stripe listen` ([card payments playbook](playbooks/customer/card-payments.md)) | Blocked by external (Stripe test keys) | — |
-| [P-19](spec/01-platform.md#p-19--stripe-connect-onboarding-and-payouts-canada) | Weekly payouts to restaurants and riders | No payout run; the fake gateway would leave a payout transferred | Missing | [#676](https://github.com/shaiknoorullah/hg-mono/issues/676) |
+| [P-19](spec/01-platform.md#p-19--stripe-connect-onboarding-and-payouts-canada) | Weekly payouts to restaurants and riders | `s=payout-run`; `NOTHING_DUE` until an order's week closes and three days pass (wait) | Partial | [#676](https://github.com/shaiknoorullah/hg-mono/issues/676) |
 | [P-13](spec/01-platform.md#p-13--the-ledger-and-the-zero-residual-invariant) | Every order nets to zero in the ledger | After `make dev-journey auto=all`, sum the order's ledger lines in the database | Covered | — |
 | [D-26](spec/04-rider.md#d-26--earnings-formula-and-per-delivery-ledger) | The rider is paid on delivery | `rider-sim` earnings after the journey | Covered | — |
 
@@ -252,7 +252,7 @@ All local money runs on the fake payment gateway, which the API uses when `HG_EN
 
 | Feature | Journey | How to reach it | Status | Gap |
 |---|---|---|---|---|
-| [P-14](spec/01-platform.md#p-14--order-lifecycle-states-and-transitions) | `CREATED`: waiting for the card | With Stripe test keys, leave the card form open ([card payments playbook](playbooks/customer/card-payments.md)) | Blocked by external (Stripe test keys) | [#680](https://github.com/shaiknoorullah/hg-mono/issues/680) |
+| [P-14](spec/01-platform.md#p-14--order-lifecycle-states-and-transitions) | `CREATED`: waiting for the card | `s=payment-unpaid` | Covered | — |
 | [P-14](spec/01-platform.md#p-14--order-lifecycle-states-and-transitions) | `AUTHORIZED` | Passes inside the order request on the fake gateway; not visible | Partial | — |
 | [P-14](spec/01-platform.md#p-14--order-lifecycle-states-and-transitions) | `RESTAURANT_PENDING` | `make dev-scenario s=new-order` | Covered | — |
 | [P-14](spec/01-platform.md#p-14--order-lifecycle-states-and-transitions) | `PREPARING` | `s=order-preparing` | Covered | — |
@@ -263,11 +263,11 @@ All local money runs on the fake payment gateway, which the API uses when `HG_EN
 | [P-14](spec/01-platform.md#p-14--order-lifecycle-states-and-transitions) | `COMPLETED` | As above | Covered | — |
 | [P-14](spec/01-platform.md#p-14--order-lifecycle-states-and-transitions) | `CANCELLED` | `s=customer-cancels`, `s=restaurant-timeout`, `s=admin-cancel` or `s=pickup-lapse-cancelled` | Covered | — |
 | [P-14](spec/01-platform.md#p-14--order-lifecycle-states-and-transitions) | `REJECTED` | `s=restaurant-rejected` | Covered | — |
-| [P-14](spec/01-platform.md#p-14--order-lifecycle-states-and-transitions) | `FAILED` | Not produced: the fake gateway never fails | Missing | [#680](https://github.com/shaiknoorullah/hg-mono/issues/680) |
+| [P-14](spec/01-platform.md#p-14--order-lifecycle-states-and-transitions) | `FAILED` | `s=payment-failed` | Covered | — |
 | [P-14](spec/01-platform.md#p-14--order-lifecycle-states-and-transitions) | `DISPUTED` | Only a customer report of a tampered seal reaches it; the QR seal screens are out of release 1.0 ([#68](https://github.com/shaiknoorullah/hg-mono/issues/68)) and the dev world issues no seals | Not in V1 | [#68](https://github.com/shaiknoorullah/hg-mono/issues/68) |
 | [P-14](spec/01-platform.md#p-14--order-lifecycle-states-and-transitions) | `RESOLVED` | No staff operation resolves a dispute yet | Not in V1 | [#186](https://github.com/shaiknoorullah/hg-mono/issues/186) |
 | [P-15](spec/01-platform.md#p-15--deadlines-and-timeout-actions-waits-forever-is-unrepresentable) | Restaurant deadline (180 seconds) | `s=restaurant-timeout` brings it forward to 30 seconds; or `s=new-order`, then wait | Covered | — |
-| [P-15](spec/01-platform.md#p-15--deadlines-and-timeout-actions-waits-forever-is-unrepresentable) | Unpaid deadline (15 minutes) | With Stripe test keys, leave an order unpaid | Blocked by external (Stripe test keys) | [#680](https://github.com/shaiknoorullah/hg-mono/issues/680) |
+| [P-15](spec/01-platform.md#p-15--deadlines-and-timeout-actions-waits-forever-is-unrepresentable) | Unpaid deadline (15 minutes) | `s=payment-unpaid`, then wait 15 minutes: `CANCELLED`, `PAYMENT_EXPIRED` | Covered | — |
 | [P-15](spec/01-platform.md#p-15--deadlines-and-timeout-actions-waits-forever-is-unrepresentable) | Preparation deadline (prep time plus 10 minutes) | `s=order-preparing` (20-minute prep), then wait 30 minutes | Covered | — |
 | [P-15](spec/01-platform.md#p-15--deadlines-and-timeout-actions-waits-forever-is-unrepresentable) | Pickup deadline (15 minutes) | `s=pickup-lapse` (one lapse, escalated) or `s=pickup-lapse-cancelled` (to the cap: `CANCELLED`, `NO_RIDER_FOUND`); or `s=order-ready` with no rider online, then wait | Covered | — |
 | [P-15](spec/01-platform.md#p-15--deadlines-and-timeout-actions-waits-forever-is-unrepresentable) | Delivery deadline (75 minutes) | `make dev-journey auto=all manual=rider`, pick up in the app, then wait | Covered | — |
@@ -335,12 +335,12 @@ Every platform feature, for completeness. Most are exercised by any journey abov
 | [P-11](spec/01-platform.md#p-11--canadian-sales-tax-gst--hst--qst--pst) | Canadian sales tax | Ontario, every quote | Covered | — |
 | [P-12](spec/01-platform.md#p-12--rounding-and-allocation) | Rounding and allocation | Every quote | Covered | — |
 | [P-13](spec/01-platform.md#p-13--the-ledger-and-the-zero-residual-invariant) | Ledger | See [money](#money) | Covered | — |
-| [P-14](spec/01-platform.md#p-14--order-lifecycle-states-and-transitions) | Order states | See [order states and deadlines](#order-states-and-deadlines) | Partial | [#680](https://github.com/shaiknoorullah/hg-mono/issues/680) |
+| [P-14](spec/01-platform.md#p-14--order-lifecycle-states-and-transitions) | Order states | See [order states and deadlines](#order-states-and-deadlines) | Partial | — |
 | [P-15](spec/01-platform.md#p-15--deadlines-and-timeout-actions-waits-forever-is-unrepresentable) | Deadlines | See [order states and deadlines](#order-states-and-deadlines) | Covered | — |
-| [P-16](spec/01-platform.md#p-16--paymentintent-lifecycle-and-capture-timing) | Payment authorise and capture | See [money](#money) | Partial | [#680](https://github.com/shaiknoorullah/hg-mono/issues/680) |
+| [P-16](spec/01-platform.md#p-16--paymentintent-lifecycle-and-capture-timing) | Payment authorise and capture | See [money](#money) | Covered | — |
 | [P-17](spec/01-platform.md#p-17--webhooks-idempotency-and-reconciliation) | Stripe webhooks | Stripe test keys and `stripe listen` ([card payments playbook](playbooks/customer/card-payments.md)) | Blocked by external (Stripe test keys) | — |
 | [P-18](spec/01-platform.md#p-18--refunds-cancellations-and-compensation) | Refunds and cancellations | See [money](#money) | Covered | — |
-| [P-19](spec/01-platform.md#p-19--stripe-connect-onboarding-and-payouts-canada) | Connect accounts and payouts | Accounts: `payout`, `s=onboard-rider`. Payouts: none | Partial | [#676](https://github.com/shaiknoorullah/hg-mono/issues/676) |
+| [P-19](spec/01-platform.md#p-19--stripe-connect-onboarding-and-payouts-canada) | Connect accounts and payouts | Accounts: `payout`, `s=onboard-rider`. Payouts: `s=payout-run` | Partial | [#676](https://github.com/shaiknoorullah/hg-mono/issues/676) |
 | [P-20](spec/01-platform.md#p-20--websocket-connection-authentication) | Socket sign-in | See [realtime](#realtime) | Covered | — |
 | [P-21](spec/01-platform.md#p-21--channels-and-subscriptions) | Channels | See [realtime](#realtime) | Covered | — |
 | [P-22](spec/01-platform.md#p-22--event-catalogue-and-envelope) | Event catalogue | See [realtime](#realtime) | Partial | [#376](https://github.com/shaiknoorullah/hg-mono/issues/376) |
@@ -366,7 +366,7 @@ Every platform feature, for completeness. Most are exercised by any journey abov
 
 Not filed as dev world issues:
 
-- **Stripe test keys**: saved cards, 3-D Secure, an order left unpaid, webhooks and card disputes. The [card payments playbook](playbooks/customer/card-payments.md) runs them with a test account. Live keys are never used locally.
+- **Stripe test keys**: saved cards, 3-D Secure, webhooks and card disputes. The [card payments playbook](playbooks/customer/card-payments.md) runs them with a test account. Live keys are never used locally.
 - **Twilio**: real sign-in codes, text messages and masked calls between customer, rider and restaurant.
 - **Push (Expo)**: every push notification, including the rider's offer alert.
 - **Mapbox token**: address search, map tiles and directions. Without one the journey drives a straight line.
