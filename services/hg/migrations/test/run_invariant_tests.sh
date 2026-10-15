@@ -515,7 +515,7 @@ psql "$DSN" -q -v ON_ERROR_STOP=1 -c "
   VALUES ('$INV_ADMIN_SESSION', gen_random_uuid(), '$INV_ADMIN', 'pwd+totp', '[]', 'admin-web',
           sha256(convert_to('inv-admin-refresh', 'UTF8')), sha256(convert_to('$INV_ADMIN_TOKEN', 'UTF8')),
           now() + interval '30 minutes', now() + interval '12 hours')
-  ON CONFLICT (id) DO UPDATE SET access_hash = EXCLUDED.access_hash, revoked_at = NULL,
+  ON CONFLICT (id) DO UPDATE SET access_hash = EXCLUDED.access_hash,
     idle_expires_at = EXCLUDED.idle_expires_at, absolute_expires_at = EXCLUDED.absolute_expires_at;" >/dev/null
 ASE_COLS="subject_type, subject_id, action, from_state, to_state, reason_code, reason_text, actor_account_id, idempotency_key, request_hash"
 reject "a ban needs a proposal to confirm" "account_ban_needs_proposal" \
@@ -582,6 +582,25 @@ reject "a staff action needs the access token of a live two-step session" "accou
    $APPLY('RIDER','$RIDER_FX','SUSPEND','$INV_ADMIN','OTHER','an account id is not a token','inv-no-session-01','\x00','{}','{}');"
 reject "the application role cannot rewrite a session" "permission denied" \
   "SET LOCAL ROLE hg_app; UPDATE session SET account_id = '$INV_SUPER' WHERE id = '$INV_ADMIN_SESSION';"
+reject "a revoked session cannot be brought back" "session_revoked_is_final" \
+  "UPDATE session SET revoked_at = now() WHERE id = '$INV_ADMIN_SESSION';
+   UPDATE session SET revoked_at = NULL WHERE id = '$INV_ADMIN_SESSION';"
+# A POSIX offset is a timezone Postgres accepts and Go's LocalDate does not. At this
+# instant (00:30 UTC the day after the certificate's last day) it has lapsed in UTC; the offset
+# zone '<-167>+167' would read it as still current. The timezone goes back afterwards.
+accept "a POSIX-offset timezone cannot keep a lapsed halal certificate current" \
+  "UPDATE restaurant SET timezone = '<-167>+167' WHERE id = '33333333-3333-4333-8333-333333333333';
+   DO \$\$ BEGIN
+     IF account_state_certificate('33333333-3333-4333-8333-333333333333', (SELECT (expires_on + 1)::timestamp AT TIME ZONE 'UTC' + interval '30 minutes' FROM halal_certificate WHERE restaurant_id = '33333333-3333-4333-8333-333333333333' AND status = 'APPROVED')) <> 'EXPIRED' THEN
+       RAISE EXCEPTION 'POSIX-offset timezone kept a lapsed certificate CURRENT';
+     END IF;
+   END \$\$;
+   UPDATE restaurant SET timezone = 'America/Toronto' WHERE id = '33333333-3333-4333-8333-333333333333';
+   DO \$\$ BEGIN
+     IF account_state_certificate('33333333-3333-4333-8333-333333333333', (SELECT (expires_on + 1)::timestamp AT TIME ZONE 'UTC' + interval '30 minutes' FROM halal_certificate WHERE restaurant_id = '33333333-3333-4333-8333-333333333333' AND status = 'APPROVED')) <> 'CURRENT' THEN
+       RAISE EXCEPTION 'a real zone no longer reads the certificate in local time';
+     END IF;
+   END \$\$;"
 reject "only a super admin lifts a ban" "account_state_actor_not_permitted" \
   "UPDATE rider_profile SET account_status = 'BANNED' WHERE account_id = '$RIDER_FX';
    SET LOCAL ROLE hg_app;

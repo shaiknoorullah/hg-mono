@@ -46,8 +46,13 @@
 -- writers. What the database cannot know is whether the second factor was really
 -- checked: the password (argon2id) and the TOTP secret (sealed with APP_DATA_KEY)
 -- are verified by the application, which also writes the session rows at sign-in.
--- A connection that can INSERT a whole session row can still mint one; a single
--- injected query cannot (https://github.com/shaiknoorullah/hg-mono/issues/372).
+-- A connection that can INSERT a whole session row can still mint one, and so can a
+-- single injected statement: a WITH clause that inserts a session (a super admin, 'pwd+totp',
+-- a token hash of its own making) followed by a call to account_state_apply in the same
+-- statement, because the definer function sees the rows its own statement inserted. Closing
+-- that means issuing sessions through a definer function, not from the app role
+-- (https://github.com/shaiknoorullah/hg-mono/issues/372). What this migration does add is
+-- that a session, once revoked, stays revoked (session_revoked_is_final below).
 
 -- +goose Up
 
@@ -234,12 +239,30 @@ CREATE UNIQUE INDEX session_access_hash ON session (access_hash) WHERE access_ha
 REVOKE UPDATE ON session FROM hg_app;
 GRANT UPDATE (rotated_at, rotated_to, last_used_at, revoked_at, revoke_reason) ON session TO hg_app;
 
+-- Ending a session is final: the application role may set revoked_at but not clear or
+-- move it, so a revoked session cannot be brought back to act as staff.
+-- +goose StatementBegin
+CREATE OR REPLACE FUNCTION session_revoked_is_final() RETURNS trigger
+LANGUAGE plpgsql SET search_path = pg_catalog, public, pg_temp AS $$
+BEGIN
+  IF OLD.revoked_at IS NOT NULL AND NEW.revoked_at IS DISTINCT FROM OLD.revoked_at THEN
+    RAISE EXCEPTION 'session_revoked_is_final: session % was revoked and stays revoked', OLD.id
+      USING ERRCODE = 'check_violation';
+  END IF;
+  RETURN NEW;
+END
+$$;
+-- +goose StatementEnd
+CREATE TRIGGER session_revoked_is_final BEFORE UPDATE ON session
+  FOR EACH ROW EXECUTE FUNCTION session_revoked_is_final();
+
 -- Whether a restaurant's admin-verified halal certificate is current at an
 -- instant, in its timezone: CURRENT, EXPIRED, or UNVERIFIED (none). The same
 -- reading as internal/admin, the order path and halal_refresh_restaurant_status
 -- (00049): APPROVED (or later EXPIRED), verified by an admin, from an ACCEPTED
 -- issuing body, with an expiry date; valid through its last day (grace_until when a
--- super admin granted one); an unknown zone takes the latest date anywhere.
+-- super admin granted one); an unknown zone (or a POSIX offset, which is not a zone
+-- name) takes the latest date anywhere.
 -- An instant earlier than five minutes ago is refused: it could only make a
 -- lapsed certificate look current. A later one can only make it look lapsed sooner.
 -- +goose StatementBegin
@@ -269,12 +292,11 @@ BEGIN
   IF NOT FOUND THEN
     RETURN 'UNVERIFIED';
   END IF;
-  BEGIN
+  -- Only a real zone name counts, as in Go's accountstate.LocalDate: Postgres also reads
+  -- POSIX offsets such as '<-167>+167', which would hold a lapsed certificate CURRENT for days.
+  IF EXISTS (SELECT 1 FROM pg_catalog.pg_timezone_names n WHERE n.name = tz) THEN
     today := (at AT TIME ZONE tz)::date;
-  EXCEPTION WHEN invalid_parameter_value THEN
-    today := NULL;
-  END;
-  IF today IS NULL THEN
+  ELSE
     today := ((at AT TIME ZONE 'UTC') + interval '14 hours')::date;
   END IF;
   RETURN CASE WHEN c.status = 'APPROVED' AND coalesce(c.grace_until, c.expires_on) >= today
@@ -901,6 +923,8 @@ GRANT EXECUTE ON FUNCTION account_state_issuer_listing(uuid, boolean) TO hg_app;
 GRANT EXECUTE ON FUNCTION account_state_complete_rider_onboarding(uuid) TO hg_app;
 
 -- +goose Down
+DROP TRIGGER IF EXISTS session_revoked_is_final ON session;
+DROP FUNCTION IF EXISTS session_revoked_is_final();
 DROP FUNCTION IF EXISTS account_state_issuer_listing(uuid, boolean);
 DROP FUNCTION IF EXISTS account_state_complete_rider_onboarding(uuid);
 DROP FUNCTION IF EXISTS account_state_halal_renewal(uuid, timestamptz);
