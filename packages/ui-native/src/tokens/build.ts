@@ -372,6 +372,91 @@ export function rnUiFontFamilies(weights: Record<string, number>): Record<string
   return out;
 }
 
+/**
+ * Role groups the className tier needs that `vars.ts` (the StyleSheet tier's map) never carried:
+ * the semantic feedback set (`--hg-feedback-danger-tint`, …) and the skeleton shimmer. Written
+ * to `global.<theme>.css` only, so `themeVars` and everything the released apps bundle stay as
+ * they were (one value differs on purpose: the dark skeleton base, see below). A `null` role is skipped, not emitted: `feedback.success.solid` is `null` (RULE
+ * H-1), so `bg-feedback-success-solid` has no variable behind it and paints nothing.
+ */
+export function cssOnlyRoleVars(
+  color: ThemeColorsLoose,
+  scheme: 'light' | 'dark',
+  ramps: Record<string, Record<string, string>>,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [name, role] of Object.entries(color.feedback ?? {})) {
+    for (const [leaf, value] of Object.entries(role as Record<string, unknown>)) {
+      if (typeof value === 'string') out[`--hg-feedback-${name}-${kebab(leaf)}`] = value;
+    }
+    // The soft edge of a tint plate (the live Badge draws `<name>.100`); in the dark scheme
+    // the plate needs no edge, so it is the tint itself.
+    const tint = (role as Record<string, unknown>).tint;
+    const soft = scheme === 'dark' ? tint : ramps[name]?.['100'];
+    if (typeof soft === 'string') out[`--hg-feedback-${name}-tint-border`] = soft;
+  }
+  for (const [leaf, value] of Object.entries(color.skeleton ?? {})) {
+    if (typeof value === 'string') out[`--hg-skeleton-${kebab(leaf)}`] = value;
+  }
+  // #167: the dark base `neutral.800` is the raised surface itself (1.0:1 on a card), so the
+  // className tier's skeleton steps down to `neutral.700`. The StyleSheet tier keeps its value.
+  if (scheme === 'dark' && ramps.neutral?.['700']) out['--hg-skeleton-base'] = ramps.neutral['700'];
+  return out;
+}
+
+/** Tailwind colour utilities for `cssOnlyRoleVars` (`bg-feedback-danger-tint`, `bg-skeleton-base`). */
+function cssOnlyRoleColors(color: ThemeColorsLoose): Record<string, unknown> {
+  const feedback: Record<string, Record<string, string>> = {};
+  for (const [name, role] of Object.entries(color.feedback ?? {})) {
+    const leaves = Object.entries(role as Record<string, unknown>).filter(([, v]) => typeof v === 'string');
+    feedback[name] = Object.fromEntries(
+      [...leaves.map(([leaf]) => kebab(leaf)), 'tint-border'].map((leaf) => [leaf, `var(--hg-feedback-${name}-${leaf})`]),
+    );
+  }
+  const skeleton = Object.fromEntries(
+    Object.keys(color.skeleton ?? {}).map((leaf) => [kebab(leaf), `var(--hg-skeleton-${kebab(leaf)})`]),
+  );
+  return { feedback, skeleton };
+}
+
+/**
+ * Status roles for the feedback family (N5), beside `cssOnlyRoleVars` and, like it, written to
+ * `global.<theme>.css` only (`themes.ts` and `vars.ts` are untouched):
+ *
+ *   - `--hg-feedback-neutral-{tint,border,icon}`: the warm surface plate the legacy Banner used;
+ *   - `--hg-feedback-slate-{tint,border,icon}`: the tone for HALAL messages (invariant 9: never
+ *     red for a halal state). It is the expired-certification palette (foundations §2.4, "cool
+ *     slate: we can't currently vouch"), reached through these roles so components never name
+ *     `color.halal.*` (lint L-3);
+ *   - `--hg-progress-fill`: the neutral indicator of WaitProgress and ProgressSteps (#197 asks
+ *     for a fill that is not `text.primary`): `text.secondary`, never brand, green or urgency.
+ */
+export function statusRoleVars(
+  color: ThemeColorsLoose,
+  scheme: 'light' | 'dark',
+  ramps: Record<string, any>,
+): Record<string, string> {
+  const expired = ramps.halal.expired as Record<string, string>;
+  const slate =
+    scheme === 'dark'
+      ? { tint: expired.tintDark!, border: expired.seal!, icon: expired.sealDark! }
+      : { tint: expired.tint!, border: expired.border!, icon: expired.seal! };
+  const neutral = { tint: color.surface!.subtle, border: color.border!.decorative, icon: color.text!.secondary };
+  const out: Record<string, string> = {};
+  for (const [tone, parts] of Object.entries({ neutral, slate })) {
+    for (const [part, value] of Object.entries(parts)) out[`--hg-feedback-${tone}-${part}`] = value;
+  }
+  out['--hg-progress-fill'] = color.text!.secondary;
+  return out;
+}
+
+/** Tailwind colour utilities for `statusRoleVars` (`bg-feedback-slate-tint`, `bg-progress-fill`). */
+const STATUS_ROLE_COLORS = {
+  neutral: { tint: 'var(--hg-feedback-neutral-tint)', border: 'var(--hg-feedback-neutral-border)', icon: 'var(--hg-feedback-neutral-icon)' },
+  slate: { tint: 'var(--hg-feedback-slate-tint)', border: 'var(--hg-feedback-slate-border)', icon: 'var(--hg-feedback-slate-icon)' },
+  progress: { fill: 'var(--hg-progress-fill)' },
+};
+
 /* ----------------------------------------------------------------- builder */
 
 export function buildFiles(doc: Dtcg): Record<string, string> {
@@ -575,9 +660,14 @@ export function buildFiles(doc: Dtcg): Record<string, string> {
 
   for (const themeName of Object.keys(THEME_SPEC)) {
     const t = themes[themeName] as any;
+    const withRoles = (scheme: 'light' | 'dark') => ({
+      ...(varsOut[themeName]![scheme] as Record<string, string>),
+      ...cssOnlyRoleVars(t[scheme].color, scheme, tokens.color),
+      ...statusRoleVars(t[scheme].color, scheme, tokens.color),
+    });
     files[`global.${themeName}.css`] = nativewindGlobalCss(
       themeName,
-      varsOut[themeName] as Record<'light' | 'dark', Record<string, string>>,
+      { light: withRoles('light'), dark: withRoles('dark') },
       { light: t.light.color, dark: t.dark.color },
     );
   }
@@ -601,6 +691,11 @@ export function buildFiles(doc: Dtcg): Record<string, string> {
    * bare `bg-accent` is shadcn's selected wash, `--accent`).
    */
   Object.assign(presetColors, RNR_PRESET_COLORS);
+  Object.assign(presetColors, cssOnlyRoleColors((themes.customer as any).light.color));
+  const feedback = presetColors.feedback as Record<string, unknown>;
+  feedback.neutral = STATUS_ROLE_COLORS.neutral;
+  feedback.slate = STATUS_ROLE_COLORS.slate;
+  presetColors.progress = STATUS_ROLE_COLORS.progress;
   presetColors.border = { DEFAULT: 'var(--border)', ...(presetColors.border as object) };
   presetColors.accent = {
     ...(presetColors.accent as object),
