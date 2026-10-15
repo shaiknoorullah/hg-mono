@@ -30,6 +30,7 @@ const {
   Modal,
   Price,
   RadioGroup,
+  SegmentedControl,
   Select,
   Sheet,
   StatusTimeline,
@@ -102,6 +103,7 @@ describe('the /ds surface', () => {
       'Switch',
       'Input',
       'Select',
+      'SegmentedControl',
       'HalalBadge',
       'HALAL_VISIBLE_LABEL',
       'HALAL_ACCESSIBLE_LABEL',
@@ -118,6 +120,9 @@ describe('the /ds surface', () => {
     expect(ds).toHaveProperty('KeyValueList');
     expect(ds).toHaveProperty('StatCard');
     for (const name of ['Text', 'Skeleton', 'Spinner', 'Separator', 'Avatar']) expect(proposed).toHaveProperty(name);
+    for (const name of ['Field', 'ErrorSummary', 'Textarea', 'CheckboxGroup', 'DateInput', 'QuantityStepper']) {
+      expect(proposed).toHaveProperty(name);
+    }
   });
 
   it('keeps the halal shield and the halal tokens out of both barrels', () => {
@@ -261,6 +266,109 @@ describe('forms take the live callbacks', () => {
     expect(screen.getByText('Offline')).toBeTruthy();
     renderThemed(<Select label="Province" options={[{ value: 'ON', label: 'Ontario' }]} value={null} />);
     expect(screen.getByTestId('Select')).toBeTruthy();
+  });
+});
+
+describe('forms (N3) keep the live props and the money rules', () => {
+  it('RadioGroup announces its error ONCE, on the group, never on an option', () => {
+    renderNw(
+      <RadioGroup
+        label="Size"
+        required
+        value={null}
+        error="Choose a size"
+        options={[
+          { value: 'r', label: 'Regular' },
+          { value: 'l', label: 'Large', priceDeltaCents: 250 },
+        ]}
+      />,
+    );
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
+    // The group is not one accessible element (that would swallow its radios on iOS): it carries
+    // the role, the name and the error for the platform's collection semantics.
+    const group = screen.getByTestId('RadioGroup');
+    expect([group.props.role, group.props.accessibilityLabel]).toEqual(['radiogroup', 'Size, required']);
+    expect(group.props.accessibilityHint).toBe('Choose a size');
+    for (const radio of screen.getAllByRole('radio')) expect(radio.props.accessibilityHint).toBeUndefined();
+    expect(screen.getByText('Size *')).toBeTruthy();
+  });
+
+  it('option prices go through Price with sign always, in integer cents, and join the option name', () => {
+    renderNw(
+      <RadioGroup
+        label="Size"
+        value="l"
+        options={[
+          { value: 'l', label: 'Large', priceDeltaCents: 250 },
+          { value: 's', label: 'Small', priceDeltaCents: -100 },
+          { value: 'f', label: 'For two', priceCents: 4599 },
+        ]}
+      />,
+    );
+    expect(screen.getByRole('radio', { name: 'Large, plus 2 dollars and 50 cents' })).toBeTruthy();
+    expect(screen.getByRole('radio', { name: 'Small, minus 1 dollar' })).toBeTruthy();
+    expect(screen.getByRole('radio', { name: 'For two, 45 dollars and 99 cents' })).toBeTruthy();
+    expect(screen.getByText('+$2.50')).toBeTruthy();
+    expect(screen.getByText('\u2212$1.00')).toBeTruthy();
+    expect(screen.getByText('$45.99')).toBeTruthy();
+    renderNw(<Checkbox label="Extra garlic sauce" priceDeltaCents={150} />);
+    expect(screen.getByRole('checkbox', { name: 'Extra garlic sauce, plus 1 dollar and 50 cents' })).toBeTruthy();
+    expect(screen.getByText('+$1.50')).toBeTruthy();
+  });
+
+  it('a non-integer price renders no price, adds nothing to the name, and is reported', () => {
+    renderNw(<Checkbox label="Hummus" priceDeltaCents={1.5} />);
+    expect(screen.getByRole('checkbox', { name: 'Hummus' })).toBeTruthy();
+    expect(screen.queryByTestId('Checkbox-price')).toBeNull();
+    expect(reports).toContainEqual(['MONEY_NOT_INTEGER_CENTS', { value: '1.5' }]);
+  });
+
+  it('keeps the deprecated legacy names for one release: errorText, stateLabels, variant sheet', () => {
+    renderNw(<RadioGroup label="Tip" value={null} errorText="Choose a tip" options={[{ value: '0', label: 'No tip' }]} />);
+    expect(screen.getByRole('alert', { name: 'Choose a tip' })).toBeTruthy();
+    const legacySwitch = { label: 'Torch', stateLabels: { on: 'On', off: 'Off' }, checked: true } as unknown as ds.SwitchProps;
+    renderNw(<Switch {...legacySwitch} />);
+    expect(screen.getByText('On')).toBeTruthy();
+    renderNw(<Select label="Body" variant="sheet" defaultOpen value={null} options={[{ value: 'a', label: 'HMA' }]} />);
+    expect(screen.getByLabelText('Search body')).toBeTruthy();
+  });
+
+  it('Select: listbox searches, loading is skeleton rows, no options says emptyText, choosing closes the list', () => {
+    const onValueChange = jest.fn();
+    const options = [
+      { value: 'hma', label: 'Halal Monitoring Authority', description: 'Ontario' },
+      { value: 'isna', label: 'ISNA Halal', description: 'Mississauga' },
+    ];
+    renderNw(<Select label="Certifying body" variant="listbox" searchable defaultOpen value={null} options={options} onValueChange={onValueChange} />);
+    expect(screen.getByRole('combobox').props.accessibilityState).toMatchObject({ expanded: true });
+    fireEvent.changeText(screen.getByLabelText('Search certifying body'), 'isna');
+    expect(screen.queryByRole('radio', { name: 'Halal Monitoring Authority' })).toBeNull();
+    fireEvent.press(screen.getByRole('radio', { name: 'ISNA Halal' }));
+    expect(onValueChange).toHaveBeenCalledWith('isna');
+    renderNw(<Select label="Province" defaultOpen loading value={null} options={[]} />);
+    expect(screen.getByLabelText('Loading province')).toBeTruthy();
+    renderNw(<Select label="Province" defaultOpen value={null} options={[]} emptyText="No provinces yet" />);
+    expect(screen.getByText('No provinces yet')).toBeTruthy();
+  });
+
+  it('SegmentedControl is a radiogroup of radios named by its label', () => {
+    const onValueChange = jest.fn();
+    renderNw(
+      <SegmentedControl
+        label="Fulfilment"
+        value="delivery"
+        onValueChange={onValueChange}
+        options={[
+          { value: 'delivery', label: 'Delivery' },
+          { value: 'pickup', label: 'Pickup' },
+        ]}
+      />,
+    );
+    const group = screen.getByTestId('SegmentedControl');
+    expect([group.props.role, group.props.accessibilityLabel]).toEqual(['radiogroup', 'Fulfilment']);
+    expect(screen.getByRole('radio', { name: 'Delivery' }).props.accessibilityState).toMatchObject({ checked: true });
+    fireEvent.press(screen.getByRole('radio', { name: 'Pickup' }));
+    expect(onValueChange).toHaveBeenCalledWith('pickup');
   });
 });
 
