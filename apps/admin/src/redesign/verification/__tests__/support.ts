@@ -92,3 +92,38 @@ export function summaryRow(over: Partial<Summary> = {}): Summary {
 export function envelope(code: string, message: string, details?: unknown) {
   return { error: { code, message, request_id: '01JTESTREQUEST0000000000000', ...(details === undefined ? {} : { details }) } };
 }
+
+export type Check = Schema['HalalCheck'];
+export type CheckKey = Schema['HalalCheckKey'];
+export type CheckResult = Schema['HalalCheckResult'];
+
+/** A pending certificate, transcribed, nothing recorded yet (the contract fixture). */
+export function pendingCertificate(over: Partial<Certificate> = {}): Certificate {
+  return { ...fixture<Certificate>('halal_certificate_pending_transcribed_unchecked'), ...over };
+}
+
+/** Records `results` as the reviewer's (checked_at set) on a certificate; keys not named stay as they were. */
+export function recorded(cert: Certificate, results: Partial<Record<CheckKey, CheckResult>>): Certificate {
+  const checks = cert.checks.map((c) => {
+    const result = results[c.check_key];
+    return result ? { ...c, result, checked_at: new Date().toISOString() } : c;
+  });
+  return { ...cert, checks };
+}
+
+export const ALL_SEVEN_PASS: Partial<Record<CheckKey, CheckResult>> = {
+  H1_LEGIBLE_COMPLETE: 'PASS',
+  H2_ISSUER_ACCEPTED: 'PASS',
+  H3_NAME_MATCH: 'PASS',
+  H4_ADDRESS_MATCH: 'PASS',
+  H6_SCOPE_SUFFICIENT: 'PASS',
+};
+
+/** The application the certificate belongs to, claimed by you, in review. */
+export function applicationFor(cert: Certificate, over: Partial<Application> = {}): Application {
+  return applicationInReview({ restaurant_id: cert.restaurant_id, halal_certificate: cert, ...over });
+}
+
+export function certificateFixture(name: string): Certificate {
+  return fixture<Certificate>(name);
+}
