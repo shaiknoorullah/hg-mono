@@ -622,7 +622,7 @@ function ExpiredBlock({ row, onDownload }: { row: RowView; onDownload: () => voi
   );
 }
 
-function DraftPane({ draft, row, api }: { draft: Draft; row: RowView; api: ReturnType<typeof useDocumentDrafts> }) {
+export function DraftPane({ draft, row, api }: { draft: Draft; row: RowView; api: ReturnType<typeof useDocumentDrafts> }) {
   const meta = row.meta;
   const type = row.type;
   const err = draft.error;

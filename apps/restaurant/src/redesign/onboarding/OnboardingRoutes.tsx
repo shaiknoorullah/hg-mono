@@ -14,6 +14,9 @@ import { OnboardingProvider, useOnboarding } from './context';
 import { OnboardingFrame, SetupTopBar } from './OnboardingFrame';
 import { DocumentWorkspace } from './DocumentWorkspace';
 import { ProfileScreen } from './ProfileScreen';
+import { PayoutScreen } from './PayoutScreen';
+import { DoneScreen } from './DoneScreen';
+import { LapsedCertificate, NotApproved, PausedAccount, Withdrawn } from './EndScreens';
 import { FRAME } from './copy';
 import { STEP_PATH, isKnownStep } from './model';
 import { reportUnknownStep } from './report';
@@ -38,8 +41,20 @@ function BareFrame({ onSignOut, children }: { onSignOut: () => void; children: R
   );
 }
 
+function EndFrame({ onSignOut, children }: { onSignOut: () => void; children: React.ReactNode }) {
+  const { businessName } = useOnboarding();
+  return (
+    <div className="flex h-dvh flex-col bg-surface-sunken" data-testid="onboarding-end">
+      <SetupTopBar businessName={businessName} onSignOut={onSignOut} />
+      <main id="main" tabIndex={-1} className="min-h-0 flex-1 overflow-y-auto">
+        {children}
+      </main>
+    </div>
+  );
+}
+
 function StepRoutes({ onSignOut }: { onSignOut: () => void }) {
-  const { status } = useOnboarding();
+  const { status, profile } = useOnboarding();
   const location = useLocation();
   const step = status.current_step as string;
 
@@ -47,6 +62,19 @@ function StepRoutes({ onSignOut }: { onSignOut: () => void }) {
     reportUnknownStep(step);
     return <UnknownStep onSignOut={onSignOut} />;
   }
+  const state = status.onboarding_state;
+  const account = profile.data?.account_state;
+
+  // Ends and blockers come before any step: they replace the step, they are not part of it.
+  if (state === 'WITHDRAWN') return <EndFrame onSignOut={onSignOut}><Withdrawn /></EndFrame>;
+  if (status.rejection?.decision === 'REJECT') return <EndFrame onSignOut={onSignOut}><NotApproved /></EndFrame>;
+  if (account === 'SUSPENDED' || account === 'DEACTIVATED') {
+    return <OnboardingFrame onSignOut={onSignOut}><PausedAccount kind={account} /></OnboardingFrame>;
+  }
+  if (profile.data?.halal?.display_state === 'EXPIRED' && (step === 'PAYOUT' || step === 'MENU')) {
+    return <OnboardingFrame onSignOut={onSignOut}><LapsedCertificate /></OnboardingFrame>;
+  }
+
   const home = STEP_PATH[step];
   const path = location.pathname.replace(/\/+$/, '');
   const approvedReview = path === STEP_PATH.AWAITING_REVIEW && status.steps_completed.documents_approved && (step === 'PAYOUT' || step === 'MENU');
@@ -57,6 +85,8 @@ function StepRoutes({ onSignOut }: { onSignOut: () => void }) {
     <OnboardingFrame onSignOut={onSignOut}>
       <Routes>
 <Route path="profile" element={<ProfileScreen />} />
+        <Route path="done" element={<DoneScreen />} />
+        <Route path="payout/*" element={<PayoutScreen />} />
         <Route path="documents" element={<DocumentWorkspace variant="documents" />} />
         <Route path="review" element={<DocumentWorkspace variant="review" />} />
         <Route path="fix" element={<DocumentWorkspace variant="fix" />} />

@@ -20,7 +20,9 @@ export function payoutMode(status: ConnectStatus | null): PayoutMode {
   if (!status || !status.stripe_account_id) return 'not-started';
   if (status.payouts_enabled) return 'enabled';
   const r = status.requirements;
-  if (r.past_due.length > 0 || r.disabled_reason) return 'disabled';
+  // Stripe sets `disabled_reason` for any account not yet payable, so only a deadline that has
+  // passed or a rejection means "turned off".
+  if (r.past_due.length > 0 || /^(rejected|listed)/.test(r.disabled_reason ?? '')) return 'disabled';
   if (status.details_submitted && r.currently_due.length === 0) return 'verifying';
   return 'due';
 }
