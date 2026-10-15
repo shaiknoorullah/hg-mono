@@ -1,7 +1,7 @@
 ---
 covers:
   - tools/design-diff/**
-reviewed: 2026-10-13
+reviewed: 2026-10-15
 ---
 
 # Design diff
@@ -66,10 +66,21 @@ it. The web fonts are in `third-party/fonts/` (SIL Open Font License, `OFL-*.txt
 served them to the canvases; `node src/vendor-fonts.mjs --src <canvases>` refreshes them when a
 canvas asks for a new family or weight. Every other request off the local server is blocked and
 listed. The clock is fixed at 9:41 on 1 October 2026 (Toronto), animations are off, and Chromium
-starts with the web flows' flags. Render the boards with the Chromium binary the web captures use
-(`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`, or Playwright's default for both): a full Chrome and the
-headless shell of the same version rasterise text differently, 0.5 to 1.3 % of a board's pixels.
-Each board records its `browser` in the manifest.
+starts with the web flows' flags. Each board records the `browser` that drew it, and the Chromium version, in the manifest.
+
+**One browser for both sides.** A board and the capture compared with it must come from the same
+Chromium build: builds, and a full Chrome against the headless shell, rasterise text differently,
+which fails boards for reasons that are not our UI. Which build is written down once, in
+`src/browser.mjs` (`CHROMIUM_BUILD`, today 1223, Chromium 148), and both the reference renderer and
+the web captures (`tools/e2e/web/playwright.config.ts`, `design.ts`) read it, so nobody has to set
+an environment variable in two places. `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` still overrides it, on
+both sides alike. `render-refs` stops if the pinned build is not installed rather than drawing with
+another. Each web capture gets a `.capture.json` beside it with the browser that took it, and the
+diff enforces the match: a capture from a different browser, or one with no recorded browser (taken
+before this existed), is reported as `BROWSER MISMATCH`, is not compared, and fails the run like
+any other non-PASS verdict. Retake such a capture. Android captures (customer, rider) come from no
+browser, so this rule is for the web apps (restaurant, admin) only; see "Native boards" below. Why 1223: playwright 1.50.1 ships build 1155, which cannot parse
+`var(--icon-md)` in an SVG `width`, so most sign-in boards do not render on it.
 
 ## Compare
 
@@ -85,7 +96,7 @@ Anything else fails, with the regions in dp. `--max-mismatch`, `--max-region` an
 (pixelmatch's colour threshold, 0.1) change the bars. A capture of another width is listed as not
 compared; a taller one is cut to the board, a shorter one padded, and the padding counts as
 different. The diff fails by default: it exits 1 when any pair is FAIL, NO BOARD (including a board whose
-reference recorded errors) or NOT COMPARED; `--no-strict` reports and exits 0, `--strict` is an accepted
+reference recorded errors), NOT COMPARED or BROWSER MISMATCH; `--no-strict` reports and exits 0, `--strict` is an accepted
 alias of the default, and a crash or usage error exits 2. The summary also lists the uncaptured boards
 (boards of the rendered apps with no capture); that count alone does not fail the run.
 
@@ -158,3 +169,27 @@ the board's size, and loses Android's status and navigation bars before the comp
 | `src/vendor-fonts.mjs`, `third-party/` | React and the fonts the boards load, and their licences |
 | `android/` | The capture AVDs and the device state |
 | `test/` | `pnpm --filter @hg/design-diff test:unit`: the verdict, the bars, the names, the findings |
+
+## Native boards (customer, rider)
+
+Web and native are measured differently, on purpose. A customer or rider board is HTML drawn by
+Chromium; its capture is a React Native screen drawn by Android. They use different text
+rasterisers, hinting and subpixel behaviour, so they never agree pixel for pixel: "at most 0.1 % of
+pixels differ" is the wrong measurement for them, and no amount of good UI work would meet it. The
+pixel criterion stays with the web boards, where both sides are the same Chromium.
+
+What the harness does for a native capture today:
+
+- **Provenance is required instead of a browser.** Beside the screenshot, a `.capture.json` must
+  record `device` (the device or emulator) and `appBuild` (the app version or commit). With neither
+  the pair is `NO PROVENANCE`: untrusted, not compared, and the run fails.
+- **With provenance, the pair is `NOT COMPARED`.** The pixel figure is kept in `results.json` as
+  `informationalMismatchPct` only. An honest "not measured yet" beats a native board that passes for
+  the wrong reason. Both verdicts fail the run by default, like every non-PASS verdict.
+
+The intended criterion is layout geometry: element boxes, positions and sizes, plus colours where the
+capture can supply them. It is not built. `src/layout-diff.mjs` already words such differences, but
+it is only run after the pixel comparison and never sets a verdict, and native captures write no
+layout snapshot (`snapshotLayout` runs inside a web page). Wiring it needs a view-hierarchy snapshot
+from Android, a tolerance for each of geometry and colour, and a verdict in `src/diff.mjs`. Tracked in
+[#844](https://github.com/shaiknoorullah/hg-mono/issues/844).

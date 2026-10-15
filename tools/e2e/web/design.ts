@@ -1,6 +1,7 @@
 import { test, type Page } from '@playwright/test';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { resolveBrowser } from '@hg/design-diff/browser';
 import { captureFile, parseBoardId } from '@hg/design-diff/names';
 import { settle, snapshotLayout } from '@hg/design-diff/page-scripts';
 import { OUT } from '../lib/paths.mjs';
@@ -16,6 +17,10 @@ import { OUT } from '../lib/paths.mjs';
  * painted box on the page, from which the diff words its findings ("heading 28/34 bold in the
  * design, 24/32 semibold in the app"). A capture at a width the board was not drawn for is listed
  * as not compared, so a spec may call this in every viewport project.
+ *
+ * A third file, .capture.json, records the Chromium that took the screenshot, in the form the
+ * reference manifest records the one that drew the board. The diff compares the two and refuses
+ * to compare a capture from another browser (tools/design-diff/README.md, "One browser for both sides").
  */
 export async function expectDesign(page: Page, board: string): Promise<void> {
   const { app, area, board: name } = parseBoardId(board);
@@ -27,5 +32,7 @@ export async function expectDesign(page: Page, board: string): Promise<void> {
   await page.evaluate(settle, { quietMs: 200, maxMs: 1500 });
   await page.screenshot({ path: file, fullPage: true, animations: 'disabled', caret: 'hide' });
   writeFileSync(file.replace(/\.png$/, '.layout.json'), JSON.stringify(await page.evaluate(snapshotLayout)));
+  const chromium = page.context().browser()?.version() ?? null;
+  writeFileSync(file.replace(/\.png$/, '.capture.json'), JSON.stringify({ browser: resolveBrowser().label, chromium }));
   await test.info().attach(`design ${board}`, { path: file, contentType: 'image/png' });
 }
