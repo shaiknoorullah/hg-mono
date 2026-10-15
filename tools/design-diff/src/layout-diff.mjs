@@ -1,8 +1,9 @@
 // The differences a person can act on, in words: which copy is missing or changed, which text is
 // set in another size, weight, line height or colour, which box has another radius, fill or border,
-// and where the spacing starts to drift. Both sides are snapshotLayout() records (page-scripts.mjs),
+// and where the spacing starts to drift. A box drawn on one side only, or whose text names several
+// boxes, is said so. A box with no text at all is not in the snapshot (page-scripts.mjs) and so not here. Both sides are snapshotLayout() records (page-scripts.mjs),
 // in CSS px, which are dp at any scale. Texts are matched by their words, boxes by the text they
-// hold; a box whose text is not unique on both sides is skipped rather than guessed.
+// hold; a box whose text is not unique is reported as not compared rather than guessed.
 
 const WEIGHTS = { 100: 'thin', 200: 'extra-light', 300: 'light', 400: 'regular', 500: 'medium', 600: 'semibold', 700: 'bold', 800: 'extra-bold', 900: 'black' };
 
@@ -74,6 +75,15 @@ export function compareLayouts(design, app) {
   // Boxes, by the text they hold, when that text names one box on each side.
   const unique = (list) => list.filter((b) => list.filter((c) => c.key === b.key).length === 1);
   const boxes = pairUp(unique(design.boxes ?? []), unique(app.boxes ?? []), (b) => b.key);
+  // A box drawn (fill, border or shadow) on one side only is a difference, not something to skip: a
+  // `border: 1px solid transparent` on one side alone shows up here. A box whose text is not unique
+  // cannot be told apart from its twins, so it is said to be unmatched rather than silently dropped.
+  const repeated = (list) => new Set((list ?? []).filter((b) => (list ?? []).filter((c) => c.key === b.key).length > 1).map((b) => b.key));
+  const dup = new Set([...repeated(design.boxes), ...repeated(app.boxes)]);
+  for (const key of dup) out.push({ kind: 'box', text: `Boxes holding ${quote(key)}: the text names more than one box on a side, so they were not compared.` });
+  const drawn = (b) => `${num(b.w)}×${num(b.h)}${b.border && seen(b.border) ? ', bordered' : ''}${b.bg ? ', filled' : ''}${b.shadow ? ', shadowed' : ''}`;
+  for (const b of boxes.onlyA.filter((x) => !dup.has(x.key))) out.push({ kind: 'box', text: `Box holding ${quote(b.key)} (${drawn(b)}) is drawn in the design and not in the app.` });
+  for (const b of boxes.onlyB.filter((x) => !dup.has(x.key))) out.push({ kind: 'box', text: `Box holding ${quote(b.key)} (${drawn(b)}) is drawn in the app and not in the design.` });
   for (const [d, a] of boxes.pairs) {
     const diffs = [];
     if (Math.abs(d.radius - a.radius) >= 1) diffs.push(`corner radius ${num(d.radius)} vs ${num(a.radius)}`);
