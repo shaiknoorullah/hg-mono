@@ -1,7 +1,7 @@
 ---
 covers:
   - tools/design-diff/**
-reviewed: 2026-10-13
+reviewed: 2026-10-15
 ---
 
 # Design diff

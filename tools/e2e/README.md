@@ -2,7 +2,7 @@
 covers:
   - .github/workflows/e2e.yml
   - tools/e2e/**
-reviewed: 2026-10-13
+reviewed: 2026-10-15
 ---
 
 # End-to-end flows
@@ -102,6 +102,8 @@ bash tools/e2e/seed/seed.sh       # the world, and e2e-out/world.json
 bash tools/e2e/web/serve.sh       # restaurant on :4173, admin on :4174 (and the redesign builds, below)
 E2E_FLOWS=web bash tools/e2e/run.sh  # or E2E_FLOWS=all with an emulator attached and the APKs in e2e-out/apk/
 ```
+
+The web runs and the design captures use one pinned Chromium build, recorded in `tools/design-diff/src/browser.mjs` as `CHROMIUM_BUILD`, currently build 1223 (Chromium 148). The build matters because the Chromium that ships with the pinned Playwright fails to render several boards' icons, and a capture taken on a different build is not comparable: design-diff reports `BROWSER MISMATCH` rather than a pixel figure.
 
 `e2e-out/world.json` holds the run's password and the admin's TOTP secret; set `E2E_PASSWORD`
 before seeding to choose the password yourself.
