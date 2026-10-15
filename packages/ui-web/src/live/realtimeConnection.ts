@@ -39,6 +39,35 @@ export type ChannelSignal =
   | { kind: 'event'; event: RealtimeEnvelope }
   | { kind: 'refetch'; channel: string };
 
+/** How a replay ended (`resume_complete`), for a screen that must say how much history it holds. */
+export interface ReplayResult {
+  fromSeq: number;
+  toSeq: number;
+  replayed: number;
+  truncated: boolean;
+}
+
+/** Options for `RealtimeConnection.subscribe`. */
+export interface SubscribeOptions {
+  /**
+   * On the first `subscribed` frame, replay up to this many events before the channel's head
+   * (`resume` with `after_seq = max(cursor_seq - backfill, 0)`), so a page that opens late still
+   * sees what just happened. The replay is a read of the immutable event table
+   * (websocket.md section 6.3), so any number of screens may do it.
+   */
+  backfill?: number;
+  /** Called when a replay on this channel finishes. Only channels with a `backfill` report it. */
+  onReplay?: (result: ReplayResult) => void;
+}
+
+/** How the connection is retrying, for "Trying again in 8 seconds" and "refused 5 times". */
+export interface RetryInfo {
+  /** Consecutive attempts that did not reach an open socket. 0 while open or never tried. */
+  attempt: number;
+  /** When the next attempt starts (epoch ms), or `null` when none is scheduled. */
+  nextAt: number | null;
+}
+
 /** Receives every signal for one channel. */
 export type ChannelHandler = (signal: ChannelSignal) => void;
 
@@ -100,11 +129,15 @@ export class RealtimeConnection {
   readonly #opts: RealtimeConnectionOptions;
   readonly #handlers = new Map<string, Set<ChannelHandler>>();
   readonly #lastSeq = new Map<string, number>();
+  readonly #backfill = new Map<string, number>();
+  readonly #replayHandlers = new Map<string, Set<(result: ReplayResult) => void>>();
+  readonly #backfilled = new Set<string>();
   readonly #seen = new SeenEventIds();
   #socket: SocketLike | null = null;
   #status: RealtimeStatus = 'idle';
   #attempt = 0;
   #retryTimer: ReturnType<typeof setTimeout> | undefined;
+  #nextAt: number | null = null;
   #reauthTimer: ReturnType<typeof setInterval> | undefined;
   #stopped = true;
   /** Bumped on every dial so a late callback from an old socket is ignored. */
@@ -119,6 +152,19 @@ export class RealtimeConnection {
     return this.#status;
   }
 
+  /** Consecutive failed attempts and when the next one starts. */
+  get retry(): RetryInfo {
+    return { attempt: this.#attempt, nextAt: this.#nextAt };
+  }
+
+  /** Skips the wait and dials now ("Reconnect now"). A no-op while open or stopped. */
+  reconnectNow(): void {
+    if (this.#stopped || this.#status === 'open' || this.#status === 'connecting') return;
+    clearTimeout(this.#retryTimer);
+    this.#nextAt = null;
+    void this.#dial();
+  }
+
   /** Opens the connection (idempotent). */
   start(): void {
     if (!this.#stopped) return;
@@ -131,6 +177,7 @@ export class RealtimeConnection {
     this.#stopped = true;
     this.#generation++;
     clearTimeout(this.#retryTimer);
+    this.#nextAt = null;
     clearInterval(this.#reauthTimer);
     const socket = this.#socket;
     this.#socket = null;
@@ -145,21 +192,34 @@ export class RealtimeConnection {
    * Listens on a channel. The first listener subscribes, the last one to leave unsubscribes.
    * Returns the function that removes this listener.
    */
-  subscribe(channel: string, handler: ChannelHandler): () => void {
+  subscribe(channel: string, handler: ChannelHandler, options: SubscribeOptions = {}): () => void {
     let set = this.#handlers.get(channel);
     if (!set) {
       set = new Set();
       this.#handlers.set(channel, set);
       this.#send({ type: 'subscribe', channel });
     }
+    if (options.backfill && options.backfill > (this.#backfill.get(channel) ?? 0)) {
+      this.#backfill.set(channel, options.backfill);
+    }
+    const onReplay = options.onReplay;
+    if (onReplay) {
+      const replays = this.#replayHandlers.get(channel) ?? new Set();
+      replays.add(onReplay);
+      this.#replayHandlers.set(channel, replays);
+    }
     set.add(handler);
     return () => {
+      if (onReplay) this.#replayHandlers.get(channel)?.delete(onReplay);
       const current = this.#handlers.get(channel);
       if (!current) return;
       current.delete(handler);
       if (current.size === 0) {
         this.#handlers.delete(channel);
         this.#lastSeq.delete(channel);
+        this.#backfill.delete(channel);
+        this.#backfilled.delete(channel);
+        this.#replayHandlers.delete(channel);
         this.#send({ type: 'unsubscribe', channel });
       }
     };
@@ -207,6 +267,7 @@ export class RealtimeConnection {
     socket.onopen = () => {
       if (generation !== this.#generation) return;
       this.#attempt = 0;
+      this.#nextAt = null;
       this.#setStatus('open');
       // Subscriptions belong to a connection: re-establish every channel, then resume it.
       for (const channel of this.#handlers.keys()) {
@@ -245,6 +306,7 @@ export class RealtimeConnection {
     this.#setStatus('reconnecting');
     const delay = reconnectDelayMs(this.#attempt, this.#opts.random);
     this.#attempt++;
+    this.#nextAt = Date.now() + delay;
     clearTimeout(this.#retryTimer);
     this.#retryTimer = setTimeout(() => void this.#dial(), delay);
   }
@@ -266,10 +328,28 @@ export class RealtimeConnection {
     if (envelope.type === 'subscribed') {
       const { channel, cursor_seq } = envelope.data as { channel: string; cursor_seq: number };
       if (!this.#lastSeq.has(channel)) this.#lastSeq.set(channel, cursor_seq);
+      const backfill = this.#backfill.get(channel);
+      if (backfill && !this.#backfilled.has(channel)) {
+        this.#backfilled.add(channel);
+        this.#send({ type: 'resume', channel, after_seq: Math.max(cursor_seq - backfill, 0) });
+      }
       return;
     }
     if (envelope.type === 'resume_complete') {
-      const { channel, truncated, to_seq } = envelope.data as { channel: string; truncated: boolean; to_seq: number };
+      const { channel, truncated, to_seq, from_seq, replayed } = envelope.data as {
+        channel: string;
+        truncated: boolean;
+        to_seq: number;
+        from_seq: number;
+        replayed: number;
+      };
+      for (const onReplay of [...(this.#replayHandlers.get(channel) ?? [])]) {
+        try {
+          onReplay({ fromSeq: from_seq, toSeq: to_seq, replayed, truncated });
+        } catch {
+          /* one listener's bug must not starve the others */
+        }
+      }
       if (truncated) {
         this.#lastSeq.set(channel, to_seq);
         this.#dispatch(channel, { kind: 'refetch', channel });

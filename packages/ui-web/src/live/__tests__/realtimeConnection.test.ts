@@ -97,6 +97,32 @@ describe('RealtimeConnection', () => {
     });
     expect(got).toEqual([{ kind: 'refetch', channel: 'order:o1' }]);
   });
+
+  it('replays the 1000 events before the head once, and says how the replay ended', async () => {
+    const got: unknown[] = [];
+    conn.subscribe('admin:ops', () => undefined, { backfill: 1000, onReplay: (r) => got.push(r) });
+    conn.start();
+    await vi.advanceTimersByTimeAsync(0);
+    sockets[0]!.open();
+    const control = (type: string, data: unknown) => ({ id: type, seq: 0, channel: '', type, v: 1, ts: '', data });
+    sockets[0]!.push(control('subscribed', { channel: 'admin:ops', cursor_seq: 1500 }));
+    expect(sockets[0]!.sent).toContainEqual({ type: 'resume', channel: 'admin:ops', after_seq: 500 });
+    sockets[0]!.push(control('resume_complete', { channel: 'admin:ops', from_seq: 501, to_seq: 1500, replayed: 40, truncated: false }));
+    expect(got).toEqual([{ fromSeq: 501, toSeq: 1500, replayed: 40, truncated: false }]);
+    // A second `subscribed` (after a reconnect) resumes from the last seq, not from the backfill point.
+    const before = sockets[0]!.sent.length;
+    sockets[0]!.push(control('subscribed', { channel: 'admin:ops', cursor_seq: 1600 }));
+    expect(sockets[0]!.sent.length).toBe(before);
+  });
+
+  it('a head below the backfill window starts at seq 0, ', async () => {
+    conn.subscribe('admin:ops', () => undefined, { backfill: 1000 });
+    conn.start();
+    await vi.advanceTimersByTimeAsync(0);
+    sockets[0]!.open();
+    sockets[0]!.push({ id: 's', seq: 0, channel: '', type: 'subscribed', v: 1, ts: '', data: { channel: 'admin:ops', cursor_seq: 30 } });
+    expect(sockets[0]!.sent).toContainEqual({ type: 'resume', channel: 'admin:ops', after_seq: 0 });
+  });
 });
 
 describe('resolveSocketUrl', () => {
