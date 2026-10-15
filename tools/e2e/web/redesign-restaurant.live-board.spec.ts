@@ -8,6 +8,7 @@
  * realtime events go through `page.routeWebSocket` (the mock's scripts target another
  * restaurant's channels).
  */
+import { shoot } from './shots';
 import { expect, test, type Page, type Route } from '@playwright/test';
 import { execSync } from 'node:child_process';
 import { resolve } from 'node:path';
@@ -24,7 +25,7 @@ async function payload(page: Page, scenario: string) {
 async function shot(page: Page, name: string) {
   const vp = page.viewportSize()!.width >= 1280 ? 'desktop' : 'tablet';
   await page.screenshot({ path: test.info().outputPath(`${vp}-${name}.png`) });
-  if (SHOTS) await page.screenshot({ path: `${SHOTS}/${vp}-${name}.png` });
+  if (SHOTS) await shoot(page, `${SHOTS}/${vp}-${name}.png`);
 }
 
 async function expectNoDocumentScroll(page: Page) {
