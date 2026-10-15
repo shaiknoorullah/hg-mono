@@ -23,6 +23,10 @@ import { HomeScreen } from '../discover/HomeScreen';
 import { HowWeCheckScreen } from '../discover/HowWeCheckScreen';
 import { CertificateScreen } from '../restaurant/CertificateScreen';
 import { RestaurantScreen as RedesignedRestaurantScreen } from '../restaurant/RestaurantScreen';
+import { AccountScreen } from '../account/AccountScreen';
+import { AddressesScreen as RedesignedAddressesScreen } from '../account/AddressesScreen';
+import { EmailVerifyScreen } from '../account/EmailVerifyScreen';
+import { NotificationSettingsScreen } from '../account/NotificationSettingsScreen';
 import { AddressStepScreen } from '../signin/AddressStepScreen';
 import { SignInScreen } from '../signin/SignInScreen';
 import { TermsScreen } from '../signin/TermsScreen';
@@ -35,6 +39,13 @@ type Registry = { [N in RouteName]?: ScreenFor<N> };
 
 /** Redesigned screens, by route. Each WP registers its own. */
 export const REDESIGNED: Registry = {
+  // WP10/WP11: Account (with its edit sheet and sign-out), Saved addresses, Notification settings
+  // and the email-link page. App settings, What's new and the address form are not built yet and
+  // still fall back to legacy or to Account.
+  account: () => <AccountScreen />,
+  addresses: () => <RedesignedAddressesScreen />,
+  notificationSettings: () => <NotificationSettingsScreen />,
+  emailVerify: (r) => <EmailVerifyScreen token={r.token} />,
   // WP4: restaurant page (with its certification sheet) and the certificate viewer.
   restaurant: (r) => <RedesignedRestaurantScreen restaurantId={r.restaurantId} />,
   certificate: (r) => <CertificateScreen restaurantId={r.restaurantId} />,

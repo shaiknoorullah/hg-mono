@@ -24,15 +24,15 @@ const SHOTS = process.env.E2E_SHOTS_DIR ?? '/tmp/claude-0/-home-user-hg-mono/d41
 /** The design board each state must match; a state with no entry has no board that could be identified. */
 const BOARD: Record<string, BoardFor> = {
   view: { 1440: 'restaurant/menu-hours/HoursView', 1024: 'restaurant/menu-hours/Tablet-Hours' },
-  paused: 'restaurant/menu-hours/HoursPaused',
+  paused: { 1440: 'restaurant/menu-hours/HoursPaused' },
   edit: { 1440: 'restaurant/menu-hours/HoursEdit', 1024: 'restaurant/menu-hours/Tablet-HoursEdit' },
-  overlap: 'restaurant/menu-hours/HoursOverlap',
-  saved: 'restaurant/menu-hours/HoursSaved',
-  unsaved: 'restaurant/menu-hours/HoursUnsaved',
-  'special-panel': 'restaurant/menu-hours/HoursOverrideModal',
-  error: 'restaurant/menu-hours/HoursError',
-  none: 'restaurant/menu-hours/HoursNone',
-  suspended: 'restaurant/menu-hours/HoursSuspended',
+  overlap: { 1440: 'restaurant/menu-hours/HoursOverlap' },
+  saved: { 1440: 'restaurant/menu-hours/HoursSaved' },
+  unsaved: { 1440: 'restaurant/menu-hours/HoursUnsaved' },
+  'special-panel': { 1440: 'restaurant/menu-hours/HoursOverrideModal' },
+  error: { 1440: 'restaurant/menu-hours/HoursError' },
+  none: { 1440: 'restaurant/menu-hours/HoursNone' },
+  suspended: { 1440: 'restaurant/menu-hours/HoursSuspended' },
 };
 
 async function shot(page: Page, name: string) {

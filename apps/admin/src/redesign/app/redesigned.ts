@@ -31,9 +31,9 @@ export const REDESIGNED: Partial<Record<RouteId, Screen>> = {
   // ·
   // menuItem: WP-4
   // ·
-  // riders: WP-5
+  riders: lazy(() => import('../riders/queue/RiderQueueRoute')),
   // ·
-  // rider: WP-5
+  rider: lazy(() => import('../riders/application/RiderApplicationRoute')),
   // ·
   // issuingBodies: WP-4
   // ·
@@ -53,9 +53,9 @@ export const REDESIGNED: Partial<Record<RouteId, Screen>> = {
   // ·
   alert: lazy(() => import('../alerts/AlertsRoute')),
   // ·
-  // staff: WP-11
+  staff: lazy(() => import('../staff/StaffRoute')),
   // ·
-  // staffMember: WP-11
+  staffMember: lazy(() => import('../staff/StaffRoute')),
   // ·
   account: lazy(() => import('../account/AccountRoute')),
   // ·

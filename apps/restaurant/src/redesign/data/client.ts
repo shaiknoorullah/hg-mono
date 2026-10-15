@@ -168,3 +168,19 @@ export function createRedesignClient(fetchImpl: typeof fetch = fetchWithCookies)
 }
 
 export const client: HgClient = createRedesignClient();
+
+/**
+ * A client that never refreshes and replays on a 401. Only for `changePassword`: the backend
+ * still answers a wrong current password with 401 (the contract says 422), and a replay would
+ * send the wrong password a second time, counting double toward the account lockout.
+ */
+export function createClientWithoutReplay(fetchImpl: typeof fetch = fetchWithCookies): HgClient {
+  return createHgClient({
+    baseUrl: API_BASE_URL,
+    clientSurface: 'restaurant-web',
+    clientVersion: '0.1.0',
+    fetch: fetchImpl,
+    getToken: () => getSession()?.accessToken ?? null,
+    onUnauthorized: async () => false,
+  });
+}
