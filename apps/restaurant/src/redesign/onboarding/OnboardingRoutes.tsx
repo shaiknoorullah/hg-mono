@@ -13,6 +13,7 @@ import { supportFrom } from '../auth/api';
 import { OnboardingProvider, useOnboarding } from './context';
 import { OnboardingFrame, SetupTopBar } from './OnboardingFrame';
 import { DocumentWorkspace } from './DocumentWorkspace';
+import { ProfileScreen } from './ProfileScreen';
 import { FRAME } from './copy';
 import { STEP_PATH, isKnownStep } from './model';
 import { reportUnknownStep } from './report';
@@ -55,6 +56,7 @@ function StepRoutes({ onSignOut }: { onSignOut: () => void }) {
   return (
     <OnboardingFrame onSignOut={onSignOut}>
       <Routes>
+<Route path="profile" element={<ProfileScreen />} />
         <Route path="documents" element={<DocumentWorkspace variant="documents" />} />
         <Route path="review" element={<DocumentWorkspace variant="review" />} />
         <Route path="fix" element={<DocumentWorkspace variant="fix" />} />
