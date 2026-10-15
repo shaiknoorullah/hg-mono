@@ -153,6 +153,8 @@ MAPPED_IN_MIGRATION = {
     "HandoffEventType":                   ("handoff_event_type", "00027_handoff.sql"),
     "HandoffActor":                       ("handoff_actor", "00027_handoff.sql"),
     "HandoffMethod":                      ("handoff_method", "00027_handoff.sql"),
+    "AccountSubjectType":                 ("account_subject_type", "00044_account_state_actions.sql"),
+    "AccountAction":                      ("account_action", "00044_account_state_actions.sql"),
     "HandoverCodeKind":                   ("handover_code_kind", "00072_handover_codes.sql"),
     "PayoutRunKind":                      ("payout_run_kind", "00030_payout_run.sql"),
     "PayoutRunState":                     ("payout_run_state", "00030_payout_run.sql"),
@@ -254,6 +256,22 @@ EXCLUSIONS = {
     "OrderRatingInput/properties/rider/oneOf/0/properties/tags/items":
         "Rating tag vocabulary. Stored as free text[] on the rating row; the "
         "allowed set is enforced at the API boundary.",
+    "RiderAccountAction":
+        "Request-only subset of account_action (the actions that apply to a rider). "
+        "Enforced at the API boundary.",
+    "CustomerAccountAction":
+        "Request-only subset of account_action (the actions that apply to a customer). "
+        "Enforced at the API boundary.",
+    "AccountStateName":
+        "Union of restaurant_account_state, rider_account_status and account_status for the "
+        "account history. account_state_event stores it as text, held to the subject's own "
+        "states by a CHECK.",
+    "RestaurantAccountReasonCode":
+        "Stored as text on account_state_event, held to this set by a CHECK per subject type.",
+    "RiderAccountReasonCode":
+        "Stored as text on account_state_event, held to this set by a CHECK per subject type.",
+    "CustomerAccountReasonCode":
+        "Stored as text on account_state_event, held to this set by a CHECK per subject type.",
     # The handover-code request shapes
     # (https://github.com/shaiknoorullah/hg-mono/pull/290). Each method/to_state
     # below is a one-value discriminator that picks the request shape; what is

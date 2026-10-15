@@ -1,0 +1,27 @@
+{
+  "scenario": "error_reinstate_precondition_not_met",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `PRECONDITION_NOT_MET`. Reinstating a partner who never finished onboarding.",
+  "operations": [
+    "applyRestaurantAccountAction",
+    "applyRiderAccountAction"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope",
+    "account-action"
+  ],
+  "payload": {
+    "error": {
+      "code": "PRECONDITION_NOT_MET",
+      "message": "The account cannot be reinstated yet.",
+      "request_id": "30K30NPT1B5MN07GATE906RP43",
+      "details": {
+        "blockers": [
+          "The rider has not finished onboarding, so they cannot be reinstated to take deliveries."
+        ]
+      }
+    }
+  }
+}
