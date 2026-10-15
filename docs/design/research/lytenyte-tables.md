@@ -11,8 +11,8 @@ reviewed: 2026-10-15
 > live operations map are outside this draft's scope; the operations map lists its orders as plain
 > text beneath the map rather than in a grid.
 >
-> **2026-10-15:** the redesigned admin Orders and Disputes lists draw their rows through the admin
-> redesign's `DataGrid` stand-in (`apps/admin/src/redesign/ds-stubs/DataGrid.stub.tsx`), not the
+> **2026-10-15:** the redesigned admin Orders and Disputes lists draw their rows through the
+> admin `DataGrid` stand-in (`apps/admin/src/redesign/ds-stubs/DataGrid.stub.tsx`), not the
 > `DataTable` below, with plain-text cells and the `Countdown` for the next deadline. Nothing in this
 > draft changes; the grid moves onto LyteNyte with the design system's own grid.
 >
