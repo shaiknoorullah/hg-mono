@@ -134,6 +134,12 @@ function themeFromName(job) {
   return null;
 }
 
+/** page.evaluate has no timeout of its own; a page that never answers must fail the board, not hang the run. */
+function within(promise, ms, what) {
+  let t;
+  return Promise.race([promise, new Promise((_, rej) => { t = setTimeout(() => rej(new Error(`${what} did not finish in ${ms / 1000} s`)), ms); })]).finally(() => clearTimeout(t));
+}
+
 async function render(browser, base, job, out) {
   const scale = PHONE_APPS.has(job.app) ? 3 : 1;
   const named = themeFromName(job);
@@ -155,9 +161,9 @@ async function render(browser, base, job, out) {
       if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) rec.errors.push(`console: ${m.text().slice(0, 200)}`);
     });
     await page.goto(base + job.url, { waitUntil: 'networkidle', timeout: 45_000 });
-    if (!(await page.evaluate(settle, { quietMs: 400, maxMs: 10_000 }))) rec.errors.push('still changing after 10 s');
+    if (!(await within(page.evaluate(settle, { quietMs: 400, maxMs: 10_000 }), 30_000, 'settle'))) rec.errors.push('still changing after 10 s');
     rec.notes = await page.evaluate(hideNotes, { classes: NOTE_CLASSES, prefixes: NOTE_PREFIXES, weakPrefixes: NOTE_WEAK_PREFIXES });
-    await page.evaluate(settle, { quietMs: 150, maxMs: 3_000 });
+    await within(page.evaluate(settle, { quietMs: 150, maxMs: 3_000 }), 30_000, 'settle');
     if (!rec.theme) {
       const t = await page.evaluate(() => document.querySelector('[data-theme]')?.getAttribute('data-theme'));
       if (t === 'dark' || t === 'light') rec.theme = t;
@@ -204,7 +210,10 @@ async function main() {
   const base = `http://127.0.0.1:${server.address().port}`;
   // The same flags the web flows launch Chromium with (tools/e2e/web/playwright.config.ts), so a
   // board and a capture rasterise text alike.
-  const browser = await chromium.launch(EXE ? { executablePath: EXE, args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--disable-dev-shm-usage'] } : {});
+  // The flags go on every launch, not only with an executable path: on a host that forbids
+  // unprivileged user namespaces, Chromium without --no-sandbox launches, then dies when the first
+  // page opens, and every board waited on it.
+  const browser = await chromium.launch({ ...(EXE ? { executablePath: EXE } : {}), timeout: 60_000, args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--disable-dev-shm-usage'] });
   const manifestFile = path.join(o.out, 'manifest.json');
   const manifest = existsSync(manifestFile) ? JSON.parse(readFileSync(manifestFile, 'utf8')) : { boards: {}, areas: {} };
   manifest.source = { ref: src.label, commit: src.commit };
