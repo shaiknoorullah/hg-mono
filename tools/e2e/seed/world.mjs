@@ -38,6 +38,8 @@ const world = {
     app: { id: 'e2e00000-0000-4000-8000-00000000c001', phone: '+14165550110', name: 'Amina', addressId: 'e2e00000-0000-4000-8000-0000000007c1' },
     // Places orders through the API (one active order per customer, so not the same person).
     api: { id: 'e2e00000-0000-4000-8000-00000000c002', phone: '+14165550111', name: 'Omar', addressId: 'e2e00000-0000-4000-8000-0000000007c2' },
+    // The redesigned rider's offer (Omar's order is still in flight by then).
+    redesign: { id: 'e2e00000-0000-4000-8000-00000000c003', phone: '+14165550112', name: 'Yusuf', addressId: 'e2e00000-0000-4000-8000-0000000007c3' },
   },
   rider: { id: 'e2e00000-0000-4000-8000-00000000d001', phone: '+14165550161', name: 'Bilal' },
 };

@@ -1,7 +1,10 @@
 import { defineConfig, type Project } from '@playwright/test';
+import { resolveBrowser } from '@hg/design-diff/browser';
 import path from 'node:path';
 import { OUT as out } from '../lib/paths.mjs';
 import { E2E_MODE, type ProjectMeta } from './mode';
+
+const webBrowser = resolveBrowser();
 
 // The web flows: the restaurant and admin apps as tools/e2e/web/serve.sh serves them, against
 // the API tools/e2e/stack/up.sh booted (E2E_MODE=real, the default) or `pnpm mock` on :4010
@@ -87,12 +90,11 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     actionTimeout: 20_000,
     launchOptions: {
-      ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
-        ? {
-            executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
-            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--disable-dev-shm-usage'],
-          }
-        : {}),
+      // The Chromium the design boards are drawn with (tools/design-diff/src/browser.mjs), so a
+      // capture and its board agree by construction. $PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH overrides it. If the pinned build is not
+      // installed this falls back to the bundled one ON PURPOSE: the capture records which browser it
+      // used and the diff reports BROWSER MISMATCH loudly, so nothing is silently compared.
+      ...(webBrowser.executablePath ? { executablePath: webBrowser.executablePath, args: webBrowser.args } : {}),
     },
   },
   projects,

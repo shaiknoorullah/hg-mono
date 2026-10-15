@@ -353,6 +353,13 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   | any | `WITHDRAWN` | restaurant abandons application (self-service, ≥1 confirmation) |
 
   `account_status` becomes `ACTIVE` exactly when `onboarding_state` becomes `ACTIVE`.
+  In the build the column is `account_state`, and it leaves `PENDING` in the same row update: to
+  `LIVE` only with a current halal certificate an admin has checked and no delisting reason, otherwise to
+  `DELISTED` with the certificate's reason, so a certificate that lapses between the application's
+  approval and the last onboarding step never gets listed. Completing onboarding changes nothing
+  but `PENDING`; it never lifts a suspension or a ban. The step is a database function that checks
+  the onboarding gates and the certificate itself; the application cannot write the account state
+  any other way ([one writer per account-state change, #335](https://github.com/shaiknoorullah/hg-mono/pull/335)).
 
 - **Rules**:
   1. Transitions are executed only by named server functions inside a transaction with
@@ -1702,6 +1709,10 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   codes have locked it and the order is with support. The rider must type it to pick up a ready
   order they hold; nothing stands in for it but a support override
   ([handover codes](https://github.com/shaiknoorullah/hg-mono/issues/310)).
+  The live order queue shows a ready order's 4-digit `pickup_code` in large type, labelled as the
+  code the rider must type, for the kitchen to read out at the counter; when the order carries no
+  code it shows nothing, never a placeholder
+  ([kitchen shows the pickup code](https://github.com/shaiknoorullah/hg-mono/issues/659)).
 
   *(In the current system this is unreachable: the transition table lives in a workflow that starts
   at `RIDER_ASSIGNED`, the `updateStatus()` function on the order page is defined and never called,

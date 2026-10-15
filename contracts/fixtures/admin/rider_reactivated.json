@@ -1,0 +1,37 @@
+{
+  "scenario": "rider_reactivated",
+  "domain": "admin",
+  "schema": "AccountStateChange",
+  "describes": "`REINSTATE`: `DEACTIVATED` → `ACTIVE`. A deactivated rider reactivated on request.",
+  "operations": [
+    "applyRiderAccountAction"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "account-action",
+    "state-matrix"
+  ],
+  "payload": {
+    "id": "b2a221d6-de90-4efd-abd3-dfbe6a68a1b3",
+    "subject_type": "RIDER",
+    "subject_id": "9f99b7f0-abab-4667-a1a6-4f8d9d7dcea1",
+    "action": "REINSTATE",
+    "from_state": "DEACTIVATED",
+    "to_state": "ACTIVE",
+    "reason_code": "RIDER_REQUEST",
+    "reason_text": "Rider moved back to Toronto and asked to ride again.",
+    "actor_account_id": "6355afc2-21b9-4556-a0fe-16db508f6a3b",
+    "ban_proposal": null,
+    "delist_reasons": [],
+    "menu_locked": null,
+    "sessions_revoked": 0,
+    "in_flight": {
+      "cancelled_order_ids": [],
+      "refunded_order_ids": [],
+      "continuing_order_ids": [],
+      "withdrawn_offer_ids": []
+    },
+    "created_at": "2026-08-10T18:42:11.412Z"
+  }
+}

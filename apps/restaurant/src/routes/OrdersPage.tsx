@@ -74,6 +74,34 @@ function chime() {
   }
 }
 
+/**
+ * The 4-digit pickup code the kitchen reads out to the rider at the counter; the rider types it in
+ * to confirm pickup, the only way an order leaves the kitchen (contract
+ * `OrderRestaurantView.pickup_code`, issue #659). Large enough to read across a counter. When the
+ * field is null or absent (no rider collects it, already picked up, or locked and with support)
+ * nothing renders: never a placeholder code.
+ */
+function PickupCode({ orderId, code }: { orderId: string; code: string | null | undefined }) {
+  if (!code) return null;
+  return (
+    <div
+      data-testid="pickup-code"
+      className="mt-4 rounded-lg border border-line-decorative bg-surface-sunken p-3 text-center"
+    >
+      <p id={`pickup-code-${orderId}`} className="text-caption font-semibold text-fg-secondary">
+        Pickup code — read it to the rider, who must type it in
+      </p>
+      <p
+        aria-labelledby={`pickup-code-${orderId}`}
+        className="mt-1 text-heading-xl font-extrabold tracking-[0.3em] text-fg-primary"
+        data-hg-numeric="tabular"
+      >
+        {code}
+      </p>
+    </div>
+  );
+}
+
 type OrderList = Awaited<ReturnType<typeof fetchOrders>>;
 function fetchOrders() {
   return unwrapOrThrow(
@@ -343,6 +371,7 @@ export function OrdersPage() {
                   Mark ready for pickup
                 </Button>
               )}
+              {order.state === 'READY_FOR_PICKUP' && <PickupCode orderId={order.id} code={order.pickup_code} />}
               {(order.state === 'PREPARING' || order.state === 'READY_FOR_PICKUP') && (
                 <SealBindRow orderId={order.id} />
               )}

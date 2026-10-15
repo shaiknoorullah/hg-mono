@@ -1,0 +1,37 @@
+{
+  "scenario": "customer_banned",
+  "domain": "admin",
+  "schema": "AccountStateChange",
+  "describes": "`CONFIRM_BAN`: `SUSPENDED` → `BANNED`. Banned once no accepted order is in progress. Every session ends; any refund owed is still paid.",
+  "operations": [
+    "applyCustomerAccountAction"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "account-action",
+    "state-matrix"
+  ],
+  "payload": {
+    "id": "1ba1c1d8-1222-4a58-a85f-4a229f433efd",
+    "subject_type": "CUSTOMER",
+    "subject_id": "6087e999-1c05-4911-ad7a-7dead9531444",
+    "action": "CONFIRM_BAN",
+    "from_state": "SUSPENDED",
+    "to_state": "BANNED",
+    "reason_code": "ABUSIVE_CONDUCT_TO_RIDER",
+    "reason_text": "Confirmed after listening to the recording.",
+    "actor_account_id": "e34f6191-6d6d-4a96-a8ec-f6ec9485bb75",
+    "ban_proposal": null,
+    "delist_reasons": [],
+    "menu_locked": null,
+    "sessions_revoked": 1,
+    "in_flight": {
+      "cancelled_order_ids": [],
+      "refunded_order_ids": [],
+      "continuing_order_ids": [],
+      "withdrawn_offer_ids": []
+    },
+    "created_at": "2026-08-10T19:42:11.412Z"
+  }
+}

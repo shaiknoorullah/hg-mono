@@ -38,6 +38,7 @@ Commands run from `services/hg`, against a local stack (`make up`, `make migrate
 | `rider-sim`, `rider-docs`, `rider-rejected`, `rider-registered` | `+15550100151` to `+15550100154`, code `000000` | rider app |
 | `rider-sim-2` | `+15550100155`, code `000000`, offline | rider app; the second rider of the offer scenarios |
 | Restaurant personas and catalogue owners | `<slug>@seed.hg`, password `Seed!2026` | restaurant console, `http://localhost:5183` |
+| `bismillah-manager`, `bismillah-staff` | `<persona>@seed.hg`, password `Seed!2026`; `bismillah-invited` has no password and `bismillah-suspended` is refused | restaurant console |
 | `admin-seed` | `admin-seed@seed.hg`, `Seed!2026`, and the code from `make dev-totp` | admin console |
 | `support-seed`, `ops-admin` | `support-seed@seed.hg` (support agent) and `ops-admin@seed.hg` (admin), `Seed!2026`, and the code from `make dev-totp email=<address>` | admin console |
 
@@ -48,7 +49,7 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | Table | Covered | Partial | Missing | Not in V1 | Blocked by external |
 |---|---:|---:|---:|---:|---:|
 | Customer app | 21 | 2 | 0 | 13 | 4 |
-| Restaurant portal | 22 | 7 | 2 | 5 | 0 |
+| Restaurant portal | 23 | 6 | 2 | 5 | 0 |
 | Rider app | 23 | 6 | 2 | 1 | 3 |
 | Admin console | 13 | 2 | 12 | 15 | 0 |
 | Platform | 30 | 6 | 0 | 0 | 3 |
@@ -107,7 +108,7 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [R-03](spec/03-restaurant.md#r-03--login-session-and-token-lifecycle) | Sign in, sessions, password reset | Any owner, e.g. `bismillah-grill`; the reset link is in the API log | Covered | — |
 | [R-04](spec/03-restaurant.md#r-04--onboarding-state-machine-and-progress-tracking) | Onboarding progress | One persona per step: `fresh`, `profile`, `docs-todo`, `docs-review`, `docs-rejected`, `payout`, `menu`, `bismillah-grill`. [Playbook](playbooks/restaurant/onboarding-personas.md) | Covered | — |
 | [R-05](spec/03-restaurant.md#r-05--business-profile-submission-onboarding-step-1) | Business profile | `profile` | Covered | — |
-| [R-06](spec/03-restaurant.md#r-06--operating-hours-holidays-and-temporary-closure) | Hours, holidays, temporary closure | Weekly hours: `bismillah-grill`; pause: `paused`. No holiday or late-opening override is seeded | Partial | [#683](https://github.com/shaiknoorullah/hg-mono/issues/683) |
+| [R-06](spec/03-restaurant.md#r-06--operating-hours-holidays-and-temporary-closure) | Hours, holidays, temporary closure | Weekly hours: `bismillah-grill`, which also has two upcoming overrides (opens late in 3 days, closed all day in 7); pause: `paused` | Covered | — |
 | [R-07](spec/03-restaurant.md#r-07--compliance-document-upload) | Upload documents | `docs-todo` | Covered | — |
 | [R-08](spec/03-restaurant.md#r-08--document-pack-submission-and-admin-verification-review) | Submit the pack; admin reviews it | `docs-review`, then `make dev-scenario s=docs-approve` or `s=docs-reject` | Covered | — |
 | [R-09](spec/03-restaurant.md#r-09--verification-status-tracking-real-time) | Follow the review as it happens | The personas show each state; a decision does not arrive live | Partial | [#376](https://github.com/shaiknoorullah/hg-mono/issues/376) |
@@ -321,11 +322,11 @@ Every platform feature, for completeness. Most are exercised by any journey abov
 
 | Feature | Journey | How to reach it | Status | Gap |
 |---|---|---|---|---|
-| [P-01](spec/01-platform.md#p-01--account-model-one-table-many-roles) | One account, many roles | The personas cover every role but plain admin, restaurant manager and restaurant staff | Partial | [#677](https://github.com/shaiknoorullah/hg-mono/issues/677) |
+| [P-01](spec/01-platform.md#p-01--account-model-one-table-many-roles) | One account, many roles | The personas cover every role but plain admin | Partial | [#677](https://github.com/shaiknoorullah/hg-mono/issues/677) |
 | [P-02](spec/01-platform.md#p-02--phone-otp-authentication-customers-riders) | Phone sign-in | `amina`, `rider-sim` | Covered | — |
 | [P-03](spec/01-platform.md#p-03--email--password-authentication-restaurants-admins-support) | Email and password sign-in | Any `@seed.hg` persona | Covered | — |
 | [P-04](spec/01-platform.md#p-04--sessions-token-format-lifetime-refresh-revocation) | Sessions and refresh | Any persona | Covered | — |
-| [P-05](spec/01-platform.md#p-05--role-scope-and-permission-model) | Roles, scopes, permissions | Owner and super admin only | Partial | [#683](https://github.com/shaiknoorullah/hg-mono/issues/683) |
+| [P-05](spec/01-platform.md#p-05--role-scope-and-permission-model) | Roles, scopes, permissions | Owner, `bismillah-manager` (no payouts) and `bismillah-staff` (no staff list or payouts) of `bismillah-grill`, and super admin | Partial | [#677](https://github.com/shaiknoorullah/hg-mono/issues/677) |
 | [P-06](spec/01-platform.md#p-06--deny-by-default-routing-and-the-middleware-chain) | Deny by default | Any persona against another app's routes | Covered | — |
 | [P-07](spec/01-platform.md#p-07--ownership-checks-the-idor-fix) | Ownership checks | `nour` reading `amina`'s order | Covered | — |
 | [P-08](spec/01-platform.md#p-08--currency-representation) | Money in cents | Every quote | Covered | — |

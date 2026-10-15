@@ -1,0 +1,37 @@
+{
+  "scenario": "rider_deactivated",
+  "domain": "admin",
+  "schema": "AccountStateChange",
+  "describes": "`DEACTIVATE`: `ACTIVE` → `DEACTIVATED`. A voluntary exit, only on the rider's own request.",
+  "operations": [
+    "applyRiderAccountAction"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "account-action",
+    "state-matrix"
+  ],
+  "payload": {
+    "id": "ba2d5f64-feef-4eaf-a94e-19569d4c123b",
+    "subject_type": "RIDER",
+    "subject_id": "9f99b7f0-abab-4667-a1a6-4f8d9d7dcea1",
+    "action": "DEACTIVATE",
+    "from_state": "ACTIVE",
+    "to_state": "DEACTIVATED",
+    "reason_code": "RIDER_REQUEST",
+    "reason_text": "Rider called support: moving out of the province.",
+    "actor_account_id": "6355afc2-21b9-4556-a0fe-16db508f6a3b",
+    "ban_proposal": null,
+    "delist_reasons": [],
+    "menu_locked": null,
+    "sessions_revoked": 0,
+    "in_flight": {
+      "cancelled_order_ids": [],
+      "refunded_order_ids": [],
+      "continuing_order_ids": [],
+      "withdrawn_offer_ids": []
+    },
+    "created_at": "2026-08-10T18:42:11.412Z"
+  }
+}
