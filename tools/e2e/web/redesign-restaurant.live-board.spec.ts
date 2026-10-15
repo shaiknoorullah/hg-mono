@@ -31,14 +31,14 @@ async function payload(page: Page, scenario: string) {
  */
 const BOARD: Record<string, BoardFor> = {
   busy: { 1440: 'restaurant/live-orders/Main', 1024: 'restaurant/live-orders/Tablet-busy' },
-  empty: 'restaurant/live-orders/Board-empty',
-  'first-load-error': 'restaurant/live-orders/Board-first-load-error',
-  'detail-preparing': 'restaurant/live-orders/Detail-preparing',
-  'mark-ready-failed': 'restaurant/live-orders/Mark-ready-failed',
-  'ready-rider-here-code-error': 'restaurant/live-orders/Ready-rider-here-code-error',
-  'ready-rider-here': 'restaurant/live-orders/Ready-rider-here',
-  'turn-off-confirm': 'restaurant/live-orders/Board-turn-off-confirm',
-  'cert-expired': 'restaurant/live-orders/Board-cert-expired',
+  empty: { 1440: 'restaurant/live-orders/Board-empty' },
+  'first-load-error': { 1440: 'restaurant/live-orders/Board-first-load-error' },
+  'detail-preparing': { 1440: 'restaurant/live-orders/Detail-preparing' },
+  'mark-ready-failed': { 1440: 'restaurant/live-orders/Mark-ready-failed' },
+  'ready-rider-here-code-error': { 1440: 'restaurant/live-orders/Ready-rider-here-code-error' },
+  'ready-rider-here': { 1440: 'restaurant/live-orders/Ready-rider-here', 1024: 'restaurant/live-orders/Tablet-rider-here' },
+  'turn-off-confirm': { 1440: 'restaurant/live-orders/Board-turn-off-confirm' },
+  'cert-expired': { 1440: 'restaurant/live-orders/Board-cert-expired' },
 };
 
 async function shot(page: Page, name: string) {
