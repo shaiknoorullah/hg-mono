@@ -85,4 +85,12 @@ func Routes(r *httpx.Router, h *Handler) {
 	// The only way past a handover code. MONEY class like the cancel: confirming
 	// a delivery is what lets the order settle.
 	r.Post("/v1/admin/orders/{orderId}/handover-override", money(ActionOrderHandoverOverride, "overrideHandoverCode"), h.OverrideHandoverCode)
+
+	// Account actions: suspend, reinstate, delist, deactivate or ban a restaurant,
+	// a rider or a customer (https://github.com/shaiknoorullah/hg-mono/issues/253).
+	// Restaurant and customer actions can cancel and refund orders, so they are
+	// MONEY class.
+	r.Post("/v1/admin/restaurants/{restaurantId}/account-actions", money(ActionRestaurantAccountState, "applyRestaurantAccountAction"), h.ApplyRestaurantAccountAction)
+	r.Post("/v1/admin/riders/{riderAccountId}/account-actions", write(ActionRiderAccountState, "applyRiderAccountAction"), h.ApplyRiderAccountAction)
+	r.Post("/v1/admin/customers/{customerAccountId}/account-actions", money(ActionCustomerAccountState, "applyCustomerAccountAction"), h.ApplyCustomerAccountAction)
 }

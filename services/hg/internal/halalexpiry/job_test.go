@@ -290,28 +290,20 @@ func TestFailsClosed(t *testing.T) {
 	})
 }
 
-// Suspension some days after a lapse is an open owner question (#164): off by
-// default, and when switched on a renewal does not lift it.
+// Suspension some days after a lapse is an open owner question (#164): the
+// database's expiry writer only delists, so a pass refuses to run with it on.
 func TestSuspensionAfterLapseWaitsForTheOwner(t *testing.T) {
 	db := newDatabase(t)
 	w := seedRestaurant(t, db, 40)
 
-	off := halalexpiry.New(db.pool, db.outbox, nil, halalexpiry.Config{})
 	on := halalexpiry.New(db.pool, db.outbox, nil, halalexpiry.Config{SuspendAfterExpiredDays: 14})
+	if _, ran, err := on.RunAt(context.Background(), w.local(15, 12, 0, 0)); err == nil || ran {
+		t.Fatalf("a pass with suspension switched on ran=%v err=%v, want a refusal", ran, err)
+	}
 
-	// The certificate's first expired day is expiry + 1, so on expiry + 14 it
-	// has not yet been expired for 14 whole days.
-	w.runAt(t, on, w.local(14, 12, 0, 0))
-	w.expectListing(t, "EXPIRED", "DELISTED", "HALAL_CERTIFICATE_EXPIRED")
+	off := halalexpiry.New(db.pool, db.outbox, nil, halalexpiry.Config{})
 	w.runAt(t, off, w.local(15, 12, 0, 0))
 	w.expectListing(t, "EXPIRED", "DELISTED", "HALAL_CERTIFICATE_EXPIRED")
-	if rep := w.runAt(t, on, w.local(15, 12, 0, 0)); rep.Suspended != 1 {
-		t.Fatalf("suspended = %d, want 1", rep.Suspended)
-	}
-	w.expectListing(t, "EXPIRED", "SUSPENDED", "HALAL_CERTIFICATE_EXPIRED")
-
-	w.approveCertificate(t, 400)
-	w.expectListing(t, "CERTIFIED", "SUSPENDED")
 }
 
 // ---------------------------------------------------------------- the world

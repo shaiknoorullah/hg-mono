@@ -48,14 +48,14 @@ const (
 // and this principal applies its consequence to each restaurant. The audit rows
 // carry it beside the super admin who caused it.
 //
-// TODO(https://github.com/shaiknoorullah/hg-mono/pull/335): once the account-state
-// single writer lands, a restaurant's account_state changes only with a history
-// row naming a system principal and one reason (account_state_rule, migration
-// 00035_account_state_single_writer.sql). setIssuerListingTx is the one place
-// this file writes the listing, so adopting it is one change there: record the
-// change as this principal (delisting with HALAL_CERTIFICATE_UNVERIFIED or
-// HALAL_CERTIFICATE_EXPIRED), and relist as that pull request's HALAL_RENEWAL
-// principal. Tracked in https://github.com/shaiknoorullah/hg-mono/issues/355.
+// A restaurant's account_state changes only through the database's writers
+// (migration 00045_account_state_single_writer.sql, which takes the columns away
+// from the application role). setIssuerListingTx is the one place this file
+// moves the listing, and it does so through account_state_issuer_listing(), which
+// records the change as this principal with the certificate's own reason
+// (HALAL_CERTIFICATE_UNVERIFIED or HALAL_CERTIFICATE_EXPIRED) and relists as a
+// current certificate from an accepted body allows
+// (https://github.com/shaiknoorullah/hg-mono/issues/355).
 const issuerSystemPrincipal = "HALAL_ISSUER"
 
 // Notification kinds. notification.kind is a plain string (contract
@@ -276,7 +276,10 @@ SELECT `+issuerRestaurantColumns+`
 // lapsed) is listed again, as the owners were told it would be. The approval
 // itself is audited by Decide; this audits and announces only a change of
 // listing.
-func (r *Repo) relistOnApprovalTx(ctx context.Context, tx pgx.Tx, actor auditActor, cert certRow) error {
+func (r *Repo) relistOnApprovalTx(ctx context.Context, tx pgx.Tx, actor auditActor, cert certRow, before *issuerRestaurant) error {
+	if before == nil {
+		return nil
+	}
 	cause := listingCause{certificateID: cert.ID}
 	if cert.IssuingBodyID != nil {
 		if err := tx.QueryRow(ctx, `SELECT id::text, name, status::text FROM halal_issuing_body WHERE id = $1`,
@@ -284,16 +287,7 @@ func (r *Repo) relistOnApprovalTx(ctx context.Context, tx pgx.Tx, actor auditAct
 			return fmt.Errorf("read the issuing body of certificate %s: %w", cert.ID, err)
 		}
 	}
-	var ir issuerRestaurant
-	err := tx.QueryRow(ctx, `SELECT `+issuerRestaurantColumns+`
-  FROM restaurant r WHERE r.id = $1 AND r.deleted_at IS NULL FOR UPDATE`, cert.RestaurantID).Scan(ir.scanTargets()...)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil
-	}
-	if err != nil {
-		return fmt.Errorf("lock restaurant %s: %w", cert.RestaurantID, err)
-	}
-	ch, err := setIssuerListingTx(ctx, tx, ir)
+	ch, err := setIssuerListingTx(ctx, tx, *before)
 	if err != nil {
 		return err
 	}
@@ -301,6 +295,24 @@ func (r *Repo) relistOnApprovalTx(ctx context.Context, tx pgx.Tx, actor auditAct
 		return nil
 	}
 	return r.reportListingChangeTx(ctx, tx, actor, cause, ch)
+}
+
+// lockIssuerRestaurantTx reads and locks the restaurant of a certificate about to
+// be approved, as it is before the approval: the approval itself already lists a
+// restaurant whose only reason was a lapse (the certificate trigger runs the
+// database's renewal writer), and the change is reported against this reading.
+// It returns nil for a restaurant that is gone.
+func lockIssuerRestaurantTx(ctx context.Context, tx pgx.Tx, restaurantID string) (*issuerRestaurant, error) {
+	var ir issuerRestaurant
+	err := tx.QueryRow(ctx, `SELECT `+issuerRestaurantColumns+`
+  FROM restaurant r WHERE r.id = $1 AND r.deleted_at IS NULL FOR UPDATE`, restaurantID).Scan(ir.scanTargets()...)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("lock restaurant %s: %w", restaurantID, err)
+	}
+	return &ir, nil
 }
 
 // setIssuerListingTx derives one restaurant's stored halal state again and
@@ -324,9 +336,13 @@ SELECT r.halal_status::text, hn.halal_status::text, r.account_state::text, r.del
 	ch := issuerChange{issuerRestaurant: ir, toHalal: deref(stored)}
 	ch.toState, ch.toReasons = issuerListing(state, reasons, deref(stored), deref(now), ir.canGoLive)
 	if ch.toState != state || !sameStrings(ch.toReasons, reasons) {
-		if _, err := tx.Exec(ctx, `
-UPDATE restaurant SET account_state = $2::restaurant_account_state, delist_reasons = $3
- WHERE id = $1`, ir.id, ch.toState, ch.toReasons); err != nil {
+		// The database's writer decides from the certificate itself and returns
+		// where the listing landed, which is what the audit row and the owners'
+		// messages report.
+		vouched := halalCurrent(deref(stored)) && halalCurrent(deref(now))
+		if err := tx.QueryRow(ctx, `
+SELECT to_state, delist_reasons FROM account_state_issuer_listing($1::uuid, $2)`, ir.id, vouched).
+			Scan(&ch.toState, &ch.toReasons); err != nil {
 			return issuerChange{}, fmt.Errorf("move the listing of restaurant %s to %s: %w", ir.id, ch.toState, err)
 		}
 	}

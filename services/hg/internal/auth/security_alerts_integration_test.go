@@ -100,7 +100,7 @@ func TestIntegrationSecurityAlertEmails(t *testing.T) {
 		t.Helper()
 		_, hash, _ := NewRefreshToken()
 		if _, err := svc.store.CreateSession(ctx, NewSessionParams{
-			AccountID: accountID, AMR: "pwd", Client: "restaurant-web", DeviceID: &device, IP: &ip, RefreshHash: hash,
+			ID: uuid.NewString(), AccountID: accountID, AMR: "pwd", Client: "restaurant-web", DeviceID: &device, IP: &ip, RefreshHash: hash,
 			IdleExpires: time.Now().Add(time.Hour), AbsExpires: time.Now().Add(2 * time.Hour),
 		}); err != nil {
 			t.Fatalf("CreateSession: %v", err)

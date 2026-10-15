@@ -99,6 +99,19 @@ func (testAuthenticator) Authenticate(_ context.Context, r *http.Request) (httpx
 	}, nil
 }
 
+// credentialAuthenticator is testAuthenticator plus X-Test-Credential: the access
+// token of a session the test opened, for the writers that check the session in
+// the database themselves (a staff account action, migration 00045).
+type credentialAuthenticator struct{ testAuthenticator }
+
+func (a credentialAuthenticator) Authenticate(ctx context.Context, r *http.Request) (httpx.Principal, error) {
+	p, err := a.testAuthenticator.Authenticate(ctx, r)
+	if c := r.Header.Get("X-Test-Credential"); err == nil && !p.Anonymous && c != "" {
+		p = p.WithCredential(c)
+	}
+	return p, err
+}
+
 // authMatrix returns the production role→action authorizer, so authz behaves
 // exactly as it does in the running server.
 func authMatrix() httpx.Authorizer { return auth.Matrix{} }
@@ -177,7 +190,10 @@ type Request struct {
 	Body      any    // marshaled to JSON when non-nil
 	IdemKey   string // sets Idempotency-Key when non-nil
 	Query     string // raw query string (without leading ?)
-	AMR       string // the session's sign-in method; "" → pwd+totp
+	// Credential is the caller's access token, for the operations whose database
+	// writer checks the session itself (a staff account action, migration 00045).
+	Credential string
+	AMR        string // the session's sign-in method; "" → pwd+totp
 }
 
 // Do issues the request against the live server and returns the outgoing
@@ -236,6 +252,9 @@ func (h *Harness) Build(t *testing.T, rq Request) *http.Request {
 	}
 	if rq.AMR != "" {
 		req.Header.Set("X-Test-AMR", rq.AMR)
+	}
+	if rq.Credential != "" {
+		req.Header.Set("X-Test-Credential", rq.Credential)
 	}
 	return req
 }

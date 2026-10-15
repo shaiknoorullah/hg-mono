@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime/realtimetest"
 )
@@ -30,7 +32,7 @@ func TestIntegrationSecurityEventsReachTheAccountsDevices(t *testing.T) {
 	signIn := func(device string) *SessionRow {
 		t.Helper()
 		_, hash, _ := NewRefreshToken()
-		p := NewSessionParams{AccountID: acct.ID, AMR: "otp", Roles: grants, Client: "customer-app", RefreshHash: hash,
+		p := NewSessionParams{ID: uuid.NewString(), AccountID: acct.ID, AMR: "otp", Roles: grants, Client: "customer-app", RefreshHash: hash,
 			IdleExpires: time.Now().Add(24 * time.Hour), AbsExpires: time.Now().Add(72 * time.Hour)}
 		if device != "" {
 			p.DeviceID = &device

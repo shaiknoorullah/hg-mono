@@ -1,0 +1,26 @@
+{
+  "scenario": "error_customer_ban_orders_in_progress",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `IN_FLIGHT_ORDERS_PRESENT`. Confirming a customer's ban while a restaurant is preparing their order.",
+  "operations": [
+    "applyCustomerAccountAction"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope",
+    "account-action"
+  ],
+  "payload": {
+    "error": {
+      "code": "IN_FLIGHT_ORDERS_PRESENT",
+      "message": "The customer has accepted orders still in progress. Confirm the ban once they have finished.",
+      "request_id": "KE5HKHR773H64X4K31APZ6MZ6G",
+      "details": {
+        "order_ids": [
+          "59c48448-157a-4914-af96-78a4d407a086"
+        ]
+      }
+    }
+  }
+}

@@ -52,7 +52,7 @@ func newARWHarness(t *testing.T, pool *pgxpool.Pool) *Harness {
 
 	router := httpx.NewRouter(httpx.Options{
 		Env:           "local",
-		Authenticator: testAuthenticator{},
+		Authenticator: credentialAuthenticator{},
 		Authorizer:    authMatrix(),
 	})
 

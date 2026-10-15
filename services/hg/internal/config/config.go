@@ -140,12 +140,11 @@ type Realtime struct {
 
 // Halal holds the halal certificate expiry settings (internal/halalexpiry).
 type Halal struct {
-	// SuspendAfterExpiredDays (HG_HALAL_SUSPEND_AFTER_EXPIRED_DAYS) suspends a
-	// restaurant once its certificate has been expired for this many days. 0,
-	// the default, never suspends: an expired certificate delists the
-	// restaurant and nothing more, as docs/spec/05-admin.md ("A-17 — Halal
-	// certificate expiry monitoring and lapse handling") documents. Suspending
-	// after 14 days is an open owner question:
+	// SuspendAfterExpiredDays (HG_HALAL_SUSPEND_AFTER_EXPIRED_DAYS) must be 0:
+	// an expired certificate delists the restaurant and nothing more, as
+	// docs/spec/05-admin.md ("A-17 — Halal certificate expiry monitoring and
+	// lapse handling") documents, and the database's expiry writer (migration
+	// 00045) cannot suspend. Suspending after 14 days is an open owner question:
 	// https://github.com/shaiknoorullah/hg-mono/issues/164.
 	SuspendAfterExpiredDays int
 }
@@ -604,8 +603,8 @@ func Load(getenv func(string) string) (*Config, error) {
 	cfg.Halal = Halal{
 		SuspendAfterExpiredDays: l.intVal("HG_HALAL_SUSPEND_AFTER_EXPIRED_DAYS", 0),
 	}
-	if cfg.Halal.SuspendAfterExpiredDays < 0 {
-		l.errf("HG_HALAL_SUSPEND_AFTER_EXPIRED_DAYS: %d is negative; 0 means never suspend", cfg.Halal.SuspendAfterExpiredDays)
+	if cfg.Halal.SuspendAfterExpiredDays != 0 {
+		l.errf("HG_HALAL_SUSPEND_AFTER_EXPIRED_DAYS: %d; only 0 (never suspend) is supported until https://github.com/shaiknoorullah/hg-mono/issues/164 is decided", cfg.Halal.SuspendAfterExpiredDays)
 	}
 
 	cfg.Realtime = Realtime{
