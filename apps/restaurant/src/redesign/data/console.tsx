@@ -103,5 +103,6 @@ export function consoleRoute(core: ServerResource<ConsoleData>): ConsoleRoute {
     return core.error instanceof NotARestaurantError ? { kind: 'not-restaurant' } : { kind: 'error' };
   }
   const data = core.data!;
-  return data.onboarding.current_step === 'DONE' ? { kind: 'console' } : { kind: 'onboarding' };
+  // A withdrawn application carries current_step DONE but has no console to open.
+  return data.onboarding.current_step === 'DONE' && data.onboarding.onboarding_state !== 'WITHDRAWN' ? { kind: 'console' } : { kind: 'onboarding' };
 }
