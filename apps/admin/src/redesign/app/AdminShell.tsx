@@ -23,6 +23,7 @@ import { Banner, Button, Icon, NavDrawer, SideNav, SideNavIconSlot, Wordmark } f
 import { api } from '../data/api';
 import { getSession, staffRoleOf, subscribeSession, type StaffRole } from '../data/session';
 import { queueCountsNote, useQueueDepth } from '../realtime/queueDepth';
+import { useSystemStatusPolling } from '../system/status';
 import { useSystemBanners } from '../system/banners';
 import { FORBIDDEN, NOT_FOUND } from './copy';
 import { useLanding } from './landing';
@@ -196,7 +197,8 @@ export function AdminShell() {
   const session = useSyncExternalStore(subscribeSession, getSession, getSession);
   const role = staffRoleOf(session.principal);
   const queue = useQueueDepth();
-  const banners = useSystemBanners();
+  useSystemStatusPolling();
+  const banners = useSystemBanners(undefined, role);
   const narrow = useMediaQuery(NARROW_QUERY, NARROW_MAX_PX);
   // No fallback without matchMedia: an unknown width keeps the nav open.
   const compact = useMediaQuery(COMPACT_QUERY, null);
@@ -336,6 +338,10 @@ export function AdminShell() {
                     title={banner.title}
                     {...(banner.description ? { description: banner.description } : {})}
                     announce={banner.announce}
+                    {...(banner.action
+                      ? { action: { label: banner.action.label, onPress: () => navigate(banner.action!.to) } }
+                      : {})}
+                    {...(banner.onDismiss ? { dismissible: true, onDismiss: banner.onDismiss } : {})}
                   />
                 </section>
               ))}

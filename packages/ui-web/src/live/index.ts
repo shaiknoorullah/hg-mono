@@ -16,6 +16,9 @@ export type {
   RealtimeConnectionOptions,
   RealtimeStatus,
   RealtimeTicketLike,
+  ReplayResult,
+  RetryInfo,
+  SubscribeOptions,
   SocketLike,
 } from './realtimeConnection.js';
 
@@ -24,9 +27,10 @@ export {
   eventOfType,
   useRealtimeChannel,
   useRealtimeChannels,
+  useRealtimeControls,
   useRealtimeStatus,
 } from './useRealtime.js';
-export type { RealtimeProviderProps, TypedRealtimeEvent } from './useRealtime.js';
+export type { RealtimeControls, RealtimeProviderProps, TypedRealtimeEvent } from './useRealtime.js';
 
 export { usePolling } from './usePolling.js';
 

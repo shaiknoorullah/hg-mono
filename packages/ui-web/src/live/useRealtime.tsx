@@ -13,6 +13,9 @@ import {
   type ChannelSignal,
   type RealtimeConnectionOptions,
   type RealtimeStatus,
+  type ReplayResult,
+  type RetryInfo,
+  type SubscribeOptions,
 } from './realtimeConnection.js';
 
 interface RealtimeContextValue {
@@ -70,15 +73,41 @@ export type TypedRealtimeEvent<K extends RealtimeEventType = RealtimeEventType> 
  * Listens on `channel` (or nothing when `null`) for the component's lifetime. The handler
  * may change between renders without resubscribing.
  */
-export function useRealtimeChannel(channel: string | null, handler: (signal: ChannelSignal) => void): void {
+export function useRealtimeChannel(
+  channel: string | null,
+  handler: (signal: ChannelSignal) => void,
+  options?: SubscribeOptions,
+): void {
   const ctx = useContext(RealtimeContext);
   const handlerRef = useRef(handler);
   handlerRef.current = handler;
   const connection = ctx?.connection;
+  const backfill = options?.backfill;
+  const replayRef = useRef(options?.onReplay);
+  replayRef.current = options?.onReplay;
+  const wantsReplay = Boolean(options?.onReplay);
   useEffect(() => {
     if (!connection || !channel) return;
-    return connection.subscribe(channel, (signal) => handlerRef.current(signal));
-  }, [connection, channel]);
+    return connection.subscribe(channel, (signal) => handlerRef.current(signal), {
+      ...(backfill ? { backfill } : {}),
+      ...(wantsReplay ? { onReplay: (result: ReplayResult) => replayRef.current?.(result) } : {}),
+    });
+  }, [connection, channel, backfill, wantsReplay]);
+}
+
+/** What a screen needs to show "Trying again in 8 seconds" and to offer "Reconnect now". */
+export interface RealtimeControls {
+  readonly retry: () => RetryInfo;
+  readonly reconnectNow: () => void;
+}
+
+const NO_CONTROLS: RealtimeControls = { retry: () => ({ attempt: 0, nextAt: null }), reconnectNow: () => undefined };
+
+/** The connection's retry state and "reconnect now"; inert without a provider. */
+export function useRealtimeControls(): RealtimeControls {
+  const ctx = useContext(RealtimeContext);
+  const connection = ctx?.connection;
+  return connection ? { retry: () => connection.retry, reconnectNow: () => connection.reconnectNow() } : NO_CONTROLS;
 }
 
 /**

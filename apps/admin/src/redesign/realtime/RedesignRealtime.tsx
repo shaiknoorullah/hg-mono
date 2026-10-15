@@ -5,7 +5,8 @@
  * the session-ended dialog instead of dropping the page.
  *
  * It also feeds the sidebar's queue counts: `admin.queue_depth` on `admin:ops` goes into the
- * shared store (`./queueDepth`), and so does the connection status (for the stale line).
+ * shared store (`./queueDepth`), and so does the connection status (for the stale line). Every
+ * other `admin:ops` event is an alert and goes into `../alerts/store`.
  */
 import { useEffect, type ReactNode } from 'react';
 import {
@@ -21,6 +22,7 @@ import { unwrap } from '../../lib/load';
 import { getToken } from '../../lib/token';
 import { api } from '../data/api';
 import type { StaffRole } from '../data/session';
+import { applyAlertEvent, applyReplay, BACKFILL_EVENTS, setAlertsConnection } from '../alerts/store';
 import { applyQueueDepthFrame, setQueueConnection } from './queueDepth';
 
 const SOCKET_URL = (import.meta.env['VITE_WS_URL'] as string | undefined) || undefined;
@@ -33,15 +35,29 @@ async function mintTicket() {
   return { ticket: data.ticket, websocket_url: data.websocket_url };
 }
 
-function QueueDepthFeed({ role }: { role: StaffRole | null }) {
+/**
+ * The one listener on `admin:ops`: queue counts for the sidebar and every alert for Live alerts and
+ * the banner. The first subscribe asks for the recent events to be replayed, so the alerts page is
+ * whole when it opens whatever page the person was on.
+ */
+function OpsFeed({ role }: { role: StaffRole | null }) {
   const status = useRealtimeStatus();
   useEffect(() => {
     setQueueConnection(status);
+    setAlertsConnection(status);
   }, [status]);
-  useRealtimeChannel(ADMIN_OPS_CHANNEL, (signal) => {
-    const event = eventOfType(signal, 'admin.queue_depth');
-    if (event) applyQueueDepthFrame(event.data, event.ts ?? null, role);
-  });
+  useRealtimeChannel(
+    ADMIN_OPS_CHANNEL,
+    (signal) => {
+      const depth = eventOfType(signal, 'admin.queue_depth');
+      if (depth) {
+        applyQueueDepthFrame(depth.data, depth.ts ?? null, role);
+        return;
+      }
+      if (signal.kind === 'event') applyAlertEvent(signal.event);
+    },
+    { backfill: BACKFILL_EVENTS, onReplay: (result) => applyReplay(result) },
+  );
   return null;
 }
 
@@ -67,7 +83,7 @@ export function RedesignRealtime({ children, role, enabled = true, createSocket 
       enabled={enabled}
       {...(createSocket ? { createSocket } : {})}
     >
-      <QueueDepthFeed role={role} />
+      <OpsFeed role={role} />
       {children}
     </RealtimeProvider>
   );
