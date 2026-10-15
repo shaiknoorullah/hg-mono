@@ -199,6 +199,6 @@ export const PROFILE = {
   pinNone: 'No pin yet. Search your address and pick it from the list.',
   pinHelp: 'Focus the pin, then use the arrow keys to move it one metre at a time. Saved as latitude and longitude on the profile.',
   foot: 'You can change most of these later in Settings. Legal name, address and GST/HST changes are checked by a reviewer first.',
-  footReturning: 'Finish later keeps what you typed on this device only.',
-  finishLaterDone: 'Saved on this device. Come back any time to finish.',
+  footReturning: 'Finish later keeps what you typed in this browser tab only, without your GST/HST number.',
+  finishLaterDone: 'Kept in this tab. Come back before you close it to finish.',
 };

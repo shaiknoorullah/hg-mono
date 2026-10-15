@@ -12,6 +12,7 @@ afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
   localStorage.clear();
+  sessionStorage.clear();
 });
 
 const profileRoutes = (extra: Record<string, never | object> = {}) =>
@@ -65,5 +66,21 @@ describe('business profile', () => {
     await renderRedesign('/onboarding');
     expect(await screen.findByTestId('profile-returning')).toBeTruthy();
     expect((screen.getByLabelText('Name customers see') as HTMLInputElement).value).toBe('Barakah Grill and Bakery');
+  });
+
+  it('keeps the draft for the tab only, never stores the tax number, and sign-out removes it', async () => {
+    installFakeApi(profileRoutes({ 'POST /v1/auth/logout': { status: 204 } }));
+    await renderRedesign('/onboarding');
+    fireEvent.change(await screen.findByLabelText('Name customers see'), { target: { value: 'Barakah Grill and Bakery' } });
+    fireEvent.click(screen.getByRole('button', { name: /Tax and time zone/ }));
+    fireEvent.change(await screen.findByLabelText('GST/HST number (optional)'), { target: { value: '123456789RT0001' } });
+    const keys = Object.keys(sessionStorage).filter((k) => k.startsWith('hg_restaurant_profile_draft'));
+    expect(keys).toHaveLength(1);
+    expect(sessionStorage.getItem(keys[0]!)).toContain('Barakah Grill and Bakery');
+    expect(sessionStorage.getItem(keys[0]!)).not.toContain('123456789RT0001');
+    expect(Object.keys(localStorage).some((k) => k.includes('profile_draft'))).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: /^Account/ }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Sign out' }));
+    await waitFor(() => expect(Object.keys(sessionStorage).filter((k) => k.includes('profile_draft'))).toHaveLength(0));
   });
 });

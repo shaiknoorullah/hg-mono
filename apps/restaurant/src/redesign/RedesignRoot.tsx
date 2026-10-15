@@ -40,6 +40,7 @@ import { NewOrdersProvider } from './strip/NewOrdersProvider';
 import { OrdersGate } from './orders/GoLiveGate';
 import { LiveOrdersPage } from './orders/LiveOrdersPage';
 import { OnboardingRoutes } from './onboarding/OnboardingRoutes';
+import { clearAllDrafts } from './onboarding/profile';
 
 // Legacy screens hosted by the redesign refresh on 401 too.
 setUnauthorizedOverride(async () => (getSession() ? refreshAccessToken() : false));
@@ -121,6 +122,7 @@ async function signOut(navigate: ReturnType<typeof useNavigate>) {
     /* best effort: the session is cleared here regardless */
   }
   keepSession(null);
+  clearAllDrafts();
   navigate('/login', { replace: true });
 }
 

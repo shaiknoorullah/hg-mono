@@ -225,9 +225,14 @@ export function sectionStatus(key: SectionKey, v: ProfileValues, serverErrors: F
   return { text: left.length === 1 ? '1 required field left' : `${left.length} required fields left`, tone: 'todo' };
 }
 
-// ── The local draft: this browser only, never sent anywhere until the whole form is saved ────
+// ── The tab-lifetime draft ───────────────────────────────────────────────────────────────────
+// Kept in sessionStorage: it survives a reload of this tab and dies with the tab, so an owner's
+// name, phone and address never sit in durable browser storage on a shared kitchen machine. The
+// GST/HST number (derived from a sole proprietor's own number) is never written. Sign-out clears
+// every draft (`clearAllDrafts`).
 
-const DRAFT_KEY = (restaurantId: string) => `hg_restaurant_profile_draft_v1:${restaurantId}`;
+const DRAFT_PREFIX = 'hg_restaurant_profile_draft_v2:';
+const DRAFT_KEY = (restaurantId: string) => `${DRAFT_PREFIX}${restaurantId}`;
 
 export interface Draft {
   savedAt: string;
@@ -236,10 +241,11 @@ export interface Draft {
 
 export function readDraft(restaurantId: string): Draft | null {
   try {
-    const raw = localStorage.getItem(DRAFT_KEY(restaurantId));
+    const raw = sessionStorage.getItem(DRAFT_KEY(restaurantId));
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Draft;
-    return parsed && typeof parsed.savedAt === 'string' && parsed.values ? parsed : null;
+    if (!parsed || typeof parsed.savedAt !== 'string' || !parsed.values) return null;
+    return { savedAt: parsed.savedAt, values: { ...parsed.values, gst_hst_number: '' } };
   } catch {
     return null;
   }
@@ -247,7 +253,9 @@ export function readDraft(restaurantId: string): Draft | null {
 
 export function writeDraft(restaurantId: string, values: ProfileValues): void {
   try {
-    localStorage.setItem(DRAFT_KEY(restaurantId), JSON.stringify({ savedAt: new Date().toISOString(), values } satisfies Draft));
+    const { gst_hst_number: _omitted, ...safe } = values;
+    void _omitted;
+    sessionStorage.setItem(DRAFT_KEY(restaurantId), JSON.stringify({ savedAt: new Date().toISOString(), values: safe }));
   } catch {
     /* storage blocked or full: the form still works, it just won't survive a reload */
   }
@@ -255,7 +263,19 @@ export function writeDraft(restaurantId: string, values: ProfileValues): void {
 
 export function clearDraft(restaurantId: string): void {
   try {
-    localStorage.removeItem(DRAFT_KEY(restaurantId));
+    sessionStorage.removeItem(DRAFT_KEY(restaurantId));
+  } catch {
+    /* nothing stored */
+  }
+}
+
+/** Sign-out: nothing of the owner's is left behind in this tab. */
+export function clearAllDrafts(): void {
+  try {
+    for (let i = sessionStorage.length - 1; i >= 0; i--) {
+      const k = sessionStorage.key(i);
+      if (k && k.startsWith(DRAFT_PREFIX)) sessionStorage.removeItem(k);
+    }
   } catch {
     /* nothing stored */
   }

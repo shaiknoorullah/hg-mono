@@ -177,7 +177,7 @@ export function ProfileScreen() {
     <Shell>
       {returning ? (
         <InlineAlert tone="info" title={PROFILE.welcomeBack} testId="profile-returning">
-          <span>We kept what you typed on this device on {longDate(returning)}. It isn’t saved to HalalGoes until you save the whole form.</span>
+          <span>We kept what you typed in this tab on {longDate(returning)}, except your GST/HST number. It isn’t saved to HalalGoes until you save the whole form.</span>
         </InlineAlert>
       ) : null}
       {saving === 'conflict' ? (

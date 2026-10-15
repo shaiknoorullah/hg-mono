@@ -118,3 +118,6 @@ export { FileDrop } from './_stubs/FileDrop';
 export type { FileDropProps } from './_stubs/FileDrop';
 export { SetupChecklist } from './_stubs/SetupChecklist';
 export type { SetupChecklistProps, SetupStepItem, SetupStepTone } from './_stubs/SetupChecklist';
+export { KeyValueList } from './_stubs/KeyValueList';
+export type { KeyValueRow } from './_stubs/KeyValueList';
+export { Disclosure } from './_stubs/Disclosure';
