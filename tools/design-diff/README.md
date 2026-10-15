@@ -66,10 +66,21 @@ it. The web fonts are in `third-party/fonts/` (SIL Open Font License, `OFL-*.txt
 served them to the canvases; `node src/vendor-fonts.mjs --src <canvases>` refreshes them when a
 canvas asks for a new family or weight. Every other request off the local server is blocked and
 listed. The clock is fixed at 9:41 on 1 October 2026 (Toronto), animations are off, and Chromium
-starts with the web flows' flags. Render the boards with the Chromium binary the web captures use
-(`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`, or Playwright's default for both): a full Chrome and the
-headless shell of the same version rasterise text differently, 0.5 to 1.3 % of a board's pixels.
-Each board records its `browser` in the manifest.
+starts with the web flows' flags. Each board records the `browser` that drew it, and the Chromium version, in the manifest.
+
+**One browser for both sides.** A board and the capture compared with it must come from the same
+Chromium build: builds, and a full Chrome against the headless shell, rasterise text differently,
+which fails boards for reasons that are not our UI. Which build is written down once, in
+`src/browser.mjs` (`CHROMIUM_BUILD`, today 1223, Chromium 148), and both the reference renderer and
+the web captures (`tools/e2e/web/playwright.config.ts`, `design.ts`) read it, so nobody has to set
+an environment variable in two places. `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` still overrides it, on
+both sides alike. `render-refs` stops if the pinned build is not installed rather than drawing with
+another. Each web capture gets a `.capture.json` beside it with the browser that took it, and the
+diff enforces the match: a capture from a different browser, or one with no recorded browser (taken
+before this existed), is reported as `BROWSER MISMATCH`, is not compared, and fails the run like
+any other non-PASS verdict. Retake such a capture. Android captures (customer, rider) come from no
+browser and are not checked. Why 1223: playwright 1.50.1 ships build 1155, which cannot parse
+`var(--icon-md)` in an SVG `width`, so most sign-in boards do not render on it.
 
 ## Compare
 
@@ -85,7 +96,7 @@ Anything else fails, with the regions in dp. `--max-mismatch`, `--max-region` an
 (pixelmatch's colour threshold, 0.1) change the bars. A capture of another width is listed as not
 compared; a taller one is cut to the board, a shorter one padded, and the padding counts as
 different. The diff fails by default: it exits 1 when any pair is FAIL, NO BOARD (including a board whose
-reference recorded errors) or NOT COMPARED; `--no-strict` reports and exits 0, `--strict` is an accepted
+reference recorded errors), NOT COMPARED or BROWSER MISMATCH; `--no-strict` reports and exits 0, `--strict` is an accepted
 alias of the default, and a crash or usage error exits 2. The summary also lists the uncaptured boards
 (boards of the rendered apps with no capture); that count alone does not fail the run.
 

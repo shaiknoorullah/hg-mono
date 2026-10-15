@@ -93,7 +93,7 @@ test('layout findings: copy, type, colour, box and spacing in words', () => {
 
 test('the diff fails by default: any non-PASS verdict exits 1, --no-strict exits 0', () => {
   assert.equal(exitCodeFor([{ verdict: 'PASS' }]), 0);
-  for (const verdict of ['FAIL', 'NO BOARD', 'NOT COMPARED']) {
+  for (const verdict of ['FAIL', 'NO BOARD', 'NOT COMPARED', 'BROWSER MISMATCH']) {
     assert.equal(exitCodeFor([{ verdict: 'PASS' }, { verdict }]), 1, `${verdict} fails the run`);
     assert.equal(exitCodeFor([{ verdict }], false), 0, `${verdict} under --no-strict`);
   }
@@ -120,4 +120,54 @@ test('a reference with recorded errors is no board, even when its PNG exists and
   assert.match(strict.stdout, /uncaptured boards: 1 \(customer\/home\/Other\)/);
   assert.equal(run('--no-strict').status, 0);
   assert.equal(run('--bogus').status, 2);
+});
+
+test('browser guard: matching browsers compare; another or unrecorded browser is BROWSER MISMATCH and fails', () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'dd-'));
+  const refs = path.join(dir, 'refs');
+  mkdirSync(refs);
+  writePng(path.join(refs, 'b.png'), canvas(20, 20, WHITE));
+  const board = { file: 'b.png', w: 20, h: 20, scale: 1, errors: [], notes: [], caveats: [], browser: 'chrome-linux64/chrome', chromium: '148.0.1' };
+  writeFileSync(path.join(refs, 'manifest.json'), JSON.stringify({ boards: { 'restaurant/home/Board': board }, areas: {} }));
+  const run = (sidecar, ...extra) => {
+    const caps = mkdtempSync(path.join(dir, 'caps-'));
+    const app = path.join(caps, 'restaurant');
+    mkdirSync(app);
+    writePng(path.join(app, 'design--home--Board.png'), canvas(20, 20, WHITE));
+    if (sidecar) writeFileSync(path.join(app, 'design--home--Board.capture.json'), JSON.stringify(sidecar));
+    return spawnSync(process.execPath, [path.join(import.meta.dirname, '../src/diff.mjs'), '--refs', refs, '--captures', caps, '--out', path.join(dir, 'out'), ...extra], { encoding: 'utf8' });
+  };
+
+  const same = run({ browser: 'chrome-linux64/chrome', chromium: '148.0.1' });
+  assert.equal(same.status, 0, same.stdout + same.stderr);
+  assert.match(same.stdout, /^PASS/m);
+
+  const other = run({ browser: 'chrome-linux/chrome', chromium: '133.0.6943.16' });
+  assert.equal(other.status, 1, other.stdout);
+  assert.match(other.stdout, /BROWSER MISMATCH/);
+  assert.match(other.stdout, /chrome-linux64\/chrome/);
+  assert.match(other.stdout, /chrome-linux\/chrome/);
+  assert.equal(run({ browser: 'chrome-linux/chrome' }, '--no-strict').status, 0);
+
+  const otherVersion = run({ browser: 'chrome-linux64/chrome', chromium: '147.0.0' });
+  assert.equal(otherVersion.status, 1);
+  assert.match(otherVersion.stdout, /Chromium 148\.0\.1.*Chromium 147\.0\.0/);
+
+  for (const none of [null, {}]) {
+    const unknown = run(none);
+    assert.equal(unknown.status, 1, unknown.stdout);
+    assert.match(unknown.stdout, /BROWSER MISMATCH.*records no browser/);
+    assert.doesNotMatch(unknown.stdout, /^PASS/m);
+  }
+});
+
+test('the browser pin: the committed build is used unless the env override names another, and a missing pin is loud for references', async () => {
+  const { CHROMIUM_BUILD, browserLabel, resolveBrowser } = await import('../src/browser.mjs');
+  assert.equal(browserLabel('/x/chromium-1/chrome-linux64/chrome'), 'chrome-linux64/chrome');
+  assert.equal(browserLabel(undefined), 'playwright default');
+  const over = resolveBrowser({ env: { PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH: '/o/chrome-linux/headless_shell' } });
+  assert.equal(over.executablePath, '/o/chrome-linux/headless_shell');
+  const empty = mkdtempSync(path.join(tmpdir(), 'pw-'));
+  assert.throws(() => resolveBrowser({ required: true, env: { PLAYWRIGHT_BROWSERS_PATH: empty } }), new RegExp(`build ${CHROMIUM_BUILD}`));
+  assert.equal(resolveBrowser({ env: { PLAYWRIGHT_BROWSERS_PATH: empty } }).label, 'playwright default');
 });

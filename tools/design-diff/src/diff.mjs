@@ -10,13 +10,15 @@
 // named for an app, or --app. --map adds screenshots named otherwise: { "<path under --captures>":
 // "<app>/<area>/<Board>" }. Phone screenshots lose Android's bars first (--insets, measured, or
 // --profile, the stock heights). Writes <out>/results.json and, per pair, the diff image and the
-// side-by-side (design | app | diff) under <out>/pairs/. Exits 1 when any pair is FAIL, NO BOARD or
-// NOT COMPARED (the default; --strict is an accepted alias); --no-strict reports and exits 0. A crash or
+// side-by-side (design | app | diff) under <out>/pairs/. A web capture taken by another Chromium than
+// drew its board, or by an unrecorded one, is BROWSER MISMATCH and not compared (src/browser.mjs).
+// Exits 1 when any pair is FAIL, NO BOARD, NOT COMPARED or BROWSER MISMATCH (the default; --strict is an accepted alias); --no-strict reports and exits 0. A crash or
 // usage error exits 2.
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { BROWSER_APPS, browserMismatch } from './browser.mjs';
 import { DEFAULTS, compare } from './compare.mjs';
 import { PROFILES, profileInsets } from './insets.mjs';
 import { compareLayouts } from './layout-diff.mjs';
@@ -89,9 +91,22 @@ export function unusableReference(ref, refsDir) {
   return null;
 }
 
-/** 1 when the run must fail: any pair that is FAIL, NO BOARD or NOT COMPARED, unless strict is off. */
+/** 1 when the run must fail: any pair that is not PASS (FAIL, NO BOARD, NOT COMPARED, BROWSER MISMATCH), unless strict is off. */
 export function exitCodeFor(pairs, strict = true) {
   return strict && pairs.some((p) => p.verdict !== 'PASS') ? 1 : 0;
+}
+
+/** Why a web capture and its board came from different browsers, or null. Device captures have no browser. */
+export function captureBrowserProblem(ref, app, captureFile) {
+  if (!BROWSER_APPS.includes(app)) return null;
+  const sidecar = captureFile.replace(/\.png$/, '.capture.json');
+  let recorded = null;
+  try {
+    recorded = existsSync(sidecar) ? JSON.parse(readFileSync(sidecar, 'utf8')) : null;
+  } catch {
+    recorded = null;
+  }
+  return browserMismatch(ref, recorded);
 }
 
 function main() {
@@ -112,6 +127,12 @@ function main() {
     if (unusable) {
       pairs.push({ ...base, verdict: 'NO BOARD', reason: unusable });
       console.log(`${'NO BOARD'.padEnd(12)} ${''.padStart(8)}    ${c.id}  (${c.rel})  ${unusable}`);
+      continue;
+    }
+    const wrongBrowser = captureBrowserProblem(ref, app, c.file);
+    if (wrongBrowser) {
+      pairs.push({ ...base, verdict: 'BROWSER MISMATCH', reason: wrongBrowser });
+      console.log(`${'BROWSER MISMATCH'.padEnd(12)} ${''.padStart(8)}    ${c.id}  (${c.rel})  ${wrongBrowser}`);
       continue;
     }
     let shot = readPng(c.file);
@@ -153,7 +174,7 @@ function main() {
   mkdirSync(o.out, { recursive: true });
   writeFileSync(path.join(o.out, 'results.json'), JSON.stringify(results, null, 1) + '\n');
   const count = (v) => pairs.filter((p) => p.verdict === v).length;
-  console.log(`\n${pairs.length} captures: ${count('PASS')} pass, ${count('FAIL')} fail, ${count('NOT COMPARED')} not compared, ${count('NO BOARD')} without a board. ${path.join(o.out, 'results.json')}`);
+  console.log(`\n${pairs.length} captures: ${count('PASS')} pass, ${count('FAIL')} fail, ${count('NOT COMPARED')} not compared, ${count('NO BOARD')} without a board, ${count('BROWSER MISMATCH')} from another browser than their board. ${path.join(o.out, 'results.json')}`);
   console.log(`uncaptured boards: ${uncaptured.length}${uncaptured.length ? ` (${uncaptured.slice(0, 10).join(', ')}${uncaptured.length > 10 ? ', ...' : ''})` : ''}`);
   process.exitCode = exitCodeFor(pairs, o.strict);
 }

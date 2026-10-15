@@ -21,6 +21,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import { resolveBrowser } from './browser.mjs';
 import { hideNotes, settle, snapshotLayout } from './page-scripts.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -30,10 +31,10 @@ const APPS = ['customer', 'rider', 'restaurant', 'admin'];
 const PHONE_APPS = new Set(['customer', 'rider']);
 /** Every board sees the same moment: 9:41 on 1 October 2026, Toronto time. */
 const FIXED_TIME = '2026-10-01T09:41:00-04:00';
-// Which Chromium draws the boards. Captures must come from the same binary: a full Chrome and the
-// headless shell of the same version rasterise text differently (0.5 to 1.3 % of a board's pixels).
-const EXE = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
-const BROWSER = EXE ? path.join(path.basename(path.dirname(EXE)), path.basename(EXE)) : 'playwright default';
+// Which Chromium draws the boards: src/browser.mjs, the file the web captures read too. A full Chrome
+// and the headless shell of one version rasterise text differently (0.5 to 1.3 % of a board's
+// pixels), so diff.mjs refuses to compare a board with a capture from another browser. Set in main().
+let BROWSER = 'playwright default';
 // The design runtime the boards load as ./support.js. The canvases' mirror does not carry it per
 // area; the design-system canvas has the generic copy.
 const RUNTIME = 'design-system/claude-design-system/project/templates/landing-waitlist/support.js';
@@ -137,7 +138,7 @@ function themeFromName(job) {
 async function render(browser, base, job, out) {
   const scale = PHONE_APPS.has(job.app) ? 3 : 1;
   const named = themeFromName(job);
-  const rec = { title: job.title, w: job.w, h: job.h, scale, theme: named, widthVariant: `${scale === 3 ? 'phone' : 'web'}-${job.w}`, file: `${job.id}.png`, layout: `${job.id}.layout.json`, browser: BROWSER, notes: [], missingBlobs: [], blocked: [], errors: [] };
+  const rec = { title: job.title, w: job.w, h: job.h, scale, theme: named, widthVariant: `${scale === 3 ? 'phone' : 'web'}-${job.w}`, file: `${job.id}.png`, layout: `${job.id}.layout.json`, browser: BROWSER, chromium: browser.version(), notes: [], missingBlobs: [], blocked: [], errors: [] };
   const ctx = await browser.newContext({ viewport: { width: job.w, height: job.h }, deviceScaleFactor: scale, colorScheme: named === 'dark' ? 'dark' : 'light', reducedMotion: 'reduce', locale: 'en-CA', timezoneId: 'America/Toronto' });
   try {
     for (const f of ['react.production.min.js', 'react-dom.production.min.js']) await ctx.addInitScript({ content: readFileSync(path.join(VENDOR, 'react', f), 'utf8') });
@@ -204,7 +205,9 @@ async function main() {
   const base = `http://127.0.0.1:${server.address().port}`;
   // The same flags the web flows launch Chromium with (tools/e2e/web/playwright.config.ts), so a
   // board and a capture rasterise text alike.
-  const browser = await chromium.launch(EXE ? { executablePath: EXE, args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--disable-dev-shm-usage'] } : {});
+  const pick = resolveBrowser({ required: true });
+  BROWSER = pick.label;
+  const browser = await chromium.launch({ executablePath: pick.executablePath, args: pick.args });
   const manifestFile = path.join(o.out, 'manifest.json');
   const manifest = existsSync(manifestFile) ? JSON.parse(readFileSync(manifestFile, 'utf8')) : { boards: {}, areas: {} };
   manifest.source = { ref: src.label, commit: src.commit };

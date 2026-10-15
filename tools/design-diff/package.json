@@ -6,7 +6,8 @@
   "description": "Pixel comparison of the apps with their Claude Design boards: renders the boards, diffs captures against them, reports. README.md.",
   "exports": {
     "./page-scripts": "./src/page-scripts.mjs",
-    "./names": "./src/names.mjs"
+    "./names": "./src/names.mjs",
+    "./browser": "./src/browser.mjs"
   },
   "scripts": {
     "render-refs": "node src/render-refs.mjs",
