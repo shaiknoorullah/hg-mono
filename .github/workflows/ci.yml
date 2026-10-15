@@ -5,6 +5,7 @@ name: ci
 #
 #   contract-kit  the client, the fixtures and the mock cannot drift from contracts/openapi.yaml:
 #                 every one of them is regenerated here and any difference fails the build.
+#                 Also checks the device-lab missions (pnpm e2e:missions:check), when they change.
 #   js            lint and every JS unit-test suite. No baseline: a known-failing test stays red
 #                 until it is fixed, not hidden.
 #   go            go vet and the Go test suite, against a migrated, seeded Postgres service
@@ -60,6 +61,7 @@ jobs:
       go: ${{ steps.filter.outputs.go }}
       js: ${{ steps.filter.outputs.js }}
       coverage: ${{ steps.filter.outputs.coverage }}
+      missions: ${{ steps.filter.outputs.missions }}
     steps:
       # A push is compared with the commit before it, which needs the history.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -81,6 +83,7 @@ jobs:
               - 'contracts/**'
               - 'tools/contract-tools/**'
               - 'tools/mock-server/**'
+              - 'tools/design-diff/**'
               # Exported by packages/emails; contract-kit checks they were not hand-edited.
               - 'services/hg/internal/notify/emailtmpl/templates/**'
               - 'package.json'
@@ -88,6 +91,14 @@ jobs:
               - 'pnpm-workspace.yaml'
               - '.npmrc'
               - 'tsconfig.json'
+              - '.github/workflows/ci.yml'
+            # Device-lab missions, routes and reality helpers (tools/e2e/native/README.md).
+            # scenario.go: the checker reads devworld's scenario names from it.
+            missions:
+              - 'tools/e2e/native/**'
+              - 'tools/e2e/reality/**'
+              - 'services/hg/internal/devworld/scenario.go'
+              - 'package.json'
               - '.github/workflows/ci.yml'
             coverage:
               - 'services/hg/**'
@@ -106,7 +117,7 @@ jobs:
     needs: changes
     if: >-
       (github.event_name == 'pull_request' || github.event_name == 'push') &&
-      needs.changes.outputs.js == 'true' &&
+      (needs.changes.outputs.js == 'true' || needs.changes.outputs.missions == 'true') &&
       (
        (github.event_name == 'schedule' ||
         (contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.actor) &&
@@ -179,11 +190,26 @@ jobs:
       - name: typecheck
         run: pnpm -r typecheck
 
+      # How the mock picks one fixture per operation (contracts/fixtures/SCENARIOS.md) and
+      # moves realtime scripts to wall clock, against the fixtures just validated.
+      - name: mock server unit tests
+        run: pnpm --filter @hg/mock-server test:unit
+
+      # The design-diff harness's verdict, phone-bar and naming rules (tools/design-diff/README.md).
+      - name: design-diff unit tests
+        run: pnpm --filter @hg/design-diff test:unit
+
       # The email templates the Go service embeds are exactly what packages/emails
       # exports. A hand edit to services/hg/internal/notify/emailtmpl/templates/**,
       # or a template changed without re-exporting, fails here.
       - name: email templates are not hand-edited
         run: pnpm emails:check
+
+      # 4b. Device-lab missions are valid: schema, allow-listed setup and reality steps, referenced
+      #     flows, routes and media exist; the GPX routes match their generator; the reality
+      #     helpers' allow-list tests pass. No emulator needed.
+      - name: device-lab missions
+        run: pnpm e2e:missions:check
 
       # 5. The mock actually boots and serves the contract. It runs in its own process
       #    group, so the cleanup step below stops all of it.
@@ -201,6 +227,9 @@ jobs:
           done
           curl -sf "localhost:$PORT/__mock/health" | tee /dev/stderr | grep -q '"status":"ok"'
           curl -sf "localhost:$PORT/v1/orders/any?scenario=order_arrived" | grep -q '"state":"ARRIVED"'
+          # A per-operation map: the named operation gets its fixture, the rest their default.
+          curl -sf -H 'X-Mock-Scenario: getCurrentPrincipal=principal_admin' "localhost:$PORT/v1/auth/me" | grep -q '"role":"ADMIN"'
+          curl -sf -H 'X-Mock-Scenario: getCurrentPrincipal=principal_admin' "localhost:$PORT/v1/orders/any" | grep -q '"state":"PREPARING"'
           curl -s "localhost:$PORT/v1/definitely-not-a-route" | grep -q 'NOT_FOUND'
 
       - name: stop the mock server

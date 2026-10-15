@@ -6,16 +6,19 @@ The oracle: every covered operation had its live server response validated again
 `contracts/openapi.yaml` via kin-openapi (`openapi3filter.ValidateResponse`), which
 enforces `additionalProperties:false` + `required[]` + closed enums automatically.
 
-- **Total contract operations:** 168
-- **Validated (covered):** 166
-- **Not yet validated (uncovered):** 2
+- **Total contract operations:** 178
+- **Validated (covered):** 170
+- **Not yet validated (uncovered):** 8
 
-## Covered (166)
+## Covered (170)
 
 - `acceptOffer` — POST /v1/riders/me/offers/{offerId}/accept
 - `acceptOrder` — POST /v1/restaurant/orders/{orderId}/accept
 - `addCartLine` — POST /v1/cart/lines
 - `addChargebackEvidenceNote` — POST /v1/admin/chargebacks/{chargebackId}/evidence-notes
+- `applyCustomerAccountAction` — POST /v1/admin/customers/{customerAccountId}/account-actions
+- `applyRestaurantAccountAction` — POST /v1/admin/restaurants/{restaurantId}/account-actions
+- `applyRiderAccountAction` — POST /v1/admin/riders/{riderAccountId}/account-actions
 - `approveRefund` — POST /v1/admin/refunds/{refundId}/approve
 - `attachRestaurantDocument` — POST /v1/restaurant/documents
 - `attachRiderDocument` — POST /v1/riders/me/documents
@@ -128,6 +131,7 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `logoutAll` — POST /v1/auth/logout-all
 - `markNotificationRead` — POST /v1/notifications/{notificationId}/read
 - `markOrderReady` — POST /v1/restaurant/orders/{orderId}/ready
+- `overrideHandoverCode` — POST /v1/admin/orders/{orderId}/handover-override
 - `proposeHalalIssuingBody` — POST /v1/admin/halal-issuing-bodies
 - `receiveStripeWebhook` — POST /v1/webhooks/stripe
 - `recordHalalChecks` — PUT /v1/admin/halal-certificates/{certificateId}/checks
@@ -179,10 +183,16 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `verifyOtp` — POST /v1/auth/otp/verify
 - `verifyTotpEnrolment` — POST /v1/auth/totp/verify
 
-## Uncovered (2)
+## Uncovered (8)
 
 Each uncovered operation is listed with its method/path. This list is emitted
 every run: an operation silently losing coverage becomes visible here.
 
 - `getDependencyStatus` — GET /internal/deps — needs Redis and the object store
+- `getPlaceAddress` — GET /v1/geo/places/{placeId} — unexplained gap
 - `getReadiness` — GET /health/ready — needs Redis and the object store
+- `getSmsSenderStatus` — GET /v1/admin/system/sms-sender — unexplained gap
+- `joinWaitlist` — POST /v1/waitlist — unexplained gap
+- `replaceCart` — PUT /v1/cart — unexplained gap
+- `reverseGeocode` — GET /v1/geo/reverse — unexplained gap
+- `suggestAddresses` — GET /v1/geo/autocomplete — unexplained gap

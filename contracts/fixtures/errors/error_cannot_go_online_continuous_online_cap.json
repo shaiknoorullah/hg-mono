@@ -1,0 +1,27 @@
+{
+  "scenario": "error_cannot_go_online_continuous_online_cap",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `CANNOT_GO_ONLINE`. One blocking reason, `CONTINUOUS_ONLINE_CAP`, so its row and deep link can be tested alone. Contract-only: `services/hg` sends only `STALE_LOCATION_FIX` in `blocking_reasons` today.",
+  "operations": [
+    "setRiderAvailability"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "rider"
+  ],
+  "payload": {
+    "error": {
+      "code": "CANNOT_GO_ONLINE",
+      "message": "You cannot go online yet.",
+      "request_id": "J1Y3VY29FGJQJPR53HT5476M8B",
+      "details": {
+        "blocking_reasons": [
+          "CONTINUOUS_ONLINE_CAP"
+        ]
+      }
+    }
+  }
+}

@@ -237,6 +237,15 @@ function LineRow({
   const subStyle = useTypeStyle('body.sm');
   const unavailable = !line.availability.is_available;
 
+  // Every chosen variant (one per group; the deprecated `variant` is null when there are several)
+  // and every chosen add-on, by name.
+  const choices = [
+    ...(line.variants?.length ? line.variants.map((v) => v.variant_name) : [line.variant?.name]),
+    ...(line.addons ?? []).map((a) => a.name),
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
   return (
     <View
       style={{
@@ -252,10 +261,8 @@ function LineRow({
     >
       <View style={{ flex: 1, gap: 4 }}>
         <Text style={[nameStyle, { color: theme.color.text.primary }]}>{line.name}</Text>
-        {line.variant ? (
-          <Text style={[subStyle, { color: theme.color.text.secondary }]}>
-            {line.variant.name}
-          </Text>
+        {choices ? (
+          <Text style={[subStyle, { color: theme.color.text.secondary }]}>{choices}</Text>
         ) : null}
         {unavailable ? (
           <Text style={[subStyle, { color: theme.color.text.tertiary }]}>

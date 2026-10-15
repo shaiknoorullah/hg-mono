@@ -17,7 +17,11 @@ func main() {
 		usage()
 		os.Exit(2)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	timeout := 5 * time.Minute
+	if os.Args[1] == "scenario" && len(os.Args) > 2 {
+		timeout = devworld.ScenarioTimeout(os.Args[2])
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	env := os.Getenv("HG_ENV")
 	dsn := os.Getenv("HG_POSTGRES_DSN")
@@ -35,6 +39,10 @@ func main() {
 	case "list":
 		devworld.PrintManifest()
 	case "totp":
+		if len(os.Args) > 2 {
+			err = devworld.PrintCodeFor(ctx, env, dsn, os.Args[2], time.Now())
+			break
+		}
 		err = devworld.PrintAdminCode(time.Now())
 	case "scenario":
 		if len(os.Args) < 3 {
@@ -73,7 +81,8 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: devworld reset | seed | verify | list | totp | scenario <name|list> | journey [--route=short|long|early-rider] [--speed=1x|4x|max] [--auto=none|restaurant|all] [--manual=rider]")
+	fmt.Fprintln(os.Stderr, "usage: devworld reset | seed | verify | list | totp [email] | scenario <name|list> | journey [--route=short|long|early-rider] [--speed=1x|4x|max] [--auto=none|restaurant|all] [--manual=rider]")
 	fmt.Fprintln(os.Stderr, "reset and seed require HG_ENV=local and a local HG_POSTGRES_DSN.")
-	fmt.Fprintln(os.Stderr, "scenario and journey call HG_API_URL (default http://127.0.0.1:8080).")
+	fmt.Fprintln(os.Stderr, "scenario and journey call HG_API_URL (default http://127.0.0.1:8080). `scenario list` prints every scenario and the state it leaves.")
+	fmt.Fprintln(os.Stderr, "scenarios that move a clock (restaurant-timeout, pickup-lapse, pickup-lapse-cancelled, cert-lapse-mid-order, order-completed) also need HG_ENV=local and a local HG_POSTGRES_DSN, which make dev-scenario sets.")
 }

@@ -1,0 +1,41 @@
+{
+  "scenario": "rider_suspended_mid_delivery",
+  "domain": "admin",
+  "schema": "AccountStateChange",
+  "describes": "`SUSPEND`: `ACTIVE` → `SUSPENDED`. Suspended mid-delivery: the waiting offer is withdrawn and no new ones come; the current delivery finishes, is paid, and the rider goes offline afterwards.",
+  "operations": [
+    "applyRiderAccountAction"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "account-action",
+    "state-matrix"
+  ],
+  "payload": {
+    "id": "739e9e5c-149d-4aa4-a16b-d0468026cc70",
+    "subject_type": "RIDER",
+    "subject_id": "9f99b7f0-abab-4667-a1a6-4f8d9d7dcea1",
+    "action": "SUSPEND",
+    "from_state": "ACTIVE",
+    "to_state": "SUSPENDED",
+    "reason_code": "INCIDENT_UNDER_INVESTIGATION",
+    "reason_text": "Customer reported an aggressive exchange at drop-off; pausing while we investigate.",
+    "actor_account_id": "6355afc2-21b9-4556-a0fe-16db508f6a3b",
+    "ban_proposal": null,
+    "delist_reasons": [],
+    "menu_locked": null,
+    "sessions_revoked": 0,
+    "in_flight": {
+      "cancelled_order_ids": [],
+      "refunded_order_ids": [],
+      "continuing_order_ids": [
+        "763fc155-d161-4496-a78c-894eb3837a24"
+      ],
+      "withdrawn_offer_ids": [
+        "ac052cc1-2c05-47b9-a737-4ef05b4d704d"
+      ]
+    },
+    "created_at": "2026-08-10T18:42:11.412Z"
+  }
+}

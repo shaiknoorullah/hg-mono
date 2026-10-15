@@ -31,26 +31,26 @@ func TestPublicConfigReportsTheOrderingPause(t *testing.T) {
 		return rec.Code, ordering
 	}
 
-	paused := NewHandler(cfg, nil, since, nil).WithOrderingStatus(
+	paused := NewHandler(cfg, nil, since, nil, "").WithOrderingStatus(
 		func(context.Context) (bool, *time.Time, error) { return true, &since, nil })
 	if status, ordering := get(paused); status != http.StatusOK ||
 		ordering["paused"] != true || ordering["paused_since"] != "2026-10-04T17:30:00.000Z" {
 		t.Errorf("paused: %d %v, want 200 with paused since 2026-10-04T17:30:00.000Z", status, ordering)
 	}
 
-	open := NewHandler(cfg, nil, since, nil).WithOrderingStatus(
+	open := NewHandler(cfg, nil, since, nil, "").WithOrderingStatus(
 		func(context.Context) (bool, *time.Time, error) { return false, nil, nil })
 	if status, ordering := get(open); status != http.StatusOK ||
 		ordering["paused"] != false || ordering["paused_since"] != nil {
 		t.Errorf("open: %d %v, want 200 with paused false and paused_since null", status, ordering)
 	}
 
-	broken := NewHandler(cfg, nil, since, nil).WithOrderingStatus(
+	broken := NewHandler(cfg, nil, since, nil, "").WithOrderingStatus(
 		func(context.Context) (bool, *time.Time, error) { return false, nil, errors.New("database down") })
 	if status, _ := get(broken); status != http.StatusInternalServerError {
 		t.Errorf("unreadable switch: %d, want 500, never a guess", status)
 	}
-	if status, _ := get(NewHandler(cfg, nil, since, nil)); status != http.StatusInternalServerError {
+	if status, _ := get(NewHandler(cfg, nil, since, nil, "")); status != http.StatusInternalServerError {
 		t.Errorf("no reader wired: %d, want 500, never a guess", status)
 	}
 }

@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/pquerna/otp/totp"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/auth"
 )
 
 // Verify compares the live database with the persona table and writes a table
@@ -160,6 +162,44 @@ func verifyTo(ctx context.Context, dsn string, out io.Writer) error {
 	}
 	fmt.Fprintf(out, "connect stand-ins %d (not real payout accounts)\n", connects)
 
+	catProblems, err := verifyCatalogue(ctx, conn, out)
+	if err != nil {
+		return err
+	}
+	problems = append(problems, catProblems...)
+	if err := verifyDocumentFiles(ctx, conn, out); err != nil {
+		return err
+	}
+
+	staffProblems, err := verifyStaff(ctx, conn, out)
+	if err != nil {
+		return err
+	}
+	problems = append(problems, staffProblems...)
+
+	ledgerProblems, err := verifyLedger(ctx, conn, out)
+	if err != nil {
+		return err
+	}
+	problems = append(problems, ledgerProblems...)
+	appProblems, err := verifyApplications(ctx, conn, out)
+	if err != nil {
+		return err
+	}
+	problems = append(problems, appProblems...)
+
+	addrProblems, err := verifyAddresses(ctx, conn, out)
+	if err != nil {
+		return err
+	}
+	problems = append(problems, addrProblems...)
+
+	rstaffProblems, err := verifyRestaurantStaff(ctx, conn, out)
+	if err != nil {
+		return err
+	}
+	problems = append(problems, rstaffProblems...)
+
 	if adminHash == "" {
 		problems = append(problems, "admin password hash missing")
 	} else if ok, err := PasswordMatches(ctx, adminHash); err != nil {
@@ -223,11 +263,47 @@ func PrintAdminCode(now time.Time) error {
 	if err != nil {
 		return err
 	}
+	return printCode(AdminEmail, secret, now)
+}
+
+// printCode prints the current code for secret, never the secret itself.
+func printCode(email, secret string, now time.Time) error {
 	code, err := totp.GenerateCode(secret, now)
 	if err != nil {
 		return fmt.Errorf("devworld: totp code: %w", err)
 	}
-	left := 30 - int(now.Unix()%30)
-	fmt.Printf("email %s\ncode %s\nseconds %d\n", AdminEmail, code, left)
+	fmt.Printf("email %s\ncode %s\nseconds %d\n", email, code, 30-int(now.Unix()%30))
 	return nil
+}
+
+// PrintCodeFor prints the current authenticator code of a local staff account
+// enrolled through the API (such as the one onboard-admin invites). It opens
+// the sealed secret from the local database with HG_APP_DATA_KEY and prints
+// only the code, never the secret. It refuses any database not on this machine.
+func PrintCodeFor(ctx context.Context, env, dsn, email string, now time.Time) error {
+	if err := AllowReset(env, dsn); err != nil {
+		return err
+	}
+	key, ok, err := dataKeyFromEnv()
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return fmt.Errorf("devworld: HG_APP_DATA_KEY is not set")
+	}
+	conn, err := connect(ctx, dsn)
+	if err != nil {
+		return err
+	}
+	defer conn.Close(ctx)
+	var sealed []byte
+	if err := conn.QueryRow(ctx, `SELECT totp_secret_enc FROM account
+		WHERE lower(email) = lower($1) AND totp_enrolled_at IS NOT NULL`, email).Scan(&sealed); err != nil {
+		return fmt.Errorf("devworld: %s has no confirmed authenticator", email)
+	}
+	secret, err := auth.OpenAESGCM(key, sealed)
+	if err != nil {
+		return fmt.Errorf("devworld: open the authenticator: %w", err)
+	}
+	return printCode(email, string(secret), now)
 }

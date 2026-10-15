@@ -32,6 +32,9 @@ type SessionRow struct {
 
 // NewSessionParams are the inputs to CreateSession.
 type NewSessionParams struct {
+	// ID is the session id, chosen before the access token is signed so the
+	// token can name it and its hash can be written with the row.
+	ID          string
 	AccountID   string
 	AMR         string // "otp" | "pwd" | "pwd+totp"
 	Roles       []RoleGrant
@@ -40,6 +43,10 @@ type NewSessionParams struct {
 	UserAgent   *string
 	IP          *string
 	RefreshHash []byte
+	// AccessHash is the SHA-256 of the access token signed for this session
+	// (HashAccessToken). The database checks a staff account action against it
+	// (migration 00045, account_state_apply); the token itself is never stored.
+	AccessHash  []byte
 	IdleExpires time.Time
 	AbsExpires  time.Time
 }
@@ -59,15 +66,15 @@ func (s *Store) CreateSession(ctx context.Context, p NewSessionParams) (*Session
 	var row SessionRow
 	err = tx.QueryRow(ctx, `
 		INSERT INTO session
-		  (family_id, account_id, amr, roles_snapshot, client, device_id, user_agent,
-		   ip, refresh_hash, idle_expires_at, absolute_expires_at)
-		VALUES (gen_random_uuid(), $1, $2::auth_method, $3::jsonb, $4::client_surface, $5, $6,
-		        $7::inet, $8, $9, $10)
+		  (id, family_id, account_id, amr, roles_snapshot, client, device_id, user_agent,
+		   ip, refresh_hash, access_hash, idle_expires_at, absolute_expires_at)
+		VALUES ($1, gen_random_uuid(), $2, $3::auth_method, $4::jsonb, $5::client_surface, $6, $7,
+		        $8::inet, $9, $10, $11, $12)
 		RETURNING id, family_id, account_id, amr, client, device_id, ip_city,
 		          issued_at, last_used_at, idle_expires_at, absolute_expires_at,
 		          revoked_at, rotated_at`,
-		p.AccountID, p.AMR, snapshot, p.Client, p.DeviceID, p.UserAgent,
-		p.IP, p.RefreshHash, p.IdleExpires, p.AbsExpires).Scan(
+		p.ID, p.AccountID, p.AMR, snapshot, p.Client, p.DeviceID, p.UserAgent,
+		p.IP, p.RefreshHash, p.AccessHash, p.IdleExpires, p.AbsExpires).Scan(
 		&row.ID, &row.FamilyID, &row.AccountID, &row.AMR, &row.Client, &row.DeviceID,
 		&row.IPCity, &row.IssuedAt, &row.LastUsedAt, &row.IdleExpires, &row.AbsExpires,
 		&row.RevokedAt, &row.RotatedAt)
@@ -124,8 +131,9 @@ func (s *Store) sessionWhere(ctx context.Context, where string, arg any) (*Sessi
 // RotateSession rotates a refresh token: it marks the presented session rotated,
 // inserts a successor in the same family, and links them — all in one
 // transaction. It returns the new session row. The caller has already verified
-// the presented session is live and unrotated.
-func (s *Store) RotateSession(ctx context.Context, old *SessionRow, newHash []byte, idleExp, absExp time.Time, roles []RoleGrant) (*SessionRow, error) {
+// the presented session is live and unrotated, chosen the successor's id and
+// signed its access token, whose hash (accessHash) is written with the row.
+func (s *Store) RotateSession(ctx context.Context, old *SessionRow, newID string, newHash, accessHash []byte, idleExp, absExp time.Time, roles []RoleGrant) (*SessionRow, error) {
 	snapshot, err := json.Marshal(roles)
 	if err != nil {
 		return nil, err
@@ -138,15 +146,14 @@ func (s *Store) RotateSession(ctx context.Context, old *SessionRow, newHash []by
 
 	// Guard against a concurrent rotate: only rotate a row that is still live and
 	// unrotated. Zero rows means someone else rotated it first.
-	var newID string
 	err = tx.QueryRow(ctx, `
 		INSERT INTO session
-		  (family_id, account_id, amr, roles_snapshot, client, device_id, user_agent,
-		   ip, refresh_hash, idle_expires_at, absolute_expires_at)
-		SELECT family_id, account_id, amr, $2::jsonb, client, device_id, user_agent,
-		       ip, $3, $4, $5
+		  (id, family_id, account_id, amr, roles_snapshot, client, device_id, user_agent,
+		   ip, refresh_hash, access_hash, idle_expires_at, absolute_expires_at)
+		SELECT $6::uuid, family_id, account_id, amr, $2::jsonb, client, device_id, user_agent,
+		       ip, $3, $7, $4, $5
 		FROM session WHERE id = $1
-		RETURNING id`, old.ID, snapshot, newHash, idleExp, absExp).Scan(&newID)
+		RETURNING id`, old.ID, snapshot, newHash, idleExp, absExp, newID, accessHash).Scan(&newID)
 	if err != nil {
 		return nil, err
 	}
@@ -188,12 +195,25 @@ func (s *Store) RevokeFamily(ctx context.Context, familyID, reason string) error
 }
 
 // RevokeAllForAccount revokes every live session for an account (password reset,
-// account suspension).
-func (s *Store) RevokeAllForAccount(ctx context.Context, accountID, reason string) error {
-	_, err := s.pool.Exec(ctx, `
+// account suspension) and returns the ids it revoked, for the deny set. A
+// session issued afterwards is not among them, so it works at once (#748).
+func (s *Store) RevokeAllForAccount(ctx context.Context, accountID, reason string) ([]string, error) {
+	return revokeLiveSessions(ctx, s.pool, accountID, reason)
+}
+
+// revokeLiveSessions revokes every live session of an account through q (the
+// pool or a transaction) and returns the revoked ids.
+func revokeLiveSessions(ctx context.Context, q interface {
+	Query(context.Context, string, ...any) (pgx.Rows, error)
+}, accountID, reason string) ([]string, error) {
+	rows, err := q.Query(ctx, `
 		UPDATE session SET revoked_at = now(), revoke_reason = $2
-		WHERE account_id = $1 AND revoked_at IS NULL`, accountID, reason)
-	return err
+		WHERE account_id = $1 AND revoked_at IS NULL
+		RETURNING id::text`, accountID, reason)
+	if err != nil {
+		return nil, err
+	}
+	return pgx.CollectRows(rows, pgx.RowTo[string])
 }
 
 // RevokeSessionForAccount revokes one session, but only if it belongs to the

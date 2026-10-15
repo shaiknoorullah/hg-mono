@@ -112,6 +112,9 @@ func seedBasics(t *testing.T, pool *pgxpool.Pool) basics {
 	// order path refuses a restaurant the platform cannot vouch for.
 	// https://github.com/shaiknoorullah/hg-mono/issues/292
 	testseed.CertifyRestaurant(t, pool, b.restaurantID, 300)
+	// Open now: hours and a fresh order screen (open_now.go).
+	// https://github.com/shaiknoorullah/hg-mono/issues/648
+	testseed.OpenRestaurant(t, pool, b.restaurantID)
 	return b
 }
 
@@ -188,8 +191,21 @@ func TestIntegrationCartQuoteOrderFlow(t *testing.T) {
 		t.Error("CREATED order should be cancellable")
 	}
 
+	// Placing the order consumed the cart (C-23 rule 1).
+	after, err := st.GetCart(ctx, b.accountID)
+	if err != nil {
+		t.Fatalf("get cart after order: %v", err)
+	}
+	if len(after.Lines) != 0 || after.ItemCount != 0 {
+		t.Errorf("cart after order: %d lines, %d items; want an empty cart", len(after.Lines), after.ItemCount)
+	}
+
 	// A second order for the same customer is ACTIVE_ORDER_EXISTS.
-	q2, _ := st.CreateQuote(ctx, QuoteRequest{AccountID: b.accountID, CartID: cart.ID, DeliveryAddressID: &b.addressID, Fulfilment: "DELIVERY"})
+	cart2, err := st.AddCartLine(ctx, b.accountID, b.restaurantID, CartLineInput{MenuItemID: b.menuItemID, Quantity: 1}, false)
+	if err != nil {
+		t.Fatalf("add to a fresh cart: %v", err)
+	}
+	q2, _ := st.CreateQuote(ctx, QuoteRequest{AccountID: b.accountID, CartID: cart2.ID, DeliveryAddressID: &b.addressID, Fulfilment: "DELIVERY"})
 	if q2 != nil {
 		if _, err := st.CreateOrder(ctx, OrderInput{AccountID: b.accountID, QuoteID: q2.ID}, &fresh); err != ErrActiveOrderExists {
 			t.Errorf("second order error = %v, want ErrActiveOrderExists", err)
@@ -372,12 +388,11 @@ func TestIntegrationExpiredQuoteRejected(t *testing.T) {
 	}
 }
 
-func TestIntegrationDeadlineRunnerExpiresCreatedOrder(t *testing.T) {
-	pool := testPool(t)
-	st := NewStore(pool)
+// placeCreatedOrder puts one item in a cart, quotes it and places the order,
+// which waits in CREATED for its payment.
+func placeCreatedOrder(t *testing.T, st *Store, b basics) *PreparedOrder {
+	t.Helper()
 	ctx := context.Background()
-	b := seedBasics(t, pool)
-
 	cart, _ := st.AddCartLine(ctx, b.accountID, b.restaurantID, CartLineInput{MenuItemID: b.menuItemID, Quantity: 1}, false)
 	q, _ := st.CreateQuote(ctx, QuoteRequest{AccountID: b.accountID, CartID: cart.ID, DeliveryAddressID: &b.addressID, Fulfilment: "DELIVERY"})
 	var fresh *Quote
@@ -385,6 +400,16 @@ func TestIntegrationDeadlineRunnerExpiresCreatedOrder(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create order: %v", err)
 	}
+	return prepared
+}
+
+func TestIntegrationDeadlineRunnerExpiresCreatedOrder(t *testing.T) {
+	pool := testPool(t)
+	st := NewStore(pool)
+	ctx := context.Background()
+	b := seedBasics(t, pool)
+
+	prepared := placeCreatedOrder(t, st, b)
 	// Force the CREATED deadline into the past.
 	if _, err := pool.Exec(ctx, `UPDATE "order" SET deadline_at = now() - interval '1 second' WHERE id = $1`, prepared.OrderID); err != nil {
 		t.Fatalf("force due: %v", err)

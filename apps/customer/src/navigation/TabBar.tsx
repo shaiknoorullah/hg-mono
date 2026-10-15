@@ -29,6 +29,13 @@ import { useNavigation, type Route, type RouteName } from './stack';
 
 type TabKey = 'discovery' | 'orders' | 'profile';
 
+/**
+ * True when a legacy tab screen is rendered inside the redesign shell, which draws its own bottom
+ * navigation (Home · Search · Orders · Account). False everywhere else, so the legacy app is
+ * unchanged.
+ */
+export const EmbeddedInRedesignContext = React.createContext(false);
+
 const TABS: readonly BottomNavItem[] = [
   {
     key: 'discovery',
@@ -102,8 +109,10 @@ function CartBar({ onPress }: { onPress: () => void }): React.ReactElement | nul
   );
 }
 
-export function CustomerTabBar({ active }: { active: RouteName }): React.ReactElement {
+export function CustomerTabBar({ active }: { active: RouteName }): React.ReactElement | null {
   const nav = useNavigation();
+  const embedded = React.useContext(EmbeddedInRedesignContext);
+  if (embedded) return null;
   return (
     <View>
       <CartBar onPress={() => nav.push({ name: 'cart' })} />

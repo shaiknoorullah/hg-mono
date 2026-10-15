@@ -8,6 +8,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/handover"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 )
 
@@ -100,6 +101,15 @@ func (r *Repo) GetOnboardingStatus(ctx context.Context, restaurantID string) (*O
 		   AND state = 'APPROVED' AND deleted_at IS NULL`,
 		restaurantID, requiredRestaurantDocTypes).Scan(&approvedDocs)
 
+	// Payout account: the same test RecomputeOnboarding applies (onboarding_state.go).
+	var payoutReady bool
+	_ = r.db.QueryRow(ctx, `
+		SELECT EXISTS(
+			SELECT 1 FROM connect_account
+			 WHERE owner_type = 'RESTAURANT' AND owner_id = $1
+			   AND payouts_enabled AND details_submitted)`,
+		restaurantID).Scan(&payoutReady)
+
 	// Menu published: at least one approved menu item version.
 	var menuPublished bool
 	_ = r.db.QueryRow(ctx, `
@@ -114,7 +124,7 @@ func (r *Repo) GetOnboardingStatus(ctx context.Context, restaurantID string) (*O
 		DocumentsUploaded:  distinctRequiredDocs > 0,
 		DocumentsSubmitted: submittedDocs >= required,
 		DocumentsApproved:  approvedDocs >= required,
-		PayoutAccount:      false,
+		PayoutAccount:      payoutReady,
 		MenuPublished:      menuPublished,
 	}
 
@@ -128,13 +138,83 @@ func (r *Repo) GetOnboardingStatus(ctx context.Context, restaurantID string) (*O
 	}
 	pct := (checks * 100) / 6
 
-	return &OnboardingStatus{
+	out := &OnboardingStatus{
 		OnboardingState: state,
 		AccountState:    accountState,
 		CurrentStep:     onboardingCurrentStep(state, steps),
 		ProgressPercent: pct,
 		StepsCompleted:  steps,
-	}, nil
+	}
+
+	// The review cycle is the application's submission count.
+	var cycle int
+	if err := r.db.QueryRow(ctx,
+		`SELECT submission_count FROM restaurant_application WHERE restaurant_id = $1`,
+		restaurantID).Scan(&cycle); err == nil {
+		out.ReviewCycle = &cycle
+	} else if !errors.Is(err, pgx.ErrNoRows) {
+		return nil, fmt.Errorf("get review cycle: %w", err)
+	}
+
+	if state == "DOCUMENTS_REJECTED" {
+		rej, err := r.getOnboardingRejection(ctx, restaurantID)
+		if err != nil {
+			return nil, err
+		}
+		out.Rejection = rej
+		if rej != nil {
+			out.BlockingReason = rej.Note
+		}
+	}
+	return out, nil
+}
+
+// getOnboardingRejection reads the admin's decision on the application: whether
+// it was sent back for changes or finally rejected, the reason code, the reason
+// text the admin wrote (sent to the owner verbatim; the internal note is never
+// stored here) and the documents that need redoing. Nil when no decision is on
+// record.
+func (r *Repo) getOnboardingRejection(ctx context.Context, restaurantID string) (*OnboardingRejection, error) {
+	rej := &OnboardingRejection{Documents: []DocumentRow{}}
+	err := r.db.QueryRow(ctx, `
+		SELECT ra.decision::text, ra.reject_reason_code::text,
+		       (SELECT t.reason FROM restaurant_onboarding_transition t
+		         WHERE t.restaurant_id = ra.restaurant_id AND t.to_state = 'DOCUMENTS_REJECTED'
+		         ORDER BY t.at DESC, t.id DESC LIMIT 1)
+		  FROM restaurant_application ra
+		 WHERE ra.restaurant_id = $1 AND ra.decision IN ('REJECT','REQUEST_CHANGES')`,
+		restaurantID).Scan(&rej.Decision, &rej.ReasonCode, &rej.Note)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get onboarding rejection: %w", err)
+	}
+
+	// Only the latest document of each type counts: a re-upload adds a row and
+	// leaves the replaced one, which must not be listed as still needing a fix.
+	rows, err := r.db.Query(ctx, `
+		SELECT `+documentColumns+`
+		  FROM kyc_document d
+		 WHERE d.id IN (
+		         SELECT DISTINCT ON (k.restaurant_doc_type) k.id
+		           FROM kyc_document k
+		          WHERE k.subject_id = $1 AND k.subject_type = 'RESTAURANT' AND k.deleted_at IS NULL
+		          ORDER BY k.restaurant_doc_type, k.created_at DESC, k.id DESC)
+		   AND d.state IN ('REJECTED','EXPIRED')
+		 ORDER BY d.created_at DESC`, restaurantID)
+	if err != nil {
+		return nil, fmt.Errorf("get rejected documents: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		d, err := scanDocument(rows)
+		if err != nil {
+			return nil, err
+		}
+		rej.Documents = append(rej.Documents, d)
+	}
+	return rej, rows.Err()
 }
 
 // onboardingCurrentStep derives the current_step enum (contract:
@@ -968,6 +1048,15 @@ func (r *Repo) hydrateMenuItem(ctx context.Context, item *MenuItemView, liveVid,
 	if pendingVid != nil {
 		if v, err := r.loadItemVersion(ctx, *pendingVid); err == nil {
 			item.PendingVersion = v
+			// A new item has no live version until it is approved; its owner
+			// still sees what they wrote (customers never read this view).
+			if item.LiveVersion == nil {
+				item.Name = v.Name
+				item.Description = v.Description
+				item.IngredientsText = v.IngredientsText
+				item.DietaryTags = v.DietaryTags
+				item.AllergenTags = v.AllergenTags
+			}
 		}
 	}
 }
@@ -1248,8 +1337,10 @@ func (r *Repo) DeleteMenuItem(ctx context.Context, restaurantID, itemID string) 
 	return tx.Commit(ctx)
 }
 
-// CreateMenuItem creates a new menu item + initial DRAFT version.
-// The version is always DRAFT (never auto-approved per R-05 / halal gate).
+// CreateMenuItem creates a new menu item and its first version, waiting for
+// review (R-17): the item has no live version, so customers do not see it,
+// until an admin approves it. Never auto-approved (the halal and dietary
+// claims are what the review vouches for).
 func (r *Repo) CreateMenuItem(ctx context.Context, accountID, restaurantID string, in menuItemInputDTO) (*MenuItemView, error) {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
@@ -1307,20 +1398,21 @@ func (r *Repo) CreateMenuItem(ctx context.Context, accountID, restaurantID strin
 			(menu_item_id, restaurant_id, version, name, description, ingredients_text,
 			 dietary_tags, allergen_tags, allergens_declared, image_object_id, review_status)
 		VALUES ($1, $2, 1, $3, $4, $5,
-		        $6::dietary_tag[], $7::allergen_tag[], $8, $9::uuid, 'DRAFT')
+		        $6::dietary_tag[], $7::allergen_tag[], $8, $9::uuid, 'PENDING_REVIEW')
 		RETURNING id::text`,
 		itemID, restaurantID, in.Name, in.Description, in.IngredientsText,
 		dietaryTags, allergenTags, allergensDeclared, in.ImageObjectID).Scan(&versionID)
 	if err != nil {
 		return nil, fmt.Errorf("create menu_item_version: %w", err)
 	}
+	if _, err := tx.Exec(ctx, `UPDATE menu_item_version SET submitted_at = now() WHERE id = $1`, versionID); err != nil {
+		return nil, fmt.Errorf("submit menu_item_version: %w", err)
+	}
 
-	// Set both live_version_id and pending_version_id to the draft (R-05:
-	// never auto-approved; live_version_id makes the item queryable,
-	// pending_version_id signals it is awaiting review).
-	if _, err := tx.Exec(ctx, `UPDATE menu_item SET live_version_id=$1, pending_version_id=$1 WHERE id=$2`,
+	// Only pending: the item goes live when an admin approves this version.
+	if _, err := tx.Exec(ctx, `UPDATE menu_item SET pending_version_id=$1 WHERE id=$2`,
 		versionID, itemID); err != nil {
-		return nil, fmt.Errorf("set live_version_id: %w", err)
+		return nil, fmt.Errorf("set pending_version_id: %w", err)
 	}
 
 	// A live item is one of the gates to ACTIVE (R-17): re-evaluate in this transaction.
@@ -1335,8 +1427,12 @@ func (r *Repo) CreateMenuItem(ctx context.Context, accountID, restaurantID strin
 	return r.getMenuItemByID(ctx, restaurantID, itemID)
 }
 
-// UpdateMenuItem creates a new PENDING_REVIEW version for an existing item
-// (or DRAFT when carrying halal-bearing tags). Validates ownership.
+// UpdateMenuItem applies the operational fields (price, category, prep time)
+// at once and sends a change to any reviewed field (name, description,
+// ingredients, dietary and allergen tags, image) to review as a new
+// PENDING_REVIEW version (R-17). The live version is untouched until an admin
+// approves; a newer pending version withdraws the older one. Fields not sent
+// keep the latest version's value. Validates ownership.
 func (r *Repo) UpdateMenuItem(ctx context.Context, accountID, restaurantID, itemID string, in menuItemUpdateDTO) (*MenuItemView, error) {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
@@ -1353,18 +1449,15 @@ func (r *Repo) UpdateMenuItem(ctx context.Context, accountID, restaurantID, item
 		return nil, err
 	}
 
-	// Load current item (ownership check in WHERE clause).
-	var currentCategoryID string
-	var currentPrice int64
-	var currentVersionNo int
-	var currentLiveVersionID *string
+	// Load the item (ownership check in WHERE clause) and the version a change
+	// builds on: the one waiting for review, else the live one.
+	var baseVersionID *string
 	err = tx.QueryRow(ctx, `
-		SELECT mi.category_id::text, mi.price_cents,
-		       COALESCE(miv.version, 0), mi.live_version_id::text
+		SELECT COALESCE(mi.pending_version_id, mi.live_version_id)::text
 		  FROM menu_item mi
-		  LEFT JOIN menu_item_version miv ON miv.id = mi.live_version_id
-		 WHERE mi.id = $1 AND mi.restaurant_id = $2 AND mi.deleted_at IS NULL`,
-		itemID, restaurantID).Scan(&currentCategoryID, &currentPrice, &currentVersionNo, &currentLiveVersionID)
+		 WHERE mi.id = $1 AND mi.restaurant_id = $2 AND mi.deleted_at IS NULL
+		   FOR UPDATE`,
+		itemID, restaurantID).Scan(&baseVersionID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -1372,7 +1465,7 @@ func (r *Repo) UpdateMenuItem(ctx context.Context, accountID, restaurantID, item
 		return nil, fmt.Errorf("load menu_item for update: %w", err)
 	}
 
-	// Apply price + category updates to the item row.
+	// Operational fields apply at once.
 	if in.PriceCents != nil {
 		if _, err := tx.Exec(ctx, `UPDATE menu_item SET price_cents=$1, updated_at=now() WHERE id=$2`,
 			*in.PriceCents, itemID); err != nil {
@@ -1396,52 +1489,72 @@ func (r *Repo) UpdateMenuItem(ctx context.Context, accountID, restaurantID, item
 		}
 	}
 
-	// Create a new version for the claim-bearing descriptive fields.
-	newVersion := currentVersionNo + 1
-	name := ""
-	if currentLiveVersionID != nil {
-		// Inherit from live.
-		_ = tx.QueryRow(ctx, `SELECT name FROM menu_item_version WHERE id=$1`, *currentLiveVersionID).Scan(&name)
-	}
-	if in.Name != nil {
-		name = *in.Name
-	}
-	if name == "" {
-		name = "Unnamed"
-	}
+	reviewed := in.Name != nil || in.Description != nil || in.IngredientsText != nil ||
+		in.DietaryTags != nil || in.AllergenTags != nil || in.AllergensDeclared != nil || in.ImageObjectID != nil
+	if reviewed {
+		// Start from the base version's claims, then overlay what was sent.
+		var name string
+		var description, ingredients, imageID *string
+		dietaryTags, allergenTags := []string{}, []string{}
+		allergensDeclared := false
+		if baseVersionID != nil {
+			if err := tx.QueryRow(ctx, `
+				SELECT name, description, ingredients_text, dietary_tags::text[], allergen_tags::text[],
+				       allergens_declared, image_object_id::text
+				  FROM menu_item_version WHERE id = $1`, *baseVersionID).Scan(
+				&name, &description, &ingredients, &dietaryTags, &allergenTags, &allergensDeclared, &imageID); err != nil {
+				return nil, fmt.Errorf("load base version: %w", err)
+			}
+		}
+		if in.Name != nil {
+			name = *in.Name
+		}
+		if name == "" {
+			name = "Unnamed"
+		}
+		if in.Description != nil {
+			description = in.Description
+		}
+		if in.IngredientsText != nil {
+			ingredients = in.IngredientsText
+		}
+		if in.DietaryTags != nil {
+			dietaryTags = in.DietaryTags
+		}
+		if in.AllergenTags != nil {
+			allergenTags = in.AllergenTags
+		}
+		if in.AllergensDeclared != nil {
+			allergensDeclared = *in.AllergensDeclared
+		}
+		if in.ImageObjectID != nil {
+			imageID = in.ImageObjectID
+		}
 
-	dietaryTags := in.DietaryTags
-	if dietaryTags == nil {
-		dietaryTags = []string{}
-	}
-	allergenTags := in.AllergenTags
-	if allergenTags == nil {
-		allergenTags = []string{}
-	}
-
-	allergensDeclared := false
-	if in.AllergensDeclared != nil {
-		allergensDeclared = *in.AllergensDeclared
-	}
-
-	var newVersionID string
-	err = tx.QueryRow(ctx, `
-		INSERT INTO menu_item_version
-			(menu_item_id, restaurant_id, version, name, description, ingredients_text,
-			 dietary_tags, allergen_tags, allergens_declared, image_object_id, review_status)
-		VALUES ($1, $2, $3, $4, $5, $6,
-		        $7::dietary_tag[], $8::allergen_tag[], $9, $10::uuid, 'DRAFT')
-		RETURNING id::text`,
-		itemID, restaurantID, newVersion, name, in.Description, in.IngredientsText,
-		dietaryTags, allergenTags, allergensDeclared, in.ImageObjectID).Scan(&newVersionID)
-	if err != nil {
-		return nil, fmt.Errorf("create updated version: %w", err)
-	}
-
-	// Point live_version_id at the new draft so the item appears with the new name.
-	if _, err := tx.Exec(ctx, `UPDATE menu_item SET live_version_id=$1, updated_at=now() WHERE id=$2`,
-		newVersionID, itemID); err != nil {
-		return nil, fmt.Errorf("set live_version: %w", err)
+		// One version waiting per item: the newer change withdraws the older.
+		if _, err := tx.Exec(ctx, `
+			UPDATE menu_item_version SET review_status = 'WITHDRAWN'
+			 WHERE menu_item_id = $1 AND review_status IN ('PENDING_REVIEW', 'DRAFT')`, itemID); err != nil {
+			return nil, fmt.Errorf("withdraw pending version: %w", err)
+		}
+		var newVersionID string
+		err = tx.QueryRow(ctx, `
+			INSERT INTO menu_item_version
+				(menu_item_id, restaurant_id, version, name, description, ingredients_text,
+				 dietary_tags, allergen_tags, allergens_declared, image_object_id, review_status, submitted_at)
+			SELECT $1, $2, COALESCE(MAX(version), 0) + 1, $3, $4, $5,
+			       $6::dietary_tag[], $7::allergen_tag[], $8, $9::uuid, 'PENDING_REVIEW', now()
+			  FROM menu_item_version WHERE menu_item_id = $1
+			RETURNING id::text`,
+			itemID, restaurantID, name, description, ingredients,
+			dietaryTags, allergenTags, allergensDeclared, imageID).Scan(&newVersionID)
+		if err != nil {
+			return nil, fmt.Errorf("create updated version: %w", err)
+		}
+		if _, err := tx.Exec(ctx, `UPDATE menu_item SET pending_version_id=$1, updated_at=now() WHERE id=$2`,
+			newVersionID, itemID); err != nil {
+			return nil, fmt.Errorf("set pending_version: %w", err)
+		}
 	}
 
 	if err := RecomputeOnboarding(ctx, tx, restaurantID); err != nil {
@@ -1595,6 +1708,10 @@ func (r *Repo) GetOrder(ctx context.Context, restaurantID, orderID string) (*Ord
 	var custPhone *string
 	// Delivery area: city + distance band. City is available on the address.
 	var city *string
+	// The pickup code the kitchen reads to the rider (handover.PickupCodeVisible).
+	var fulfilment string
+	var pickupCodeEnc []byte
+	var pickupCodeAttempts int
 	err := r.db.QueryRow(ctx, `
 		SELECT o.id::text, o.code, o.state::text, o.state_since, o.deadline_at,
 		       o.promised_ready_at,
@@ -1602,7 +1719,8 @@ func (r *Repo) GetOrder(ctx context.Context, restaurantID, orderID string) (*Ord
 		       o.restaurant_net_cents, o.total_cents, o.currency::text,
 		       o.placed_at, o.accepted_at, o.ready_at, o.special_instructions,
 		       cp.first_name, cp.last_name, acc.phone_e164,
-		       addr.city
+		       addr.city,
+		       o.fulfilment::text, o.pickup_code_enc, o.pickup_code_attempts
 		  FROM "order" o
 		  LEFT JOIN account acc ON acc.id = o.account_id
 		  LEFT JOIN customer_profile cp ON cp.account_id = o.account_id
@@ -1615,12 +1733,20 @@ func (r *Repo) GetOrder(ctx context.Context, restaurantID, orderID string) (*Ord
 		&money.RestaurantNetCents, &money.TotalCents, &money.Currency,
 		&placedAt, &acceptedAt, &readyAt, &o.SpecialInstructions,
 		&custFirst, &custLast, &custPhone,
-		&city)
+		&city,
+		&fulfilment, &pickupCodeEnc, &pickupCodeAttempts)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("get order: %w", err)
+	}
+	// The restaurant staff's own order view is the one place the pickup code is
+	// shown (contracts/openapi.yaml, OrderRestaurantView.pickup_code;
+	// https://github.com/shaiknoorullah/hg-mono/issues/310). The ownership
+	// predicate above (o.restaurant_id = $2) keeps it to this restaurant.
+	if handover.PickupCodeVisible(o.State, fulfilment, pickupCodeAttempts) {
+		o.PickupCode = handover.Reveal(o.ID, handover.Pickup, pickupCodeEnc)
 	}
 	if discountCents != 0 {
 		o.Money = money
@@ -1666,10 +1792,26 @@ func (r *Repo) GetOrder(ctx context.Context, restaurantID, orderID string) (*Ord
 		l.Currency = o.Money.Currency
 		o.Lines = append(o.Lines, l)
 	}
+	if err := lRows.Err(); err != nil {
+		return nil, err
+	}
+	lRows.Close()
 	if o.Lines == nil {
 		o.Lines = []OrderLineView{}
 	}
-	return &o, lRows.Err()
+
+	// Each line's chosen variants, so the ticket shows every choice.
+	variants, err := orders.OrderLineVariants(ctx, r.db, orderID)
+	if err != nil {
+		return nil, err
+	}
+	for i := range o.Lines {
+		o.Lines[i].Variants = variants[o.Lines[i].LineNo]
+		if o.Lines[i].Variants == nil {
+			o.Lines[i].Variants = []orders.LineVariantDTO{}
+		}
+	}
+	return &o, nil
 }
 
 // customerDisplayName renders "Aisha K." — first name plus last initial (P-07).

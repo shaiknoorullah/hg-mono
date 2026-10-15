@@ -2,7 +2,7 @@
 covers:
   - packages/ui-web/src/**
   - apps/admin/src/**
-reviewed: 2026-10-05
+reviewed: 2026-10-15
 ---
 
 # DataTable on LyteNyte Grid, and the cell component set — spec draft
@@ -10,6 +10,16 @@ reviewed: 2026-10-05
 > **2026-10-05:** `packages/ui-web/src/live/` (the realtime socket and `LiveMap`) and the admin's
 > live operations map are outside this draft's scope; the operations map lists its orders as plain
 > text beneath the map rather than in a grid.
+>
+> **2026-10-15:** the redesigned admin Orders and Disputes lists draw their rows through the
+> admin `DataGrid` stand-in (`apps/admin/src/redesign/ds-stubs/DataGrid.stub.tsx`), not the
+> `DataTable` below, with plain-text cells and the `Countdown` for the next deadline. Nothing in this
+> draft changes; the grid moves onto LyteNyte with the design system's own grid.
+>
+> **2026-10-09:** the legacy admin sign-in and invitation pages (`App.tsx`'s sign-in gate,
+> `lib/auth.ts`, `screens/AcceptInviteScreen.tsx`) are forms, not grids, and are outside this
+> draft's scope. Two-step sign-in is opt-in for staff ([#623](https://github.com/shaiknoorullah/hg-mono/pull/623)),
+> so the Staff grid's MFA column below reads "MFA on"/"MFA off" as a choice, not a compliance gap.
 >
 > **2026-10-05:** the System page's panel for pausing new orders ([#389](https://github.com/shaiknoorullah/hg-mono/issues/389)) shows one
 > record, not a list, so it uses no grid and is outside this draft's scope.
@@ -228,7 +238,7 @@ These rules apply to every cell:
 ### 5.4 `TimeCell` (absolute time; relative only as a secondary)
 - **Props:** `at: string` (RFC-3339), `mode?: 'absolute' | 'absolute+relative'`, `serverNow?: string`
 - **When to use:** `placed_at`, `submitted_at`, `last_login_at`, `paid_at`.
-- **Rule:** the [`DataTable` spec](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/design/02-components.md#24-datatable-admin) says "dates absolute + a relative tooltip". The visible text is absolute ("28 Sep, 14:05"). The relative form ("12 min ago") appears only in a tooltip or as a secondary line. **Certificate `expires_on` is always absolute and never relative** (the [`HalalBadge` spec](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/design/02-components.md#12-halalbadge-): "Never 'expires in 7 months'").
+- **Rule:** the [`DataTable` spec](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/design/02-components.md#24-datatable-admin) says "dates absolute + a relative tooltip". The visible text is absolute ("28 Sep, 14:05"). The relative form ("12 min ago") appears only in a tooltip or as a secondary line. **Certificate `expires_on` is always absolute and never relative** (the [`HalalBadge` spec](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/design/02-components.md#12-halalbadge-): "Never 'expires in 7 months'"). A date-time shows its America/Toronto day and time; a calendar date (`expires_on`) is shown as written.
 - **Accessibility:** `<time dateTime>`. The accessible name is the full absolute date and time.
 - **Tokens:** `text.primary`, `text.tertiary` for the secondary line, `numeric.tabular`.
 

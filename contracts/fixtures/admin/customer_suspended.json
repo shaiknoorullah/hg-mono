@@ -1,0 +1,41 @@
+{
+  "scenario": "customer_suspended",
+  "domain": "admin",
+  "schema": "AccountStateChange",
+  "describes": "`SUSPEND`: `ACTIVE` → `SUSPENDED`. Suspended: the order the restaurant had not accepted is cancelled; the accepted one finishes. The customer cannot sign in until reinstated.",
+  "operations": [
+    "applyCustomerAccountAction"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "account-action",
+    "state-matrix"
+  ],
+  "payload": {
+    "id": "02ffe6db-20cf-461f-aa9f-72d18a156c98",
+    "subject_type": "CUSTOMER",
+    "subject_id": "6087e999-1c05-4911-ad7a-7dead9531444",
+    "action": "SUSPEND",
+    "from_state": "ACTIVE",
+    "to_state": "SUSPENDED",
+    "reason_code": "FRAUDULENT_CHARGEBACK",
+    "reason_text": "Two chargebacks filed for orders the rider photographed at the door.",
+    "actor_account_id": "6355afc2-21b9-4556-a0fe-16db508f6a3b",
+    "ban_proposal": null,
+    "delist_reasons": [],
+    "menu_locked": null,
+    "sessions_revoked": 0,
+    "in_flight": {
+      "cancelled_order_ids": [
+        "4f02a58e-253a-409f-a685-f0f9fa5a75c2"
+      ],
+      "refunded_order_ids": [],
+      "continuing_order_ids": [
+        "59c48448-157a-4914-af96-78a4d407a086"
+      ],
+      "withdrawn_offer_ids": []
+    },
+    "created_at": "2026-08-10T18:42:11.412Z"
+  }
+}

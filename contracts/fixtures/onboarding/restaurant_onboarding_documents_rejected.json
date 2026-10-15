@@ -28,6 +28,7 @@
     "blocking_reason": "Two documents were rejected. Re-upload them to continue.",
     "review_cycle": 2,
     "rejection": {
+      "decision": "REQUEST_CHANGES",
       "reason_code": "DOCUMENTS_INSUFFICIENT",
       "note": "The food-handling certificate has expired and the owner ID is cropped.",
       "documents": [

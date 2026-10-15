@@ -4,7 +4,7 @@ covers:
   - scripts/release/**
   - apps/customer/app.config.js
   - apps/rider/app.config.js
-reviewed: 2026-10-05
+reviewed: 2026-10-09
 ---
 
 # Releasing the apps
@@ -42,6 +42,25 @@ production is up ([#207](https://github.com/shaiknoorullah/hg-mono/issues/207)).
 
 A prod build cannot point anywhere else: the app config refuses to build a prod app whose bundle
 would talk to any API but production's.
+
+## The redesign stays out
+
+Release 1.0 ships the current screens. The redesign merges behind a build-time flag,
+`VITE_HG_REDESIGN` for the web apps and `EXPO_PUBLIC_HG_REDESIGN` for the Android apps (`"1"` on,
+anything else off), and is tested in the end-to-end runs ([tools/e2e/README.md](../../tools/e2e/README.md#redesign)).
+No build this page describes turns it on:
+
+- the workflow pins both flags to `"0"` for every build, dev and prod;
+- `app-env.cjs` sets both on every build it runs (`"0"` unless a dev build asks for `"1"`), so a
+  `.env` file cannot change them, and refuses a prod build with either at `"1"`; the Android
+  apps' `app.config.js` runs the same check for every native build;
+- [`scripts/release/redesign-off.cjs`](../../scripts/release/redesign-off.cjs) fails the workflow
+  before the build when either flag is not `"0"` or a committed `.env` file turns one on, and
+  again after it, on the APK's JavaScript bundle or the web `dist`, when the flag shows compiled
+  on (the `hg-redesign:on` marker, or an inlined env object with the flag at `"1"`).
+
+EAS profiles (below) do not set the flag, which leaves it off. A shell that exports it as `"1"`
+would turn it on in an EAS build; only one with `APP_ENV=prod` refuses.
 
 ## Versions
 
@@ -159,6 +178,13 @@ cd android && node ../../../scripts/release/app-env.cjs dev -- ./gradlew assembl
 A dev build can be pointed at another API with `API_BASE_URL`, for example an API on your own
 machine as an emulator sees it: `API_BASE_URL=http://10.0.2.2:8080`.
 
+**Redesign builds.** The rebuilt rider app ships behind `EXPO_PUBLIC_HG_REDESIGN`. Release builds
+never set it, so they show the current app. A dev build with `EXPO_PUBLIC_HG_REDESIGN=1` mounts the
+redesign and lets the app follow the phone into dark mode (`userInterfaceStyle: automatic` in
+`apps/rider/app.config.js`; the release build stays light). Clear Metro's cache when switching the
+flag (`npx expo export --clear`, or a fresh native build): `EXPO_PUBLIC_*` values are inlined when a file
+is transformed, so a warm cache from a flag-off build still serves the current app.
+
 The Mapbox public token is `EXPO_PUBLIC_MAPBOX_TOKEN` (in CI, the repo secret
 `MAPBOX_PUBLIC_TOKEN_MOBILE`). The rider app also calls the Mapbox Directions API with it for the
 route line. Both apps' configs record only whether it was set (`extra.mapboxPublicTokenConfigured`);
@@ -189,9 +215,11 @@ another API, change that profile's `env` value.
 The customer app pays with Stripe's payment sheet, which needs the PUBLIC key
 `EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY` (`pk_test_…` or `pk_live_…`; in CI, the repo secret
 `STRIPE_PUBLISHABLE_KEY_MOBILE`). It must be from the same Stripe account and mode as the API's
-`HG_STRIPE_SECRET_KEY`, or the sheet cannot confirm the payment. The sheet is native-only: on web
-the customer app skips it. When the API runs its local fake gateway (`HG_ENV=local`, no Stripe
-key) it returns `pi_fake_…` client secrets and the app skips the sheet too.
+`HG_STRIPE_SECRET_KEY`, or the sheet cannot confirm the payment. On web the same key loads
+Stripe.js and the Payment Element in a sheet; a build without the key takes no card payments and
+says so at checkout instead of crashing. When the API runs its local fake gateway (`HG_ENV=local`,
+no Stripe key) it returns `pi_fake_…` client secrets and the app skips the sheet. Testing with
+Stripe test cards: [card payments playbook](../playbooks/customer/card-payments.md).
 
 The customer app registers for push notifications only when the build has `EAS_PROJECT_ID`
 (`apps/customer/app.config.js` writes it into `extra.eas.projectId`) and, on Android, the Expo

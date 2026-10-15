@@ -325,8 +325,8 @@ func TestLoginSucceedsWhileSignupGateIsFull(t *testing.T) {
 		t.Fatalf("fill the login gate: %v", err)
 	}
 	defer loginHeld.release()
-	if _, err := svc.Login(context.Background(), admin, password, nil, ClientAdminWeb, nil, &ip); !errors.Is(err, errMFARequired) {
-		t.Fatalf("admin login with the sign-up and login gates full = %v, want the TOTP step (password verified)", err)
+	if _, err := svc.Login(context.Background(), admin, password, nil, ClientAdminWeb, nil, &ip); err != nil {
+		t.Fatalf("admin login with the sign-up and login gates full = %v, want signed in (password verified)", err)
 	}
 }
 
@@ -605,8 +605,8 @@ func TestCustomerPasswordChangeFloodDoesNotDelayStaffLogin(t *testing.T) {
 	ip := "203.0.113.80"
 	_, err := svc.Login(context.Background(), admin, password, nil, ClientAdminWeb, nil, &ip)
 	stopFlood()
-	if !errors.Is(err, errMFARequired) {
-		t.Fatalf("admin sign-in during a customer password-change flood = %v, want the TOTP step (password verified)", err)
+	if err != nil {
+		t.Fatalf("admin sign-in during a customer password-change flood = %v, want signed in (password verified)", err)
 	}
 	if got := gates.staff.acquired.Load() - staffBefore; got != 1 {
 		t.Fatalf("staff slots taken during the flood = %d, want 1 (the admin's own)", got)

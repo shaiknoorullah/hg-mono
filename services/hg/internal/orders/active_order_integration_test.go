@@ -79,11 +79,13 @@ func newQuote(t *testing.T, st *Store, b basics, cartID string) *Quote {
 	return q
 }
 
-// tryOrder places an order from a fresh quote and returns its id, or the error.
-func tryOrder(t *testing.T, st *Store, b basics, cartID string) (string, error) {
+// tryOrder places an order from a fresh quote and returns its id, or the error. Placing an
+// order consumes the cart (C-23 rule 1), so each attempt quotes the customer's current cart,
+// adding a line to start one when the last order took the previous cart.
+func tryOrder(t *testing.T, st *Store, b basics, _ string) (string, error) {
 	t.Helper()
 	var fresh *Quote
-	p, err := st.CreateOrder(context.Background(), OrderInput{AccountID: b.accountID, QuoteID: newQuote(t, st, b, cartID).ID}, &fresh)
+	p, err := st.CreateOrder(context.Background(), OrderInput{AccountID: b.accountID, QuoteID: newQuote(t, st, b, seedCart(t, st, b)).ID}, &fresh)
 	if err != nil {
 		return "", err
 	}
@@ -248,6 +250,7 @@ func TestIntegrationConcurrentOrdersOnlyOneIsPlaced(t *testing.T) {
 			move(t, st, reviewed, machine.StateRestaurantPending, machine.ActorSystem)
 			move(t, st, reviewed, machine.StatePreparing, machine.ActorRestaurant)
 			move(t, st, reviewed, machine.StateDisputed, machine.ActorRestaurant)
+			cartID = seedCart(t, st, b) // that order consumed the cart
 		}
 		quotes := []*Quote{newQuote(t, st, b, cartID), newQuote(t, st, b, cartID)}
 

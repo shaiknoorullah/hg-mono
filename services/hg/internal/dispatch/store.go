@@ -331,6 +331,20 @@ WHERE id = $1 AND rider_account_id = $2`, offerID, riderAccountID).Scan(&st.Stat
 		return "", err
 	}
 
+	// A rider who is no longer ACTIVE takes no new work. Suspending a rider
+	// withdraws the offers waiting for them in the same transaction; this catches
+	// an offer made by a dispatch wave that was running at that moment
+	// (https://github.com/shaiknoorullah/hg-mono/issues/253). A plain read, not a
+	// lock, so the lock order below is unchanged.
+	var accountStatus string
+	if err := tx.QueryRow(ctx, `
+SELECT account_status::text FROM rider_profile WHERE account_id = $1`, riderAccountID).Scan(&accountStatus); err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return "", err
+	}
+	if accountStatus != "ACTIVE" {
+		return "", newError(403, CodeAccountNotActive, "Your account is not active, so you cannot take new deliveries.", nil)
+	}
+
 	// Step 0a: serialise same-order accepts on the order's dispatch row BEFORE
 	// touching any offer row. Every accept for this order now queues on this single
 	// row lock, so lock acquisition is globally ordered (dispatch row, then offer
@@ -371,7 +385,30 @@ UPDATE dispatch_offer
 RETURNING order_id, wave::text, wave, earnings_cents, tip_estimate_cents, distance_m, id`,
 		offerID, riderAccountID, now).Scan(&claimedOrder, &wave, &waveNo, &earningsCents, &tipCents, &offerDistanceM, &dispatchOfferID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		// Lost the race in the tiny window since the read. It expired.
+		// The claim matched no row. The state read at the top predates the dispatch
+		// row lock, so it cannot say why; re-read under the lock (D-16 AC-1). A
+		// dispatch row already holding a rider, or this offer accepted, is
+		// OFFER_ALREADY_TAKEN. An offer withdrawn with no rider assigned (an order
+		// cancelled or redispatched while this accept waited on the lock) is
+		// OFFER_WITHDRAWN, as in Step 0. Anything else lapsed: OFFER_EXPIRED.
+		var curState string
+		if rerr := tx.QueryRow(ctx, `
+SELECT state::text FROM dispatch_offer
+WHERE id = $1 AND rider_account_id = $2`, offerID, riderAccountID).Scan(&curState); rerr != nil {
+			return "", rerr
+		}
+		var taken bool
+		if terr := tx.QueryRow(ctx, `
+SELECT EXISTS (SELECT 1 FROM dispatch WHERE order_id = $1 AND rider_account_id IS NOT NULL)`,
+			st.OrderID).Scan(&taken); terr != nil {
+			return "", terr
+		}
+		if taken || curState == "ACCEPTED" {
+			return "", newError(409, CodeOfferAlreadyTaken, "This order was taken by another rider.", nil)
+		}
+		if curState == "WITHDRAWN" {
+			return "", newError(409, CodeOfferWithdrawn, "This offer was withdrawn.", nil)
+		}
 		return "", newError(409, CodeOfferExpired, "This offer has expired.", nil)
 	}
 	if err != nil {

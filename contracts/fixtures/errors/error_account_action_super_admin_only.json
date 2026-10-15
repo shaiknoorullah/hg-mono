@@ -1,0 +1,26 @@
+{
+  "scenario": "error_account_action_super_admin_only",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`403` · `FORBIDDEN_PERMISSION`. An admin confirming a ban, or reinstating a banned account. `details.permission` names what is missing.",
+  "operations": [
+    "applyRestaurantAccountAction",
+    "applyRiderAccountAction",
+    "applyCustomerAccountAction"
+  ],
+  "status": 403,
+  "tags": [
+    "error-envelope",
+    "account-action"
+  ],
+  "payload": {
+    "error": {
+      "code": "FORBIDDEN_PERMISSION",
+      "message": "Only a super admin can do this.",
+      "request_id": "GCPEYF5X0ARY727KJPFNAR9BTH",
+      "details": {
+        "permission": "restaurant.unban"
+      }
+    }
+  }
+}

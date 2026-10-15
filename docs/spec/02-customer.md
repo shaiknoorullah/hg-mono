@@ -3,7 +3,7 @@ covers:
   - apps/customer/**
   - services/hg/internal/account/**
   - services/hg/internal/addresses/**
-reviewed: 2026-10-05
+reviewed: 2026-10-10
 ---
 
 # HalalGoes — CUSTOMER Domain Specification
@@ -57,12 +57,26 @@ These exist so that individual features do not have to re-litigate them. Anythin
 - Degradation: if the socket is not `OPEN`, the client polls `GET /orders/:orderId` every **15 s**. Any feature that says "live" must remain correct (only less fresh) on the polling path.
 - Reconnect: exponential backoff 1 s → 2 s → 4 s → 8 s → 15 s (cap), full jitter. On reconnect the client sends `resume{last_event_id}` and the server replays missed events for that order from Redis stream `order:{orderId}:events` (retained 6 h).
 
+### 0.6 The redesigned app, behind a build flag
+
+Release 1.0 ships the current customer app. The redesign from the owner-approved canvases ([#87](https://github.com/shaiknoorullah/hg-mono/issues/87), tracked in [#656](https://github.com/shaiknoorullah/hg-mono/issues/656)) is built beside it in `apps/customer/src/redesign/` and mounts only when the build sets `EXPO_PUBLIC_HG_REDESIGN=1`. Release builds leave it off, so a release build runs exactly the legacy app.
+
+The rules in this spec apply to both. With the flag on:
+- the bottom navigation is Home · Search · Orders · Account, with no notifications tab;
+- light and dark follow the phone;
+- an account or session error (suspended, banned, not active, session revoked or expired, refresh token reused) replaces whatever screen is open with a full-screen explanation and a way out;
+- a screen not yet redesigned falls back to its current version.
+
 ### 0.5 Sizing / versioning key
 
 - **V1** — required to accept a real, paid order from a real customer in Canada.
 - **V2** — contracted in the SOW, not launch-blocking.
 - **V3** — nice-to-have / explicitly hedged in the SOW.
 - **S** < 1 h agent work · **M** hours · **L** a day or more. Sized against a clean Go + Expo build, not against patching today's code.
+
+### 0.6 Redesign build flag (design system, Oct 2026)
+
+`EXPO_PUBLIC_HG_REDESIGN=1` builds the app with the rebuilt design system: NativeWind 4 and React Native Reusables components from `@hg/ui-native/lib`. The flag is read when the app is built. Without it, `index.js` mounts the usual `App.tsx` and the bundle contains no redesign module: no NativeWind, no css-interop, no Reanimated JavaScript. With it, `index.js` mounts `src/redesign/RedesignApp.tsx`. That root loads the generated `global.customer.css`, adds the `@rn-primitives/portal` host that overlays render into, and keeps NativeWind's colour scheme in step with `ThemeProvider`: both follow the phone. Only `src/redesign/**` and `packages/ui-native/src/lib/**` compile their JSX through NativeWind (`babel.config.js`). The native `react-native-reanimated` and `react-native-worklets` libraries are linked into every APK; the full end-to-end run covers them.
 
 ---
 
@@ -210,8 +224,8 @@ These exist so that individual features do not have to re-litigate them. Anythin
 
 ### C-07 — Call support
 - **SOW trace**: *"Support and Help: … Call support"*
-- **Behaviour**: A "Call support" button that opens the device dialler (`tel:`) with a single platform support number fetched from `GET /config/public` (never hardcoded). The server turns support on during the set hours only; outside them the button disappears and the screen shows the support hours plus the self-serve actions: cancel before acceptance, report a problem ([support channel](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), [line closed](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
-- **Data**: `platform_config` row keys `support_phone_e164`, `support_hours_open_local`, `support_hours_close_local`, `support_timezone`, `support_enabled`.
+- **Behaviour**: A "Call support" button that opens the device dialler (`tel:`) with a single platform support number fetched from `GET /config/public` (never hardcoded). The server turns support on during the set hours only; outside them the button disappears and the screen shows the support hours plus the self-serve actions: cancel before acceptance, report a problem ([support channel](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), [line closed](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)). The support email, also from `GET /config/public` (`support_email`), is shown whether or not the line is open; it is how a customer asks staff to delete their account at launch ([#181](https://github.com/shaiknoorullah/hg-mono/issues/181)).
+- **Data**: `platform_config` row keys `support_phone_e164`, `support_hours_open_local`, `support_hours_close_local`, `support_timezone`, `support_enabled`, `support_email`.
 - **States**: derived only: `OPEN` / `CLOSED` computed from the config and current time.
 - **Rules**:
   1. The number is `tel:`-dialled by the OS. The app does **not** place VoIP calls and does not record calls.
@@ -395,6 +409,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
   4. The hero image is `restaurants.hero_object_key` resolved through the media CDN path; if null, a neutral cuisine-derived placeholder. A test asserts no bundled restaurant photograph exists in the app bundle.
   5. Menu payload is cached client-side for 5 min and invalidated on cart mutation failure with `ITEM_UNAVAILABLE`.
   6. A floating cart bar appears when the cart is non-empty, showing **sum of quantities** (not distinct line count) and the cart subtotal.
+  7. `GET /v1/restaurants/{id}?delivery_address_id=` prices the availability strip against that saved address when it belongs to the signed-in customer; an address that is not theirs, is deleted or has no location reads as no address (`NO_ADDRESS`), never another customer's location.
 - **Acceptance criteria**:
   1. Given a restaurant with a `hero_object_key`, when the detail page renders, then the displayed image URL contains that key and matches no path under the app's static assets directory.
   2. Given a menu with items in 3 categories, when the page renders, then tabs are `All` + those 3 in `sort_order`, and selecting a tab shows only that category's items.
@@ -422,6 +437,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
   4. `CLOSED_HOURS` cards show "Opens {time}" using `opens_at`; the restaurant remains browsable and its menu readable.
   5. Minimum order is compared against `item_total` **before** fees and discounts. Below minimum, checkout returns `409 BELOW_MINIMUM_ORDER` with `details.shortfall_cents`, and the cart screen shows "Add ${x} more to order".
   6. `NO_ADDRESS` never blocks browsing; it blocks add-to-cart with a prompt to add an address.
+  7. The delivery radius is enforced where the order is priced, not only on the card: `createQuote` and `createOrder` refuse a `DELIVERY` address farther than the restaurant's `delivery_radius_m` (the same rounded geodesic distance and `>` boundary the card uses for `OUT_OF_RANGE`) with `409 ADDRESS_OUT_OF_RANGE`, and nothing is stored ([#723](https://github.com/shaiknoorullah/hg-mono/issues/723)).
 - **Acceptance criteria**:
   1. Given a restaurant with hours 17:00–02:00 America/Toronto and a request at 01:30 local, then `state='OPEN'`.
   2. Given `is_accepting_orders=false` during opening hours, when the detail page renders, then the state is `PAUSED`, add controls are disabled, and the menu is still readable.
@@ -467,8 +483,11 @@ These exist so that individual features do not have to re-litigate them. Anythin
   1. **Variant price replaces the base price; add-on prices are added.** Line total = `(variant_price ?? item_price) + Σ(addon.price) ) × quantity`. This single formula is used by cart, pricing, and order creation. (Today the cart *adds* variant price to base while order creation *replaces* it — the two disagree, so cart, pricing and order totals can all differ.)
   2. If an item has variants, one group per `variant_type` is **required**; the `is_default_variant=true` option is pre-selected. If no default exists, nothing is pre-selected and add-to-cart is disabled. Silent auto-selection of `item_variants[0]` is prohibited.
   3. Unavailable variants/add-ons (`is_currently_available=false`) render disabled with "Unavailable", and are rejected server-side with `409 VARIANT_UNAVAILABLE` / `409 ADDON_UNAVAILABLE`.
-  4. `selected_addon_ids` is validated server-side against the item's linked add-ons; unknown ids ⇒ `400 INVALID_ADDON`. (Today it is an unconstrained uuid[] with no FK and the client always sends `[]`.)
-  5. Cart line identity = `(cart_id, food_item_id, selected_variant_id, sorted(selected_addon_ids), special_request)`. Two adds with identical identity increment quantity; any difference creates a distinct line.
+  4. `selected_addon_ids` is validated server-side against the item's linked add-ons; unknown ids ⇒ `422 INVALID_ADDON` with the field that is wrong (the contract's status; this rule said `400`). (Today it is an unconstrained uuid[] with no FK and the client always sends `[]`.)
+  5. Cart line identity = `(cart_id, food_item_id, sorted(selected_variant_ids), sorted(selected_addon_ids), special_request)`. Two adds with identical identity increment quantity; any difference creates a distinct line.
+  8. A dish may have several variant groups, and the add request carries one chosen variant per group (`variant_ids`; the single `variant_id` is still read, as a list of one). The server checks the line against the menu before the cart changes: a required group with no choice, two choices from one group, a variant of another item, or an add-on group outside its minimum and maximum is `422 VALIDATION_FAILED` with a field error for each problem ([#628](https://github.com/shaiknoorullah/hg-mono/issues/628), [#629](https://github.com/shaiknoorullah/hg-mono/issues/629)).
+  9. `409 VARIANT_UNAVAILABLE` and `409 ADDON_UNAVAILABLE` name the choice in `details` (`variant_id`, `addon_id`), so the app can say which one ran out.
+  10. The cart, quote, order and receipt lines list every chosen variant with its group (`variants`); the single `variant` field is set only for a one-variant line, and the order line's `variant_name` joins every chosen name for the restaurant's ticket.
   6. `order_food_items` **must** persist the variant and add-on selection. (Today the order table drops them, so the restaurant receives the wrong ticket.)
   7. Max **10 add-ons** per line; quantity per line 1–20 (the current cap of 99 is reduced).
 - **Acceptance criteria**:
@@ -476,7 +495,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
   2. Given base price $10, `Large` variant $14, and two add-ons at $1.50 each, quantity 2, then the displayed line total is $34.00 and the server-computed cart line total is 3400 cents.
   3. Given the same item added twice with different spice levels, when the cart renders, then there are two distinct lines.
   4. Given an order placed with variant `Large` and add-on `Extra cheese`, when the restaurant fetches the order, then `order_food_items` carries `selected_variant_id` and `selected_addon_ids` matching the cart.
-- **Out of scope**: nested/conditional add-on groups; add-on quantity > 1 per add-on; min/max selection rules per group beyond required-single-select; combo/meal builders; per-variant images.
+- **Out of scope**: nested/conditional add-on groups; add-on quantity > 1 per add-on; combo/meal builders; per-variant images. (Each add-on group's `min_select` and `max_select` are now checked on add, rule 8.)
 - **Version**: V1 · **Size**: M
 
 ---
@@ -531,7 +550,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
 - **States**: cart is either absent (no row) or present; there is no cart status enum. A cart is deleted on successful order creation and on `DELETE /cart`.
 - **Rules**:
   1. Exactly **one cart per customer** (`carts.user_id` unique) — matching today's de-facto behaviour, now enforced by constraint.
-  2. Operations are **granular**, not full-replacement PUTs. (Today every quantity change PUTs the entire desired cart, and removal is implemented as `quantity = -999`.) Removal is `DELETE`; `quantity` must be `1..20`; `quantity=0` is rejected with `400 VALIDATION_FAILED`.
+  2. Operations are **granular**, not full-replacement PUTs. (Today every quantity change PUTs the entire desired cart, and removal is implemented as `quantity = -999`.) Removal is `DELETE`; `quantity` must be `1..20`; `quantity=0` is rejected with `400 VALIDATION_FAILED`. The one exception is `PUT /cart` (`replaceCart`), only for "Put these items back in your cart" after an unpaid order is cancelled, expires or fails payment: it replaces every line in one atomic call, all or nothing, because rebuilding a cart line by line cannot be atomic ([round-2 decisions](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), [#179](https://github.com/shaiknoorullah/hg-mono/issues/179)). It carries item ids, options and quantities, never a price.
   3. `carts.delivery_address_id` is set from the **customer's currently selected address** (C-30) and updated whenever the selection changes — never from `addresses[0]`. If no address is selected, cart operations still succeed but `delivery_fee_cents` is `null` and checkout is blocked.
   4. Every mutation re-validates: item exists, `is_currently_available`, belongs to the cart's restaurant, variant/add-on valid and available, restaurant still visible and `OPEN`. Failure returns a typed error and the **unchanged** cart, so the client can reconcile.
   5. Prices are snapshotted onto `cart_lines.unit_price_cents` at add time, and **re-validated at checkout**: if any unit price changed, checkout returns `409 PRICE_CHANGED` with the diff, and the client shows a "Prices updated" confirmation before retrying.
@@ -556,7 +575,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
 - **Rules**:
   1. The constraint is enforced **server-side** as the authority. The client modal is a UX affordance, not the enforcement. (Today the only such logic lives in a dead React Context that nothing mounts, so a second restaurant's items silently join the cart.)
   2. "Start a new cart" is a **single atomic call** `POST /cart/lines?replace=true` — clear + add in one transaction. A two-call clear-then-add is prohibited (it can leave an empty cart on failure).
-  3. The modal names the current restaurant explicitly ("Your cart has 3 items from Al-Noor Grill").
+  3. The modal names the current restaurant explicitly ("Your cart has 3 items from Al-Noor Grill"), from the error's `details`: `current_restaurant_id`, `current_restaurant_name`, `current_line_count` (lines) and `current_item_count` (the sum of their quantities), so the app needs no second request ([#629](https://github.com/shaiknoorullah/hg-mono/issues/629)).
   4. Checkout re-asserts that every line belongs to `carts.restaurant_id`; a violation is a `500` class invariant failure, alarmed, never surfaced as a customer error.
   5. Order creation copies `carts.restaurant_id` to `orders.restaurant_id`; there is no path to a multi-restaurant order at any version.
 - **Acceptance criteria**:
@@ -703,6 +722,8 @@ These exist so that individual features do not have to re-litigate them. Anythin
 ### C-25 — Payment execution and 3DS
 - **SOW trace**: *"Secure Payments: Integration with secure payment gateways for seamless and safe transactions."*
 - **Behaviour**: On order creation the server creates a provider PaymentIntent for `amount_to_pay_cents` with `capture_method=manual` (authorise now, capture later). If the provider requires 3-D Secure, the server returns `requires_action` with a client secret; the app presents the provider's challenge sheet and confirms. **Capture occurs when the restaurant accepts** (`AWAITING_RESTAURANT → CONFIRMED`). Authorisation is **voided** on rejection, timeout, no-rider, or customer cancellation before capture.
+
+  **V0 build (customer app):** the card is confirmed on web with the Stripe.js Payment Element in a sheet (`redirect: 'if_required'`; Stripe.js loads on the first payment) and on iOS and Android with the Stripe SDK's payment sheet, both keyed by `EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY`. A build without that key takes no card and says so at checkout, keeping the order for **Retry payment**; a decline, a failed challenge or a closed sheet also keeps the order, and a retry never places a second one. After a confirmed card the app reads `GET /v1/orders/{orderId}/payment` once, so the order moves on even where no webhook can reach the API ([card payments playbook](../playbooks/customer/card-payments.md)).
 - **Data**: `payments(id, order_id, user_id, payment_method_id, provider, provider_intent_id UNIQUE, amount_cents, currency, status, captured_at, voided_at, failure_code, created_at)`; `payment_events(id, payment_id, provider_event_id UNIQUE, type, payload jsonb, received_at)` for webhook idempotency; `refunds` (C-37).
 - **States**: `payments.status ∈ {REQUIRES_ACTION, AUTHORIZED, CAPTURED, VOIDED, FAILED, REFUND_PENDING, PARTIALLY_REFUNDED, REFUNDED}`.
   - `(new) → REQUIRES_ACTION|AUTHORIZED|FAILED` — intent creation/confirmation.
@@ -853,15 +874,15 @@ These exist so that individual features do not have to re-litigate them. Anythin
 
 ### C-31 — Address entry: autocomplete, geocoding and map pin
 - **SOW trace**: enabling requirement for *"Delivery Address Management"* — without it, every address is seven manual fields plus a mandatory map pin, which the current app requires.
-- **Behaviour**: Address entry starts with a **search-as-you-type** field. Suggestions come from Mapbox through our API (`GET /geo/autocomplete?q&session_token&lat&lng`), restricted to Canada and biased to the current location. Selecting a suggestion calls `GET /geo/place/:id` which returns the structured components and coordinates, pre-filling the form. The customer then confirms or adjusts the pin on a map and fills only unit/floor/instructions. Manual entry remains available via "Enter address manually", which requires dropping a pin. A denied location permission never blocks the form ([setting a location](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28); map picker: [#150](https://github.com/shaiknoorullah/hg-mono/issues/150)).
-- **Data**: no new persistent entity; writes into `delivery_addresses` (C-30). Redis cache `geo:auto:{sha256(q|geohash5)}` TTL 3600 s; `geo:place:{placeId}` TTL 30 days.
+- **Behaviour**: Address entry starts with a **search-as-you-type** field. Suggestions come from Mapbox through our API (`GET /v1/geo/autocomplete?q&session_token&latitude&longitude`, `suggestAddresses` in [the contract](../../contracts/openapi.yaml)), restricted to Canada and biased to the current location. Selecting a suggestion calls `GET /v1/geo/places/{placeId}` (`getPlaceAddress`) which returns the structured components and coordinates, pre-filling the form. The customer then confirms or adjusts the pin on a map and fills only unit/floor/instructions. Manual entry remains available via "Enter address manually", which requires dropping a pin. A denied location permission never blocks the form ([setting a location](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28); map picker: [#150](https://github.com/shaiknoorullah/hg-mono/issues/150)).
+- **Data**: no new persistent entity; writes into `delivery_addresses` (C-30). No Redis cache for suggestions: they are temporary Mapbox results, which [Mapbox does not allow to be stored or cached](https://docs.mapbox.com/api/search/geocoding/#storing-geocoding-results). The address and point that `getPlaceAddress` and `reverseGeocode` return are permanent results (Mapbox Geocoding v6 with `permanent=true`), because the save stores them; only a permanent result may be cached, and none is at launch. A `placeId` is never a cache key: it is short-lived ([permanent geocoding cost: #297](https://github.com/shaiknoorullah/hg-mono/issues/297)).
 - **States**: none.
 - **Rules**:
   1. The provider key lives **server-side only**. The app never holds a places/geocoding key; map tiles use a public Mapbox token ([#57](https://github.com/shaiknoorullah/hg-mono/issues/57)). (Today two Google keys are committed into the repo.)
-  2. Requests are proxied and rate-limited to **30 autocomplete calls per user per minute**; session tokens are used to keep provider billing on the session model.
+  2. Requests are proxied and rate-limited per user: suggestions at **60 calls per minute, burst 20** ([rate class `GEO_SUGGEST`](01-platform.md#p-38--rate-limiting)), so one search typed a key at a time stays under it; place details and reverse geocoding at **30 calls per minute, burst 10** each ([rate class `GEO`](01-platform.md#p-38--rate-limiting)). Session tokens are used to keep provider billing on the session model.
   3. Results are restricted to Canada in the provider request (`country=ca`); non-Canadian results are filtered server-side even if the provider returns them.
-  4. Reverse geocoding (`GET /geo/reverse?lat&lng`) fills the form when the customer drops a pin without searching.
-  5. If the provider is unavailable, the flow degrades to manual entry + map pin, with a visible notice — address entry never becomes impossible.
+  4. Reverse geocoding (`GET /v1/geo/reverse?latitude&longitude`, `reverseGeocode`) fills the form when the customer drops a pin without searching.
+  5. If the provider is unavailable (`503 GEOCODER_UNAVAILABLE`), the flow degrades to manual entry + map pin, with a visible notice — address entry never becomes impossible.
   6. The map picker's initial camera is: the customer's current GPS fix if permitted, else the current default address, else the launch city centre from `platform_config.default_map_center`. **No hardcoded Dubai or Hyderabad fallback.**
   7. The pin's final coordinates are what is stored, even if they differ from the geocoded result — the customer's pin wins.
 - **Acceptance criteria**:
@@ -1019,7 +1040,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
   1. **Eligibility window**: a customer-requested refund may be opened while the order is in any status **from `CONFIRMED` up to 48 hours after `DELIVERED`**. Outside that ⇒ `409 REFUND_WINDOW_CLOSED` with a link to C-08.
   2. Reason codes (fixed): `NEVER_DELIVERED`, `MISSING_ITEMS`, `WRONG_ITEMS`, `FOOD_QUALITY`, `LATE_DELIVERY`, `DAMAGED_SPILLED`, `HALAL_CONCERN`, `CHARGED_INCORRECTLY`, `OTHER` (description required). `HALAL_CONCERN` also auto-creates a linked grievance (C-39) at `HIGH` priority.
   3. **The customer never proposes an amount.** For `FULL` scope the amount is `orders.total_cents` minus any prior refunds. For `PARTIAL` the amount is `Σ(selected line unit_price × quantity)` plus a proportional share of tax, **excluding** delivery and platform fees unless the reason is `NEVER_DELIVERED` (which refunds everything including fees and tip).
-  4. A customer may report more than one problem on the same order, as the owner approved on 1 Oct; the contract still refuses a second request until [#184](https://github.com/shaiknoorullah/hg-mono/issues/184) lands. Total refunds against an order may never exceed the captured amount (enforced by a check inside the approval transaction).
+  4. A customer may report more than one problem on the same order, as the owner approved on 1 Oct ([#184](https://github.com/shaiknoorullah/hg-mono/issues/184)). Each report is its own refund, decided on its own, and reports never merge. A later report is refused with `409 REFUND_ALREADY_REQUESTED` only when it claims a line quantity, or the delivery and service fees, that another refund on the order already holds: per order line, the quantities claimed may not exceed the quantity ordered (with 3 ordered and 1 claimed, a report on 2 more is accepted), and the fees are refunded at most once. A refund holds its claim in every state but declined and cancelled, a refund waiting for approval included. A full refund claims only what no other refund holds, so it never clashes; it refunds what is left. Total refunds against an order may never exceed the captured amount (`409 REFUND_EXCEEDS_CAPTURED`, also for a full refund with nothing left). Each request and each approval locks the order row first and re-checks line quantities, fees and the cap together, so two reports at once cannot both pass. The rule is written out on `createRefund` in [the API contract](../../contracts/openapi.yaml).
   5. Automatic refunds are never queued for human review and are submitted to the provider immediately.
   6. Refunds go **back to the original payment method** only. No store credit, no alternative destination.
   7. Expected settlement time is displayed as "5–10 business days" from `platform_config.refund_settlement_days_copy`, and the status timeline shows the actual `completed_at` when the webhook lands.

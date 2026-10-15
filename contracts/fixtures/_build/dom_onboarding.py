@@ -77,6 +77,7 @@ def _restaurant_onboarding(reg, synth) -> None:
         status["review_cycle"] = 2 if state == "DOCUMENTS_REJECTED" else 1
         status["rejection"] = (
             {
+                "decision": "REQUEST_CHANGES",
                 "reason_code": "DOCUMENTS_INSUFFICIENT",
                 "note": "The food-handling certificate has expired and the owner ID is cropped.",
                 "documents": [
@@ -98,6 +99,43 @@ def _restaurant_onboarding(reg, synth) -> None:
             operations=["getRestaurantOnboardingStatus", "submitRestaurantDocuments"],
             tags=["onboarding-state-matrix", "restaurant"],
         )
+
+    final = synth.make("RestaurantOnboardingStatus", "r-onboarding-application-rejected")
+    final["onboarding_state"] = "DOCUMENTS_REJECTED"
+    final["current_step"] = "FIX_DOCUMENTS"
+    final["account_state"] = "PENDING"
+    final["progress_percent"] = 60
+    final["steps_completed"] = {
+        "profile": True,
+        "documents_uploaded": True,
+        "documents_submitted": True,
+        "documents_approved": False,
+        "payout_account": False,
+        "menu_published": False,
+    }
+    final["blocking_reason"] = "We could not verify the halal certificate for this location."
+    final["review_cycle"] = 1
+    final["rejection"] = {
+        "decision": "REJECT",
+        "reason_code": "HALAL_CERTIFICATION_INVALID",
+        "note": "We could not verify the halal certificate for this location.",
+        "documents": [
+            _document("HALAL_CERTIFICATE", "REJECTED", subject="restaurant",
+                      rejection_reason_code="UNRECOGNISED_CERTIFIER",
+                      review_note="The issuing body could not confirm this certificate."),
+        ],
+    }
+    reg.add(
+        "restaurant_onboarding_application_rejected",
+        "onboarding",
+        "RestaurantOnboardingStatus",
+        "`onboarding_state = DOCUMENTS_REJECTED` after a `REJECT` decision "
+        "(`rejection.decision = REJECT`). Unlike a request for changes no documents are listed "
+        "to fix and the screen offers no resubmission; the owner is shown the reason and who to contact.",
+        final,
+        operations=["getRestaurantOnboardingStatus"],
+        tags=["restaurant"],
+    )
 
     reg.add(
         "restaurant_profile",
@@ -121,6 +159,31 @@ def _restaurant_onboarding(reg, synth) -> None:
         operations=["registerRestaurant"],
         status=201,
         tags=["restaurant"],
+    )
+
+    # Pausing until closing (round-2 decisions, "Restaurant"): the server works out the
+    # end of the current trading period. A late night that runs past midnight pauses
+    # until 2:00 am the next morning, Toronto time (06:00 UTC).
+    paused_until_closing = synth.make("RestaurantAvailability", "open-state-PAUSED-until-closing")
+    paused_until_closing.update(
+        {
+            "open_state": "PAUSED",
+            "is_accepting_orders": True,
+            "pause_until": "2026-08-11T06:00:00.000Z",
+            "reason": "Paused until closing at 2:00 am. New orders resume when you next open.",
+            "resolvable_by": "RESTAURANT",
+        }
+    )
+    reg.add(
+        "restaurant_open_state_paused_until_closing",
+        "onboarding",
+        "RestaurantAvailability",
+        "`setRestaurantAcceptingOrders` with `pause_until_closing: true` on a late night that "
+        "runs past midnight. `pause_until` is the closing time the server chose: 2:00 am the "
+        "next morning, not midnight.",
+        paused_until_closing,
+        operations=["setRestaurantAcceptingOrders", "getRestaurantAvailability"],
+        tags=["restaurant", "state-matrix"],
     )
 
     for state, note in [
@@ -580,7 +643,7 @@ def _halal(reg, synth) -> None:
             {
                 "CERTIFIED": "The green badge. Certifying body and expiry both present.",
                 "EXPIRING_SOON": "Amber. 18 days left; body and expiry present.",
-                "EXPIRED": "Red. Never rendered on a customer surface — the restaurant 404s.",
+                "EXPIRED": "Cool slate, never red. Never rendered on a customer surface — the restaurant 404s.",
                 "UNVERIFIED": "No body, no expiry. Never rendered on a customer surface.",
             }[state],
             halal_badge(state),
@@ -1145,16 +1208,44 @@ def _decisions(reg, synth, app_template: dict) -> None:
 
 
 def _auth_and_config(reg, synth) -> None:
+    config = synth.make("PublicConfig", "public-config")
+    config["support_email"] = "support@halalgoes.com"
     reg.add(
         "public_config",
         "platform",
         "PublicConfig",
         "Client bootstrap. Deliberately exposes **no fee parameter** — no client can compute "
         "a price (contradiction log #22). `restaurant_response_window_seconds` is 180 "
-        "(decision R-04) and `served_provinces` gates ordering (O-05).",
-        synth.make("PublicConfig", "public-config"),
+        "(decision R-04) and `served_provinces` gates ordering (O-05). Phone support is on, "
+        "and the support email is shown beside it.",
+        config,
         operations=["getPublicConfig"],
         tags=["platform"],
+    )
+
+    # The support email is the contact while the phone line is closed, and how a customer
+    # asks staff to delete their account at launch (round-2 decisions, "Launch scope and
+    # contract"; https://github.com/shaiknoorullah/hg-mono/issues/181).
+    reg.add(
+        "public_config_phone_support_off",
+        "platform",
+        "PublicConfig",
+        "The phone line is closed (`support_enabled: false`): no phone number, so the Call "
+        "button disappears and the app shows the hours text. The support email is still "
+        "there, and it is the contact the app offers.",
+        {**config, "support_enabled": False, "support_phone_e164": None},
+        operations=["getPublicConfig"],
+        tags=["platform", "state-matrix"],
+    )
+    reg.add(
+        "public_config_without_support_email",
+        "platform",
+        "PublicConfig",
+        "No support email is configured (`support_email: null`). The app shows no email "
+        "contact and never falls back to a hardcoded address.",
+        {**config, "support_email": None},
+        operations=["getPublicConfig"],
+        tags=["platform", "edge"],
     )
 
     reg.add(
@@ -1176,6 +1267,67 @@ def _auth_and_config(reg, synth) -> None:
         operations=["getReadiness"],
         tags=["platform"],
     )
+
+    # The marketing site's waitlist (https://github.com/shaiknoorullah/hg-mono/issues/212).
+    # A new sign-up and a repeat get the same answer, so the form cannot reveal who is
+    # already on the list.
+    for audience, scenario, note in [
+        ("CUSTOMER", "waitlist_joined", "A new sign-up: the consent record is stored with the time the server received it."),
+        (
+            "CUSTOMER",
+            "waitlist_joined_again",
+            "The same audience and contact again: the same `202` and nothing new stored. The "
+            "first consent is kept, never overwritten.",
+        ),
+        (
+            "RESTAURANT",
+            "waitlist_joined_as_restaurant",
+            "Someone already on the customer list joins as a restaurant too. Audience and "
+            "contact together are the key, so this is a new sign-up.",
+        ),
+    ]:
+        reg.add(
+            scenario,
+            "platform",
+            "WaitlistSignupReceipt",
+            f"`joinWaitlist` → `202`. {note}",
+            {"audience": audience, "received": True},
+            operations=["joinWaitlist"],
+            status=202,
+            tags=["platform", "public"],
+        )
+
+    # The text-message sender check, readable by every staff role: a failure puts a sticky
+    # banner on every admin page (round-2 decisions, "Admin").
+    for state, checked, since, message, note in [
+        ("PASSED", ts(-2 * HOUR), None, None, "The latest check passed. No banner."),
+        (
+            "FAILED",
+            ts(-25 * MINUTE),
+            ts(-2 * HOUR),
+            "Twilio refused our credentials, so sign-in codes cannot be sent.",
+            "The latest check failed, so every admin page shows the sticky banner with "
+            "`message` and how long it has been failing. New customers and riders cannot "
+            "sign in.",
+        ),
+        (
+            "NOT_CHECKED",
+            None,
+            None,
+            None,
+            "No replica has run the check yet, in the first seconds of a new deployment. No "
+            "banner.",
+        ),
+    ]:
+        reg.add(
+            f"sms_sender_{state.lower()}",
+            "platform",
+            "SmsSenderStatus",
+            f"`getSmsSenderStatus` → `{state}`. {note}",
+            {"state": state, "checked_at": checked, "failing_since": since, "message": message},
+            operations=["getSmsSenderStatus"],
+            tags=["platform", "admin", "state-matrix"],
+        )
 
     reg.add(
         "dependency_report",
@@ -1271,8 +1423,11 @@ def _auth_and_config(reg, synth) -> None:
         ("APP_UPDATE_REQUIRED", "Below `min_supported_version`. A hard stop."),
     ]:
         grant = synth.make("SessionGrant", f"session-{route}")
-        if "next_route" in grant:
-            grant["next_route"] = route
+        # The route lives on the principal (issue #720: every grant used to say HOME and
+        # ACTIVE whatever its name). A suspended account's principal is SUSPENDED too.
+        grant["principal"]["next_route"] = route
+        if route == "SUSPENDED":
+            grant["principal"]["status"] = "SUSPENDED"
         reg.add(
             f"session_next_route_{route.lower()}",
             "platform",
@@ -1358,7 +1513,11 @@ def _auth_and_config(reg, synth) -> None:
         "CustomerProfile",
         "C-03: `first_name`/`last_name`, never a single `name`. `phone_e164` is read-only "
         "here — sending it is `422 UNKNOWN_FIELD`.",
-        synth.make("CustomerProfile", "customer-profile"),
+        {
+            **synth.make("CustomerProfile", "customer-profile"),
+            # The default address in `addresses_list` (issue #720: it matched none).
+            "default_address_id": _address_fixture(0, True)["id"],
+        },
         operations=["getCustomerProfile", "updateCustomerProfile"],
         tags=["platform"],
     )

@@ -30,6 +30,7 @@ import { useHgFonts } from '@hg/ui-native/fonts';
 import { Router } from './src/navigation/Router';
 import { OrderingPauseProvider } from './src/ordering/orderingPause';
 import { StripeRoot } from './src/payments/StripeRoot';
+import { PaymentSheetHost } from './src/payments/PaymentSheetHost';
 import { requestOtp, verifyOtp } from './src/api/auth';
 import { subscribe, isAuthed } from './src/api/token';
 
@@ -39,7 +40,8 @@ import { subscribe, isAuthed } from './src/api/token';
 
 type Phase = 'phone' | 'code';
 
-function LoginGate(): React.ReactElement {
+/** Exported for the redesign shell's sign-in fallback until the redesigned sign-in (WP1) merges. */
+export function LoginGate(): React.ReactElement {
   // The gate renders inside ThemeProvider (see the root below), so its colours
   // come from the register like every other surface. They used to be raw hexes
   // because this branch mounted OUTSIDE the provider and had no theme to read.
@@ -256,6 +258,8 @@ export default function App(): React.ReactElement | null {
         {authed ? (
           <OrderingPauseProvider>
             <Router />
+            {/* The web card sheet `payWithSheet` opens (renders nothing on native). */}
+            <PaymentSheetHost />
           </OrderingPauseProvider>
         ) : (
           <LoginGate />

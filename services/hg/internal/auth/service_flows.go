@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	totp_ "github.com/pquerna/otp/totp"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
@@ -455,16 +456,11 @@ func (s *Service) Login(ctx context.Context, email, password string, totp *strin
 		return nil, errAccountNotActive
 	}
 
-	// TOTP: support, admin and super-admin require it (P-01 staff MFA). If enrolled or
-	// required, verify the supplied code. The roles are read only now, after
-	// the password matched, so a known email costs no extra query before the
-	// hash that an unknown one does not.
-	grants, err := s.store.RolesFor(ctx, acct.ID)
-	if err != nil {
-		return nil, err
-	}
+	// TOTP is opt-in for every role (docs/decisions/README.md, "Two-step
+	// sign-in is opt-in"): an account that enabled it must send a valid code;
+	// one that has not signs in with the password alone.
 	amr := "pwd"
-	if requiresTOTP(grants) || acct.TOTPEnrolledAt != nil {
+	if acct.TOTPEnrolledAt != nil {
 		if totp == nil || *totp == "" {
 			_ = s.store.RecordLoginAttempt(ctx, email, &acct.ID, ipStr, "BAD_TOTP")
 			return nil, errMFARequired
@@ -685,30 +681,37 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string, 
 	}
 	// Take the hashing slot before consuming the single-use token: if hashing
 	// is busy the caller gets 503 and the reset link still works on retry.
+	// The hash is made before the link is spent, so no transaction is held
+	// open while it runs and a failure leaves the link usable.
 	slot, err := acquireHashSlot(ctx, audienceSignup)
 	if err != nil {
 		return err
 	}
 	defer slot.release()
-	res, err := s.store.ConsumeCredentialToken(ctx, "PASSWORD_RESET", tokenHash)
+	hash, err := slot.hash(newPassword)
+	slot.release() // the writes below need no slot
+	if err != nil {
+		return err
+	}
+	// The link is spent, the password set and every session revoked in one
+	// transaction. The token was delivered to the account's email, so using it
+	// proves the address, which is what lets an invited staff member sign in
+	// afterwards with the password alone: two-step sign-in is opt-in and is
+	// turned on from the console once signed in (docs/decisions/README.md,
+	// "Two-step sign-in is opt-in").
+	res, err := s.store.RedeemResetLink(ctx, tokenHash, hash)
 	if err != nil {
 		return err
 	}
 	if err := resetTokenErr(res); err != nil {
 		return err
 	}
-	hash, err := slot.hash(newPassword)
-	slot.release() // the writes below need no slot
-	if err != nil {
-		return err
+	// Deny the sessions the reset revoked, not the account: a session signed
+	// in after the reset must work at once (#748). Postgres stays the source
+	// of truth for the old ones; the 10 s refresh reloads them.
+	for _, sid := range res.RevokedSessionIDs {
+		s.deny.AddSession(sid)
 	}
-	// The token was delivered to the account's email, so using it proves the
-	// address. This is what lets an invited staff member, whose first
-	// password is set through this operation, sign in afterwards.
-	if err := s.store.ResetPasswordAndRevokeAll(ctx, res.AccountID, hash); err != nil {
-		return err
-	}
-	s.deny.AddAccount(res.AccountID)
 	return nil
 }
 
@@ -766,17 +769,23 @@ func (s *Service) Refresh(ctx context.Context, token string, client ClientSurfac
 	if sess.AbsExpires.Before(absExp) {
 		absExp = sess.AbsExpires
 	}
-	newSess, err := s.store.RotateSession(ctx, sess, newHash, now.Add(idle), absExp, permitted)
+	// The successor's id is chosen first, so its access token can name it and the
+	// row can carry the token's hash from its first write (migration 00045).
+	newID, err := uuid.NewV7()
+	if err != nil {
+		return nil, err
+	}
+	access, err := s.issuer.Issue(acct.ID, newID.String(), roleNames, []string{sess.AMR}, AccessTokenTTL)
+	if err != nil {
+		return nil, err
+	}
+	newSess, err := s.store.RotateSession(ctx, sess, newID.String(), newHash, HashAccessToken(access),
+		now.Add(idle), absExp, permitted)
 	if errors.Is(err, ErrRotateRace) {
 		// A concurrent refresh won; treat the loser as reuse to be safe.
 		_ = s.store.RevokeFamily(ctx, sess.FamilyID, "reuse_detected")
 		return nil, errRefreshReuse
 	}
-	if err != nil {
-		return nil, err
-	}
-
-	access, err := s.issuer.Issue(acct.ID, newSess.ID, roleNames, []string{sess.AMR}, AccessTokenTTL)
 	if err != nil {
 		return nil, err
 	}
@@ -882,6 +891,18 @@ var errWeakPassword = errors.New("password too weak")
 // it in the account row (totp_enrolled_at stays NULL), and returns the
 // provisioning URI plus 10 recovery codes.
 func (s *Service) EnrollTOTP(ctx context.Context, accountID string) (*wireTotpEnrolment, error) {
+	// Starting again would replace a working authenticator with an unconfirmed
+	// one and switch two-step sign-in off until it is confirmed: turn it off
+	// (with a current code) first.
+	if rec, err := s.store.GetTOTPRecord(ctx, accountID); err == nil && rec.EnrolledAt != nil {
+		return nil, errTOTPAlreadyEnrolled
+	}
+	return s.startTOTPEnrolment(ctx, accountID)
+}
+
+// startTOTPEnrolment stores a new sealed secret, unconfirmed, and returns its
+// provisioning URI.
+func (s *Service) startTOTPEnrolment(ctx context.Context, accountID string) (*wireTotpEnrolment, error) {
 	// Generate a 20-byte (160-bit) TOTP secret.
 	rawSecret := make([]byte, 20)
 	if _, err := rand.Read(rawSecret); err != nil {
@@ -959,24 +980,9 @@ func (s *Service) VerifyTOTPEnrolment(ctx context.Context, accountID, code strin
 }
 
 // DisableTOTP verifies the supplied TOTP code against the enrolled secret and
-// clears both totp_secret_enc and totp_enrolled_at.
-//
-// Policy gate (contract disableTotp: "Refused for roles whose policy requires
-// TOTP — 403 MFA_REQUIRED"): the P-05 matrix already withholds the disable
-// action from SUPPORT_AGENT/ADMIN/SUPER_ADMIN, but authorization passes when a
-// caller holds *any* granting role. An account carrying both a restaurant role
-// and ADMIN/SUPER_ADMIN would therefore reach this handler and could strip its
-// mandatory admin MFA. Re-checking the full grant set here closes that bypass:
-// a code-side matrix entry is not sufficient because roles compose.
+// clears both totp_secret_enc and totp_enrolled_at. Two-step sign-in is opt-in
+// for every role, so anyone who enabled it may turn it off with a current code.
 func (s *Service) DisableTOTP(ctx context.Context, accountID, code string) error {
-	grants, err := s.store.RolesFor(ctx, accountID)
-	if err != nil {
-		return err
-	}
-	if requiresTOTP(grants) {
-		return errTOTPMandatory
-	}
-
 	rec, err := s.store.GetTOTPRecord(ctx, accountID)
 	if err != nil {
 		return err
@@ -1001,10 +1007,10 @@ func (s *Service) DisableTOTP(ctx context.Context, accountID, code string) error
 // sentinel errors for TOTP flows.
 var (
 	errTOTPNotEnrolled = errors.New("totp not enrolled")
-	errTOTPInvalidCode = errors.New("totp invalid code")
-	// errTOTPMandatory is returned when a caller whose role policy requires TOTP
-	// attempts disableTotp. Mapped to 403 MFA_REQUIRED per the contract.
-	errTOTPMandatory = errors.New("totp mandatory for role")
+	// errTOTPAlreadyEnrolled: enrollTotp on an account whose authenticator is
+	// confirmed (409 STEP_NOT_AVAILABLE).
+	errTOTPAlreadyEnrolled = errors.New("totp already enrolled")
+	errTOTPInvalidCode     = errors.New("totp invalid code")
 )
 
 // chiURLParam reads a path parameter. Confined here so handlers do not import

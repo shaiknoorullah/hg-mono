@@ -35,7 +35,7 @@ import { subscribe, isAuthed } from './src/token';
 
 type Phase = 'phone' | 'code';
 
-function LoginGate(): React.ReactElement {
+export function LoginGate(): React.ReactElement {
   // Inside ThemeProvider (see the root below), so colours come from the rider
   // register. They were raw hexes because this branch mounted outside it.
   const theme = useTheme();
@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
 // Root
 // ---------------------------------------------------------------------------
 
-export default function App(): React.ReactElement | null {
+function LegacyApp(): React.ReactElement | null {
   const authed = React.useSyncExternalStore(subscribe, isAuthed, isAuthed);
   // Plus Jakarta Sans (--hg-font-ui's RN counterpart) must be registered before anything under
   // `ThemeProvider` renders — `typeStyle()` names these exact face strings. Render nothing (the
@@ -237,3 +237,24 @@ export default function App(): React.ReactElement | null {
     </SafeAreaProvider>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Flag switch (MASTER-PLAN §0.2)
+// ---------------------------------------------------------------------------
+
+/**
+ * `EXPO_PUBLIC_HG_REDESIGN=1` mounts the redesigned app (`src/redesign/`); anything else, and
+ * every release build, mounts the legacy app above unchanged. Required lazily so a flag-off
+ * build never evaluates a redesign module.
+ *
+ * The condition is the literal `process.env.EXPO_PUBLIC_HG_REDESIGN` expression (the same one
+ * `src/redesign/flag.ts` exports), not an imported constant: Expo inlines it here, so the
+ * minifier sees `false` and drops the `require` — a flag-off bundle then contains no redesign
+ * module at all (and none of NativeWind, css-interop or Reanimated, which only the redesign
+ * imports). Through an import, the redesign was bundled, just never run.
+ */
+const App: () => React.ReactElement | null = process.env.EXPO_PUBLIC_HG_REDESIGN === '1'
+  ? (require('./src/redesign/RedesignApp') as typeof import('./src/redesign/RedesignApp')).RedesignApp
+  : LegacyApp;
+
+export default App;

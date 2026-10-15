@@ -8,6 +8,7 @@ import (
 	"net/netip"
 	"net/url"
 	"os"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -42,6 +43,12 @@ type Config struct {
 	// allowed only when HG_ENV=local: staging and production run behind
 	// Traefik, where an empty list makes every caller share one address.
 	TrustedProxies []netip.Prefix
+	// CSRFCookieDomain (HG_AUTH_CSRF_COOKIE_DOMAIN) is the Domain the hg_csrf
+	// double-submit cookie is set on, so a web app on a sibling host (the
+	// restaurant console beside the API) can read it and refresh its session
+	// (https://github.com/shaiknoorullah/hg-mono/issues/740). Empty, the
+	// default, sets a host-only cookie. Production sets ".halalgoes.com".
+	CSRFCookieDomain string
 
 	Postgres Postgres
 	Redis    Redis
@@ -57,6 +64,13 @@ type Config struct {
 	Realtime Realtime
 	Halal    Halal
 	Payouts  Payouts
+
+	DeadlineRunner DeadlineRunner
+
+	// DevworldTablets (HG_DEVWORLD_TABLETS=on) keeps the local dev world's
+	// seeded restaurants' heartbeats fresh, as their order screens would
+	// (internal/devworld/tablets). Refused unless HG_ENV is local.
+	DevworldTablets bool
 }
 
 // Payouts holds the payout settings the owner may still change.
@@ -126,14 +140,22 @@ type Realtime struct {
 
 // Halal holds the halal certificate expiry settings (internal/halalexpiry).
 type Halal struct {
-	// SuspendAfterExpiredDays (HG_HALAL_SUSPEND_AFTER_EXPIRED_DAYS) suspends a
-	// restaurant once its certificate has been expired for this many days. 0,
-	// the default, never suspends: an expired certificate delists the
-	// restaurant and nothing more, as docs/spec/05-admin.md ("A-17 — Halal
-	// certificate expiry monitoring and lapse handling") documents. Suspending
-	// after 14 days is an open owner question:
+	// SuspendAfterExpiredDays (HG_HALAL_SUSPEND_AFTER_EXPIRED_DAYS) must be 0:
+	// an expired certificate delists the restaurant and nothing more, as
+	// docs/spec/05-admin.md ("A-17 — Halal certificate expiry monitoring and
+	// lapse handling") documents, and the database's expiry writer (migration
+	// 00045) cannot suspend. Suspending after 14 days is an open owner question:
 	// https://github.com/shaiknoorullah/hg-mono/issues/164.
 	SuspendAfterExpiredDays int
+}
+
+// DeadlineRunner holds the order deadline runner's start-up switch.
+type DeadlineRunner struct {
+	// Hold starts the runner held: no heartbeat and no deadline fires until ops
+	// inserts a deadline_runner_release row. A failover sets it so the Stripe
+	// catch-up runs before any deadline does; the gap is then handled as an
+	// outage (docs/spec/01-platform.md, "P-15 — Deadlines and timeout actions").
+	Hold bool
 }
 
 // OTP holds the phone-verification provider selection. It is orthogonal to SMS
@@ -399,6 +421,7 @@ func Load(getenv func(string) string) (*Config, error) {
 	cfg.LogLevel = l.logLevel("HG_LOG_LEVEL", slog.LevelInfo)
 	cfg.CORSOrigins = l.originList("HG_CORS_ALLOWED_ORIGINS")
 	cfg.TrustedProxies = l.prefixList("HG_TRUSTED_PROXY_CIDRS")
+	cfg.CSRFCookieDomain = l.cookieDomain("HG_AUTH_CSRF_COOKIE_DOMAIN")
 
 	cfg.Postgres = Postgres{
 		DSN:         l.required("HG_POSTGRES_DSN"),
@@ -580,8 +603,8 @@ func Load(getenv func(string) string) (*Config, error) {
 	cfg.Halal = Halal{
 		SuspendAfterExpiredDays: l.intVal("HG_HALAL_SUSPEND_AFTER_EXPIRED_DAYS", 0),
 	}
-	if cfg.Halal.SuspendAfterExpiredDays < 0 {
-		l.errf("HG_HALAL_SUSPEND_AFTER_EXPIRED_DAYS: %d is negative; 0 means never suspend", cfg.Halal.SuspendAfterExpiredDays)
+	if cfg.Halal.SuspendAfterExpiredDays != 0 {
+		l.errf("HG_HALAL_SUSPEND_AFTER_EXPIRED_DAYS: %d; only 0 (never suspend) is supported until https://github.com/shaiknoorullah/hg-mono/issues/164 is decided", cfg.Halal.SuspendAfterExpiredDays)
 	}
 
 	cfg.Realtime = Realtime{
@@ -617,6 +640,20 @@ func Load(getenv func(string) string) (*Config, error) {
 		l.errf("HG_RESTAURANT_NEGATIVE_BALANCE_BLOCK_DAYS: %d must be 0 (off) or more",
 			cfg.Payouts.RestaurantNegativeBalanceBlockDays)
 	}
+
+	switch v := l.optional("HG_DEVWORLD_TABLETS", "off"); v {
+	case "on":
+		cfg.DevworldTablets = true
+		if cfg.Env != EnvLocal {
+			l.errf("HG_DEVWORLD_TABLETS=on is refused when HG_ENV is %q: the simulated order screens "+
+				"run only in the local dev world", string(cfg.Env))
+		}
+	case "off":
+	default:
+		l.errf("HG_DEVWORLD_TABLETS: %q is not one of on, off", v)
+	}
+
+	cfg.DeadlineRunner = DeadlineRunner{Hold: l.boolVal("HG_DEADLINE_RUNNER_HOLD", false)}
 
 	// G-7: outside local, no dependency may point at loopback. This is the
 	// check that would have caught the hardcoded localhost:6379.
@@ -716,6 +753,20 @@ func (l *loader) optional(key, def string) string {
 		return v
 	}
 	return def
+}
+
+// cookieDomainPattern is a lower-case DNS name of two or more labels, with an
+// optional leading dot: what a cookie's Domain attribute may carry.
+var cookieDomainPattern = regexp.MustCompile(`^\.?[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$`)
+
+// cookieDomain reads an optional cookie Domain: empty (host-only), or a DNS
+// name such as ".halalgoes.com" — no scheme, port or path.
+func (l *loader) cookieDomain(key string) string {
+	v := strings.TrimSpace(l.getenv(key))
+	if v != "" && !cookieDomainPattern.MatchString(v) {
+		l.errf("%s: %q is not a cookie domain like .halalgoes.com (no scheme, port or path)", key, v)
+	}
+	return v
 }
 
 func (l *loader) intVal(key string, def int) int {

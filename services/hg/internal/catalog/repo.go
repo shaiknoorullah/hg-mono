@@ -66,6 +66,32 @@ type restaurantRow struct {
 	// lat/lng of the premises for the detail address block.
 	latitude  *float64
 	longitude *float64
+	// trading state for the card's open state (openhours.go), read in the
+	// same query as the card: hours and overrides are aggregated per row, so
+	// a list of cards is one statement, not one per card.
+	trading         availabilityRow
+	collectionBlock bool
+	weeklyHours     []weeklySlot
+	hoursOverrides  []hoursOverride
+}
+
+// cardTargets are the scan targets for cardColumns, in order, ending with
+// tradingColumns'.
+func (rr *restaurantRow) cardTargets() []any {
+	return []any{
+		&rr.id, &rr.slug, &rr.displayName, &rr.description,
+		&rr.line1, &rr.line2, &rr.city, &rr.province, &rr.postalCode, &rr.timezone,
+		&rr.publicPhone,
+		&rr.ratingAvg, &rr.ratingCount, &rr.priceBand, &rr.halalStatus,
+		&rr.minimumOrderCents, &rr.avgPrepMinutes, &rr.deliveryRadiusM,
+		&rr.logoObjectID, &rr.coverObjectID,
+		&rr.logoObjectBucket, &rr.logoObjectKey,
+		&rr.coverObjectBucket, &rr.coverObjectKey,
+		&rr.cuisines,
+		&rr.certifyingBody, &rr.certExpiresOn,
+		&rr.trading.accountState, &rr.trading.isAcceptingOrders, &rr.trading.pauseUntil,
+		&rr.trading.lastHeartbeatAt, &rr.collectionBlock, &rr.weeklyHours, &rr.hoursOverrides,
+	}
 }
 
 // cardColumns is the shared SELECT list for a restaurant card. It never includes
@@ -74,7 +100,7 @@ const cardColumns = `
 	r.id, r.slug, r.display_name, r.description,
 	r.line1, r.line2, r.city, r.province::text, r.postal_code, r.timezone,
 	r.public_phone_e164,
-	r.rating_avg, r.rating_count, r.price_band::text, r.halal_status::text,
+	r.rating_avg, r.rating_count, r.price_band::text, hn.halal_status::text,
 	r.minimum_order_cents, r.avg_prep_minutes, r.delivery_radius_m,
 	r.logo_object_id::text, r.cover_object_id::text,
 	so_logo.bucket, so_logo.object_key,
@@ -86,15 +112,15 @@ const cardColumns = `
 		 WHERE rc.restaurant_id = r.id AND cu.is_active
 	), '{}') AS cuisines,
 	b.name AS certifying_body,
-	c.expires_on AS cert_expires_on`
+	c.expires_on AS cert_expires_on,` + tradingColumns
 
-// cardJoins joins the active halal certificate and its issuing body so the badge
-// carries the certifying body name and expiry. LEFT JOIN because a visible
-// restaurant is EXPIRING_SOON/CERTIFIED and therefore always has one, but the
-// join must not itself re-gate.
+// cardJoins joins the halal state as of now and the certificate it names, with
+// its issuing body, so the badge carries the certifying body name and expiry.
+// LEFT JOIN because a visible restaurant is EXPIRING_SOON/CERTIFIED and
+// therefore always has one, but the join must not itself re-gate.
 const cardJoins = `
-	FROM restaurant r
-	LEFT JOIN halal_certificate c ON c.id = r.halal_certificate_id
+	FROM restaurant r` + halalNowJoin + `
+	LEFT JOIN halal_certificate c ON c.id = hn.certificate_id
 	LEFT JOIN halal_issuing_body b ON b.id = c.issuing_body_id
 	LEFT JOIN stored_object so_logo ON so_logo.id = r.logo_object_id AND so_logo.state = 'READY'
 	LEFT JOIN stored_object so_cover ON so_cover.id = r.cover_object_id AND so_cover.state = 'READY'`
@@ -103,18 +129,7 @@ const cardJoins = `
 // caller supplies whether the distance/geo columns are present.
 func scanCard(row pgx.Row, withDistance, withGeo bool) (restaurantRow, error) {
 	var rr restaurantRow
-	dest := []any{
-		&rr.id, &rr.slug, &rr.displayName, &rr.description,
-		&rr.line1, &rr.line2, &rr.city, &rr.province, &rr.postalCode, &rr.timezone,
-		&rr.publicPhone,
-		&rr.ratingAvg, &rr.ratingCount, &rr.priceBand, &rr.halalStatus,
-		&rr.minimumOrderCents, &rr.avgPrepMinutes, &rr.deliveryRadiusM,
-		&rr.logoObjectID, &rr.coverObjectID,
-		&rr.logoObjectBucket, &rr.logoObjectKey,
-		&rr.coverObjectBucket, &rr.coverObjectKey,
-		&rr.cuisines,
-		&rr.certifyingBody, &rr.certExpiresOn,
-	}
+	dest := rr.cardTargets()
 	if withGeo {
 		dest = append(dest, &rr.latitude, &rr.longitude)
 	}
@@ -285,11 +300,11 @@ type certificationRow struct {
 // getCertification loads the certification panel for a visible restaurant.
 func (rp *Repo) getCertification(ctx context.Context, id string) (certificationRow, error) {
 	const q = `
-		SELECT r.halal_status::text,
+		SELECT hn.halal_status::text,
 		       b.name, c.certificate_number, c.scope::text,
 		       c.issued_on, c.expires_on, c.verified_at, c.document_id::text
-		  FROM restaurant r
-		  LEFT JOIN halal_certificate c ON c.id = r.halal_certificate_id
+		  FROM restaurant r` + halalNowJoin + `
+		  LEFT JOIN halal_certificate c ON c.id = hn.certificate_id
 		  LEFT JOIN halal_issuing_body b ON b.id = c.issuing_body_id
 		 WHERE r.id = $1::uuid AND ` + visiblePredicate
 	var cr certificationRow
@@ -331,4 +346,25 @@ func (rp *Repo) getHours(ctx context.Context, id string) ([]hoursRow, error) {
 		out = append(out, h)
 	}
 	return out, rows.Err()
+}
+
+// addressPoint returns the point of one of the caller's saved addresses, or nils when the
+// address is not theirs, deleted or unlocated. getRestaurant takes the customer's address by id
+// (`delivery_address_id`), so the availability verdict and distance are computed against the same
+// place the cart and quote use; an address that is not the caller's reads as no address at all,
+// never as someone else's location.
+func (rp *Repo) addressPoint(ctx context.Context, accountID, addressID string) (lat, lng *float64, err error) {
+	var la, lo float64
+	err = rp.db.QueryRow(ctx, `
+		SELECT ST_Y(location::geometry), ST_X(location::geometry)
+		  FROM address
+		 WHERE id = $1 AND account_id = $2 AND deleted_at IS NULL AND location IS NOT NULL`,
+		addressID, accountID).Scan(&la, &lo)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil, nil
+	}
+	if err != nil {
+		return nil, nil, fmt.Errorf("address point: %w", err)
+	}
+	return &la, &lo, nil
 }

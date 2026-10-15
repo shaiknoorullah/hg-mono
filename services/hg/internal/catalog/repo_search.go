@@ -108,8 +108,8 @@ func (rp *Repo) searchDishes(ctx context.Context, q string, lat, lng *float64, c
 		` + cardColumns + geoExpr + distanceExpr + `
 		  FROM menu_item mi
 		  JOIN menu_item_version mv ON mv.id = mi.live_version_id
-		  JOIN restaurant r ON r.id = mi.restaurant_id
-		  LEFT JOIN halal_certificate c ON c.id = r.halal_certificate_id
+		  JOIN restaurant r ON r.id = mi.restaurant_id` + halalNowJoin + `
+		  LEFT JOIN halal_certificate c ON c.id = hn.certificate_id
 		  LEFT JOIN halal_issuing_body b ON b.id = c.issuing_body_id
 		  LEFT JOIN stored_object so_logo ON so_logo.id = r.logo_object_id AND so_logo.state = 'READY'
 		  LEFT JOIN stored_object so_cover ON so_cover.id = r.cover_object_id AND so_cover.state = 'READY'
@@ -127,23 +127,11 @@ func (rp *Repo) searchDishes(ctx context.Context, q string, lat, lng *float64, c
 		var d dishSearchRow
 		var rr restaurantRow
 		// The tail of the SELECT is cardColumns + geoExpr + distanceExpr, so the
-		// scan targets must mirror cardColumns exactly (including logo/cover ids,
-		// the joined logo/cover bucket+key, and cuisines) and then the two geo
-		// columns and the always-present distance_m column.
-		dest := []any{&d.menuItemID, &d.name, &d.description, &d.priceCents, &d.currency,
-			&rr.id, &rr.slug, &rr.displayName, &rr.description,
-			&rr.line1, &rr.line2, &rr.city, &rr.province, &rr.postalCode, &rr.timezone,
-			&rr.publicPhone,
-			&rr.ratingAvg, &rr.ratingCount, &rr.priceBand, &rr.halalStatus,
-			&rr.minimumOrderCents, &rr.avgPrepMinutes, &rr.deliveryRadiusM,
-			&rr.logoObjectID, &rr.coverObjectID,
-			&rr.logoObjectBucket, &rr.logoObjectKey,
-			&rr.coverObjectBucket, &rr.coverObjectKey,
-			&rr.cuisines,
-			&rr.certifyingBody, &rr.certExpiresOn,
-			&rr.latitude, &rr.longitude,
-			&rr.distanceM,
-		}
+		// scan targets are the card's, then the two geo columns and the
+		// always-present distance_m column.
+		dest := append([]any{&d.menuItemID, &d.name, &d.description, &d.priceCents, &d.currency},
+			rr.cardTargets()...)
+		dest = append(dest, &rr.latitude, &rr.longitude, &rr.distanceM)
 		if err := rows.Scan(dest...); err != nil {
 			return nil, err
 		}

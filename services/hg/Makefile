@@ -51,6 +51,7 @@ build: ## Compile the binary into ./bin/hg
 run: ensure-env ## Run the API on the host against the compose dependencies
 	@set -a; . $(ENV_FILE); set +a; \
 	HG_ENV=$${HG_ENV:-local} \
+	HG_DEVWORLD_TABLETS=$${HG_DEVWORLD_TABLETS:-$$([ "$${HG_ENV:-local}" = local ] && echo on || echo off)} \
 	HG_SERVICE_VERSION=$(VERSION) \
 	HG_HTTP_ADDR=$${HG_HTTP_ADDR:-:8080} \
 	HG_POSTGRES_DSN="postgres://hg_app:$${HG_DB_APP_PASSWORD}@localhost:$(HOST_POSTGRES_PORT)/$${POSTGRES_DB}?sslmode=disable" \
@@ -227,22 +228,31 @@ dev-admin: ensure-env ## Provision a login-able dev SUPER_ADMIN (email+password+
 	echo "  drive it:  APP_URL=http://localhost:5173 SEED_EMAIL=$$EMAIL SEED_PASSWORD='$$PASSWORD' node ../../tools/verify/admin-full-drive.mjs"
 
 .PHONY: dev-reset
-dev-reset: ## Wipe and re-seed a local database with the stable personas
+dev-reset: ## Wipe and re-seed a local database with the stable personas and the Toronto catalogue
 	@if [ -f $(ENV_FILE) ]; then set -a; . $(ENV_FILE); set +a; fi; \
 	export HG_ENV="$${HG_ENV:-local}"; \
 	export HG_POSTGRES_DSN="postgres://$${POSTGRES_USER:-hg}:$${POSTGRES_PASSWORD:-hg}@127.0.0.1:$${POSTGRES_PORT:-$(HOST_POSTGRES_PORT)}/$${POSTGRES_DB:-hg}?sslmode=disable"; \
 	export HG_REDIS_ADDR="127.0.0.1:$${REDIS_PORT:-$(HOST_REDIS_PORT)}"; \
 	export HG_REDIS_PASSWORD="$${REDIS_PASSWORD:-}"; \
 	export HG_REDIS_DB="$${HG_REDIS_DB:-0}"; \
+	export HG_MINIO_ENDPOINT="127.0.0.1:$${MINIO_API_PORT:-$(HOST_MINIO_PORT)}"; \
+	export HG_MINIO_ACCESS_KEY="$${MINIO_ROOT_USER:-}"; \
+	export HG_MINIO_SECRET_KEY="$${MINIO_ROOT_PASSWORD:-}"; \
 	$(GO) run ./cmd/devworld reset
 
 .PHONY: dev-totp
-dev-totp: ## Print the current local admin sign-in code
-	@$(GO) run ./cmd/devworld totp
+dev-totp: ## Print the current local admin sign-in code (email=… for a staff account an onboarding scenario made)
+	@if [ -f $(ENV_FILE) ]; then set -a; . $(ENV_FILE); set +a; fi; \
+	export HG_ENV="$${HG_ENV:-local}"; \
+	export HG_POSTGRES_DSN="postgres://$${POSTGRES_USER:-hg}:$${POSTGRES_PASSWORD:-hg}@127.0.0.1:$${POSTGRES_PORT:-$(HOST_POSTGRES_PORT)}/$${POSTGRES_DB:-hg}?sslmode=disable"; \
+	$(GO) run ./cmd/devworld totp $(email)
 
 .PHONY: dev-scenario
-dev-scenario: ## Drive one API scenario against a running local API (s=new-order)
-	@s="$${s:-new-order}"; \
+dev-scenario: ## Drive one API scenario against a running local API (s=new-order; s=list prints every name and what it leaves)
+	@if [ -f $(ENV_FILE) ]; then set -a; . $(ENV_FILE); set +a; fi; \
+	export HG_ENV="$${HG_ENV:-local}"; \
+	export HG_POSTGRES_DSN="postgres://$${POSTGRES_USER:-hg}:$${POSTGRES_PASSWORD:-hg}@127.0.0.1:$${POSTGRES_PORT:-$(HOST_POSTGRES_PORT)}/$${POSTGRES_DB:-hg}?sslmode=disable"; \
+	s="$${s:-new-order}"; \
 	HG_API_URL="$${HG_API_URL:-http://127.0.0.1:8080}" $(GO) run ./cmd/devworld scenario "$$s"
 
 .PHONY: dev-journey

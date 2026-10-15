@@ -6,10 +6,10 @@
  * tip and total — every one rendered through `Price` from branded `Cents`. Nothing on this screen
  * adds cents by hand; the server priced it and the client displays it (G-1).
  *
- * After the order is created, the Stripe payment sheet confirms its `client_secret` (authorise
- * only: the server captures on restaurant acceptance). Cancel or failure keeps the same order and
- * offers "Retry payment". The fake local gateway (`pi_fake_*` secrets) skips the sheet; web has no
- * sheet (native-only SDK) and goes straight to tracking.
+ * After the order is created, `payForOrder` confirms its `client_secret` in the card sheet (the
+ * Stripe SDK's on native, Stripe.js Payment Element on web; authorise only: the server captures on
+ * restaurant acceptance). Cancel, decline or a build without a Stripe key keeps the same order and
+ * offers "Retry payment". The fake local gateway (`pi_fake_*` secrets) skips the sheet.
  *
  * "Place order" POSTs `/v1/orders` with the `quote_id` only (no amount, G-3). On success it routes
  * to tracking with the returned order id. A failure shows its real error code; nothing is faked.
@@ -38,9 +38,8 @@ import {
 
 import { getCart } from '../api/cart';
 import { listAddresses, sortForDelivery, type Address } from '../api/addresses';
-import { createQuote, getOrderPayment, placeOrder } from '../api/orders';
-import { payWithSheet } from '../payments/pay';
-import { isFakeClientSecret } from '../payments/types';
+import { createQuote, placeOrder } from '../api/orders';
+import { payForOrder } from '../payments/payForOrder';
 import { errorCodeOf } from '../api/async';
 import { useNavigation } from '../navigation/stack';
 import { ORDERING_PAUSED, OrderingPausedNotice, useOrderingPause } from '../ordering/orderingPause';
@@ -68,36 +67,15 @@ export function CheckoutScreen(): React.ReactElement {
   const pay = React.useCallback(
     async (orderId: string, secret: string) => {
       setPayError(null);
-      // Local/dev fake gateway: nothing to confirm, the server advanced the order itself.
-      if (isFakeClientSecret(secret)) {
+      // The whole pay path (fake gateway, the card sheet, the server read that moves the order
+      // on, the retry secret) lives in payForOrder; it never throws.
+      const outcome = await payForOrder(orderId, secret);
+      if (outcome.kind === 'placed') {
         nav.reset({ name: 'tracking', orderId });
         return;
       }
-      const result = await payWithSheet(secret);
-      if (result.status === 'paid' || result.status === 'unsupported') {
-        // 'unsupported' is web: no Stripe sheet there, the order waits for payment.
-        nav.reset({ name: 'tracking', orderId });
-        return;
-      }
-      // Re-read the intent so a retry uses the server's current secret (it is re-issued while
-      // an action is still required); if the order has since moved on, just track it.
-      let next = secret;
-      try {
-        const payment = await getOrderPayment(orderId);
-        if (payment.client_secret) next = payment.client_secret;
-        else if (['PROCESSING', 'REQUIRES_CAPTURE', 'SUCCEEDED'].includes(payment.state)) {
-          nav.reset({ name: 'tracking', orderId });
-          return;
-        }
-      } catch {
-        /* keep the secret we have */
-      }
-      setUnpaid({ orderId, secret: next });
-      setPayError(
-        result.status === 'canceled'
-          ? 'Payment was cancelled. Your order is not placed until you pay.'
-          : (result.message ?? 'Payment failed. Please try again.'),
-      );
+      setUnpaid({ orderId, secret: outcome.secret });
+      setPayError(outcome.message);
     },
     [nav],
   );

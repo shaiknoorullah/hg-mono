@@ -235,6 +235,13 @@ func (s *Store) CreateOrder(ctx context.Context, in OrderInput, freshQuote **Quo
 			if err != nil {
 				return fmt.Errorf("insert order_line: %w", err)
 			}
+			// The quote's variant snapshot, unchanged: the database checks the
+			// line's variant_part_cents against these rows at commit (00069).
+			for i, v := range l.Variants {
+				if err := insertLineVariant(ctx, tx, orderLineVariants, orderID, l.LineNo, i+1, v); err != nil {
+					return err
+				}
+			}
 			for _, a := range l.Addons {
 				_, err := tx.Exec(ctx, `
 					INSERT INTO order_line_addon (order_id, line_no, addon_id, addon_name, addon_quantity, addon_price_cents)
@@ -250,6 +257,16 @@ func (s *Store) CreateOrder(ctx context.Context, in OrderInput, freshQuote **Quo
 		if err := insertTransition(ctx, tx, orderID, nil, machine.StateCreated,
 			machine.ActorCustomer, in.AccountID, "order placed", ""); err != nil {
 			return err
+		}
+		// The cart becomes the order (C-23 rule 1): consumed in the same transaction, so a
+		// placed order never leaves its lines behind in the cart bar. A payment that fails
+		// is retried against this order, not a new cart; an unpaid order that ends offers
+		// "Put these items back in your cart" (C-23 rule 8).
+		if _, err := tx.Exec(ctx, `
+			UPDATE cart SET deleted_at = now()
+			 WHERE id = $1 AND account_id = $2 AND deleted_at IS NULL`,
+			stored.CartID, in.AccountID); err != nil {
+			return fmt.Errorf("consume the cart: %w", err)
 		}
 		// order.created and the first order.state_changed, in this transaction
 		// (events.go). Creation has no notification of its own, so the notifier

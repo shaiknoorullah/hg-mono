@@ -171,6 +171,14 @@ func (s *Service) GetOrderPayment(ctx context.Context, orderID, accountID string
 	if err != nil {
 		return OrderPaymentDTO{}, err
 	}
+	// Before authorisation, ask Stripe and apply what it says, as a webhook
+	// would (reconcile_read.go); then answer from the database.
+	live := s.reconcileIntentOnRead(ctx, i)
+	if live != nil {
+		if fresh, err := s.repo.GetOrderIntent(ctx, orderID); err == nil {
+			i = fresh
+		}
+	}
 	dto := OrderPaymentDTO{
 		OrderID:               i.OrderID,
 		State:                 i.State,
@@ -189,10 +197,8 @@ func (s *Service) GetOrderPayment(ctx context.Context, orderID, accountID string
 	}
 	// Re-issue the client secret only while a challenge is outstanding, by
 	// reading it live from Stripe (P-16: resume a 3-D Secure challenge).
-	if PaymentState(i.State) == StateRequiresAction && s.stripe != nil {
-		if pi, err := s.stripe.GetPaymentIntent(ctx, i.StripePaymentIntentID); err == nil {
-			dto.ClientSecret = strPtr(pi.ClientSecret)
-		}
+	if PaymentState(i.State) == StateRequiresAction && live != nil {
+		dto.ClientSecret = strPtr(live.ClientSecret)
 	}
 	return dto, nil
 }

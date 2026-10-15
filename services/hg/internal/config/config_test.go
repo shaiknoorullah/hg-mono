@@ -502,3 +502,52 @@ func TestLoadEmailSettings(t *testing.T) {
 		t.Errorf("a valid production email setup was refused: %v", err)
 	}
 }
+
+// The dev world's simulated order screens (internal/devworld/tablets) are a
+// local switch: any other environment refuses to boot with it on, so a
+// deployed restaurant's heartbeat only ever comes from its real order screen.
+func TestLoadRefusesDevworldTabletsOutsideLocal(t *testing.T) {
+	env := validEnv()
+	env["HG_DEVWORLD_TABLETS"] = "on"
+	cfg, err := Load(getenvFrom(env))
+	if err != nil || !cfg.DevworldTablets {
+		t.Fatalf("local with HG_DEVWORLD_TABLETS=on was not loaded as on: %v", err)
+	}
+	delete(env, "HG_DEVWORLD_TABLETS")
+	if cfg, err := Load(getenvFrom(env)); err != nil || cfg.DevworldTablets {
+		t.Fatalf("unset must load as off: %v", err)
+	}
+	env["HG_DEVWORLD_TABLETS"] = "yes"
+	if _, err := Load(getenvFrom(env)); err == nil || !strings.Contains(err.Error(), "HG_DEVWORLD_TABLETS") {
+		t.Errorf("HG_DEVWORLD_TABLETS=yes was accepted: %v", err)
+	}
+	for _, e := range []string{"staging", "production"} {
+		env := validEnv()
+		env["HG_ENV"] = e
+		env["HG_DEVWORLD_TABLETS"] = "on"
+		if _, err := Load(getenvFrom(env)); err == nil || !strings.Contains(err.Error(), "HG_DEVWORLD_TABLETS") {
+			t.Errorf("HG_ENV=%s accepted HG_DEVWORLD_TABLETS=on: %v", e, err)
+		}
+	}
+}
+
+// HG_AUTH_CSRF_COOKIE_DOMAIN is empty (host-only) by default, takes a parent
+// domain such as .halalgoes.com, and refuses a URL
+// (https://github.com/shaiknoorullah/hg-mono/issues/740).
+func TestCSRFCookieDomain(t *testing.T) {
+	env := validEnv()
+	cfg, err := Load(getenvFrom(env))
+	if err != nil || cfg.CSRFCookieDomain != "" {
+		t.Fatalf("default = %q, %v; want empty (host-only)", cfg.CSRFCookieDomain, err)
+	}
+	env["HG_AUTH_CSRF_COOKIE_DOMAIN"] = ".halalgoes.com"
+	if cfg, err := Load(getenvFrom(env)); err != nil || cfg.CSRFCookieDomain != ".halalgoes.com" {
+		t.Fatalf("parent domain = %q, %v; want .halalgoes.com", cfg.CSRFCookieDomain, err)
+	}
+	for _, bad := range []string{"https://halalgoes.com", "halalgoes.com:443", ".halalgoes.com/v1", "localhost"} {
+		env["HG_AUTH_CSRF_COOKIE_DOMAIN"] = bad
+		if _, err := Load(getenvFrom(env)); err == nil || !strings.Contains(err.Error(), "HG_AUTH_CSRF_COOKIE_DOMAIN") {
+			t.Errorf("%q: err = %v, want it refused", bad, err)
+		}
+	}
+}

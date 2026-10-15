@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -147,10 +148,12 @@ SELECT account_id, first_name, last_name, date_of_birth,
 	return row, err
 }
 
-// UpsertProfile updates first_name, last_name, date_of_birth (and optionally
-// email on account) and advances onboarding_state from PHONE_VERIFIED →
-// VEHICLE_PENDING. It is idempotent: re-submitting the same data succeeds.
-// Returns the updated row.
+// UpsertProfile records first_name, last_name, date_of_birth (and optionally
+// email on account) and advances onboarding_state from REGISTERED,
+// PHONE_VERIFIED or PROFILE_PENDING to VEHICLE_PENDING. A rider who signed in by phone OTP has no
+// rider_profile yet (sign-up creates only the account), so the first call
+// creates it; the phone is verified by that sign-in. It is idempotent:
+// re-submitting the same data succeeds. Returns the stored row.
 func (r *Repo) UpsertProfile(ctx context.Context, accountID, firstName, lastName string, dob time.Time, email *string) (riderProfileRow, error) {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
@@ -169,17 +172,21 @@ func (r *Repo) UpsertProfile(ctx context.Context, accountID, firstName, lastName
 		}
 	}
 
-	// Update rider_profile — advance state only from PHONE_VERIFIED.
+	// Create or update rider_profile; advance state only from the two states
+	// before the profile step.
 	const q = `
-UPDATE rider_profile
-   SET first_name        = $2,
-       last_name         = $3,
-       date_of_birth     = $4,
+INSERT INTO rider_profile (account_id, first_name, last_name, date_of_birth, onboarding_state)
+VALUES ($1, $2, $3, $4, 'VEHICLE_PENDING')
+ON CONFLICT (account_id) DO UPDATE
+   SET first_name        = EXCLUDED.first_name,
+       last_name         = EXCLUDED.last_name,
+       date_of_birth     = EXCLUDED.date_of_birth,
        onboarding_state  = CASE
-           WHEN onboarding_state = 'PHONE_VERIFIED' THEN 'VEHICLE_PENDING'::rider_onboarding_state
-           ELSE onboarding_state
+           WHEN rider_profile.onboarding_state IN ('REGISTERED', 'PHONE_VERIFIED', 'PROFILE_PENDING')
+           THEN 'VEHICLE_PENDING'::rider_onboarding_state
+           ELSE rider_profile.onboarding_state
          END
- WHERE account_id = $1 AND deleted_at IS NULL
+ WHERE rider_profile.deleted_at IS NULL
 RETURNING account_id, first_name, last_name, date_of_birth,
           onboarding_state, account_status, availability_state,
           approved_at, created_at, updated_at`
@@ -428,13 +435,52 @@ func (r *Repo) SubmittedDocTypes(ctx context.Context, accountID string) ([]strin
 // AdvanceToDocumentsReview transitions onboarding_state from DOCUMENTS_PENDING to DOCUMENTS_REVIEW.
 // It is idempotent: if already DOCUMENTS_REVIEW it is a no-op.
 func (r *Repo) AdvanceToDocumentsReview(ctx context.Context, accountID string) error {
-	_, err := r.pool.Exec(ctx,
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+	tag, err := tx.Exec(ctx,
 		`UPDATE rider_profile SET onboarding_state = 'DOCUMENTS_REVIEW'
           WHERE account_id = $1
             AND onboarding_state IN ('DOCUMENTS_PENDING', 'DOCUMENTS_REVIEW')
             AND deleted_at IS NULL`,
 		accountID)
-	return err
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return tx.Commit(ctx)
+	}
+	// Queue the application for admin review (decideRiderApplication locks this
+	// row). A first submission creates it; a submission already waiting keeps
+	// its place; one already decided is queued again with its decision cleared.
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO rider_application (account_id, submission_count, submitted_at, sla_due_at)
+		VALUES ($1, 1, now(), now() + interval '72 hours')
+		ON CONFLICT (account_id) DO UPDATE
+		SET submission_count = CASE
+		        WHEN rider_application.decided_at IS NOT NULL OR rider_application.submitted_at IS NULL
+		        THEN rider_application.submission_count + 1
+		        ELSE rider_application.submission_count END,
+		    submitted_at = CASE
+		        WHEN rider_application.decided_at IS NOT NULL OR rider_application.submitted_at IS NULL
+		        THEN now() ELSE rider_application.submitted_at END,
+		    sla_due_at = CASE
+		        WHEN rider_application.decided_at IS NOT NULL OR rider_application.submitted_at IS NULL
+		        THEN now() + interval '72 hours' ELSE rider_application.sla_due_at END,
+		    reject_reason_code = CASE
+		        WHEN rider_application.decided_at IS NOT NULL THEN NULL
+		        ELSE rider_application.reject_reason_code END,
+		    decided_by = CASE
+		        WHEN rider_application.decided_at IS NOT NULL THEN NULL
+		        ELSE rider_application.decided_by END,
+		    decided_at = NULL,
+		    updated_at = now()`,
+		accountID); err != nil {
+		return fmt.Errorf("enqueue rider application: %w", err)
+	}
+	return tx.Commit(ctx)
 }
 
 // dashboardRow is the projection for getRiderDashboard.
@@ -970,8 +1016,9 @@ func (h *Handler) getRiderOnboardingStatus(w http.ResponseWriter, r *http.Reques
 	p := httpx.PrincipalFrom(r.Context())
 	row, err := h.svc.repo.GetRiderProfile(r.Context(), p.AccountID)
 	if errors.Is(err, ErrNotFound) {
-		httpx.Fail(w, r, http.StatusNotFound, codeNotFound, "Rider profile not found.", nil)
-		return
+		// Signed in by phone OTP but no profile yet: the phone is verified and the
+		// profile step is next (UpsertProfile creates the row).
+		row, err = riderProfileRow{OnboardingState: "PHONE_VERIFIED", AccountStatus: "PENDING"}, nil
 	}
 	if err != nil {
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)

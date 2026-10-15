@@ -81,7 +81,6 @@ func TestCertificateLapsesWithTheCalendar(t *testing.T) {
 		t.Fatalf("on the expiry day: %+v, want no change", rep)
 	}
 	w.expectListing(t, "EXPIRING_SOON", "LIVE")
-	w.expectBadge(t, "EXPIRING_SOON")
 
 	// Local midnight after the expiry date: expired and delisted.
 	rep = w.runAt(t, job, w.local(1, 0, 0, 30))
@@ -90,7 +89,6 @@ func TestCertificateLapsesWithTheCalendar(t *testing.T) {
 	}
 	w.expectListing(t, "EXPIRED", "DELISTED", "HALAL_CERTIFICATE_EXPIRED")
 	w.expectCertificate(t, w.certificate, "EXPIRED")
-	w.expectNoBadge(t)
 	w.runAt(t, job, w.local(2, 12, 0, 0))
 	w.expectReminders(t, 30, 14, 7, 1)
 
@@ -112,6 +110,36 @@ func TestCertificateLapsesWithTheCalendar(t *testing.T) {
 	w.expectListing(t, "CERTIFIED", "LIVE")
 	w.expectCertificate(t, renewal, "APPROVED")
 	w.expectBadge(t, "CERTIFIED")
+}
+
+// The customer API shows the halal state as of the clock on the database, not
+// the clock a pass is given, so it is checked here with certificates dated
+// against today: amber from 30 days out, still valid on the last day, and
+// gone (no badge on any view) once it has lapsed
+// (https://github.com/shaiknoorullah/hg-mono/issues/346).
+func TestCustomerViewFollowsTheCertificateDates(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		days int
+		want string // "" means no badge anywhere
+	}{
+		{"more than 30 days out", 40, "CERTIFIED"},
+		{"within 30 days", 10, "EXPIRING_SOON"},
+		{"the last day", 0, "EXPIRING_SOON"},
+		{"the day after", -1, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			db := newDatabase(t)
+			w := seedRestaurant(t, db, tc.days)
+			job := halalexpiry.New(db.pool, db.outbox, nil, halalexpiry.Config{})
+			w.runAt(t, job, time.Now())
+			if tc.want == "" {
+				w.expectNoBadge(t)
+				return
+			}
+			w.expectBadge(t, tc.want)
+		})
+	}
 }
 
 // Three replicas running the same passes at the same instants have the effect
@@ -216,7 +244,6 @@ func TestFailsClosed(t *testing.T) {
 		verified.runAt(t, job, verified.local(1, 0, 0, 30))
 		verified.expectListing(t, "EXPIRED", "DELISTED", "HALAL_CERTIFICATE_EXPIRED")
 		verified.expectCertificate(t, verified.certificate, "EXPIRED")
-		verified.expectNoBadge(t)
 	})
 
 	t.Run("a missing or past instant is refused", func(t *testing.T) {
@@ -263,28 +290,20 @@ func TestFailsClosed(t *testing.T) {
 	})
 }
 
-// Suspension some days after a lapse is an open owner question (#164): off by
-// default, and when switched on a renewal does not lift it.
+// Suspension some days after a lapse is an open owner question (#164): the
+// database's expiry writer only delists, so a pass refuses to run with it on.
 func TestSuspensionAfterLapseWaitsForTheOwner(t *testing.T) {
 	db := newDatabase(t)
 	w := seedRestaurant(t, db, 40)
 
-	off := halalexpiry.New(db.pool, db.outbox, nil, halalexpiry.Config{})
 	on := halalexpiry.New(db.pool, db.outbox, nil, halalexpiry.Config{SuspendAfterExpiredDays: 14})
+	if _, ran, err := on.RunAt(context.Background(), w.local(15, 12, 0, 0)); err == nil || ran {
+		t.Fatalf("a pass with suspension switched on ran=%v err=%v, want a refusal", ran, err)
+	}
 
-	// The certificate's first expired day is expiry + 1, so on expiry + 14 it
-	// has not yet been expired for 14 whole days.
-	w.runAt(t, on, w.local(14, 12, 0, 0))
-	w.expectListing(t, "EXPIRED", "DELISTED", "HALAL_CERTIFICATE_EXPIRED")
+	off := halalexpiry.New(db.pool, db.outbox, nil, halalexpiry.Config{})
 	w.runAt(t, off, w.local(15, 12, 0, 0))
 	w.expectListing(t, "EXPIRED", "DELISTED", "HALAL_CERTIFICATE_EXPIRED")
-	if rep := w.runAt(t, on, w.local(15, 12, 0, 0)); rep.Suspended != 1 {
-		t.Fatalf("suspended = %d, want 1", rep.Suspended)
-	}
-	w.expectListing(t, "EXPIRED", "SUSPENDED", "HALAL_CERTIFICATE_EXPIRED")
-
-	w.approveCertificate(t, 400)
-	w.expectListing(t, "CERTIFIED", "SUSPENDED")
 }
 
 // ---------------------------------------------------------------- the world

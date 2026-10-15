@@ -1,0 +1,92 @@
+{
+  "scenario": "payout_detail_ready",
+  "domain": "rider",
+  "schema": "PayoutDetail",
+  "describes": "Week closed, amount final, waiting for Monday's run. The amount is exactly the sum of its entries.",
+  "operations": [
+    "getRiderPayout"
+  ],
+  "status": 200,
+  "tags": [
+    "rider",
+    "money",
+    "payout-state-matrix"
+  ],
+  "payload": {
+    "id": "f7e714f0-d961-474d-a898-0d7e3c8d2160",
+    "period_start": "2026-08-03T04:00:00.000Z",
+    "period_end": "2026-08-10T04:00:00.000Z",
+    "amount_cents": 3447,
+    "currency": "CAD",
+    "state": "READY",
+    "hold_reason": null,
+    "entry_count": 3,
+    "paid_at": null,
+    "failure_message": null,
+    "entries": [
+      {
+        "id": "d9f70c95-7b3b-4a22-a4c6-d4f64c467935",
+        "assignment_id": "02172282-b53c-4870-ae65-3d7480a6eb3a",
+        "order_code": "HG-4K2M-9T",
+        "type": "DELIVERY",
+        "status": "AVAILABLE",
+        "base_cents": 4634,
+        "distance_cents": 0,
+        "wait_cents": 0,
+        "surge_multiplier": "Surge Multiplier",
+        "guarantee_topup_cents": 0,
+        "tip_cents": 700,
+        "adjustment_cents": 1695,
+        "gross_cents": 1149,
+        "currency": "CAD",
+        "billable_distance_m": 3180,
+        "distance_source": "ROUTED",
+        "formula_version": 14,
+        "payout_id": "f7e714f0-d961-474d-a898-0d7e3c8d2160",
+        "earned_at": "2026-08-10T18:32:11.412Z"
+      },
+      {
+        "id": "8672bcf1-51e6-431c-ae09-bb4d051c8d5e",
+        "assignment_id": "808f69ac-123b-48fc-a0f0-8bf92c3bd9a6",
+        "order_code": "HG-4K2M-9T",
+        "type": "DELIVERY",
+        "status": "AVAILABLE",
+        "base_cents": 4634,
+        "distance_cents": 0,
+        "wait_cents": 0,
+        "surge_multiplier": "Surge Multiplier",
+        "guarantee_topup_cents": 0,
+        "tip_cents": 700,
+        "adjustment_cents": 1695,
+        "gross_cents": 1149,
+        "currency": "CAD",
+        "billable_distance_m": 3180,
+        "distance_source": "ROUTED",
+        "formula_version": 3,
+        "payout_id": "f7e714f0-d961-474d-a898-0d7e3c8d2160",
+        "earned_at": "2026-08-10T18:32:11.412Z"
+      },
+      {
+        "id": "aa728dfe-7760-415f-ab69-ad4baf68f8ad",
+        "assignment_id": "7fe0ddc2-3e9b-4b58-a6e8-93daf485adbf",
+        "order_code": "HG-4K2M-9T",
+        "type": "DELIVERY",
+        "status": "AVAILABLE",
+        "base_cents": 4634,
+        "distance_cents": 0,
+        "wait_cents": 0,
+        "surge_multiplier": "Surge Multiplier",
+        "guarantee_topup_cents": 0,
+        "tip_cents": 700,
+        "adjustment_cents": 1695,
+        "gross_cents": 1149,
+        "currency": "CAD",
+        "billable_distance_m": 3180,
+        "distance_source": "ROUTED",
+        "formula_version": 6,
+        "payout_id": "f7e714f0-d961-474d-a898-0d7e3c8d2160",
+        "earned_at": "2026-08-10T18:32:11.412Z"
+      }
+    ]
+  }
+}

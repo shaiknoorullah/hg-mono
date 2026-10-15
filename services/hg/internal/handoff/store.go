@@ -97,6 +97,20 @@ func (s *Store) LoadOrderScope(ctx context.Context, orderID string) (OrderScope,
 	return sc, nil
 }
 
+// OrderState reads the order's current state, which a seal scan reports but
+// never changes.
+func (s *Store) OrderState(ctx context.Context, orderID string) (string, error) {
+	var state string
+	err := s.pool.QueryRow(ctx, `SELECT state::text FROM "order" WHERE id = $1`, orderID).Scan(&state)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", ErrOrderNotFound
+	}
+	if err != nil {
+		return "", fmt.Errorf("handoff: read order state: %w", err)
+	}
+	return state, nil
+}
+
 // RiderAssignedToOrder reports whether riderAccountID holds the live (not yet
 // terminated) dispatch assignment for orderID — the ownership predicate for
 // pickup-scan/delivery-scan pushed into SQL (P-07), never trusted from the body.
@@ -336,8 +350,8 @@ func insertEvent(ctx context.Context, tx pgx.Tx, in insertEventInput) (HandoffEv
 
 // applyPickupVerification updates the seal after a pickup-scan: status becomes
 // PICKUP_VERIFIED when the seal was reported intact, or TAMPER_REPORTED
-// otherwise — identity still succeeded (the rider scanned the right seal), so
-// the caller still advances the order; only the integrity signal differs.
+// otherwise — identity still succeeded (the rider scanned the right seal); only
+// the integrity signal differs. The scan never moves the order.
 func (s *Store) applyPickupVerification(ctx context.Context, tx pgx.Tx, sealID string, intact bool, now time.Time) (PackageSeal, error) {
 	status := StatusPickupVerified
 	if !intact {
@@ -393,8 +407,8 @@ func (s *Store) markTampered(ctx context.Context, tx pgx.Tx, sealID string) (Pac
 }
 
 // PickupScan runs the full pickup-scan write (seal update + event insert) in
-// one transaction. It does not itself advance order.state — the caller invokes
-// OrderLifecycle.ConfirmPickup after this commits (see service.go).
+// one transaction. It never advances order.state: a scan is evidence, and the
+// pickup code gates pickup (see service.go).
 func (s *Store) PickupScan(ctx context.Context, orderID, riderAccountID, nonce, method string, intact bool, lat, lng *float64, photoObjectID *string, now time.Time) (PackageSeal, HandoffEvent, error) {
 	var seal PackageSeal
 	var event HandoffEvent

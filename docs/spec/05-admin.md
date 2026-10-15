@@ -2,7 +2,7 @@
 covers:
   - apps/admin/**
   - services/hg/internal/admin/**
-reviewed: 2026-10-05
+reviewed: 2026-10-15
 ---
 
 # HalalGoes — ADMIN / SUPER ADMIN / SUPPORT AGENT Specification
@@ -193,9 +193,10 @@ fails, the change is rolled back. This is a hard invariant, not a best effort.
   and an expired link answers with the reset operation's expired-token error rather than
   `INVITATION_EXPIRED`: the acceptance flow is [#170](https://github.com/shaiknoorullah/hg-mono/issues/170).
   The console's pages for these emails exist ([#329](https://github.com/shaiknoorullah/hg-mono/issues/329)).
-  `/accept-invite` sets the first password and stops there: two-step enrolment cannot start from the
-  link until the acceptance flow exists, so the page says the inviting super admin will set it up
-  with the invitee.
+  `/accept-invite` sets the first password and stops there, and the page says the inviting super
+  admin will set two-step sign-in up with the invitee. The API can now start that enrolment from the
+  link (`startInviteTotpEnrolment`) and confirm it with the first password (`resetPassword` with
+  `totp_code`); the page has not adopted it yet.
   `/reset-password` is both "Forgot your password?" on the sign-in gate and the page the reset email
   opens. Both take the token the way the restaurant app's link pages do (see
   [email verification, as built](03-restaurant.md#r-02--email-verification-and-account-activation)),
@@ -1130,15 +1131,22 @@ These six words mean exactly this everywhere in the product, in the API, and in 
   a new body (`status = PROPOSED`) when a certificate names an unlisted issuer. **Support Agent** —
   read `name` and `status` only.
 - **States**: `PROPOSED → ACCEPTED` (Super Admin) · `PROPOSED → REJECTED` · `ACCEPTED → SUSPENDED`
-  (issuer under question; existing approved certificates are **not** auto-revoked but a P2 case is
+  (issuer under question; existing approved certificates are **not** auto-revoked, a P2 case is
   raised per affected restaurant and no new certificate from that issuer may be approved) ·
-  `SUSPENDED → ACCEPTED` · `ACCEPTED|SUSPENDED → RETIRED` (issuer ceased; existing certificates run to
-  their expiry, no renewals accepted).
+  `SUSPENDED → ACCEPTED` · `ACCEPTED|SUSPENDED → RETIRED` (issuer ceased; no renewals accepted).
+  A certificate vouches for a restaurant only while its body is `ACCEPTED`: once a body is
+  suspended, retired or rejected, its certificates stop counting at once, and a restaurant no other
+  accepted certificate vouches for loses its badge and is delisted (hidden, menu not locked) until
+  the body is accepted again or the restaurant has a current certificate from an accepted body
+  ([withdrawing a body's acceptance left its restaurants showing CERTIFIED](https://github.com/shaiknoorullah/hg-mono/issues/346)).
 - **Rules**:
   - R1 `H2_ISSUER_ACCEPTED` passes only for `status = ACCEPTED` **at the moment of certificate review**.
   - R2 Suspending or retiring a body writes an `audit_event` and enqueues one `case` per restaurant
     holding an approved certificate from that body, at Tier 2, priority P2, category
-    `HALAL_ISSUER_STATUS_CHANGE`.
+    `HALAL_ISSUER_STATUS_CHANGE`. In the same transaction every such restaurant's halal state is
+    derived again, each one delisted or listed again is audited, and its owners and managers are
+    notified. Until support cases exist ([staff renewal case](https://github.com/shaiknoorullah/hg-mono/issues/273)),
+    the case is an `admin.alert` of that kind on `admin:ops`.
   - R3 Alias matching is case-insensitive, punctuation- and whitespace-normalised; the admin still
     confirms `H2` explicitly — matching is a suggestion, never an approval.
   - R4 A body cannot be deleted, only retired.
@@ -1150,8 +1158,9 @@ These six words mean exactly this everywhere in the product, in the API, and in 
   1. Given a body in `PROPOSED`, when an admin attempts to approve a certificate naming it, then
      `H2_ISSUER_ACCEPTED` computes `FAIL` and approval returns `422 CHECK_FAILED`.
   2. Given a body moves `ACCEPTED → SUSPENDED` while 12 restaurants hold approved certificates from
-     it, then 12 cases exist at Tier 2 with category `HALAL_ISSUER_STATUS_CHANGE`, and those 12
-     restaurants remain `LIVE`.
+     it and no other, then 12 cases exist at Tier 2 with category `HALAL_ISSUER_STATUS_CHANGE`, and
+     those 12 restaurants are `DELISTED` with no badge in the same request; moving the body back to
+     `ACCEPTED` lists the ones delisted only for this again.
   3. Given an `ADMIN`, when they attempt to set a body `ACCEPTED`, then `403 FORBIDDEN_PERMISSION`;
      when they propose a body, then `201` with `status='PROPOSED'`.
 - **Out of scope**: automated scraping of certifier registries; accreditation-scheme validation;
@@ -1574,6 +1583,34 @@ These six words mean exactly this everywhere in the product, in the API, and in 
      highlighted, not auto-rejected.
 - **Out of scope**: partial suspension (e.g. suspend delivery but allow pickup — there is no pickup
   product in V1); geographic suspension; suspension of individual menu categories.
+- **At launch** ([#253](https://github.com/shaiknoorullah/hg-mono/issues/253)): release 1.0 ships
+  `applyRestaurantAccountAction` with `SUSPEND`, `DELIST`, `PROPOSE_BAN`, `CONFIRM_BAN`,
+  `DEACTIVATE` and `REINSTATE`, the two-person ban with its 7-day lapse, rules 2, 3 and 6, and
+  acceptance criteria 1 and 4. Reinstating to `LIVE` needs a current halal certificate an admin
+  has checked (the order path's rule); relisting a `DELISTED` restaurant without one is
+  `409 HALAL_CERTIFICATE_REQUIRED`. Deactivating needs the `MERCHANT_REQUEST` reason instead of a
+  linked case, because cases do not ship. A ban withdraws the restaurant's roles from its staff at
+  sign-in and ends their sessions. Not at launch: timed suspensions (rule 1), `CLOSE`, the
+  re-registration flag (rule 5) and the case for a lapsed proposal
+  ([#325](https://github.com/shaiknoorullah/hg-mono/issues/325)); reading the history and the
+  pending bans ([#327](https://github.com/shaiknoorullah/hg-mono/issues/327)). No other path
+  changes an account's state with weaker gates ([#335](https://github.com/shaiknoorullah/hg-mono/pull/335)):
+  the application's database role cannot write a restaurant's, rider's or customer's state, and the
+  only writers are database functions. The one for a staff action is given the request's access
+  token and acts only as the account whose live session, signed in with two-step sign-in, the token
+  was issued for; the application's database role holds only token hashes and cannot rewrite a
+  session. It reads the actor's grants as they stand, checks the transition, the own-account rule
+  (a staff account is not acted on as a rider or a customer) and the two-person ban (the confirming
+  super admin did not make the proposer staff, was not made staff by them, and held the role before
+  the proposal), and writes the state, the history and the audit together. Sign-in still writes the
+  session rows under the same role, so a connection that can insert one can mint a session
+  ([#372](https://github.com/shaiknoorullah/hg-mono/issues/372)). The system's (completing onboarding, out of `PENDING` only, which for a rider is the one `account_state_complete_rider_onboarding` runs when payouts become ready ([rider payout setup](04-rider.md#d-08--payout-account-onboarding-stripe-connect));
+  the halal expiry, which only delists; the halal renewal and a certifying body given back, which
+  only list a `DELISTED` restaurant again) take no actor and decide from the data
+  ([certificate expiry](#a-17--halal-certificate-expiry-monitoring-and-lapse-handling)). Completing
+  onboarding lists a restaurant only with a current halal certificate; without one it is `DELISTED`
+  (rule R4 of [certificate expiry](#a-17--halal-certificate-expiry-monitoring-and-lapse-handling):
+  never `LIVE` without an approved, unexpired certificate).
 - **Version**: V1 · **Size**: M
 
 > **DECISION REQUIRED — D-17 · Payouts to a banned merchant**: When a restaurant is banned, are funds
@@ -1846,6 +1883,16 @@ documents lapse cannot go on shift, but is not punished.
      application is created and flagged, not blocked silently.
 - **Out of scope**: partial restrictions (e.g. banned from a single restaurant); geographic
   restrictions; probationary reinstatement with reduced dispatch priority.
+- **At launch** ([#253](https://github.com/shaiknoorullah/hg-mono/issues/253)): release 1.0 ships
+  `applyRiderAccountAction` with `SUSPEND`, `PROPOSE_BAN`, `CONFIRM_BAN`, `DEACTIVATE` and
+  `REINSTATE`; the rider account status gains `BANNED`. Waiting offers are withdrawn at once and an
+  idle rider goes offline. For every reason, the current delivery finishes and is paid, and the
+  rider goes offline after it ([rider suspended or deactivated](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28));
+  operations may reassign it by hand ([a rider suspended mid-delivery](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01),
+  the reassign operation is [#172](https://github.com/shaiknoorullah/hg-mono/issues/172)), so the
+  automatic recovery in rule 3 and acceptance criterion 1 is not built. Reinstatement notifies the
+  rider (rule 6). Not at launch: `FORCE_OFFLINE`, `CLOSE` and the re-registration flag
+  ([#325](https://github.com/shaiknoorullah/hg-mono/issues/325)).
 - **Version**: V1 · **Size**: S
 
 ---
@@ -1897,6 +1944,12 @@ documents lapse cannot go on shift, but is not punished.
      the suspension is unaffected.
 - **Out of scope**: device/IP-level blocking; fraud-scoring engine (V3); credit-style risk models;
   shadow-banning.
+- **At launch** ([#253](https://github.com/shaiknoorullah/hg-mono/issues/253)): release 1.0 ships
+  `applyCustomerAccountAction` with `SUSPEND`, `PROPOSE_BAN`, `CONFIRM_BAN` and `REINSTATE` on the
+  account's own status (one account per person, so a suspended customer cannot sign in for any
+  role), rule 1 and acceptance criterion 1. A ban ends every session. Not at launch:
+  `ORDERING_RESTRICTED` and the support agent's part in it, deactivating, `CLOSE`, and rules 2 and 5
+  ([#325](https://github.com/shaiknoorullah/hg-mono/issues/325)).
 - **Version**: V1 · **Size**: S
 
 > **DECISION REQUIRED — D-20 · Customer data erasure scope**: On a PIPEDA erasure request, which
@@ -1983,6 +2036,17 @@ documents lapse cannot go on shift, but is not punished.
      per order (verified by the idempotency key).
 - **Out of scope**: partial refunds on intervention (always full); customer choice of
   replacement-restaurant; automatic re-ordering elsewhere.
+- **At launch** ([#253](https://github.com/shaiknoorullah/hg-mono/issues/253)): the account actions
+  apply the restaurant and customer tables above through the order state machine, in the action's
+  own transaction: unaccepted orders are cancelled and their authorisation released; a confirmed ban,
+  or a suspension for `HALAL_INTEGRITY` or `FOOD_SAFETY_RISK`, also cancels and fully refunds orders
+  still `PREPARING`; the restaurant is not settled for them, the proposed default for who bears the
+  food cost on a halal-integrity cancellation (below). Orders already
+  ready or with a rider finish, even under the halal override, until the state machine has a
+  recovery step ([#326](https://github.com/shaiknoorullah/hg-mono/issues/326)). What each action did
+  to each order is recorded on its `account_state_event` row (rules 3 and 6); there is no separate
+  `order_intervention` table. For riders, the owner's decisions replace the rider table above: the
+  delivery finishes.
 - **Version**: V1 · **Size**: M
 
 > **DECISION REQUIRED — D-21 · Rider pay on interrupted deliveries**: What is a rider paid when their
@@ -2506,7 +2570,9 @@ documents lapse cannot go on shift, but is not punished.
 - **SOW trace**: *"Order Issues: Resolve order-related issues (e.g., incorrect orders, payment disputes)."* · *"Order Support: Assist customers with order placement, tracking, and refunds."* · *"Delivery Issues: Resolve delivery-related issues."*
 - **Behaviour**: A single order-detail surface used by all three roles, showing: order header
   (reference, placed-at, status, current ETA), customer (masked per A-42), restaurant, rider, full
-  line items with variants and add-ons and their prices, the complete pricing breakdown with the
+  line items with variants and add-ons and their prices (each line of `GET /v1/admin/orders/{orderId}`
+  lists every chosen variant with its group in `variants`, one per variant group,
+  [#628](https://github.com/shaiknoorullah/hg-mono/issues/628)), the complete pricing breakdown with the
   setting versions used, payment and refund history, the delivery address and instructions, the status
   timeline with actor attribution, the rider's route events, all linked cases, and the WebSocket event
   log for the order. From here, role-gated interventions are available: `RESEND_RECEIPT`,
@@ -2536,6 +2602,7 @@ documents lapse cannot go on shift, but is not punished.
   | Cancel order **before** restaurant acceptance | Allow | Allow | Allow |
   | Cancel order **after** acceptance | Deny — escalate | Allow | Allow |
   | Force an arbitrary status transition | Deny | Deny | Allow, with reason, audited |
+  | Confirm a pickup or met handover without its code | Allow, with reason and case, audited | Allow | Allow |
 
 - **States**: this feature does not own order states; it invokes legal transitions on the order state
   machine. `FORCE_STATUS` is the sole exception and is constrained to transitions the machine declares
@@ -2561,6 +2628,32 @@ documents lapse cannot go on shift, but is not punished.
     machine's one transition function, which writes the `order.state_changed` and `order.cancelled`
     realtime events and enqueues the customer's cancellation notification in the same
     transaction ([#352](https://github.com/shaiknoorullah/hg-mono/issues/352)).
+  - R8 Confirming a handover without its code (`overrideHandoverCode`) is the only way past a
+    pickup or delivery code, used when five wrong codes have locked it, the kitchen cannot show
+    it, or the customer cannot be reached at a met handover. It needs a reason of 10 to 1000
+    characters and a case, a session signed in with two-step sign-in (else `403 MFA_REQUIRED`),
+    and a caller who still holds a support or admin grant on an active account and is not a
+    party to the order (its customer, a rider it was assigned to, or its restaurant's staff).
+    It applies only to the handover the order is waiting on, once per handover; the order moves
+    through the one transition function, and the append-only `handover_override` record commits
+    in the same transaction ([#310](https://github.com/shaiknoorullah/hg-mono/issues/310)).
+  - R9 The redesigned Orders list shows every restaurant's orders, newest first (the server gives no
+    other order), 25 at a time. A typed order code is checked for its shape before it is sent and
+    an invalid one is never searched, because the server's "no order" would be a different claim.
+    **Still running** means exactly the nine states that carry a deadline (Created through Rider
+    arrived, Delivered and Disputed); a final state has none. Disputes loads every page of
+    `state=DISPUTED` and only then sorts by `deadline_at`, since an old dispute can be the most
+    urgent; if a page fails it says the list is not in deadline order. A page never re-arms or acts
+    on a deadline: past it, the row reads "0:00, passed N s ago" and what is due until the server
+    moves the order.
+  - R10 The order page offers Cancel from Created up to Ready for pickup, by state, **not** by
+    `can_cancel`: on the admin view that flag is the customer's own and turns false once the
+    restaurant accepts, when staff can still cancel. The request names a reason, notes and a case
+    and never an amount or a refund type: the server chooses both. A timeout is shown as "unknown"
+    and a retry reuses the same `Idempotency-Key`.
+  - R11 While the delivery address is masked (`pii_revealed` false) the page draws no destination at
+    all, even if the body carries a street. It appears only after a justified reveal
+    (`reveal_pii` with a justification of 10 to 500 characters), which is audited.
 - **Acceptance criteria**:
   1. Given a support agent and an order in `PREPARING`, when they attempt `CANCEL_ORDER`, then
      `403 FORBIDDEN_PERMISSION` and the UI offers "escalate to Tier 2" which creates the escalation.
@@ -2573,6 +2666,10 @@ documents lapse cannot go on shift, but is not punished.
      Tier 3 P3 review case is created.
   5. Given a support agent extends the ETA by 20 minutes twice on the same order, then the second
      attempt returns `409 ETA_EXTENSION_LIMIT` and escalation is offered.
+  6. Given an order whose pickup code five wrong codes have locked, when a support agent signed in
+     with two-step sign-in confirms the pickup with a reason and a case, then the order is
+     `PICKED_UP`, one `handover_override` row records the agent, the reason and the wrong tries,
+     and a second override of the same handover is refused.
 - **Out of scope**: editing order contents (adding/removing items after placement); changing the
   delivery address after pickup; splitting an order; re-charging a customer.
 - **Version**: V1 · **Size**: M

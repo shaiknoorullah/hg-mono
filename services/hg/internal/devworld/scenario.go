@@ -17,8 +17,12 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/auth"
 )
 
-// Scenario catalogue. Each one calls the running API. None of them writes a
-// row. The journey, which moves a rider along a route, is a separate command.
+// Scenario catalogue. Each one calls the running API as the personas would.
+// None of them writes a state, a payment or a ledger row. The few that need
+// time to pass (a lapsed offer, an uncollected order, a settled order, a
+// lapsed certificate) move one row's clock in the local database and let the
+// running API's own timers act (scenario_clock.go). The journey, which moves a
+// rider along a route, is a separate command.
 
 const (
 	itemChickenKarahi = "f0000000-0000-4000-8000-000000000281"
@@ -40,6 +44,61 @@ var ScenarioNames = []string{
 	"docs-reject",
 	"menu-approve",
 	"menu-reject",
+	"onboard-restaurant",
+	"onboard-rider",
+	"offer-reject",
+	"offer-ignored",
+	"offer-race",
+	"no-rider",
+	"order-history",
+	"onboard-admin",
+	"application-in-review",
+	"application-reject",
+	"offer-to-rider",
+	"restaurant-timeout",
+	"admin-cancel",
+	"pickup-lapse",
+	"pickup-lapse-cancelled",
+	"cert-lapse-mid-order",
+	"order-completed",
+	"refund-decisions",
+	"halal-lapse",
+	"halal-renew",
+}
+
+// scenarioSummaries is what `devworld scenario list` prints beside each name:
+// the state the scenario leaves the world in.
+var scenarioSummaries = map[string]string{
+	"new-order":              "amina's order waits for bismillah-grill (RESTAURANT_PENDING, the real 180 s window)",
+	"rush":                   "amina and nour each have an order waiting; a third is refused",
+	"order-preparing":        "amina's order is accepted (PREPARING)",
+	"order-ready":            "amina's order is ready, waiting for a rider (READY_FOR_PICKUP)",
+	"customer-cancels":       "amina cancels her waiting order (CANCELLED)",
+	"restaurant-rejected":    "bismillah-grill rejects amina's waiting order (REJECTED)",
+	"docs-approve":           "admin-seed approves the docs-review document",
+	"docs-reject":            "admin-seed rejects the docs-review document (ILLEGIBLE)",
+	"menu-approve":           "admin-seed approves the oldest menu version waiting (menu persona)",
+	"menu-reject":            "admin-seed rejects the oldest menu version waiting (menu persona)",
+	"onboard-restaurant":     "a new restaurant signs up and is approved to take orders",
+	"onboard-rider":          "a new rider signs up, is approved and goes online",
+	"offer-reject":           "rider-sim rejects the offer; rider-sim-2 accepts the next wave (READY_FOR_PICKUP, assigned)",
+	"offer-ignored":          "rider-sim lets the offer expire; rider-sim-2 accepts the next wave (READY_FOR_PICKUP, assigned)",
+	"offer-race":             "rider-sim and rider-sim-2 accept at once; one assignment, one refused",
+	"no-rider":               "both riders offline; the search ends NO_RIDER_FOUND (READY_FOR_PICKUP, no rider)",
+	"onboard-admin":          "an invited admin sets a password, signs in, turns on two-step sign-in and signs in with a code",
+	"application-in-review":  "a new restaurant waits in DOCUMENTS_REVIEW with a pending certificate and no checks",
+	"application-reject":     "admin-seed fails the address check, approval is refused, the application is rejected (DOCUMENTS_REJECTED)",
+	"offer-to-rider":         "rider-sim is online at bismillah-grill with a pending 30 s offer for a ready order",
+	"restaurant-timeout":     "an order's restaurant window is cut to 30 s; it times out (CANCELLED, RESTAURANT_TIMEOUT)",
+	"admin-cancel":           "admin-seed cancels an accepted order (CANCELLED, SUPPORT_CANCELLED, full refund)",
+	"pickup-lapse":           "rider-sim offline; a ready order's pickup deadline lapses once (READY_FOR_PICKUP, escalating)",
+	"pickup-lapse-cancelled": "rider-sim offline; a ready order lapses to the cap (CANCELLED, NO_RIDER_FOUND, full refund)",
+	"cert-lapse-mid-order":   "an accepted order is live when bismillah-grill's certificate lapses (EXPIRED, delisted until dev-reset)",
+	"order-completed":        "rider-sim delivers an order and it settles (COMPLETED, receipt, rider earnings)",
+	"refund-decisions":       "amina's full refund is approved (SUBMITTED), her partial refund declined (DECLINED); every ledger batch sums to zero",
+	"halal-lapse":            "the certificate expiry job runs as of two days ahead; expiring-halal reads EXPIRED and is delisted (local only, dev-reset undoes it)",
+	"halal-renew":            "after halal-lapse: the owner attaches a new certificate and admin-seed approves it; expiring-halal is CERTIFIED and LIVE again",
+	"order-history":          "amina has four past orders in every end state (cancelled by her, rejected, deadline-cancelled, completed) and no active order",
 }
 
 // RunScenario signs in as the personas the scenario needs and calls the API
@@ -75,15 +134,50 @@ func RunScenario(ctx context.Context, baseURL, name string) error {
 		return scenarioMenu(ctx, baseURL, "APPROVE", "")
 	case "menu-reject":
 		return scenarioMenu(ctx, baseURL, "REJECT", "MISLEADING_DESCRIPTION")
+	case "onboard-restaurant":
+		return scenarioOnboardRestaurant(ctx, baseURL)
+	case "onboard-rider":
+		return scenarioOnboardRider(ctx, baseURL)
+	case "offer-reject", "offer-ignored", "offer-race", "no-rider":
+		return runOfferScenario(ctx, baseURL, name)
+	case "application-in-review":
+		return scenarioApplicationInReview(ctx, baseURL)
+	case "application-reject":
+		return scenarioApplicationReject(ctx, baseURL)
+	case "order-history":
+		return scenarioOrderHistory(ctx, baseURL)
+	case "onboard-admin":
+		return scenarioOnboardAdmin(ctx, baseURL)
+	case "offer-to-rider":
+		return scenarioOfferToRider(ctx, baseURL)
+	case "restaurant-timeout":
+		return scenarioRestaurantTimeout(ctx, baseURL)
+	case "admin-cancel":
+		return scenarioAdminCancel(ctx, baseURL)
+	case "pickup-lapse":
+		return scenarioPickupLapse(ctx, baseURL, false)
+	case "pickup-lapse-cancelled":
+		return scenarioPickupLapse(ctx, baseURL, true)
+	case "cert-lapse-mid-order":
+		return scenarioCertLapse(ctx, baseURL)
+	case "refund-decisions":
+		return scenarioRefundDecisions(ctx, baseURL)
+	case "order-completed":
+		return scenarioOrderCompleted(ctx, baseURL)
+	case "halal-lapse":
+		return scenarioHalalLapse(ctx, baseURL)
+	case "halal-renew":
+		return scenarioHalalRenew(ctx, baseURL)
 	default:
 		return fmt.Errorf("devworld: unknown scenario %q", name)
 	}
 }
 
-// PrintScenarios writes the catalogue to stdout.
+// PrintScenarios writes the catalogue to stdout: each name and the state it
+// leaves the world in.
 func PrintScenarios() {
 	for _, name := range ScenarioNames {
-		fmt.Println(name)
+		fmt.Printf("%-23s %s\n", name, scenarioSummaries[name])
 	}
 }
 
@@ -496,6 +590,9 @@ func (c *apiClient) activeIfConflict(ctx context.Context, err error) (placedOrde
 }
 
 func (c *apiClient) signInPhone(ctx context.Context, phone string) error {
+	if c.reuseSession(ctx, phone) {
+		return nil
+	}
 	_, data, err := c.call(ctx, http.MethodPost, "/v1/auth/otp/request", map[string]string{
 		"phone_e164": phone,
 		"purpose":    "SIGN_IN",
@@ -516,11 +613,19 @@ func (c *apiClient) signInPhone(ctx context.Context, phone string) error {
 	if err != nil {
 		return fmt.Errorf("devworld: otp verify: %w", err)
 	}
-	return c.keepToken(data)
+	if err := c.keepToken(data); err != nil {
+		return err
+	}
+	c.saveSession(phone)
+	return nil
 }
 
 func (c *apiClient) signInEmail(ctx context.Context, email string) error {
-	body := map[string]string{"email": email, "password": PersonaPassword}
+	return c.signInPassword(ctx, email, PersonaPassword)
+}
+
+func (c *apiClient) signInPassword(ctx context.Context, email, password string) error {
+	body := map[string]string{"email": email, "password": password}
 	status, data, err := c.call(ctx, http.MethodPost, "/v1/auth/login", body, false)
 	if err != nil && status == http.StatusForbidden && isCode(err, "MFA_REQUIRED") {
 		secret, serr := AdminTOTPSecret(email)

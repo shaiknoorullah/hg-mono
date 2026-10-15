@@ -2,7 +2,7 @@
 covers:
   - apps/rider/**
   - services/hg/internal/rider/**
-reviewed: 2026-10-05
+reviewed: 2026-10-15
 ---
 
 # HalalGoes — RIDER Domain Specification
@@ -67,7 +67,7 @@ REGISTERED → PHONE_VERIFIED → PROFILE_PENDING → VEHICLE_PENDING → DOCUME
 ```
 
 **`rider.account_status`**: `PENDING | ACTIVE | SUSPENDED | DEACTIVATED`
-(orthogonal to onboarding_state; only `ACTIVE` + onboarding `ACTIVE` can be dispatched)
+(orthogonal to onboarding_state; only `ACTIVE` + onboarding `ACTIVE` can be dispatched). The application never writes this column itself: its database role has no write right on it, and every change goes through a database function ([how account state is written](05-admin.md#a-22--restaurant-account-state-actions-suspend--ban--deactivate--reinstate--delist)). The one the system uses on its own, with no admin involved, completes a rider's onboarding: it moves a `PENDING` rider to `ACTIVE` once `onboarding_state` is `ACTIVE`, and does nothing else. Admin actions on a rider are described in [rider account state actions](05-admin.md#a-27--rider-account-state-actions).
 
 **`rider.availability_state`** — single source of truth, column on `rider`, mutated only by the server:
 ```
@@ -117,6 +117,10 @@ ASSIGNED → EN_ROUTE_TO_PICKUP → ARRIVED_AT_PICKUP → PICKED_UP → EN_ROUTE
 ### 0.6 Explicitly deleted mechanisms
 
 The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `riders:available:online`, `riders:active`, `failed_notifications:*`; client-side channel guessing; client-computed earnings; client-persisted approval flags; the 7-second drawer auto-dismiss; the "arrived" demo `setInterval`/`setTimeout` timers; hardcoded API base URLs and Google keys in source.
+
+### 0.7 Redesign build flag (design system, Oct 2026)
+
+`EXPO_PUBLIC_HG_REDESIGN=1` builds the redesigned app (`src/redesign/RedesignApp.tsx`) on the rebuilt design system: NativeWind 4 and React Native Reusables components from `@hg/ui-native/lib`. The flag is read when the app is built. `App.tsx` tests the literal `process.env.EXPO_PUBLIC_HG_REDESIGN` expression, which Expo replaces with its value at build time, so a flag-off bundle contains no redesign module. It also contains no NativeWind, css-interop or Reanimated JavaScript; only the redesign imports them. With the flag on, `RedesignApp.tsx` does three things. It loads the generated `global.rider.css` and the Plus Jakarta Sans faces. It hands NativeWind's colour scheme to the system, so `className` styling and `ThemeProvider` follow the phone together. It mounts the `@rn-primitives/portal` host over everything. Only `src/redesign/**` and `packages/ui-native/src/lib/**` compile their JSX through NativeWind (`babel.config.js`). A build that also sets `EXPO_PUBLIC_HG_DS_GALLERY=1` opens on a developer gallery (`DsGalleryRoot.tsx` and `DsGallery.tsx`) before the redesign shell. The gallery shows every button variant, the role and alias swatches, a dark-scheme toggle driven by its own `ThemeProvider` and a portal demo, and, from N1, the core `/ds` parts (Button, IconButton, Badge, Card, Price, KeyValueList, StatCard) and the `/proposed` Text, Skeleton, Spinner, Separator and Avatar in the states the canvases draw, and, from N4, the halal family: `/ds` HalalBadge in its four states on the card, operational and detail surfaces (with the amber expiring look), HalalCertificationPanel ready, expiring with the certificate not viewable, expired, loading and error, and the `/proposed` RestaurantHalalStatus, and, from N3, the forms (Input in every variant including the 4-cell handover code, Checkbox, RadioGroup with prices, Switch, Select, SegmentedControl, and the proposed Field, ErrorSummary, `Textarea`, CheckboxGroup, DateInput and QuantityStepper), and, from N5, the feedback family (Banner and InlineAlert in every tone including the halal slate, ErrorState, EmptyState and the progress and status indicators); "Continue to the app" hands over to the shell. Without that second flag, the redesign shell and its e2e flows are unaffected. `src/redesign/__tests__/DsButton.test.tsx` compiles the real stylesheet and checks the colours, sizes, font and dark scheme that reach a button. The native `react-native-reanimated` and `react-native-worklets` libraries are linked into every APK; the full end-to-end run covers them.
 
 ---
 
@@ -174,6 +178,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 - **Behaviour**: After phone verification the rider supplies `email`, `first_name`, `last_name`, `date_of_birth` via `POST /api/v1/riders/:id/onboarding/profile`. Age is computed server-side as full years at request time. **Age verification is two-stage**: (1) declared DOB gate at signup; (2) admin confirmation that the DOB on the uploaded government photo ID / driver's licence matches the declared DOB (D-06). A mismatch is a rejection reason, not a silent pass.
 - **Data**: `rider.first_name, last_name, date_of_birth (date), email, email_verified_at`; `rider_profile_photo_document_id` (FK to `rider_document`).
 - **States**: `PHONE_VERIFIED → PROFILE_PENDING → VEHICLE_PENDING` on success.
+  Phone sign-up creates no rider profile: until the first profile submission creates it, the onboarding status answers `PHONE_VERIFIED` with the profile step next.
 - **Rules**:
   - `date_of_birth` must yield age ≥ **18** years and ≤ 80 at submission. Below ⇒ `422 UNDERAGE` with `details.min_age`. The client mirrors the rule but the server is authoritative.
   - Names: 1–50 chars, letters/space/hyphen/apostrophe, trimmed, NFC-normalised.
@@ -227,7 +232,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 - **Data**: `rider_document(id, rider_id, document_type, object_key, bucket, file_name, content_type, size_bytes, sha256, expires_on, status, uploaded_at, reviewed_at, reviewed_by, rejection_code, rejection_note, superseded_by, version, created_at)`
   - `document_type ∈ {DRIVERS_LICENCE, VEHICLE_REGISTRATION, VEHICLE_INSURANCE, PROFILE_PHOTO, GOVERNMENT_ID}`
   - `status ∈ {PENDING_UPLOAD, UPLOADED, UNDER_REVIEW, APPROVED, REJECTED, EXPIRED, SUPERSEDED}`
-- **States**: document lifecycle above; rider `DOCUMENTS_PENDING → DOCUMENTS_REVIEW` when a complete set is submitted.
+- **States**: document lifecycle above; rider `DOCUMENTS_PENDING → DOCUMENTS_REVIEW` when a complete set is submitted. The same submission queues the rider's application for admin review; repeating it keeps the application's place in the queue.
 - **Rules**:
   - **Required set by vehicle type**:
     | vehicle_type | required documents |
@@ -298,7 +303,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 ### D-08 — Payout account onboarding (Stripe Connect)
 
 - **SOW trace**: *"Earnings Support: Assist riders with payout related disputes/grievances."* (Support Agent) — the payout account is the precondition for every earnings feature in SOW Rider item 5.
-- **Behaviour**: After `DOCUMENTS_APPROVED` the rider enters `PAYOUT_PENDING`. `POST /api/v1/riders/:id/payout-account` creates a **Stripe Connect Express** account (country `CA`, currency `cad`, capability `transfers`) and returns a single-use Account Link URL, opened in an in-app browser (`expo-web-browser`). Stripe redirects back to `halalgoes-rider://payout/return` or `…/refresh`. The server does **not** trust the redirect: account readiness is set only from the `account.updated` webhook when `payouts_enabled=true && charges_enabled` and `requirements.currently_due` is empty. On readiness, `onboarding_state → ACTIVE` and `account_status → ACTIVE`. The rider's open app hears of it on their own `account:{id}` channel: `connect.requirements_changed` whenever what Stripe asks for changes, and `onboarding.state_changed` for `PAYOUT_PENDING → ACTIVE` ([realtime contract](../../contracts/websocket.md#4-event-catalogue)).
+- **Behaviour**: After `DOCUMENTS_APPROVED` the rider enters `PAYOUT_PENDING`. `POST /api/v1/riders/:id/payout-account` creates a **Stripe Connect Express** account (country `CA`, currency `cad`, capability `transfers`) and returns a single-use Account Link URL, opened in an in-app browser (`expo-web-browser`). Stripe redirects back to `halalgoes-rider://payout/return` or `…/refresh`. The server does **not** trust the redirect: account readiness is set only from the `account.updated` webhook when `payouts_enabled=true && charges_enabled` and `requirements.currently_due` is empty. On readiness the server sets `onboarding_state → ACTIVE` and, in the same transaction, calls the database function `account_state_complete_rider_onboarding`, which moves `account_status` from `PENDING` to `ACTIVE` (the application cannot write `account_status` itself; [how account state is written](05-admin.md#a-22--restaurant-account-state-actions-suspend--ban--deactivate--reinstate--delist)). The function changes nothing for a rider whose `account_status` is anything but `PENDING`, so a suspended or deactivated rider whose Stripe account becomes ready stays suspended or deactivated; the readiness event is repeatable and moves a rider forward once. The rider's open app hears of it on their own `account:{id}` channel: `connect.requirements_changed` whenever what Stripe asks for changes, and `onboarding.state_changed` for `PAYOUT_PENDING → ACTIVE` ([realtime contract](../../contracts/websocket.md#4-event-catalogue)).
 - **Data**: `rider_payout_account(id, rider_id, provider='STRIPE', provider_account_id, payouts_enabled, first_enabled_at, requirements_due jsonb, disabled_reason, default_external_account_last4, created_at, updated_at)`; `webhook_event(id, provider, provider_event_id UNIQUE, type, payload, processed_at)`.
 - **States**: `PAYOUT_PENDING → ACTIVE` (readiness, which also sets `first_enabled_at`, never cleared). If Stripe later reports `payouts_enabled=false`, only transfers are held; `account_status` stays `ACTIVE`.
 - **Rules**:
@@ -664,6 +669,15 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
   - Every transition emits `order_update` to the customer and restaurant with the mapped customer-facing status, and updates the customer ETA.
   - Repeating the current state returns `200` with the unchanged assignment (idempotent). Any backwards transition returns `409 INVALID_TRANSITION` with `details.current_state`.
   - Transitions are accepted offline-first: the app queues them with `occurred_at` and replays on reconnect; the server accepts replays up to 2 h late.
+
+  **Release 1.0 build (legacy rider app, `apps/rider/src/screens/AssignmentScreen.tsx`,
+  [#311](https://github.com/shaiknoorullah/hg-mono/issues/311)):** at the counter the rider types
+  the 4-digit pickup code the kitchen reads out, and `PICKED_UP` is sent with `pickup_code`; this
+  replaces the pickup seal scan. A wrong code shows the attempts left
+  (`details.attempts_remaining`). When five wrong codes lock the pickup or the delivery code, the
+  screen says HalalGoes support is taking over, offers no code entry and no photo for that
+  handover, and a "Check again" button re-reads the assignment. A met handover accepts only the
+  customer's delivery code (D-21).
 - **Acceptance criteria**:
   1. Given a rider 2 km from the restaurant, When they tap "I'm at the restaurant" without an override reason, Then `422 GEOFENCE_REQUIRED` and no transition row is written.
   2. Given `ARRIVED_AT_PICKUP` at 10:00 and `PICKED_UP` at 10:14, When the delivery completes, Then `pickup_wait_seconds=840` is recorded.
