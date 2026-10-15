@@ -60,6 +60,6 @@ test.describe('restaurant redesign · onboarding (mock)', () => {
   test('application not approved is final', async ({ page }) => {
     await open(page, '/onboarding', { status: 'restaurant_onboarding_application_rejected', docs: 'restaurant_document_pack_empty', profile: 'restaurant_profile_account_pending' });
     await expect(page.getByTestId('onboarding-end')).toBeVisible();
-    await settled(page, { 1440: `${ONB}App-NotApproved` });
+    await settled(page, { 1440: `${ONB}App-NotApproved`, 1024: `${ONB}Tab-AppNotApproved-1024` });
   });
 });
