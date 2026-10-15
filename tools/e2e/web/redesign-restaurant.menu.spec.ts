@@ -10,8 +10,9 @@
  * - Real mode (`E2E_MODE=real`): the app on `services/hg` with devworld personas
  *   (`bismillah-grill`, `suspended`). Every change a journey makes is put back at its end.
  */
+import { copyShot, shoot } from './shots';
 import { execSync } from 'node:child_process';
-import { copyFileSync, mkdirSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 import { expect, test, type APIRequestContext, type Page, type TestInfo } from '@playwright/test';
 import { DEVWORLD, MODE, MOCK_API, REAL_API, documentScrolls, openSignedIn } from './redesign-restaurant.support';
 import { projectMeta } from './mode';
@@ -21,10 +22,10 @@ const SHOTS = process.env.E2E_SHOTS_DIR ?? '/tmp/claude-0/-home-user-hg-mono/d41
 /** Saves a screenshot to the test output and to the WP shots folder as `<viewport>-<state>.png`. */
 async function shot(page: Page, info: TestInfo, state: string) {
   const file = info.outputPath(`${state}.png`);
-  await page.screenshot({ path: file });
+  await shoot(page, file);
   try {
     mkdirSync(SHOTS, { recursive: true });
-    copyFileSync(file, `${SHOTS}/${info.project.name}-${state}.png`);
+    copyShot(file, `${SHOTS}/${info.project.name}-${state}.png`);
   } catch {
     /* the shots folder is a convenience */
   }
