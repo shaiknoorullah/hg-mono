@@ -4,6 +4,7 @@ import path from 'node:path';
 import { resolveBrowser } from '@hg/design-diff/browser';
 import { snapshotLayout } from '@hg/design-diff/page-scripts';
 import { OUT as out } from '../lib/paths.mjs';
+import { declareUnpairable, expectDesignFor, type BoardFor } from './design';
 
 /**
  * A named, numbered step that ends with a screenshot of the page, in
@@ -13,8 +14,15 @@ import { OUT as out } from '../lib/paths.mjs';
  * The legacy desktop project writes straight into <app>/, as it always has. Every other project
  * (tablet, redesign, the mock) gets a folder of its own, <app>/<flag>-<viewport>[-mock]/, so the
  * same spec on two viewports never overwrites its own pictures.
+ *
+ * `boards` declares, by step name, the design board a step's screen must match, or that its board
+ * cannot be compared with one screenshot (`{ unpairable, reason }`, for a composite board). A step
+ * with no entry has no board that could be identified and is reported as uncovered, never matched
+ * by a guess. See `./design.ts`.
  */
-export function stepper(app: string, prefix: string) {
+export type StepBoard = BoardFor | { readonly unpairable: string; readonly reason: string };
+
+export function stepper(app: string, prefix: string, boards: Readonly<Record<string, StepBoard>> = {}) {
   const baseDir = process.env.E2E_SHOTS_DIR ? path.resolve(process.env.E2E_SHOTS_DIR) : path.join(out, 'screenshots');
   let n = 0;
   return async function step(page: Page, name: string, body: () => Promise<void>): Promise<void> {
@@ -27,6 +35,10 @@ export function stepper(app: string, prefix: string) {
       const file = path.join(dir, `${label}.png`);
       await shoot(page, file, { fullPage: true });
       await test.info().attach(label, { path: file, contentType: 'image/png' });
+      const board = boards[name];
+      if (board === undefined) return;
+      if (typeof board === 'object' && 'unpairable' in board) await declareUnpairable(page, board.unpairable, board.reason);
+      else await expectDesignFor(page, board);
     });
   };
 }
@@ -46,7 +58,7 @@ export async function shoot(page: Page, file: string, options: { fullPage?: bool
   await page.screenshot({ path: file, ...options });
   writeFileSync(file.replace(/\.png$/, '.layout.json'), JSON.stringify(await page.evaluate(snapshotLayout)));
   const chromium = page.context().browser()?.version() ?? null;
-  writeFileSync(file.replace(/\.png$/, '.capture.json'), JSON.stringify({ browser: resolveBrowser().label, chromium }));
+  writeFileSync(file.replace(/\.png$/, '.capture.json'), JSON.stringify({ browser: resolveBrowser().label, chromium, board: null }));
 }
 
 /** Copies a screenshot with the layout and capture records `shoot` wrote beside it. */

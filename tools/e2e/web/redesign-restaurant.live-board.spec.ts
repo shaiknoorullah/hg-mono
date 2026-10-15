@@ -9,6 +9,7 @@
  * restaurant's channels).
  */
 import { shoot } from './shots';
+import { expectDesignFor, type BoardFor } from './design';
 import { expect, test, type Page, type Route } from '@playwright/test';
 import { execSync } from 'node:child_process';
 import { resolve } from 'node:path';
@@ -22,7 +23,27 @@ async function payload(page: Page, scenario: string) {
   return (await r.json()).data.payload;
 }
 
+
+/**
+ * The design board each state must match (tools/e2e/README.md, "Design captures"). A state with no
+ * entry has no board that could be identified; the states named `real-*` run on live data and are
+ * not boards.
+ */
+const BOARD: Record<string, BoardFor> = {
+  busy: { 1440: 'restaurant/live-orders/Main', 1024: 'restaurant/live-orders/Tablet-busy' },
+  empty: 'restaurant/live-orders/Board-empty',
+  'first-load-error': 'restaurant/live-orders/Board-first-load-error',
+  'detail-preparing': 'restaurant/live-orders/Detail-preparing',
+  'mark-ready-failed': 'restaurant/live-orders/Mark-ready-failed',
+  'ready-rider-here-code-error': 'restaurant/live-orders/Ready-rider-here-code-error',
+  'ready-rider-here': 'restaurant/live-orders/Ready-rider-here',
+  'turn-off-confirm': 'restaurant/live-orders/Board-turn-off-confirm',
+  'cert-expired': 'restaurant/live-orders/Board-cert-expired',
+};
+
 async function shot(page: Page, name: string) {
+  const board = BOARD[name];
+  if (board) await expectDesignFor(page, board);
   const vp = page.viewportSize()!.width >= 1280 ? 'desktop' : 'tablet';
   await page.screenshot({ path: test.info().outputPath(`${vp}-${name}.png`) });
   if (SHOTS) await shoot(page, `${SHOTS}/${vp}-${name}.png`);

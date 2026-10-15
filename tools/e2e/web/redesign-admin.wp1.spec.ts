@@ -1,8 +1,8 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
 
 import { E2E_MODE } from './mode';
-import { stepper } from './shots';
-import { signOutAndExpectNotice } from './redesign-admin.support';
+import { stepper, type StepBoard } from './shots';
+import { EMAIL, PASSWORD, routeLogin, signIn, signOutAndExpectNotice, type StaffRole } from './redesign-admin.support';
 
 // This spec drives the console against the mock server: it reads `login` from the mock and
 // rewrites the principal's role (below). On the e2e stack (E2E_MODE=real, what the `e2e` label
@@ -26,10 +26,6 @@ test.skip(E2E_MODE !== 'mock', 'written against the mock server; run with E2E_MO
 const BASE = process.env.E2E_ADMIN_REDESIGN_URL ?? process.env.BASE_URL;
 if (BASE) test.use({ baseURL: BASE });
 
-type StaffRole = 'SUPER_ADMIN' | 'ADMIN' | 'SUPPORT_AGENT';
-
-const EMAIL = 'dev-admin@halalgoes.test';
-const PASSWORD = 'DevAdmin!2026-e2e';
 /** base64url, 43 characters: what `isWellFormedToken` accepts. */
 const LINK_TOKEN = 'e2eRedesignAdminWp1LinkToken_abcdefghijklmn';
 
@@ -52,38 +48,6 @@ function escape(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/**
- * Serves `login` from the mock, rewriting the principal's roles to `role`. With `mfa`, the first
- * attempt without a `totp_code` is answered by the mock's `MFA_REQUIRED` fixture.
- */
-async function routeLogin(page: Page, role: StaffRole, opts: { mfa?: boolean } = {}): Promise<string[]> {
-  const sent: string[] = [];
-  await page.route('**/v1/auth/login', async (route: Route) => {
-    const request = route.request();
-    if (request.method() !== 'POST') return route.continue();
-    const body = request.postData() ?? '';
-    sent.push(body);
-    const hasCode = /"totp_code"/.test(body);
-    if (opts.mfa && !hasCode) {
-      const response = await route.fetch({
-        headers: { ...request.headers(), 'x-mock-scenario': 'error_refund_mfa_required' },
-      });
-      return route.fulfill({ response });
-    }
-    const response = await route.fetch();
-    const json = (await response.json()) as { data: { principal: { roles: { role: string }[] } } };
-    json.data.principal.roles = [{ ...json.data.principal.roles[0], role, scope_type: 'GLOBAL' } as { role: string }];
-    return route.fulfill({ response, json });
-  });
-  return sent;
-}
-
-async function signIn(page: Page): Promise<void> {
-  await page.getByLabel('Work email').fill(EMAIL);
-  await page.getByRole('textbox', { name: 'Password', exact: true }).fill(PASSWORD);
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-}
-
 const appBar = (page: Page) => page.locator('#app-bar-heading');
 /** The OTP field, as the live DS draws it: six cells over ONE real field named "Authentication code". */
 const codeField = (page: Page) => page.getByRole('textbox', { name: 'Authentication code', exact: true });
@@ -93,6 +57,44 @@ async function typeCode(page: Page, digits: string): Promise<void> {
   await page.keyboard.type(digits);
 }
 const nav = (page: Page) => page.getByRole('navigation', { name: 'Admin' });
+
+
+const COMPOSITE_ERRORS = {
+  unpairable: 'admin/restaurant-verification/SignIn-Errors',
+  reason: 'a composite: three sign-in error states drawn side by side in one board, so one screenshot cannot be compared with it',
+} as const;
+const COMPOSITE_FORGOT = {
+  unpairable: 'admin/restaurant-verification/SignIn-Forgot',
+  reason: 'a composite: the forgot-password screens (ask, sent, choose) drawn side by side in one 2120x1200 board',
+} as const;
+const COMPOSITE_INVITE = {
+  unpairable: 'admin/restaurant-verification/SignIn-Invite',
+  reason: 'a composite: set up, choose another password and expired invite drawn side by side in one board',
+} as const;
+
+/**
+ * The design board each step must match, by step name (tools/e2e/README.md, "Design captures"). The
+ * boards are drawn at 1440 wide; the 1024 captures have no board and take none. Steps absent here
+ * have no board that could be identified.
+ */
+const BOARDS: Record<string, StepBoard> = {
+  'sign-in': { 1440: 'admin/restaurant-verification/Main' },
+  landed: { 1440: 'admin/restaurant-verification/Queue' },
+  forbidden: { 1440: 'admin/restaurant-verification/Shell-Forbidden' },
+  'signed-out': { 1440: 'admin/restaurant-verification/Shell-SignedOut' },
+  'go-to-sign-in': { 1440: 'admin/restaurant-verification/Main' },
+  'code-needed': COMPOSITE_ERRORS,
+  'wrong-password': COMPOSITE_ERRORS,
+  help: { 1440: 'admin/restaurant-verification/SignIn-Help' },
+  ask: COMPOSITE_FORGOT,
+  sent: COMPOSITE_FORGOT,
+  choose: COMPOSITE_FORGOT,
+  'set-password': COMPOSITE_INVITE,
+  'invalid-link': COMPOSITE_INVITE,
+};
+
+/** A support agent lands on Live alerts, not the restaurant queue, and no board was identified for it. */
+const { landed: _queueLanding, ...SUPPORT_BOARDS } = BOARDS;
 
 const VIEWPORTS = [
   { name: '1440', width: 1440, height: 900 },
@@ -104,7 +106,7 @@ for (const vp of VIEWPORTS) {
     test.use({ viewport: { width: vp.width, height: vp.height }, colorScheme: 'light' });
 
     test('admin signs in, lands on restaurant applications, sees every nav item, signs out', async ({ page }) => {
-      const step = stepper('redesign-admin', `wp1-${vp.name}-admin`);
+      const step = stepper('redesign-admin', `wp1-${vp.name}-admin`, BOARDS);
       const sent = await routeLogin(page, 'SUPER_ADMIN');
 
       await step(page, 'sign-in', async () => {
@@ -180,7 +182,7 @@ for (const vp of VIEWPORTS) {
     });
 
     test('two-step sign-in: the code field appears only after MFA_REQUIRED', async ({ page }) => {
-      const step = stepper('redesign-admin', `wp1-${vp.name}-mfa`);
+      const step = stepper('redesign-admin', `wp1-${vp.name}-mfa`, BOARDS);
       const sent = await routeLogin(page, 'ADMIN', { mfa: true });
 
       await step(page, 'sign-in', async () => {
@@ -225,7 +227,7 @@ for (const vp of VIEWPORTS) {
 
     test('support agent lands on live alerts and gets the 403 page for staff', async ({ page }) => {
       // The mock has no support principal of its own; the role is rewritten on the mock's grant.
-      const step = stepper('redesign-admin', `wp1-${vp.name}-support`);
+      const step = stepper('redesign-admin', `wp1-${vp.name}-support`, SUPPORT_BOARDS);
       await routeLogin(page, 'SUPPORT_AGENT');
 
       await step(page, 'landed', async () => {
@@ -271,7 +273,7 @@ for (const vp of VIEWPORTS) {
     });
 
     test('reset password: ask, sent, choose, saved; a bad link is expired', async ({ page }) => {
-      const step = stepper('redesign-admin', `wp1-${vp.name}-reset`);
+      const step = stepper('redesign-admin', `wp1-${vp.name}-reset`, BOARDS);
 
       await step(page, 'help', async () => {
         await page.goto('/');
@@ -351,7 +353,7 @@ for (const vp of VIEWPORTS) {
     });
 
     test('accept invite, step 1: set a password, then go to sign in', async ({ page }) => {
-      const step = stepper('redesign-admin', `wp1-${vp.name}-invite`);
+      const step = stepper('redesign-admin', `wp1-${vp.name}-invite`, BOARDS);
 
       await step(page, 'invalid-link', async () => {
         await page.goto('/accept-invite');

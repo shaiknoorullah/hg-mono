@@ -9,6 +9,7 @@
  * answers from `restaurant_order_preparing`, errors from `error_capture_failed`.
  */
 import { copyShot, shoot } from './shots';
+import { expectDesignFor, type BoardFor } from './design';
 import { expect, test, type Page, type Request, type TestInfo } from '@playwright/test';
 import { execSync } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
@@ -18,7 +19,26 @@ import { projectMeta } from './mode';
 
 const SHOTS = process.env.WP3_SHOTS_DIR;
 
+
+/** The design board each state must match; a state with no entry has no board that could be identified. */
+const BOARD: Record<string, BoardFor> = {
+  gate: 'restaurant/live-orders/Board-gate',
+  'gate-notif-denied': 'restaurant/live-orders/Board-gate-notif-denied',
+  'offer-one': { 1440: 'restaurant/live-orders/Offer-one', 1024: 'restaurant/live-orders/Tablet-one-offer' },
+  'offer-keyboard': 'restaurant/live-orders/Offer-keyboard',
+  'offer-accepted': 'restaurant/live-orders/Offer-accepted',
+  'offer-four-overflow': 'restaurant/live-orders/Offer-four-overflow',
+  'offer-four-focus': 'restaurant/live-orders/Offer-four-focus',
+  'detail-pending': { 1440: 'restaurant/live-orders/Detail-pending', 1024: 'restaurant/live-orders/Tablet-detail' },
+  'decline-no-reason': 'restaurant/live-orders/Decline-no-reason',
+  'decline-other': 'restaurant/live-orders/Decline-other',
+  'decline-item-unavailable': 'restaurant/live-orders/Decline-item-unavailable',
+  'offer-capture-failed': 'restaurant/live-orders/Offer-capture-failed',
+};
+
 async function shot(page: Page, info: TestInfo, state: string) {
+  const board = BOARD[state];
+  if (board) await expectDesignFor(page, board);
   const file = info.outputPath(`${state}.png`);
   await shoot(page, file);
   if (SHOTS) {

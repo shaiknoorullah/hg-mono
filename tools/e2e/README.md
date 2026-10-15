@@ -2,7 +2,7 @@
 covers:
   - .github/workflows/e2e.yml
   - tools/e2e/**
-reviewed: 2026-10-15
+reviewed: 2026-10-16
 ---
 
 # End-to-end flows
@@ -253,6 +253,21 @@ board by that name, and judges it pixel by pixel; the flows themselves never fai
   example `design--sign-in--Main` in `native/customer/redesign/lab/1-sign-in.yaml` (a device-lab flow). Capture on the
   design AVD in the state the board is drawn in ([phone captures](../design-diff/README.md#phone-captures)).
 
+Every redesign web spec declares the board of each screenshot it takes, and the board has to be
+the exact file `canvases/<app>/<area>/project/<Board>.dc.html` on `origin/claude/redesign-canvases`.
+Nothing is matched by name similarity: a capture with no declared board is recorded as `"board": null`
+in its `.capture.json` and reported as uncovered. Three helpers in `web/design.ts` and `web/shots.ts`:
+
+- `expectDesign(page, board)` / `expectDesignFor(page, { 1440: board, 1024: tabletBoard })` capture
+  for the board declared for the viewport width; a width with no entry takes no capture.
+- `declareUnpairable(page, board, reason)` for a **composite** board (several states drawn side by
+  side, such as `admin/restaurant-verification/SignIn-Errors`). One screenshot cannot be compared
+  with a composite, so the capture goes to `<app>/unpairable/` with the reason in its `.capture.json`
+  and is listed as not comparable, never as a 20-odd percent difference.
+- `stepper(app, prefix, boards)` takes the declarations of a step-by-step spec by step name.
+
+`node tools/e2e/web/check-boards.mjs` checks that every declared board exists on the canvases branch.
+
 `<area>` is the canvas folder (`sign-in`, `live-orders`) and `<Board>` the board's file name
 without `.dc.html`, as the canvas's `canvas.json` lists it. Then:
 
@@ -301,7 +316,7 @@ on macOS runners and are not part of this workflow
 | [`stack/up.sh`](stack/up.sh) | Boots `deploy/docker-compose.yml` with throwaway secrets, migrates, waits until ready |
 | [`seed/`](seed/) | The world: `seed.sh`, `world.sql`, `world.mjs`, `verify.sql` |
 | [`web/`](web/) | `serve.sh`, the Playwright config (`mode.ts`: mock or real), and the restaurant and admin tests, legacy and redesign. `redesign-<app>.*.spec.ts` are the specs for the redesign (flag `VITE_HG_REDESIGN` on), run in the `<app>-redesign-*` projects; `redesign-restaurant.support.ts` signs in for them, against the mock server (`E2E_MODE=mock`) or the real API (`E2E_MODE=real`: it signs in once per test worker as the seeded world's restaurant owner from `world.json` on the e2e stack, or as the devworld `bismillah-grill` owner against `make dev-reset` (or whenever `E2E_DEVWORLD=1`), because sign-in is rate-limited per account). Specs that drive devworld scenarios run only with `E2E_DEVWORLD=1`: they run `make` in `E2E_SERVICES_HG` (default `../../services/hg`) and, if set, run `E2E_RESET_LIMITS_CMD` first, since each scenario signs the customer persona in by phone code, which is rate-limited. `openLive()` signs in and passes the go-live gate on Live orders, as a person does with one click. `redesign-restaurant.sign-in.spec.ts` (2026-10-10, WP2) drives the sign-in form itself: in mock mode every sign-in, register and email-link state, with `page.route` standing in for the login error envelopes the contract has no fixture for; in real mode the live owner signing in (and no token left in `localStorage`), a wrong password, the unverified `fresh` persona, the `suspended` persona reaching its console, forgot password, and a new owner each run going register → check email → verify → sign in → onboarding → forgot → reset → sign in. It reads the emailed verification and reset links from the local database, as devworld does, through `E2E_PSQL_CMD` (default `docker exec -i hg-postgres-1 psql -U hg -d hg -tA`). Set `E2E_RESET_LIMITS_CMD` (for example `docker exec hg-redis-1 valkey-cli FLUSHALL`) so its real-mode tests clear the sign-in rate limits first. `run.sh` sets both for the e2e stack (`hg-e2e-postgres-1`, `hg-e2e-redis-1`) unless they are already set, and the `fresh` and `suspended` persona tests run only with `E2E_DEVWORLD=1`. The app keeps its session in memory only, so a real-mode spec that checks the server itself takes the owner's token from `liveAccessToken(page)`, never from `localStorage`. `redesign-restaurant.menu.spec.ts` (WP8) answers `getOwnMenu` with a menu covering every row state in mock mode; in real mode it signs in as `bismillah-grill` and `suspended`, toggles an item, adds a category and an item, edits a price, and puts each change back at the end. |
-| [`web/design.ts`](web/design.ts) | `expectDesign()`: a capture that must match a design board ([Design captures](#design-captures)) |
+| [`web/design.ts`](web/design.ts) | `expectDesign()`, `expectDesignFor()`, `declareUnpairable()`: a capture that must match a design board, or is declared not comparable ([Design captures](#design-captures)). [`web/check-boards.mjs`](web/check-boards.mjs) checks the declared boards exist |
 | [`native/`](native/) | The Maestro flows for the customer and rider apps (`<app>/redesign/` for the redesign APK), and the device-lab missions, routes and result template ([native/README.md](native/README.md)). `pnpm e2e:missions:check` checks every mission and says how to fix each problem; reality steps run once, before the flows |
 | [`native/rider/redesign/`](native/rider/redesign/) | The rebuilt rider app's flows (a dev APK built with `EXPO_PUBLIC_HG_REDESIGN=1`) and their `missions/`: what the device lab on the owner's machine runs, with the reality steps (GPS route, network loss, camera, dark mode, font scale) for each. `run.sh` runs the flows (never `missions/`) on the redesign APK in e2e-full, nightly and dispatch runs |
 | [`native/customer/redesign/`](native/customer/redesign/) | Flows for the redesigned customer app, built with `EXPO_PUBLIC_HG_REDESIGN=1`, and their device-lab missions (`missions/*.yaml`). The owner's emulator runs the missions ([#656](https://github.com/shaiknoorullah/hg-mono/issues/656)); `run.sh` runs the flows on the redesign APK in e2e-full, nightly and dispatch runs |
