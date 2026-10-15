@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@hg/design-diff": "workspace:*",
     "@playwright/test": "1.50.1",
     "@types/node": "^22.10.0",
     "typescript": "^5.9.0"

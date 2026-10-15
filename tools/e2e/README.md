@@ -2,7 +2,7 @@
 covers:
   - .github/workflows/e2e.yml
   - tools/e2e/**
-reviewed: 2026-10-10
+reviewed: 2026-10-13
 ---
 
 # End-to-end flows
@@ -229,6 +229,28 @@ cd tools/e2e/native/rider && maestro test -e PHONE=+14165550161 redesign/1-ask-f
 `deploy/.env.e2e` predates the redesign ports needs it deleted once, so `stack/up.sh` writes the
 CORS list with 4175 and 4176.
 
+## Design captures
+
+A capture that names a design board says "this screen must match that board". The
+[design-diff harness](../design-diff/README.md) renders the boards, pairs each capture with its
+board by that name, and judges it pixel by pixel; the flows themselves never fail on it.
+
+- **Playwright:** `await expectDesign(page, '<app>/<area>/<Board>')` (`web/design.ts`), for
+  example `expectDesign(page, 'restaurant/sign-in/SignIn-Invalid')`. It saves a full-page
+  screenshot and a layout snapshot to `$E2E_OUT/design-captures/<app>/<width>x<height>/`.
+  `redesign-restaurant.sign-in.spec.ts` names a board for each sign-in state.
+- **Maestro:** `takeScreenshot: design--<area>--<Board>` in a flow of the app's folder, for
+  example `design--sign-in--Main` in `native/customer/redesign/lab/1-sign-in.yaml` (a device-lab flow). Capture on the
+  design AVD in the state the board is drawn in ([phone captures](../design-diff/README.md#phone-captures)).
+
+`<area>` is the canvas folder (`sign-in`, `live-orders`) and `<Board>` the board's file name
+without `.dc.html`, as the canvas's `canvas.json` lists it. Then:
+
+```bash
+pnpm --filter @hg/design-diff diff --refs <rendered boards> --captures ../../e2e-out/design-captures --out ../../e2e-out/design-diff
+pnpm --filter @hg/design-diff report --results ../../e2e-out/design-diff
+```
+
 ## What it costs
 
 The repository is private, so every minute counts against the account's monthly Actions
@@ -269,6 +291,7 @@ on macOS runners and are not part of this workflow
 | [`stack/up.sh`](stack/up.sh) | Boots `deploy/docker-compose.yml` with throwaway secrets, migrates, waits until ready |
 | [`seed/`](seed/) | The world: `seed.sh`, `world.sql`, `world.mjs`, `verify.sql` |
 | [`web/`](web/) | `serve.sh`, the Playwright config (`mode.ts`: mock or real), and the restaurant and admin tests, legacy and redesign. `redesign-<app>.*.spec.ts` are the specs for the redesign (flag `VITE_HG_REDESIGN` on), run in the `<app>-redesign-*` projects; `redesign-restaurant.support.ts` signs in for them, against the mock server (`E2E_MODE=mock`) or the real API (`E2E_MODE=real`: it signs in once per test worker as the seeded world's restaurant owner from `world.json` on the e2e stack, or as the devworld `bismillah-grill` owner against `make dev-reset` (or whenever `E2E_DEVWORLD=1`), because sign-in is rate-limited per account). Specs that drive devworld scenarios run only with `E2E_DEVWORLD=1`: they run `make` in `E2E_SERVICES_HG` (default `../../services/hg`) and, if set, run `E2E_RESET_LIMITS_CMD` first, since each scenario signs the customer persona in by phone code, which is rate-limited. `openLive()` signs in and passes the go-live gate on Live orders, as a person does with one click. `redesign-restaurant.sign-in.spec.ts` (2026-10-10, WP2) drives the sign-in form itself: in mock mode every sign-in, register and email-link state, with `page.route` standing in for the login error envelopes the contract has no fixture for; in real mode the live owner signing in (and no token left in `localStorage`), a wrong password, the unverified `fresh` persona, the `suspended` persona reaching its console, forgot password, and a new owner each run going register → check email → verify → sign in → onboarding → forgot → reset → sign in. It reads the emailed verification and reset links from the local database, as devworld does, through `E2E_PSQL_CMD` (default `docker exec -i hg-postgres-1 psql -U hg -d hg -tA`). Set `E2E_RESET_LIMITS_CMD` (for example `docker exec hg-redis-1 valkey-cli FLUSHALL`) so its real-mode tests clear the sign-in rate limits first. `run.sh` sets both for the e2e stack (`hg-e2e-postgres-1`, `hg-e2e-redis-1`) unless they are already set, and the `fresh` and `suspended` persona tests run only with `E2E_DEVWORLD=1`. The app keeps its session in memory only, so a real-mode spec that checks the server itself takes the owner's token from `liveAccessToken(page)`, never from `localStorage`. `redesign-restaurant.menu.spec.ts` (WP8) answers `getOwnMenu` with a menu covering every row state in mock mode; in real mode it signs in as `bismillah-grill` and `suspended`, toggles an item, adds a category and an item, edits a price, and puts each change back at the end. |
+| [`web/design.ts`](web/design.ts) | `expectDesign()`: a capture that must match a design board ([Design captures](#design-captures)) |
 | [`native/`](native/) | The Maestro flows for the customer and rider apps (`<app>/redesign/` for the redesign APK), and the device-lab missions, routes and result template ([native/README.md](native/README.md)). `pnpm e2e:missions:check` checks every mission and says how to fix each problem; reality steps run once, before the flows |
 | [`native/rider/redesign/`](native/rider/redesign/) | The rebuilt rider app's flows (a dev APK built with `EXPO_PUBLIC_HG_REDESIGN=1`) and their `missions/`: what the device lab on the owner's machine runs, with the reality steps (GPS route, network loss, camera, dark mode, font scale) for each. `run.sh` runs the flows (never `missions/`) on the redesign APK in e2e-full, nightly and dispatch runs |
 | [`native/customer/redesign/`](native/customer/redesign/) | Flows for the redesigned customer app, built with `EXPO_PUBLIC_HG_REDESIGN=1`, and their device-lab missions (`missions/*.yaml`). The owner's emulator runs the missions ([#656](https://github.com/shaiknoorullah/hg-mono/issues/656)); `run.sh` runs the flows on the redesign APK in e2e-full, nightly and dispatch runs |
