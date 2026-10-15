@@ -3,7 +3,7 @@ covers:
   - apps/customer/**
   - services/hg/internal/account/**
   - services/hg/internal/addresses/**
-reviewed: 2026-10-10
+reviewed: 2026-10-15
 ---
 
 # HalalGoes — CUSTOMER Domain Specification
