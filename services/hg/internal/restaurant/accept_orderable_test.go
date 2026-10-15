@@ -79,7 +79,7 @@ func TestIntegration_AcceptOrder_RefusedWhenRestaurantCannotTakeOrders(t *testin
 		// (https://github.com/shaiknoorullah/hg-mono/issues/252).
 		for _, q := range []string{
 			`UPDATE halal_certificate SET issued_on = current_date - 367, expires_on = current_date - 2 WHERE restaurant_id = $1`,
-			`UPDATE restaurant SET halal_status = 'CERTIFIED', account_state = 'LIVE' WHERE id = $1`,
+			`UPDATE restaurant SET halal_status = 'CERTIFIED', account_state = 'LIVE', delist_reasons = '{}' WHERE id = $1`,
 		} {
 			if _, err := pool.Exec(ctx, q, f.restaurantID); err != nil {
 				t.Fatalf("%s: %v", q, err)

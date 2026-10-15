@@ -487,7 +487,140 @@ reject "two idempotency records with the same key collide" "idempotency_unique" 
            digest('r2','sha256'),'IN_PROGRESS',now()+interval '24 hours');"
 
 echo
-echo "11. Contract enums"
+echo "11. Account actions (https://github.com/shaiknoorullah/hg-mono/issues/253)"
+# History rows name a staff actor who may take the transition (migration 00045):
+# an admin and a super admin to act.
+INV_ADMIN='13000000-0000-4000-8000-000000000001'
+INV_SUPER='13000000-0000-4000-8000-000000000002'
+psql "$DSN" -q -v ON_ERROR_STOP=1 -c "
+  INSERT INTO account (id, email, status) VALUES
+    ('$INV_ADMIN', 'inv-admin@hg.test', 'ACTIVE'), ('$INV_SUPER', 'inv-super@hg.test', 'ACTIVE')
+  ON CONFLICT (id) DO NOTHING;
+  INSERT INTO account_role (account_id, role, scope_type)
+  SELECT v.a::uuid, v.r::role_name, 'GLOBAL'
+    FROM (VALUES ('$INV_ADMIN', 'ADMIN'), ('$INV_SUPER', 'SUPER_ADMIN')) AS v(a, r)
+   WHERE NOT EXISTS (SELECT 1 FROM account_role x WHERE x.account_id = v.a::uuid AND x.role = v.r::role_name);" >/dev/null
+# The admin's live two-step session and the access token signed for it: a staff
+# action presents the token, and the database finds the session by its hash
+# (migration 00045). The token's signature is not the database's to check.
+INV_ADMIN_SESSION='13000000-0000-4000-8000-0000000000e1'
+INV_ADMIN_TOKEN="$(psql "$DSN" -At -c "
+  SELECT 'eyJhbGciOiJFZERTQSJ9.' || rtrim(translate(replace(encode(convert_to(json_build_object(
+           'sub', '$INV_ADMIN', 'sid', '$INV_ADMIN_SESSION', 'roles', json_build_array('ADMIN'),
+           'amr', json_build_array('pwd+totp'), 'exp', extract(epoch FROM now() + interval '1 hour')::bigint)::text,
+           'UTF8'), 'base64'), E'\n', ''), '+/', '-_'), '=') || '.c2ln'")"
+psql "$DSN" -q -v ON_ERROR_STOP=1 -c "
+  INSERT INTO session (id, family_id, account_id, amr, roles_snapshot, client, refresh_hash, access_hash,
+                       idle_expires_at, absolute_expires_at)
+  VALUES ('$INV_ADMIN_SESSION', gen_random_uuid(), '$INV_ADMIN', 'pwd+totp', '[]', 'admin-web',
+          sha256(convert_to('inv-admin-refresh', 'UTF8')), sha256(convert_to('$INV_ADMIN_TOKEN', 'UTF8')),
+          now() + interval '30 minutes', now() + interval '12 hours')
+  ON CONFLICT (id) DO UPDATE SET access_hash = EXCLUDED.access_hash,
+    idle_expires_at = EXCLUDED.idle_expires_at, absolute_expires_at = EXCLUDED.absolute_expires_at;" >/dev/null
+ASE_COLS="subject_type, subject_id, action, from_state, to_state, reason_code, reason_text, actor_account_id, idempotency_key, request_hash"
+reject "a ban needs a proposal to confirm" "account_ban_needs_proposal" \
+  "INSERT INTO account_state_event ($ASE_COLS) VALUES
+   ('RIDER','22222222-2222-4222-8222-222222222222','CONFIRM_BAN','SUSPENDED','BANNED','SAFETY_RISK',
+    'nobody proposed this ban','$INV_SUPER','inv-ban-without-proposal', '\x00');"
+reject "the person who proposed a ban cannot confirm it" "account_ban_two_person" \
+  "INSERT INTO account_state_event ($ASE_COLS) VALUES
+   ('RIDER','22222222-2222-4222-8222-222222222222','PROPOSE_BAN','SUSPENDED','SUSPENDED','SAFETY_RISK',
+    'proposing a ban for a test','$INV_SUPER','inv-two-person-propose', '\x00');
+   INSERT INTO account_state_event ($ASE_COLS) VALUES
+   ('RIDER','22222222-2222-4222-8222-222222222222','CONFIRM_BAN','SUSPENDED','BANNED','SAFETY_RISK',
+    'confirming my own proposal','$INV_SUPER','inv-two-person-confirm', '\x00');"
+# The transition guard (00045) runs before the CHECK (00044); either refuses it.
+reject "a ban is reached only by confirming one" "account_state_illegal_transition\\|account_state_event_ban_shape" \
+  "INSERT INTO account_state_event ($ASE_COLS) VALUES
+   ('CUSTOMER','11111111-1111-4111-8111-111111111111','SUSPEND','ACTIVE','BANNED','OTHER',
+    'a suspension that bans','$INV_ADMIN','inv-suspend-to-banned', '\x00');"
+reject "a reason from another subject's vocabulary is refused" "account_state_event_reason_code" \
+  "INSERT INTO account_state_event ($ASE_COLS) VALUES
+   ('RIDER','22222222-2222-4222-8222-222222222222','SUSPEND','ACTIVE','SUSPENDED','HALAL_INTEGRITY',
+    'a restaurant reason on a rider','$INV_ADMIN','inv-wrong-vocabulary', '\x00');"
+reject "the account history is append-only" "account_state_event_is_append_only" \
+  "INSERT INTO account_state_event ($ASE_COLS) VALUES
+   ('CUSTOMER','11111111-1111-4111-8111-111111111111','SUSPEND','ACTIVE','SUSPENDED','OTHER',
+    'suspended, then rewritten','$INV_ADMIN','inv-append-only-history', '\x00');
+   UPDATE account_state_event SET to_state = 'ACTIVE' WHERE idempotency_key = 'inv-append-only-history';"
+
+echo
+echo "12. Only the database's writers change an account's state (migration 00045)"
+RIDER_FX='019ffe57-fbd0-7355-ade8-b03ea7943578'
+APPLY="SELECT * FROM account_state_apply"
+reject "the application role cannot change a restaurant's state" "permission denied" \
+  "SET LOCAL ROLE hg_app;
+   UPDATE restaurant SET account_state = 'SUSPENDED' WHERE id = '33333333-3333-4333-8333-333333333333';"
+reject "the application role cannot clear a restaurant's delisting reasons" "permission denied" \
+  "SET LOCAL ROLE hg_app;
+   UPDATE restaurant SET delist_reasons = '{}' WHERE id = '33333333-3333-4333-8333-333333333333';"
+reject "the application role cannot change a rider's status" "permission denied" \
+  "SET LOCAL ROLE hg_app; UPDATE rider_profile SET account_status = 'BANNED' WHERE account_id = '$RIDER_FX';"
+reject "the application role cannot change a customer's status" "permission denied" \
+  "SET LOCAL ROLE hg_app; UPDATE account SET status = 'BANNED' WHERE id = '11111111-1111-4111-8111-111111111111';"
+reject "the application role cannot delete a rider to create them again" "permission denied" \
+  "SET LOCAL ROLE hg_app; DELETE FROM rider_profile WHERE account_id = '$RIDER_FX';"
+# A view onto restaurant would otherwise run its writes with the owner's rights
+# and hand the write block straight back; 00045 shuts that door too.
+reject "the application role cannot delete a restaurant through a view either" "permission denied" \
+  "SET LOCAL ROLE hg_app; DELETE FROM halal_status_inconsistency WHERE restaurant_id = '33333333-3333-4333-8333-333333333333';"
+reject "the application role cannot re-key a restaurant through a view either" "permission denied" \
+  "SET LOCAL ROLE hg_app; UPDATE halal_status_inconsistency SET restaurant_id = gen_random_uuid() WHERE restaurant_id = '33333333-3333-4333-8333-333333333333';"
+reject "the application role cannot create an account in another state" "permission denied" \
+  "SET LOCAL ROLE hg_app; INSERT INTO account (phone_e164, status) VALUES ('+16475550142', 'BANNED');"
+reject "the application role cannot write the history" "permission denied" \
+  "SET LOCAL ROLE hg_app;
+   INSERT INTO account_state_event (subject_type, subject_id, action, from_state, to_state, reason_code,
+                                    reason_text, actor_kind, system_actor)
+   VALUES ('RESTAURANT','33333333-3333-4333-8333-333333333333','DELIST','LIVE','DELISTED',
+           'HALAL_CERTIFICATE_EXPIRED','posing as the expiry','SYSTEM','HALAL_EXPIRY');"
+reject "the application role cannot change who may take a transition" "permission denied" \
+  "SET LOCAL ROLE hg_app;
+   INSERT INTO account_state_rule VALUES ('RIDER','REINSTATE','BANNED','ACTIVE','ADMIN','rider.reinstate',NULL);"
+reject "a staff action needs the access token of a live two-step session" "account_state_session_required" \
+  "SET LOCAL ROLE hg_app;
+   $APPLY('RIDER','$RIDER_FX','SUSPEND','$INV_ADMIN','OTHER','an account id is not a token','inv-no-session-01','\x00','{}','{}');"
+reject "the application role cannot rewrite a session" "permission denied" \
+  "SET LOCAL ROLE hg_app; UPDATE session SET account_id = '$INV_SUPER' WHERE id = '$INV_ADMIN_SESSION';"
+reject "a revoked session cannot be brought back" "session_revoked_is_final" \
+  "UPDATE session SET revoked_at = now() WHERE id = '$INV_ADMIN_SESSION';
+   UPDATE session SET revoked_at = NULL WHERE id = '$INV_ADMIN_SESSION';"
+# A POSIX offset is a timezone Postgres accepts and Go's LocalDate does not. At this
+# instant (00:30 UTC the day after the certificate's last day) it has lapsed in UTC; the offset
+# zone '<-167>+167' would read it as still current. The timezone goes back afterwards.
+accept "a POSIX-offset timezone cannot keep a lapsed halal certificate current" \
+  "UPDATE restaurant SET timezone = '<-167>+167' WHERE id = '33333333-3333-4333-8333-333333333333';
+   DO \$\$ BEGIN
+     IF account_state_certificate('33333333-3333-4333-8333-333333333333', (SELECT (expires_on + 1)::timestamp AT TIME ZONE 'UTC' + interval '30 minutes' FROM halal_certificate WHERE restaurant_id = '33333333-3333-4333-8333-333333333333' AND status = 'APPROVED')) <> 'EXPIRED' THEN
+       RAISE EXCEPTION 'POSIX-offset timezone kept a lapsed certificate CURRENT';
+     END IF;
+   END \$\$;
+   UPDATE restaurant SET timezone = 'America/Toronto' WHERE id = '33333333-3333-4333-8333-333333333333';
+   DO \$\$ BEGIN
+     IF account_state_certificate('33333333-3333-4333-8333-333333333333', (SELECT (expires_on + 1)::timestamp AT TIME ZONE 'UTC' + interval '30 minutes' FROM halal_certificate WHERE restaurant_id = '33333333-3333-4333-8333-333333333333' AND status = 'APPROVED')) <> 'CURRENT' THEN
+       RAISE EXCEPTION 'a real zone no longer reads the certificate in local time';
+     END IF;
+   END \$\$;"
+reject "only a super admin lifts a ban" "account_state_actor_not_permitted" \
+  "UPDATE rider_profile SET account_status = 'BANNED' WHERE account_id = '$RIDER_FX';
+   SET LOCAL ROLE hg_app;
+   $APPLY('RIDER','$RIDER_FX','REINSTATE','$INV_ADMIN_TOKEN','APPEAL_UPHELD','an admin lifts a ban','inv-admin-unban-01','\x00','{}','{}');"
+reject "listing a restaurant needs a current halal certificate" "account_state_halal_certificate_required" \
+  "INSERT INTO restaurant (id, slug, legal_name, display_name, line1, city, province, postal_code, location,
+                           onboarding_state, account_state)
+   VALUES ('13000000-0000-4000-8000-0000000000a1', 'inv-uncertified', 'Uncertified Inc.', 'Uncertified',
+           '1 King St', 'Toronto', 'ON', 'M5J0C3', ST_SetSRID(ST_MakePoint(-79.38, 43.65), 4326)::geography,
+           'ACTIVE', 'DELISTED');
+   SET LOCAL ROLE hg_app;
+   $APPLY('RESTAURANT','13000000-0000-4000-8000-0000000000a1','REINSTATE','$INV_ADMIN_TOKEN','ISSUE_RESOLVED',
+          'relisting with no certificate','inv-relist-uncert-1','\x00','{}','{}');"
+reject "a system principal's function takes no rider" "account_state_subject_not_found" \
+  "SET LOCAL ROLE hg_app; SELECT * FROM account_state_halal_expiry('$RIDER_FX');"
+reject "a listed restaurant carries no delisting reason" "restaurant_live_has_no_delist_reasons" \
+  "UPDATE restaurant SET delist_reasons = '{OTHER}' WHERE id = '33333333-3333-4333-8333-333333333333';"
+
+echo
+echo "13. Contract enums"
 if python3 "$HERE/../tools/check_enums.py" >/tmp/hg_enum_check.txt 2>&1; then
   pass "every contract enum matches a pg type or is an explained exclusion"
   tail -2 /tmp/hg_enum_check.txt | head -1 | sed 's/^/     /'

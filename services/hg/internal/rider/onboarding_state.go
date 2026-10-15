@@ -10,7 +10,8 @@ import (
 
 // RecomputeOnboarding moves an approved rider from PAYOUT_PENDING to ACTIVE once
 // their Stripe Connect account reports payouts_enabled. Going online requires
-// ACTIVE (and an ACTIVE account_status, which a PENDING rider gets here), so without this an approved rider can never work. It is idempotent and
+// ACTIVE (and an ACTIVE account_status, which a PENDING rider gets here, through the
+// database's onboarding writer), so without this an approved rider can never work. It is idempotent and
 // only ever moves a rider forward from PAYOUT_PENDING; call it in the caller's
 // transaction from every event that can satisfy the gate (admin approval,
 // Connect account updates).
@@ -18,7 +19,6 @@ func RecomputeOnboarding(ctx context.Context, tx pgx.Tx, accountID string) error
 	tag, err := tx.Exec(ctx, `
 UPDATE rider_profile rp
    SET onboarding_state = 'ACTIVE',
-       account_status = CASE WHEN account_status = 'PENDING' THEN 'ACTIVE' ELSE account_status END,
        updated_at = now()
  WHERE rp.account_id = $1
    AND rp.onboarding_state = 'PAYOUT_PENDING'
@@ -26,6 +26,12 @@ UPDATE rider_profile rp
                 WHERE ca.owner_type = 'RIDER' AND ca.owner_id = rp.account_id
                   AND ca.payouts_enabled)`, accountID)
 	if err != nil || tag.RowsAffected() == 0 {
+		return err
+	}
+	// The account status is not the application's to write: the database's
+	// onboarding writer moves a PENDING rider to ACTIVE, and nothing else
+	// (https://github.com/shaiknoorullah/hg-mono/issues/253, migration 00045).
+	if _, err := tx.Exec(ctx, `SELECT account_state_complete_rider_onboarding($1)`, accountID); err != nil {
 		return err
 	}
 	// The rider sees it on their account channel: Stripe's payouts gate

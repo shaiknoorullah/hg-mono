@@ -43,4 +43,10 @@ const (
 	CodePriceOutOfRange    httpx.ErrorCode = "PRICE_OUT_OF_RANGE"
 	CodeFieldNotWritable   httpx.ErrorCode = "FIELD_NOT_WRITABLE"
 	CodeMenuVersionPending httpx.ErrorCode = "MENU_VERSION_PENDING"
+
+	// Account actions: suspend, reinstate, delist, deactivate or ban
+	// (https://github.com/shaiknoorullah/hg-mono/issues/253).
+	CodeIllegalStateTransition httpx.ErrorCode = "ILLEGAL_STATE_TRANSITION"
+	CodeForbiddenPermission    httpx.ErrorCode = "FORBIDDEN_PERMISSION"
+	CodeInFlightOrdersPresent  httpx.ErrorCode = "IN_FLIGHT_ORDERS_PRESENT"
 )

@@ -1,0 +1,23 @@
+{
+  "scenario": "error_account_action_ban_needs_second_person",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`403` · `SELF_APPROVAL_FORBIDDEN`. The person who proposed a ban tried to confirm it.",
+  "operations": [
+    "applyRestaurantAccountAction",
+    "applyRiderAccountAction",
+    "applyCustomerAccountAction"
+  ],
+  "status": 403,
+  "tags": [
+    "error-envelope",
+    "account-action"
+  ],
+  "payload": {
+    "error": {
+      "code": "SELF_APPROVAL_FORBIDDEN",
+      "message": "A ban needs a second person: a different super admin must confirm it.",
+      "request_id": "8S82MNGHCFMBWVMTMYZ9P3CNQ8"
+    }
+  }
+}

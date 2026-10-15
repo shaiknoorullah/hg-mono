@@ -1,0 +1,41 @@
+{
+  "scenario": "customer_ban_proposed",
+  "domain": "admin",
+  "schema": "AccountStateChange",
+  "describes": "`PROPOSE_BAN`: `SUSPENDED` → `SUSPENDED`. A ban proposed; the customer stays suspended.",
+  "operations": [
+    "applyCustomerAccountAction"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "account-action",
+    "state-matrix"
+  ],
+  "payload": {
+    "id": "101cc003-656b-410f-a053-a01530710f3b",
+    "subject_type": "CUSTOMER",
+    "subject_id": "6087e999-1c05-4911-ad7a-7dead9531444",
+    "action": "PROPOSE_BAN",
+    "from_state": "SUSPENDED",
+    "to_state": "SUSPENDED",
+    "reason_code": "ABUSIVE_CONDUCT_TO_RIDER",
+    "reason_text": "Third report of threats to riders, with a recording.",
+    "actor_account_id": "6355afc2-21b9-4556-a0fe-16db508f6a3b",
+    "ban_proposal": {
+      "proposed_by": "6355afc2-21b9-4556-a0fe-16db508f6a3b",
+      "proposed_at": "2026-08-10T18:42:11.412Z",
+      "lapses_at": "2026-08-17T18:42:11.412Z"
+    },
+    "delist_reasons": [],
+    "menu_locked": null,
+    "sessions_revoked": 0,
+    "in_flight": {
+      "cancelled_order_ids": [],
+      "refunded_order_ids": [],
+      "continuing_order_ids": [],
+      "withdrawn_offer_ids": []
+    },
+    "created_at": "2026-08-10T18:42:11.412Z"
+  }
+}
