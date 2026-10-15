@@ -4,9 +4,7 @@
  * its screen removes the entry and its route points at the redesigned screen instead.
  */
 import { PayoutsPage } from '../../routes/PayoutsPage';
-import { SettingsPage } from '../../routes/SettingsPage';
 
 export const LEGACY = {
   Payouts: PayoutsPage,
-  Settings: SettingsPage,
 };
