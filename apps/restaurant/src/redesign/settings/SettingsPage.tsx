@@ -1,5 +1,5 @@
 /**
- * Settings, `/settings/:section` (restaurant work package for settings; canvas ST
+ * Settings, `/settings/:section` (restaurant work package for settings; canvas
  * `ScreenSettings`). A section list on the left (title and a one-line summary), the chosen
  * section beside it, and a panel on the right while an edit, an upload or a password change is
  * open (the section list then keeps titles only).

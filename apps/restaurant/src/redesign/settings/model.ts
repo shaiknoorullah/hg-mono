@@ -64,7 +64,7 @@ export interface AccountView {
   tone: 'neutral' | 'info' | 'warning';
 }
 
-/** Board ST `A` table: the listing line. No reason is shown for a suspension: the contract has none. */
+/** The settings board's listing table: the listing line. No reason is shown for a suspension: the contract has none. */
 export function accountView(state: AccountState | undefined, halalHides: boolean): AccountView {
   switch (state) {
     case 'LIVE':
