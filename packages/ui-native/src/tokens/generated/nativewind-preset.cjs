@@ -266,6 +266,16 @@ module.exports = {
             'on-solid': 'var(--hg-feedback-info-on-solid)',
             'tint-border': 'var(--hg-feedback-info-tint-border)',
           },
+          neutral: {
+            tint: 'var(--hg-feedback-neutral-tint)',
+            border: 'var(--hg-feedback-neutral-border)',
+            icon: 'var(--hg-feedback-neutral-icon)',
+          },
+          slate: {
+            tint: 'var(--hg-feedback-slate-tint)',
+            border: 'var(--hg-feedback-slate-border)',
+            icon: 'var(--hg-feedback-slate-icon)',
+          },
         },
         skeleton: {
           base: 'var(--hg-skeleton-base)',
@@ -285,6 +295,9 @@ module.exports = {
           line: 'var(--hg-chrome-line)',
           active: 'var(--hg-chrome-active)',
           tile: 'var(--hg-chrome-tile)',
+        },
+        progress: {
+          fill: 'var(--hg-progress-fill)',
         },
       },
       spacing: {

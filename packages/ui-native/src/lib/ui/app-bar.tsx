@@ -19,7 +19,7 @@ import { Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
 import { cn } from '../utils';
 import { Button } from './button';
 import { Glyph } from './icon';
-import { IndeterminateBar } from './progress';
+import { Progress } from './progress';
 import { Text } from './text';
 
 /** The theme surface the bar sits on. */
@@ -167,7 +167,15 @@ export function AppBar({
         <View className="min-w-0 flex-1 justify-center gap-0.5">{centre}</View>
         {actions ? <View className="-me-2 flex-row items-center gap-1">{actions}</View> : null}
       </View>
-      {loading ? <IndeterminateBar testID={`${testID}-loading`} /> : null}
+      {loading ? (
+        <Progress
+          indeterminate
+          accessibilityLabel="Loading"
+          testID={`${testID}-loading`}
+          className="absolute bottom-0 end-0 start-0 h-0.5 rounded-none bg-transparent"
+          indicatorClassName="rounded-none bg-primary"
+        />
+      ) : null}
     </View>
   );
 }

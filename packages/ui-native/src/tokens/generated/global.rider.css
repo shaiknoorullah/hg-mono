@@ -83,6 +83,13 @@
   --hg-chrome-line: #143026;
   --hg-chrome-active: #F5966B;
   --hg-chrome-tile: #0F241C;
+  --hg-feedback-neutral-tint: #F6EFDD;
+  --hg-feedback-neutral-border: #E6E0D4;
+  --hg-feedback-neutral-icon: #4A4E48;
+  --hg-feedback-slate-tint: #EDEFF1;
+  --hg-feedback-slate-border: #B9C0C7;
+  --hg-feedback-slate-icon: #4E5862;
+  --hg-progress-fill: #4A4E48;
 
   --background: #FFFAEA;
   --foreground: #232323;
@@ -177,6 +184,13 @@
   --hg-chrome-line: #0F241C;
   --hg-chrome-active: #F5966B;
   --hg-chrome-tile: #143026;
+  --hg-feedback-neutral-tint: #232323;
+  --hg-feedback-neutral-border: #33352F;
+  --hg-feedback-neutral-icon: #B9B0A0;
+  --hg-feedback-slate-tint: #1B1F24;
+  --hg-feedback-slate-border: #4E5862;
+  --hg-feedback-slate-icon: #7C8794;
+  --hg-progress-fill: #B9B0A0;
 
   --background: #171717;
   --foreground: #F6EFDD;

@@ -44,7 +44,5 @@ export { Toast, TOAST_INK, TOAST_DURATION, isPersistentToast } from './ui/toast'
 export type { ToastProps, ToastVariant } from './ui/toast';
 export { StickyFooter } from './ui/sticky-footer';
 export type { StickyFooterProps } from './ui/sticky-footer';
-export { IndeterminateBar } from './ui/progress';
-export type { IndeterminateBarProps } from './ui/progress';
 export { OverlayPortal } from './ui/overlay';
 export type { OverlayWrap } from './ui/overlay';
