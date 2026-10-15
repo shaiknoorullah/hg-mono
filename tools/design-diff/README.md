@@ -1,7 +1,7 @@
 ---
 covers:
   - tools/design-diff/**
-reviewed: 2026-10-13
+reviewed: 2026-10-15
 ---
 
 # Design diff
@@ -70,6 +70,8 @@ starts with the web flows' flags. Render the boards with the Chromium binary the
 (`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`, or Playwright's default for both): a full Chrome and the
 headless shell of the same version rasterise text differently, 0.5 to 1.3 % of a board's pixels.
 Each board records its `browser` in the manifest.
+
+**Launching Chromium.** Chromium always starts with `--no-sandbox --disable-setuid-sandbox --disable-gpu --disable-dev-shm-usage`, because on hosts that cannot start Chromium's sandbox the first page died at once and the renderer looked like a hang rather than a failure. The launch has a 60 second timeout, and both settle waits are bounded at 30 seconds, so a wedged page gives up and says so instead of hanging for ever.
 
 ## Compare
 
