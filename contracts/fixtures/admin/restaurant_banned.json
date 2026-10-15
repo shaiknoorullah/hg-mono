@@ -1,0 +1,43 @@
+{
+  "scenario": "restaurant_banned",
+  "domain": "admin",
+  "schema": "AccountStateChange",
+  "describes": "`CONFIRM_BAN`: `SUSPENDED` → `BANNED`. A super admin confirms the ban. Orders still being prepared are cancelled and refunded; the ready order finishes. Every session of the restaurant's staff ends.",
+  "operations": [
+    "applyRestaurantAccountAction"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "account-action",
+    "state-matrix"
+  ],
+  "payload": {
+    "id": "bc3917a2-6de0-4168-ad9b-b70e54fc964d",
+    "subject_type": "RESTAURANT",
+    "subject_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+    "action": "CONFIRM_BAN",
+    "from_state": "SUSPENDED",
+    "to_state": "BANNED",
+    "reason_code": "REPEATED_VIOLATIONS",
+    "reason_text": "Confirmed after reviewing the four findings and the supplier invoices.",
+    "actor_account_id": "e34f6191-6d6d-4a96-a8ec-f6ec9485bb75",
+    "ban_proposal": null,
+    "delist_reasons": [],
+    "menu_locked": true,
+    "sessions_revoked": 3,
+    "in_flight": {
+      "cancelled_order_ids": [
+        "a0668ea7-b278-4048-ac92-0e892db84c8e"
+      ],
+      "refunded_order_ids": [
+        "a0668ea7-b278-4048-ac92-0e892db84c8e"
+      ],
+      "continuing_order_ids": [
+        "74b466de-b8fc-4997-aeda-6838d070e99b"
+      ],
+      "withdrawn_offer_ids": []
+    },
+    "created_at": "2026-08-10T20:42:11.412Z"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "scenario": "error_relist_needs_halal_certificate",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `HALAL_CERTIFICATE_REQUIRED`. Relisting a delisted restaurant whose certificate expired. Verify a renewed certificate first.",
+  "operations": [
+    "applyRestaurantAccountAction"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope",
+    "account-action"
+  ],
+  "payload": {
+    "error": {
+      "code": "HALAL_CERTIFICATE_REQUIRED",
+      "message": "The restaurant can be listed again only with a current, verified halal certificate.",
+      "request_id": "55MNFWJFNYKEPGEYQ95PFSN163",
+      "details": {
+        "halal_status": "EXPIRED"
+      }
+    }
+  }
+}

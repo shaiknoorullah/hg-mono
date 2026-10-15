@@ -24,9 +24,19 @@ var onboardingRank = map[string]int{
 //	PAYOUT_PENDING     --payout account READY (R-11)---> MENU_PENDING
 //	MENU_PENDING       --≥1 LIVE item (R-17) AND hours set (R-06)--> ACTIVE
 //
-// When it reaches ACTIVE the restaurant's account_state flips to LIVE in the same
-// step ("becomes ACTIVE exactly when onboarding_state becomes ACTIVE"), at which
-// point the restaurant is discoverable and can accept orders.
+// The last step, to ACTIVE, is the database function
+// account_state_complete_onboarding() (migration 00045): the ONBOARDING system
+// principal (accountstate.SystemOnboarding), and the only way out of PENDING (the
+// application role cannot write the account state). It checks the three gates and
+// the halal certificate itself, records the step and its audit row, and takes the
+// restaurant out of PENDING in the same row update ("becomes ACTIVE exactly when
+// onboarding_state becomes ACTIVE"): to LIVE only with a current, admin-verified
+// certificate and no delisting reason, otherwise to DELISTED with the
+// certificate's reason, the rule an admin reinstating it follows
+// (accountstate.ReinstatedState). A certificate can lapse
+// between the application's approval and the last gate; the restaurant is then
+// delisted, not listed. A restaurant that is not PENDING keeps its account state:
+// completing onboarding never lifts a suspension or a ban.
 //
 // It is monotonic and idempotent: it reads the current state and the three gating
 // conditions, computes the furthest reachable state, and only moves forward and
@@ -68,13 +78,18 @@ SELECT r.onboarding_state::text,
 		return nil // already at or beyond the furthest reachable state
 	}
 
-	acct := ""
 	if target == "ACTIVE" {
-		acct = ", account_state = 'LIVE'"
+		// The last step is the ONBOARDING principal's: it moves onboarding_state,
+		// the account state and the delisting reasons, and records the step and the
+		// audit row, in this transaction.
+		if _, err := tx.Exec(ctx, `SELECT * FROM account_state_complete_onboarding($1)`, restaurantID); err != nil {
+			return err
+		}
+		return nil
 	}
-	if _, err := tx.Exec(ctx,
-		`UPDATE restaurant SET onboarding_state = $2::restaurant_onboarding_state`+acct+
-			`, updated_at = now() WHERE id = $1`, restaurantID, target); err != nil {
+	if _, err := tx.Exec(ctx, `
+UPDATE restaurant SET onboarding_state = $2::restaurant_onboarding_state, updated_at = now()
+ WHERE id = $1`, restaurantID, target); err != nil {
 		return err
 	}
 	if _, err := tx.Exec(ctx, `

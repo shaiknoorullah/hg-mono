@@ -89,18 +89,29 @@ func TestRecomputeOnboarding_GoLive(t *testing.T) {
 		t.Fatalf("payout ready (no hours): got %s/%s, want MENU_PENDING/PENDING", st, acct)
 	}
 
-	// 3. Hours set (live item already present) -> ACTIVE, and account_state flips to LIVE.
+	// 3. Hours set (live item already present) -> ACTIVE, and the restaurant leaves
+	// PENDING. This fixture has no admin-verified halal certificate, so it is
+	// DELISTED with that reason, never listed (accountstate.GoLive); listing it
+	// with a current certificate is pinned in internal/admin
+	// (TestCompletingOnboardingIsTheOnboardingPrincipal).
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO restaurant_hours (restaurant_id, day_of_week, opens_at, closes_at)
 		VALUES ($1, 1, '09:00', '21:00')`, rid); err != nil {
 		t.Fatalf("seed hours: %v", err)
 	}
-	if st, acct := recomputeState(t, pool, rid); st != "ACTIVE" || acct != "LIVE" {
-		t.Fatalf("menu+payout+hours: got %s/%s, want ACTIVE/LIVE", st, acct)
+	if st, acct := recomputeState(t, pool, rid); st != "ACTIVE" || acct != "DELISTED" {
+		t.Fatalf("menu+payout+hours, no certificate: got %s/%s, want ACTIVE/DELISTED", st, acct)
+	}
+	var reasons string
+	if err := pool.QueryRow(ctx, `SELECT array_to_string(delist_reasons, ',') FROM restaurant WHERE id=$1`, rid).Scan(&reasons); err != nil {
+		t.Fatal(err)
+	}
+	if reasons != "HALAL_CERTIFICATE_UNVERIFIED" {
+		t.Fatalf("delist reasons %q, want HALAL_CERTIFICATE_UNVERIFIED", reasons)
 	}
 
 	// 4. Idempotent: recomputing an already-ACTIVE restaurant is a no-op.
-	if st, acct := recomputeState(t, pool, rid); st != "ACTIVE" || acct != "LIVE" {
+	if st, acct := recomputeState(t, pool, rid); st != "ACTIVE" || acct != "DELISTED" {
 		t.Fatalf("idempotent recompute drifted: %s/%s", st, acct)
 	}
 }

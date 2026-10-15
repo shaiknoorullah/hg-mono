@@ -12,7 +12,7 @@ import os
 FIXTURE_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 DOMAIN_BLURB = {
-    "admin": "Review queues, applications, staff, the menu-review workflow and payout runs.",
+    "admin": "Review queues, applications, staff, the menu-review workflow, payout runs and every account action (suspend, reinstate, delist, deactivate, ban).",
     "cart": "Cart and quote — every blocking reason, the quantity cap, and the money edges.",
     "catalogue": "Discovery, restaurant detail, hours and menus.",
     "dispatch": "Dispatch states, rider offers and assignments.",
@@ -225,6 +225,7 @@ def write_readme(manifest: dict) -> None:
         "restaurant": "Restaurant-facing surface.",
         "rider": "Rider-facing surface.",
         "admin": "Admin/support-facing surface.",
+        "account-action": "Suspending, reinstating, delisting, deactivating or banning an account.",
         "documents": "KYC document surface.",
         "tracking": "The live order-tracking screen.",
         "delivery-code": "The customer's 4-digit delivery code: shown, hidden, locked, overridden by support.",
