@@ -1,10 +1,17 @@
-import { View } from 'react-native';
+import * as React from 'react';
+import { Linking, View } from 'react-native';
 
-import { Button as LegacyButton, type ButtonSize, type ButtonVariant } from '../primitives/Button';
-import { IconButton as LegacyIconButton, type IconButtonSize, type IconButtonVariant } from '../primitives/IconButton';
-import { type Theme, useTheme } from '../tokens';
-import { Icon } from './Icon';
-import { type AnyIconName, type DsCommon, resolveTestId } from './shared';
+import { Button as LibButton, buttonTextVariants, CountBubble, Glyph, Spinner, Text } from '../lib';
+import type { ButtonSize, ButtonVariant } from '../primitives/Button';
+import type { IconButtonSize, IconButtonVariant } from '../primitives/IconButton';
+import { useTheme } from '../tokens';
+import { type AnyIconName, type DsCommon, isFieldTheme, resolveTestId } from './shared';
+
+/*
+ * Button and IconButton (design-system N1): the live props, rendered by the React Native
+ * Reusables tier (`lib/ui/button.tsx`, NativeWind classes from the generated tokens). This file
+ * keeps React's own JSX runtime and only maps props: every `className` is applied inside `lib/`.
+ */
 
 /** Props of the live `Button`, native types. */
 export interface ButtonProps extends DsCommon {
@@ -33,36 +40,91 @@ export interface ButtonProps extends DsCommon {
   accessibilityHint?: string;
 }
 
-/** The label colour of each fill, so an icon in the button matches its label. */
-function labelColor(theme: Theme, variant: ButtonVariant): string {
-  switch (variant) {
-    case 'primary':
-      return theme.color.text.onBrand;
-    case 'secondary':
-      return theme.color.text.onAccent;
-    case 'danger':
-      return theme.color.feedback.danger.onSolid ?? theme.color.text.onAccent;
-    default:
-      return theme.color.text.primary;
-  }
+/** Icon box per size (live: sm 16, md and lg 20, xl and critical 24). */
+const BUTTON_ICON_PX: Record<ButtonSize | 'critical', number> = { sm: 16, md: 20, lg: 20, xl: 24, critical: 24 };
+
+/** A fixed box for the leading or trailing slot, so a spinner swapped in never moves the label. */
+function Slot({ px, children }: { px: number; children?: React.ReactNode }) {
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{ width: px, height: px, alignItems: 'center', justifyContent: 'center' }}
+    >
+      {children}
+    </View>
+  );
 }
 
-/** The single affordance for an action; live `Button` props over the legacy button. */
+/**
+ * The single affordance for an action. Sizes are the live ones; on the rider (field) theme sm,
+ * md and lg grow to the 56pt floor and the label steps up to `label.lg`. Passing `loading` at all
+ * (even `false`) reserves the leading slot, so switching to loading never changes the width.
+ */
 export function Button(props: ButtonProps) {
-  const { iconStart, iconEnd, style, testId: _t, testID: _T, ...rest } = props;
+  const {
+    children,
+    size = 'md',
+    critical = false,
+    fullWidth = false,
+    iconStart,
+    iconEnd,
+    loading,
+    disabled = false,
+    destructive = false,
+    onPress,
+    href,
+    accessibilityLabel,
+    accessibilityHint,
+    style,
+  } = props;
   const theme = useTheme();
-  const variant: ButtonVariant = rest.variant ?? (rest.destructive ? 'danger' : 'primary');
-  const tint = labelColor(theme, variant);
-  const size = rest.size === 'xl' || rest.critical ? 'lg' : 'md';
-  const button = (
-    <LegacyButton
-      {...rest}
-      testID={resolveTestId(props, 'Button')}
-      iconStart={iconStart ? <Icon name={iconStart} size={size} color={tint} /> : undefined}
-      iconEnd={iconEnd ? <Icon name={iconEnd} size={size} color={tint} /> : undefined}
-    />
+  const field = isFieldTheme(theme);
+  const variant: ButtonVariant = props.variant ?? (destructive ? 'danger' : 'primary');
+  const libSize = critical ? 'critical' : size;
+  const px = BUTTON_ICON_PX[libSize];
+  const tone = buttonTextVariants({ variant, size: libSize, field });
+  const busy = loading === true;
+  const reserve = loading !== undefined;
+  const testID = resolveTestId(props, 'Button');
+
+  const lead = busy ? (
+    <Slot px={px}>
+      <Spinner size={px > 20 ? 'md' : 'sm'} className={tone} testID={`${testID}-spinner`} />
+    </Slot>
+  ) : iconStart ? (
+    <Slot px={px}>
+      <Glyph name={iconStart} size={px} className={tone} />
+    </Slot>
+  ) : reserve ? (
+    <Slot px={px} />
+  ) : null;
+  const trail = iconEnd ? (
+    <Slot px={px}>{busy ? null : <Glyph name={iconEnd} size={px} className={tone} />}</Slot>
+  ) : reserve && !iconStart ? (
+    <Slot px={px} />
+  ) : null;
+
+  return (
+    <LibButton
+      testID={testID}
+      variant={variant}
+      size={libSize}
+      field={field}
+      fullWidth={fullWidth}
+      disabled={disabled}
+      loading={busy}
+      onPress={onPress ?? (href ? () => void Linking.openURL(href) : undefined)}
+      accessibilityRole={href ? 'link' : 'button'}
+      accessibilityLabel={accessibilityLabel ?? children}
+      accessibilityHint={accessibilityHint}
+      style={style}
+    >
+      {lead}
+      <Text testID={`${testID}-label`}>{children}</Text>
+      {trail}
+    </LibButton>
   );
-  return style ? <View style={style}>{button}</View> : button;
 }
 
 /** Props of the live `IconButton`, native types. */
@@ -71,10 +133,11 @@ export interface IconButtonProps extends DsCommon {
   icon: AnyIconName | React.ReactNode;
   /** REQUIRED. A count badge is appended to it ("Cart, 3 items"). */
   accessibilityLabel: string;
+  /** plain · filled (brand fill, dark label) · tonal (subtle surface). */
   variant?: IconButtonVariant;
-  /** sm 36 (hit area 44) · md 44 · lg 56. */
+  /** sm 36 (hit area 44) · md 44 · lg 56. On the rider (field) theme every size is 56. */
   size?: IconButtonSize;
-  /** Accepted for API parity; IconButtons are square on native until N1. */
+  /** square (radius md, default) or circle. */
   shape?: 'square' | 'circle';
   /** `bold` when the control represents an active or selected state. */
   weight?: 'linear' | 'bold';
@@ -88,10 +151,6 @@ export interface IconButtonProps extends DsCommon {
   accessibilityHint?: string;
 }
 
-function iconButtonTint(theme: Theme, variant: IconButtonVariant): string {
-  return variant === 'filled' ? theme.color.text.onAccent : theme.color.text.primary;
-}
-
 /**
  * The accessible name with the badge folded in, by the live rule: "Cart, 3 items" (the real
  * count, never "99+"), "Notifications, new" for a dot.
@@ -102,25 +161,58 @@ export function nameWithBadge(label: string, badge: number | boolean | undefined
   return label;
 }
 
+const ICON_BUTTON_PX: Record<IconButtonSize, number> = { sm: 16, md: 20, lg: 24 };
+const ICON_BUTTON_VARIANT = { plain: 'plain', filled: 'primary', tonal: 'tonal' } as const;
+
 /** A control whose only content is an icon; the badge is folded into its name. */
 export function IconButton(props: IconButtonProps) {
-  const { icon, weight = 'linear', badge, badgeNoun, shape: _shape, style, testId: _t, testID: _T, ...rest } = props;
+  const {
+    icon,
+    accessibilityLabel,
+    variant = 'plain',
+    size = 'md',
+    shape = 'square',
+    weight = 'linear',
+    badge,
+    badgeNoun,
+    loading = false,
+    disabled = false,
+    onPress,
+    accessibilityHint,
+    style,
+  } = props;
   const theme = useTheme();
-  const variant = rest.variant ?? 'plain';
-  const node =
-    typeof icon === 'string' ? (
-      <Icon name={icon as AnyIconName} weight={weight} size="lg" color={iconButtonTint(theme, variant)} />
-    ) : (
-      icon
-    );
-  const button = (
-    <LegacyIconButton
-      {...rest}
-      accessibleName={nameWithBadge(rest.accessibilityLabel, badge, badgeNoun)}
-      icon={node}
-      badge={badge === true ? true : typeof badge === 'number' && badge > 0 ? { count: badge, max: 99 } : undefined}
-      testID={resolveTestId(props, 'IconButton')}
-    />
+  const field = isFieldTheme(theme);
+  const libVariant = ICON_BUTTON_VARIANT[variant];
+  const px = ICON_BUTTON_PX[field ? 'lg' : size];
+  const tone = buttonTextVariants({ variant: libVariant });
+  const testID = resolveTestId(props, 'IconButton');
+  const count = typeof badge === 'number' && badge > 0 ? (badge > 99 ? '99+' : String(badge)) : undefined;
+
+  return (
+    <LibButton
+      testID={testID}
+      variant={libVariant}
+      size={`icon-${size}`}
+      field={field}
+      disabled={disabled}
+      loading={loading}
+      onPress={onPress}
+      accessibilityLabel={nameWithBadge(accessibilityLabel, badge, badgeNoun)}
+      accessibilityHint={accessibilityHint}
+      className={shape === 'circle' ? 'rounded-full' : undefined}
+      style={style}
+    >
+      <Slot px={px}>
+        {loading ? (
+          <Spinner size={px > 20 ? 'md' : 'sm'} className={tone} testID={`${testID}-spinner`} />
+        ) : typeof icon === 'string' ? (
+          <Glyph name={icon as AnyIconName} size={px} weight={weight} className={tone} />
+        ) : (
+          icon
+        )}
+      </Slot>
+      {count || badge === true ? <CountBubble count={count} testID={`${testID}-badge`} /> : null}
+    </LibButton>
   );
-  return style ? <View style={style}>{button}</View> : button;
 }

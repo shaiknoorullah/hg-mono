@@ -1,0 +1,40 @@
+{
+  "scenario": "session_next_route_suspended_deleted",
+  "domain": "platform",
+  "schema": "SessionGrant",
+  "describes": "`next_route = SUSPENDED` with `principal.status: DELETED`. The account was deleted: the app says so and offers to start a new one with the same number after the retention period. Contract-only: `services/hg` issues no session to an account that is not `ACTIVE`; it answers sign-in with `403 ACCOUNT_NOT_ACTIVE` (`error_account_not_active`).",
+  "operations": [
+    "verifyOtp",
+    "login",
+    "refreshSession"
+  ],
+  "status": 200,
+  "tags": [
+    "platform",
+    "auth",
+    "state-matrix",
+    "error-path"
+  ],
+  "payload": {
+    "access_token": "Access Token",
+    "refresh_token": "Refresh Token",
+    "expires_in": 12,
+    "is_new_account": true,
+    "principal": {
+      "account_id": "b1555513-399c-4f55-a130-2b6ab179caf0",
+      "session_id": "f0553176-f320-4f44-a64f-9d461fd3dd82",
+      "roles": [
+        {
+          "role": "CUSTOMER",
+          "scope_type": "GLOBAL",
+          "scope_id": "d3c0cb85-5895-49bd-ae18-8c6eef0d4e6c"
+        }
+      ],
+      "amr": "otp",
+      "status": "DELETED",
+      "locale": "en-CA",
+      "timezone": "America/Toronto",
+      "next_route": "SUSPENDED"
+    }
+  }
+}

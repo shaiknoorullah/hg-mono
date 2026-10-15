@@ -1,0 +1,23 @@
+{
+  "scenario": "error_review_lock_lost",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `REVIEW_LOCK_LOST`. Deciding after the review lock passed to someone else. Nothing was applied; the screen reloads the application read-only. Contract-only: `services/hg` defines the code but does not enforce the lock on decisions yet.",
+  "operations": [
+    "decideRestaurantApplication",
+    "decideRiderApplication"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "admin"
+  ],
+  "payload": {
+    "error": {
+      "code": "REVIEW_LOCK_LOST",
+      "message": "Your review lock expired and another admin has this application.",
+      "request_id": "M1MGT54PTAQER0G50H87V5MFQJ"
+    }
+  }
+}
