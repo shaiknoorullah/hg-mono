@@ -21,19 +21,19 @@ type Screen = ComponentType | LazyExoticComponent<ComponentType>;
 export const REDESIGNED: Partial<Record<RouteId, Screen>> = {
   // certificates: (shell page, Q7) WP-3 may replace it once the register has an API
   // ·
-  // certificate: WP-3
+  certificate: lazy(() => import('../verification/console/CertificateConsoleRoute')),
   // ·
   // certificateViewer: WP-3
   // ·
-  // restaurants: WP-2
+  restaurants: lazy(() => import('../verification/queue/RestaurantQueueRoute')),
   // ·
-  // restaurant: WP-2
+  restaurant: lazy(() => import('../verification/application/RestaurantApplicationRoute')),
   // ·
   // menuItem: WP-4
   // ·
-  // riders: WP-5
+  riders: lazy(() => import('../riders/queue/RiderQueueRoute')),
   // ·
-  // rider: WP-5
+  rider: lazy(() => import('../riders/application/RiderApplicationRoute')),
   // ·
   // issuingBodies: WP-4
   // ·
@@ -41,11 +41,11 @@ export const REDESIGNED: Partial<Record<RouteId, Screen>> = {
   // ·
   // menuReview: WP-4
   // ·
-  // orders: WP-6
+  orders: lazy(() => import('../orders/OrdersRoute')),
   // ·
-  // disputes: WP-6
+  disputes: lazy(() => import('../orders/DisputesRoute')),
   // ·
-  // order: WP-7
+  order: lazy(() => import('../orders/workspace/OrderRoute')),
   // ·
   // refunds: WP-8
   // ·
@@ -53,9 +53,9 @@ export const REDESIGNED: Partial<Record<RouteId, Screen>> = {
   // ·
   // alert: WP-9
   // ·
-  // staff: WP-11
+  staff: lazy(() => import('../staff/StaffRoute')),
   // ·
-  // staffMember: WP-11
+  staffMember: lazy(() => import('../staff/StaffRoute')),
   // ·
   // account: WP-10
   // ·

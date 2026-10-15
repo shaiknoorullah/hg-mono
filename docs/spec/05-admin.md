@@ -1110,6 +1110,79 @@ These six words mean exactly this everywhere in the product, in the API, and in 
 > certification (V3). · **Why**: The platform cannot make an item-level halal claim it has no
 > item-level data model for.
 
+#### The redesigned verification console (what an admin can do today)
+
+This describes the screens behind the redesign flag in `apps/admin/src/redesign/verification/`.
+It covers the queue of applications (A-13), the application workspace, and the halal verification
+console (this feature). Where a rule is enforced only in the browser, it says so.
+
+- **The queue.** Applications appear in a fixed order, oldest first; there is no re-sorting to
+  cherry-pick. Filters narrow it by state and by "SLA breached only". An admin claims work with
+  **Take next**, which hands over the oldest free application and holds it for them until
+  `review_lock_expires_at`. A claim strip names the application they hold and when the claim ends;
+  **Continue review** returns to it. Take next has three refusals, and none of them claims anything:
+  - *Nothing free:* everything waiting is claimed by another reviewer or is with its restaurant.
+  - *Already holding one:* pressing it again does not claim a second application; it points back at
+    the held one and says when that claim ends.
+  - *The server did not respond:* nothing is claimed and the filters are kept.
+  The queue also has an empty state ("Onboarding queue is clear"), a "no restaurants have applied
+  yet" state, a filtered-to-nothing state and a load-error state; each keeps the page's structure.
+- **The application workspace.** One page shows the restaurant's details, its documents with an
+  inline viewer (served through short-lived presigned links, as A-13 requires of private documents), the checklist for the
+  document under review, and the decision panel. Only a reviewer who holds a live claim can save or
+  decide. Every other viewer gets a read-only page that says why: the claim ended, another reviewer
+  holds it, nobody holds it, the application is with the restaurant, or it was withdrawn. A
+  **support agent** sees status, expiry and issuer only, and cannot open document contents or decide
+  (A-39). If the claim ends while the page is open, saving and deciding switch off at
+  `review_lock_expires_at`; a decision sent anyway is refused with "Your claim ended" and nothing
+  changes. If the server re-checks Approve and finds blockers, nothing is approved, the page
+  refreshes to the current state, and the claim is kept. An application that already has a decision
+  shows "Already decided" and the decision.
+- **Document checklist.** Only the food safety certificate has a drawn checklist (four questions:
+  issuing health unit present, premises address matches, expiry at least 14 days away, holder name
+  matches). Other document types are approved or rejected without one. A document cannot be approved
+  with any checklist question unanswered, and a failed question rejects the document with its
+  reason.
+- **The seven-check halal instrument.** The console lists the seven checks of the table above, with
+  a roll-up ("5 of 7 recorded · 4 pass · 0 fail"). A check nobody has recorded reads "Not recorded",
+  with nothing selected. The console refuses the following, and says why on the control:
+  - *A check that cannot pass.* **Dates valid** and **Unique, not reused** are computed by the
+    server and locked for everyone, with no override. **Issuer accepted** cannot be Pass unless the
+    issuing body is Accepted. **Scope sufficient** cannot be Pass unless the scope is the whole
+    establishment or the kitchen.
+  - *An incomplete checklist.* **Approve** is available only to the reviewer holding the live
+    claim, with the transcription saved, all seven checks Pass, and no check still waiting on the
+    issuer's confirmation. **Reject** needs at least one check recorded or computed as Fail, and
+    opens with that check's own reason preselected.
+  - *An override without a note.* Choosing a result that goes against the system's suggestion
+    needs a written note of at least 20 characters; until then the row reads "chosen, needs a
+    note" and the decision stays closed. Approve shows each override with its note before it is
+    confirmed.
+  - *Revoke by anyone but a super admin.* Revoking a certificate for cause takes effect at once and
+    cannot be undone. It needs a reason and a ticked acknowledgement, and the server refuses any
+    role below Super Admin with 403.
+  - *Suspected forgery* is not a rejection reason. The reviewer records **Legible and complete**
+    as Fail with a forgery note and releases their claim, as the forgery rule in A-13 requires; there is no API for the
+    release yet.
+- **How halal state is drawn.** A missing certificate state renders **no badge at all**, never an
+  optimistic one: [a missing halal field renders no badge](../../AGENTS.md#3-non-negotiable-invariants),
+  because silence is never consent on a halal claim. No halal state is ever red:
+  [red reads as *haram*](../../AGENTS.md#3-non-negotiable-invariants), a religious ruling the
+  platform does not make. An expired, revoked or superseded certificate reads as cool slate, meaning
+  "we can't currently vouch"; expiring soon is amber tint; approval is an outlined label, not solid
+  green. A rejection or revocation is shown in neutral, never red.
+
+> **Not yet enforced by the server.** Four rules above live only in the browser today. Do not read
+> this spec as saying the server refuses them until these issues close:
+> [#838](https://github.com/shaiknoorullah/hg-mono/issues/838) the server accepts a halal check
+> Pass that the rules forbid (Issuer accepted, Scope sufficient) ·
+> [#839](https://github.com/shaiknoorullah/hg-mono/issues/839) certificate writes are not refused
+> after a review claim ends ·
+> [#840](https://github.com/shaiknoorullah/hg-mono/issues/840) the document checklist keys are
+> invented in the client, because the contract does not define them ·
+> [#841](https://github.com/shaiknoorullah/hg-mono/issues/841) there is no record of who made a
+> halal decision.
+
 ---
 
 ### A-16 — Halal issuing-body registry
@@ -2637,6 +2710,23 @@ documents lapse cannot go on shift, but is not punished.
     It applies only to the handover the order is waiting on, once per handover; the order moves
     through the one transition function, and the append-only `handover_override` record commits
     in the same transaction ([#310](https://github.com/shaiknoorullah/hg-mono/issues/310)).
+  - R9 The redesigned Orders list shows every restaurant's orders, newest first (the server gives no
+    other order), 25 at a time. A typed order code is checked for its shape before it is sent and
+    an invalid one is never searched, because the server's "no order" would be a different claim.
+    **Still running** means exactly the nine states that carry a deadline (Created through Rider
+    arrived, Delivered and Disputed); a final state has none. Disputes loads every page of
+    `state=DISPUTED` and only then sorts by `deadline_at`, since an old dispute can be the most
+    urgent; if a page fails it says the list is not in deadline order. A page never re-arms or acts
+    on a deadline: past it, the row reads "0:00, passed N s ago" and what is due until the server
+    moves the order.
+  - R10 The order page offers Cancel from Created up to Ready for pickup, by state, **not** by
+    `can_cancel`: on the admin view that flag is the customer's own and turns false once the
+    restaurant accepts, when staff can still cancel. The request names a reason, notes and a case
+    and never an amount or a refund type: the server chooses both. A timeout is shown as "unknown"
+    and a retry reuses the same `Idempotency-Key`.
+  - R11 While the delivery address is masked (`pii_revealed` false) the page draws no destination at
+    all, even if the body carries a street. It appears only after a justified reveal
+    (`reveal_pii` with a justification of 10 to 500 characters), which is audited.
 - **Acceptance criteria**:
   1. Given a support agent and an order in `PREPARING`, when they attempt `CANCEL_ORDER`, then
      `403 FORBIDDEN_PERMISSION` and the UI offers "escalate to Tier 2" which creates the escalation.

@@ -36,9 +36,12 @@ import { VerifyEmailScreen } from './auth/VerifyEmailScreen';
 import { ForgotPasswordScreen } from './auth/ForgotPasswordScreen';
 import { ResetPasswordScreen } from './auth/ResetPasswordScreen';
 import { HoursPage } from './hours/HoursPage';
+import { SettingsPage } from './settings/SettingsPage';
 import { NewOrdersProvider } from './strip/NewOrdersProvider';
 import { OrdersGate } from './orders/GoLiveGate';
 import { LiveOrdersPage } from './orders/LiveOrdersPage';
+import { OnboardingRoutes } from './onboarding/OnboardingRoutes';
+import { clearAllDrafts } from './onboarding/profile';
 
 // Legacy screens hosted by the redesign refresh on 401 too.
 setUnauthorizedOverride(async () => (getSession() ? refreshAccessToken() : false));
@@ -120,6 +123,7 @@ async function signOut(navigate: ReturnType<typeof useNavigate>) {
     /* best effort: the session is cleared here regardless */
   }
   keepSession(null);
+  clearAllDrafts();
   navigate('/login', { replace: true });
 }
 
@@ -146,7 +150,7 @@ export function RedesignApp() {
     root.setAttribute('data-theme', 'light');
     root.style.colorScheme = 'light';
   }, []);
-  const { Onboarding, Payouts, Settings } = LEGACY;
+  const { Payouts } = LEGACY;
   return (
     <div {...themeAttributes('restaurant')} className="relative h-dvh overflow-hidden bg-surface-sunken text-fg-primary" data-redesign="">
       <AuthProvider>
@@ -160,14 +164,12 @@ export function RedesignApp() {
             <Route path="/forgot-password" element={<ForgotPasswordScreen />} />
             <Route path="/reset-password" element={<ResetPasswordScreen />} />
           </Route>
-          {/* Onboarding (WP6/WP7 replace this). */}
+          {/* Onboarding (WP6/WP7, #658): the frame, then the step the server names. */}
           <Route
             path="/onboarding/*"
             element={
               <RequireSession>
-                <div className="h-dvh overflow-auto">
-                  <Onboarding />
-                </div>
+                <OnboardingEntry />
               </RequireSession>
             }
           />
@@ -195,7 +197,7 @@ export function RedesignApp() {
             <Route path="/menu" element={<MenuPage />} />
             <Route path="/hours" element={<HoursPage />} />
             <Route path="/payouts" element={<LegacyPane><Payouts /></LegacyPane>} />
-            <Route path="/settings/*" element={<LegacyPane><Settings /></LegacyPane>} />
+            <Route path="/settings/*" element={<SettingsPage />} />
           </Route>
           {/* No Staff screen at launch (manifest §0). */}
           <Route path="*" element={<Navigate to={getSession() ? '/orders' : '/login'} replace />} />
@@ -204,6 +206,11 @@ export function RedesignApp() {
       </AuthProvider>
     </div>
   );
+}
+
+function OnboardingEntry() {
+  const navigate = useNavigate();
+  return <OnboardingRoutes onSignOut={() => void signOut(navigate)} />;
 }
 
 /** "Back to sign in" from a sign-in card is a new visit: a clean form, not the last state. */

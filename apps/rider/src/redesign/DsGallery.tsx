@@ -19,6 +19,9 @@
  * FilterChipGroup, JumpLinks, the `/ds` Menu, MediaFrame, the compact restaurant card and its
  * skeleton, MenuItemCard out of stock, and the rider composites.
  *
+ * N4 adds the halal family (`HalalSection`): `/ds` HalalBadge in its four states on every surface
+ * and size (with the approved amber expiring look), HalalCertificationPanel ready, expiring with
+ * the certificate not viewable, expired, loading and error, and `/proposed` RestaurantHalalStatus.
  * N3 adds the forms (`FormsSection`): `/ds` Input (tel, the 6-cell sign-in code and the rider's
  * 4-cell handover code at the 56 field size, error, password, search), a customer-style item
  * option group (RadioGroup roomy 72 with prices, a disabled reason and the group error),
@@ -210,6 +213,80 @@ function ListsSection(): React.ReactElement {
   );
 }
 
+const HALAL_STATES = ['CERTIFIED', 'EXPIRING_SOON', 'EXPIRED', 'UNVERIFIED'] as const;
+const HALAL_SURFACES = ['card', 'operational', 'detail'] as const;
+
+/** A sample CertificationPanel payload (fixture shape; the dates are the canvases'). */
+const CERTIFICATION: ds.CertificationPanel = {
+  display_state: 'CERTIFIED',
+  certifying_body_name: 'Halal Monitoring Authority',
+  certificate_number: 'HMA-2026-04417',
+  scope: 'WHOLE_ESTABLISHMENT',
+  issued_on: '2025-10-20',
+  expires_on: '2026-10-20',
+  verified_at: '2026-09-04T14:02:00Z',
+  certificate_viewable: true,
+  disclaimer: 'Certification verified by HalalGoes on 4 September 2026. HalalGoes does not itself certify food.',
+};
+
+/** The N4 halal family, in every state and surface the canvases draw. */
+function HalalSection(): React.ReactElement {
+  return (
+    <View className="gap-4">
+      <proposed.Text variant="heading.md">N4 halal</proposed.Text>
+      {HALAL_SURFACES.map((surface) => (
+        <View key={surface} className="gap-2">
+          <proposed.Text variant="label.md" tone="secondary">{`surface ${surface}`}</proposed.Text>
+          <View className="flex-row flex-wrap items-center gap-2">
+            {HALAL_STATES.map((state) =>
+              surface === 'detail' ? (
+                <ds.HalalBadge
+                  key={state}
+                  state={state}
+                  surface="detail"
+                  size="lg"
+                  certifyingBodyName="Halal Monitoring Authority"
+                  expiresOn="2026-10-20"
+                  onPress={() => {}}
+                />
+              ) : (
+                <ds.HalalBadge key={state} state={state} surface={surface} expiresOn="2026-10-20" />
+              ),
+            )}
+          </View>
+        </View>
+      ))}
+      <View className="flex-row flex-wrap items-center gap-2">
+        {(['sm', 'md', 'lg'] as const).map((size) => (
+          <ds.HalalBadge key={size} state="CERTIFIED" size={size} />
+        ))}
+        <ds.HalalBadge state="EXPIRING_SOON" expiresOn="not a date" />
+      </View>
+      <proposed.RestaurantHalalStatus
+        state="EXPIRING_SOON"
+        restaurantName="Zaytoun Grill"
+        certifyingBodyName="Halal Monitoring Authority"
+        expiresOn="2026-10-20"
+        onViewCertification={() => {}}
+        onHowWeCheck={() => {}}
+      />
+      <ds.HalalCertificationPanel
+        restaurantId="gallery"
+        certification={CERTIFICATION}
+        onViewCertificate={() => {}}
+        onReportConcern={() => {}}
+      />
+      <ds.HalalCertificationPanel
+        restaurantId="gallery"
+        certification={{ ...CERTIFICATION, display_state: 'EXPIRING_SOON', certificate_viewable: false }}
+      />
+      <ds.HalalCertificationPanel restaurantId="gallery" certification={{ ...CERTIFICATION, display_state: 'EXPIRED' }} />
+      <ds.HalalCertificationPanel restaurantId="gallery" status="loading" />
+      <ds.HalalCertificationPanel restaurantId="gallery" status="error" onRetry={() => {}} />
+    </View>
+  );
+}
+
 /** The N3 form parts, in the states the canvases draw. */
 function FormsSection(): React.ReactElement {
   const [phone, setPhone] = React.useState('4165550161');
@@ -294,6 +371,8 @@ export function DsGallery({
       <Text className="text-muted-foreground">
         NativeWind {scheme} · rider theme · tokens from global.rider.css
       </Text>
+
+      <HalalSection />
 
       <CoreSection />
       <FormsSection />

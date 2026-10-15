@@ -98,6 +98,12 @@ export interface SevenChecksProps {
   onRecord?: (key: HalalCheckKey) => void;
   /** The row being written: its Record button shows loading, its radios stay put. */
   recordingKey?: HalalCheckKey | null;
+  /** Which rows show a Record button (default: every open row). A recorded, unchanged row has nothing to record. */
+  showRecord?: (key: HalalCheckKey) => boolean;
+  /** Why a row's Record button is off, folded into its accessible name ("Record Address match, unavailable: …"). */
+  recordOffReason?: (key: HalalCheckKey) => string | null;
+  /** A line beside the Record button ("Recorded when you press Record."). */
+  recordHint?: (key: HalalCheckKey) => string | null;
   /** Read-only for everyone (support agents, decided certificates): no radios anywhere. */
   disabled?: boolean;
   /** Row-level slot under a row (an InlineAlert about that check). */
@@ -154,6 +160,9 @@ export function SevenChecks({
   noteMinLength = 20,
   onRecord,
   recordingKey,
+  showRecord,
+  recordOffReason,
+  recordHint,
   disabled = false,
   rowExtra,
   className,
@@ -188,11 +197,10 @@ export function SevenChecks({
         const metaId = `${testId}-${code}-meta`;
         const reasonId = `${testId}-${code}-reason`;
 
-        const options = (['PASS', 'FAIL', 'NOT_ASSESSED'] as HalalCheckResult[]).map((r) => ({
-          value: r,
-          label: SEVEN_CHECK_RESULT_LABELS[r],
-          disabled: restriction ? !restriction.allowed.includes(r) : false,
-        }));
+        // A restricted row does not offer the results it may not take (no disabled "Pass"): not offered at all.
+        const options = (['PASS', 'FAIL', 'NOT_ASSESSED'] as HalalCheckResult[])
+          .filter((r) => !restriction || restriction.allowed.includes(r))
+          .map((r) => ({ value: r, label: SEVEN_CHECK_RESULT_LABELS[r] }));
 
         return (
           <li
@@ -247,18 +255,27 @@ export function SevenChecks({
                 />
               </div>
             ) : null}
-            {onRecord && !locked && !disabled ? (
+            {onRecord && !locked && !disabled && (showRecord ? showRecord(key) : true) ? (
               <div className="flex items-center justify-end gap-3 ps-10">
-                {row.result === null ? <span className="text-body-sm text-fg-secondary">Choose a result first.</span> : null}
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={row.result === null}
-                  loading={recordingKey === key}
-                  onPress={() => onRecord(key)}
-                >
-                  {`Record ${name}`}
-                </Button>
+                {(() => {
+                  const off = recordOffReason?.(key) ?? (row.result === null ? 'choose a result first' : null);
+                  const hint = recordHint?.(key) ?? (row.result === null ? 'Choose a result first.' : null);
+                  return (
+                    <>
+                      {hint ? <span className="text-body-sm text-fg-secondary">{hint}</span> : null}
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={off !== null}
+                        loading={recordingKey === key}
+                        {...(off ? { accessibilityLabel: `Record ${name}, unavailable: ${off}` } : {})}
+                        onPress={() => onRecord(key)}
+                      >
+                        {`Record ${name}`}
+                      </Button>
+                    </>
+                  );
+                })()}
               </div>
             ) : null}
             {rowExtra?.[key] ? <div className="ps-10">{rowExtra[key]}</div> : null}

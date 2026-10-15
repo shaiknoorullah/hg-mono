@@ -11,21 +11,43 @@
  * reads the restaurant's state first and puts it back at the end through the API, because
  * other suites share `bismillah-grill`.
  */
+import { copyShot, shoot } from './shots';
+import { declareUnpairable, expectDesignFor, type BoardFor } from './design';
 import { expect, test, type APIRequestContext, type Page, type Route } from '@playwright/test';
-import { mkdirSync, copyFileSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 import { LIVE_OWNER, MOCK_API, MODE, REAL_API, documentScrolls, openSignedIn } from './redesign-restaurant.support';
 
 const SHOTS = process.env.E2E_SHOTS_DIR ?? '/tmp/claude-0/-home-user-hg-mono/d41301d3-8d3a-541d-a6f4-40d847c8b738/scratchpad/shots/wp9';
 
 /** Saves a screenshot in the test's output and, named `<viewport>-<state>.png`, in SHOTS. */
+
+/** The design board each state must match; a state with no entry has no board that could be identified. */
+const BOARD: Record<string, BoardFor> = {
+  view: { 1440: 'restaurant/menu-hours/HoursView', 1024: 'restaurant/menu-hours/Tablet-Hours' },
+  paused: { 1440: 'restaurant/menu-hours/HoursPaused' },
+  edit: { 1440: 'restaurant/menu-hours/HoursEdit', 1024: 'restaurant/menu-hours/Tablet-HoursEdit' },
+  overlap: { 1440: 'restaurant/menu-hours/HoursOverlap' },
+  saved: { 1440: 'restaurant/menu-hours/HoursSaved' },
+  unsaved: { 1440: 'restaurant/menu-hours/HoursUnsaved' },
+  'special-panel': { 1440: 'restaurant/menu-hours/HoursOverrideModal' },
+  error: { 1440: 'restaurant/menu-hours/HoursError' },
+  none: { 1440: 'restaurant/menu-hours/HoursNone' },
+  suspended: { 1440: 'restaurant/menu-hours/HoursSuspended' },
+};
+
 async function shot(page: Page, name: string) {
   const info = test.info();
+  const board = BOARD[name];
+  if (board) await expectDesignFor(page, board);
+  if (name === 'pause-menu') {
+    await declareUnpairable(page, 'restaurant/menu-hours/HoursPauseMenu', 'the board is a 1440x1900 sheet that draws the pause choices at a size the page never has; a 1440x900 capture has no region to compare');
+  }
   const viewport = info.project.name;
   const out = info.outputPath(`${viewport}-${name}.png`);
-  await page.screenshot({ path: out });
+  await shoot(page, out);
   try {
     mkdirSync(SHOTS, { recursive: true });
-    copyFileSync(out, `${SHOTS}/${viewport}-${name}.png`);
+    copyShot(out, `${SHOTS}/${viewport}-${name}.png`);
   } catch {
     /* screenshots are evidence, not a test result */
   }

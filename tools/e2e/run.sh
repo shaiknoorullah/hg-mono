@@ -97,7 +97,7 @@ ask_for_code() {
   node "$e2e/lib/otp.mjs" "$phone" --after "$since"
 }
 
-# A read-only look at the database, for what the apps just did through the API: which order the
+# A look at the database (and, for keep_kitchen_open below, one write), for what the apps just did through the API: which order the
 # customer placed, whether the rider is online yet.
 sql() (
   set -a
@@ -107,6 +107,14 @@ sql() (
   PGPASSWORD="$POSTGRES_PASSWORD" psql -h localhost -p "${POSTGRES_PORT:-5432}" -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
     -At -F ' ' -c "$1"
 )
+
+# The seeded kitchen is "open" only while its order screen has beaten within five minutes
+# (the stale-heartbeat rule, services/hg/internal/openhours). The browser steps before the
+# emulator flows run longer than that, so the customer would meet "has paused new orders" and
+# could not add a dish. Each redesign flow gets a fresh beat and the accepting toggle on.
+keep_kitchen_open() {
+  sql "UPDATE restaurant SET is_accepting_orders = true, last_heartbeat_at = now() WHERE id = 'e2e00000-0000-4000-8000-0000000000a1'" >/dev/null 2>&1 || true
+}
 
 # --- 1. restaurant: an order placed through the API ------------------------------------------
 if playwright restaurant-api-order --project restaurant-legacy-desktop --grep @api-order; then
@@ -309,6 +317,7 @@ if [ "$mode" = all ]; then
       flow="redesign/$(basename "$flow")"
       [ "$flow" != redesign/1-ask-for-code.yaml ] || continue
       label="redesign-$app-$(basename "$flow" .yaml)"
+      keep_kitchen_open
       if [ "$app" = rider ] && [ "$flow" = redesign/3-offer.yaml ]; then
         redesign_offer "$label" "${vars[@]}"
         continue

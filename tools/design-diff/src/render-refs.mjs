@@ -8,11 +8,11 @@
 //
 // Writes <out>/<app>/<area>/<Board>.png, <Board>.layout.json (what the board shows, for the diff's
 // worded findings) and <out>/manifest.json (each board's title, size, scale, theme, width variant,
-// the designers' notes hidden from the picture, the uploaded images that are missing). A second run
+// the designers' notes hidden from the picture, the uploaded images that are missing, and every asset that failed to load). A second run
 // into the same <out> updates the boards it renders and keeps the others.
 //
 // Same input, same pixels: React and the fonts come from third-party/, every other request off the
-// local server is blocked and listed, the clock is fixed, animations are off.
+// local server is blocked and listed. The wordmark uploads are drawn from packages/brand, the clock is fixed, animations are off.
 
 import { execFileSync } from 'node:child_process';
 import { createServer } from 'node:http';
@@ -21,7 +21,9 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
-import { hideNotes, settle, snapshotLayout } from './page-scripts.mjs';
+import { resolveBrowser } from './browser.mjs';
+import { hideNotes, settle, snapshotLayout, surfaceOfImages } from './page-scripts.mjs';
+import { TOKENS, WORDMARK_UPLOADS, wordmarkSvg } from './wordmark.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const VENDOR = path.resolve(HERE, '../third-party');
@@ -30,10 +32,10 @@ const APPS = ['customer', 'rider', 'restaurant', 'admin'];
 const PHONE_APPS = new Set(['customer', 'rider']);
 /** Every board sees the same moment: 9:41 on 1 October 2026, Toronto time. */
 const FIXED_TIME = '2026-10-01T09:41:00-04:00';
-// Which Chromium draws the boards. Captures must come from the same binary: a full Chrome and the
-// headless shell of the same version rasterise text differently (0.5 to 1.3 % of a board's pixels).
-const EXE = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
-const BROWSER = EXE ? path.join(path.basename(path.dirname(EXE)), path.basename(EXE)) : 'playwright default';
+// Which Chromium draws the boards: src/browser.mjs, the file the web captures read too. A full Chrome
+// and the headless shell of one version rasterise text differently (0.5 to 1.3 % of a board's
+// pixels), so diff.mjs refuses to compare a board with a capture from another browser. Set in main().
+let BROWSER = 'playwright default';
 // The design runtime the boards load as ./support.js. The canvases' mirror does not carry it per
 // area; the design-system canvas has the generic copy.
 const RUNTIME = 'design-system/claude-design-system/project/templates/landing-waitlist/support.js';
@@ -134,19 +136,33 @@ function themeFromName(job) {
   return null;
 }
 
-async function render(browser, base, job, out) {
+/** page.evaluate has no timeout of its own; a page that never answers must fail the board, not hang the run. */
+function within(promise, ms, what) {
+  let t;
+  return Promise.race([promise, new Promise((_, rej) => { t = setTimeout(() => rej(new Error(`${what} did not finish in ${ms / 1000} s`)), ms); })]).finally(() => clearTimeout(t));
+}
+
+async function render(browser, base, job, out, wordmarks) {
   const scale = PHONE_APPS.has(job.app) ? 3 : 1;
   const named = themeFromName(job);
-  const rec = { title: job.title, w: job.w, h: job.h, scale, theme: named, widthVariant: `${scale === 3 ? 'phone' : 'web'}-${job.w}`, file: `${job.id}.png`, layout: `${job.id}.layout.json`, browser: BROWSER, notes: [], missingBlobs: [], blocked: [], errors: [] };
+  const rec = { title: job.title, w: job.w, h: job.h, scale, theme: named, widthVariant: `${scale === 3 ? 'phone' : 'web'}-${job.w}`, file: `${job.id}.png`, layout: `${job.id}.layout.json`, browser: BROWSER, chromium: browser.version(), notes: [], missingBlobs: [], failedAssets: [], blocked: [], errors: [] };
   const ctx = await browser.newContext({ viewport: { width: job.w, height: job.h }, deviceScaleFactor: scale, colorScheme: named === 'dark' ? 'dark' : 'light', reducedMotion: 'reduce', locale: 'en-CA', timezoneId: 'America/Toronto' });
   try {
     for (const f of ['react.production.min.js', 'react-dom.production.min.js']) await ctx.addInitScript({ content: readFileSync(path.join(VENDOR, 'react', f), 'utf8') });
     await ctx.clock.setFixedTime(new Date(FIXED_TIME));
-    await ctx.route('**/*', (route) => fulfil(route, base, rec));
+    await ctx.route('**/*', (route) => fulfil(route, base, rec, wordmarks));
     const page = await ctx.newPage();
+    // Every request the board makes of the local server that fails is recorded, URL and status:
+    // a board that did not fully render is a defective reference (diff.mjs, referenceIncomplete).
     page.on('response', (r) => {
-      const m = /\/_blob\/([0-9a-f]{32})/.exec(r.url());
-      if (m && r.status() >= 400 && !rec.missingBlobs.includes(m[1])) rec.missingBlobs.push(m[1]);
+      const url = r.url();
+      if (!url.startsWith(base) || r.status() < 400 || new URL(url).pathname === '/favicon.ico') return;
+      const asset = url.slice(base.length);
+      // The template runtime requests an image once with its `{{placeholder}}` unresolved, then again with the value.
+      if (decodeURIComponent(asset).includes('{{')) return;
+      if (!rec.failedAssets.some((a) => a.url === asset)) rec.failedAssets.push({ url: asset, status: r.status() });
+      const m = /\/_blob\/([0-9a-f]{32})/.exec(url);
+      if (m && !rec.missingBlobs.includes(m[1])) rec.missingBlobs.push(m[1]);
     });
     page.on('pageerror', (e) => rec.errors.push(`page error: ${e.message.slice(0, 200)}`));
     // The design runtime reports a board whose own script fails on the console, and draws the
@@ -155,12 +171,19 @@ async function render(browser, base, job, out) {
       if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) rec.errors.push(`console: ${m.text().slice(0, 200)}`);
     });
     await page.goto(base + job.url, { waitUntil: 'networkidle', timeout: 45_000 });
-    if (!(await page.evaluate(settle, { quietMs: 400, maxMs: 10_000 }))) rec.errors.push('still changing after 10 s');
+    if (!(await within(page.evaluate(settle, { quietMs: 400, maxMs: 10_000 }), 30_000, 'settle'))) rec.errors.push('still changing after 10 s');
     rec.notes = await page.evaluate(hideNotes, { classes: NOTE_CLASSES, prefixes: NOTE_PREFIXES, weakPrefixes: NOTE_WEAK_PREFIXES });
-    await page.evaluate(settle, { quietMs: 150, maxMs: 3_000 });
+    await within(page.evaluate(settle, { quietMs: 150, maxMs: 3_000 }), 30_000, 'settle');
     if (!rec.theme) {
       const t = await page.evaluate(() => document.querySelector('[data-theme]')?.getAttribute('data-theme'));
       if (t === 'dark' || t === 'light') rec.theme = t;
+    }
+    // The wordmark was drawn for the surface the board source shows it on; check the drawn board agrees.
+    for (const s of await page.evaluate(surfaceOfImages, '/_blob/')) {
+      const id = /\/_blob\/([0-9a-f]{32})/.exec(s.src)?.[1];
+      const want = WORDMARK_UPLOADS[id]?.surface;
+      if (want && want !== 'chrome' && want !== s.surface) rec.errors.push(`wordmark ${id} is drawn for a ${want} surface but sits on a ${s.surface} one in this board`);
+      if (want === 'chrome' && s.surface !== 'dark') rec.errors.push(`wordmark ${id} is drawn for the dark side rail but sits on a ${s.surface} surface in this board`);
     }
     const layout = await page.evaluate(snapshotLayout);
     mkdirSync(path.dirname(path.join(out, rec.file)), { recursive: true });
@@ -179,9 +202,11 @@ const FONT_CSS = JSON.parse(readFileSync(path.join(VENDOR, 'fonts/css.json'), 'u
 const fontCss = new Map(Object.entries(FONT_CSS).map(([u, css]) => [decodeURIComponent(u), css]));
 
 /** The local server answers; React and fonts come from third-party/; anything else is blocked and listed. */
-async function fulfil(route, base, rec) {
+async function fulfil(route, base, rec, wordmarks) {
   const url = route.request().url();
   const u = new URL(url);
+  const upload = url.startsWith(base) ? /^\/_blob\/([0-9a-f]{32})$/.exec(u.pathname)?.[1] : null;
+  if (upload && wordmarks.has(upload)) return route.fulfill({ contentType: 'image/svg+xml', body: wordmarks.get(upload) });
   if (url.startsWith(base)) return route.continue();
   if (u.host === 'fonts.googleapis.com') {
     const css = fontCss.get(decodeURIComponent(url));
@@ -201,10 +226,19 @@ async function main() {
   const { areas, jobs } = boardsOf(src.root, o);
   if (!jobs.length) throw new Error(`no boards for apps=${o.apps} areas=${o.areas ?? 'all'} under ${src.root}`);
   const server = await serve(src.root);
+  // The wordmark uploads, drawn from packages/brand (src/wordmark.mjs).
+  const tokens = readFileSync(path.join(src.root, TOKENS), 'utf8');
+  const wordmarks = new Map(Object.entries(WORDMARK_UPLOADS).map(([id, u]) => [id, wordmarkSvg(u.surface, tokens)]));
   const base = `http://127.0.0.1:${server.address().port}`;
   // The same flags the web flows launch Chromium with (tools/e2e/web/playwright.config.ts), so a
   // board and a capture rasterise text alike.
-  const browser = await chromium.launch(EXE ? { executablePath: EXE, args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--disable-dev-shm-usage'] } : {});
+  const pick = resolveBrowser({ required: true });
+  BROWSER = pick.label;
+  // The launch is bounded. On a host that forbids unprivileged user namespaces Chromium launched,
+  // then died when the first page opened, and every board waited on it for ever; the flags that
+  // prevent that live in src/browser.mjs, which the captures read too, and a launch that still
+  // cannot start now gives up after a minute instead of hanging.
+  const browser = await chromium.launch({ executablePath: pick.executablePath, args: pick.args, timeout: 60_000 });
   const manifestFile = path.join(o.out, 'manifest.json');
   const manifest = existsSync(manifestFile) ? JSON.parse(readFileSync(manifestFile, 'utf8')) : { boards: {}, areas: {} };
   manifest.source = { ref: src.label, commit: src.commit };
@@ -217,7 +251,7 @@ async function main() {
   const worker = async () => {
     while (next < jobs.length) {
       const job = jobs[next++];
-      manifest.boards[job.id] = await render(browser, base, job, o.out);
+      manifest.boards[job.id] = await render(browser, base, job, o.out, wordmarks);
       done += 1;
       if (done % 25 === 0 || done === jobs.length) console.log(`${done}/${jobs.length} boards (${Math.round((Date.now() - started) / 1000)} s)`);
     }

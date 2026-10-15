@@ -42,6 +42,8 @@ export type { DisclosureProps } from './ui/disclosure';
 export { Menu } from './ui/menu';
 export type { MenuProps, MenuEntry } from './ui/menu';
 export { useHgColorScheme, HgColorSchemeBridge } from './useHgColorScheme';
+// The N4 halal parts (`ui/halal-*.tsx`) are deliberately NOT exported here: a seal may only be
+// drawn through `/ds` HalalBadge, which applies the state rules (invariants 8–10).
 // N3 forms.
 export { FieldLabel, FieldMessage, ErrorSummaryBox, fieldFrameVariants, frameState, FIELD_MIN_H } from './ui/field';
 export type { FieldSize, FieldLabelProps, FieldMessageProps, ErrorSummaryItem, ErrorSummaryBoxProps } from './ui/field';

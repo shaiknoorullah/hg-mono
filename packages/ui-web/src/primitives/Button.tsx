@@ -111,11 +111,11 @@ export const Button = forwardRef<HTMLButtonElement & HTMLAnchorElement, ButtonPr
     const inert = disabled || loading;
 
     /**
-     * Width freeze. The leading slot is reserved whenever the caller opted into
-     * loading at all (`loading` passed, even as false) or already has an icon,
-     * so the spinner arriving never reflows the label.
+     * The leading slot exists only while it holds something: an icon or the spinner. An empty
+     * slot is zero wide but still adds one flex gap, which pushed every plain label off the
+     * button's centre by half a gap (4 px at the default gap).
      */
-    const reserveLead = iconStart !== undefined || loading !== undefined;
+    const reserveLead = iconStart !== undefined || loading;
 
     const block = (event: MouseEvent | KeyboardEvent) => {
       event.preventDefault();

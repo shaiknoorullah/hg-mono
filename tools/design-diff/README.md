@@ -1,7 +1,7 @@
 ---
 covers:
   - tools/design-diff/**
-reviewed: 2026-10-13
+reviewed: 2026-10-16
 ---
 
 # Design diff
@@ -44,7 +44,8 @@ the board shows, for the worded findings) and `<out>/manifest.json`, per board:
 | `widthVariant` | `phone-390`, `phone-360`, `web-1440`, `web-1024`… |
 | `notes` | The designers' notes hidden from the picture: `{ kind, text }` |
 | `caveats` | The notes (or the title) saying the drawing is not the approved design |
-| `missingBlobs` | Uploaded images (`/_blob/<id>`) the mirror does not carry; they render empty |
+| `missingBlobs` | Uploaded images (`/_blob/<id>`) the mirror does not carry and the renderer does not draw; they render empty |
+| `failedAssets` | Every request the board made of the local server that failed: `[{ url, status }]`. Any entry makes the board a defective reference (see Compare) |
 | `browser` | The Chromium binary that drew it |
 | `blocked`, `errors` | Requests to other hosts that were refused; what went wrong |
 
@@ -64,16 +65,34 @@ design".
 loads, checked against its integrity hashes) is in the page before the design system's bundle reads
 it. The web fonts are in `third-party/fonts/` (SIL Open Font License, `OFL-*.txt`), as Google Fonts
 served them to the canvases; `node src/vendor-fonts.mjs --src <canvases>` refreshes them when a
-canvas asks for a new family or weight. Every other request off the local server is blocked and
+canvas asks for a new family or weight. **The wordmark.** The boards load the HalalGoes logo as `/_blob/<id>`, bytes that live only in Claude
+Design's blob store. The renderer answers those requests with the artwork the apps ship, from
+`packages/brand` (`src/wordmark.mjs`), the dark or light file by the surface the board puts it on, with the
+letterforms in the theme colour the app paints them. Each upload's surface is listed in `WORDMARK_UPLOADS`
+and checked against the drawn board; a new upload id is not drawn and fails its boards until it is listed.
+Every other request off the local server is blocked and
 listed. The clock is fixed at 9:41 on 1 October 2026 (Toronto), animations are off, and Chromium
-starts with the web flows' flags. Render the boards with the Chromium binary the web captures use
-(`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`, or Playwright's default for both): a full Chrome and the
-headless shell of the same version rasterise text differently, 0.5 to 1.3 % of a board's pixels.
-Each board records its `browser` in the manifest.
+starts with the web flows' flags. Each board records the `browser` that drew it, and the Chromium version, in the manifest.
+
+**One browser for both sides.** A board and the capture compared with it must come from the same
+Chromium build: builds, and a full Chrome against the headless shell, rasterise text differently,
+which fails boards for reasons that are not our UI. Which build is written down once, in
+`src/browser.mjs` (`CHROMIUM_BUILD`, today 1223, Chromium 148), and both the reference renderer and
+the web captures (`tools/e2e/web/playwright.config.ts`, `design.ts`) read it, so nobody has to set
+an environment variable in two places. `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` still overrides it, on
+both sides alike. `render-refs` stops if the pinned build is not installed rather than drawing with
+another. Each web capture gets a `.capture.json` beside it with the browser that took it, and the
+diff enforces the match: a capture from a different browser, or one with no recorded browser (taken
+before this existed), is reported as `BROWSER MISMATCH`, is not compared, and fails the run like
+any other non-PASS verdict. Retake such a capture. Android captures (customer, rider) come from no
+browser, so this rule is for the web apps (restaurant, admin) only; see "Native boards" below. Why 1223: playwright 1.50.1 ships build 1155, which cannot parse
+`var(--icon-md)` in an SVG `width`, so most sign-in boards do not render on it.
+
+**Launching Chromium.** Chromium always starts with `--no-sandbox --disable-setuid-sandbox --disable-gpu --disable-dev-shm-usage`, because on hosts that cannot start Chromium's sandbox the first page died at once and the renderer looked like a hang rather than a failure. The launch has a 60 second timeout, and both settle waits are bounded at 30 seconds, so a wedged page gives up and says so instead of hanging for ever.
 
 ## Compare
 
-`diff` (`src/diff.mjs`) pairs each capture under `--captures` with its board by name (below),
+`diff` (`src/diff.mjs`) pairs each capture under `--captures` with the board its spec declared (see Pairing),
 compares them (`src/compare.mjs`) and writes `<out>/results.json` and, per pair, `diff.png` and
 `side-by-side.png` (design, app, difference) under `<out>/pairs/`.
 
@@ -84,8 +103,11 @@ Both limits, the 0.1 % and the 4 × 4 cap, are measured in device pixels, not de
 Anything else fails, with the regions in dp. `--max-mismatch`, `--max-region` and `--threshold`
 (pixelmatch's colour threshold, 0.1) change the bars. A capture of another width is listed as not
 compared; a taller one is cut to the board, a shorter one padded, and the padding counts as
-different. The diff fails by default: it exits 1 when any pair is FAIL, NO BOARD (including a board whose
-reference recorded errors) or NOT COMPARED; `--no-strict` reports and exits 0, `--strict` is an accepted
+different. A board with any `failedAssets` is `DEFECTIVE REFERENCE`: the diff names the assets and does
+not compare it, because the missing picture is the renderer's and would be charged to the app as a UI
+difference. The diff fails by default: it exits 1 when any pair is FAIL, NO BOARD (including a board whose
+reference recorded errors, and a declared board missing from the manifest), UNCOVERED, DEFECTIVE REFERENCE, NOT COMPARED, BROWSER MISMATCH or NO PROVENANCE;
+UNPAIRABLE, a capture its spec declared cannot be compared, does not fail the run; `--no-strict` reports and exits 0, `--strict` is an accepted
 alias of the default, and a crash or usage error exits 2. The summary also lists the uncaptured boards
 (boards of the rendered apps with no capture); that count alone does not fail the run.
 
@@ -94,9 +116,29 @@ matches texts and boxes with the board's and words what differs, most telling fi
 the design or only in the app, type ("28/34 bold in the design, 24/32 semibold in the app"),
 text colour, a box's radius, fill, border or shadow, and where the spacing starts to drift.
 
-**Pairing.** A capture is `design--<area>--<Board>.png`; its app is the nearest folder named for
-an app, or `--app`. `--map pairs.json` adds screenshots named otherwise:
-`{ "<path under --captures>": "<app>/<area>/<Board>" }`.
+**Pairing.** A pair is declared, never inferred. A web capture's `.capture.json` names its board
+(`board`, `<app>/<area>/<Board>`, written by the spec: `tools/e2e/README.md`, "Design captures"), and
+that board wins over the file name and over `--map`. Nothing is matched by similarity. The outcomes:
+
+| The capture's sidecar | Verdict | Why |
+|---|---|---|
+| `board` names a board in the manifest | compared (PASS, FAIL, ...) | declared |
+| `board` names a board that is not in the manifest | `NO BOARD`, naming it | a typo or an unrendered area; never matched to another board |
+| `unpairable: { board, reason }` (written under `<app>/unpairable/`) | `UNPAIRABLE`, carrying the reason | a composite board no single screenshot can match; no mismatch percentage, and the run does not fail on it |
+| `board: null`, or no `board` at all (an older capture) | `UNCOVERED` | nothing says which board it is for; re-run the capture or declare one in the spec |
+
+`--map pairs.json` (`{ "<path under --captures>": "<app>/<area>/<Board>" }`) names a board for a
+screenshot that declares none; it never overrides a declaration, and a map entry that disagrees with a
+declared board stops the run. A native capture (customer, rider) cannot declare: a Maestro flow only
+names its file, `design--<area>--<Board>.png` in a folder named for the app (or `--app`), so that exact
+name is its declaration and is read as one. A web capture is never paired by its file name.
+`results.json` records `pairing` (counts of declared, map and name) and each pair's `pairing`; the
+summary prints the same.
+
+Layout findings also say a box drawn on one side only, or whose text names several boxes (so it was not
+compared). A box with no text is not in the layout snapshot, so a difference confined to one (a border
+on a button with no label) is still missed; widening the snapshot, and putting layout findings into the
+verdicts, is [issue 844](https://github.com/shaiknoorullah/hg-mono/issues/844).
 
 ## Report
 
@@ -158,3 +200,27 @@ the board's size, and loses Android's status and navigation bars before the comp
 | `src/vendor-fonts.mjs`, `third-party/` | React and the fonts the boards load, and their licences |
 | `android/` | The capture AVDs and the device state |
 | `test/` | `pnpm --filter @hg/design-diff test:unit`: the verdict, the bars, the names, the findings |
+
+## Native boards (customer, rider)
+
+Web and native are measured differently, on purpose. A customer or rider board is HTML drawn by
+Chromium; its capture is a React Native screen drawn by Android. They use different text
+rasterisers, hinting and subpixel behaviour, so they never agree pixel for pixel: "at most 0.1 % of
+pixels differ" is the wrong measurement for them, and no amount of good UI work would meet it. The
+pixel criterion stays with the web boards, where both sides are the same Chromium.
+
+What the harness does for a native capture today:
+
+- **Provenance is required instead of a browser.** Beside the screenshot, a `.capture.json` must
+  record `device` (the device or emulator) and `appBuild` (the app version or commit). With neither
+  the pair is `NO PROVENANCE`: untrusted, not compared, and the run fails.
+- **With provenance, the pair is `NOT COMPARED`.** The pixel figure is kept in `results.json` as
+  `informationalMismatchPct` only. An honest "not measured yet" beats a native board that passes for
+  the wrong reason. Both verdicts fail the run by default, like every non-PASS verdict.
+
+The intended criterion is layout geometry: element boxes, positions and sizes, plus colours where the
+capture can supply them. It is not built. `src/layout-diff.mjs` already words such differences, but
+it is only run after the pixel comparison and never sets a verdict, and native captures write no
+layout snapshot (`snapshotLayout` runs inside a web page). Wiring it needs a view-hierarchy snapshot
+from Android, a tolerance for each of geometry and colour, and a verdict in `src/diff.mjs`. Tracked in
+[#844](https://github.com/shaiknoorullah/hg-mono/issues/844).

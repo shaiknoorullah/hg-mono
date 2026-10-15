@@ -8,21 +8,42 @@
  * with deadlines moved to now (fixture request: live-deadline pending orders, #676). Accept
  * answers from `restaurant_order_preparing`, errors from `error_capture_failed`.
  */
+import { copyShot, shoot } from './shots';
+import { expectDesignFor, type BoardFor } from './design';
 import { expect, test, type Page, type Request, type TestInfo } from '@playwright/test';
 import { execSync } from 'node:child_process';
-import { copyFileSync, mkdirSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { DEVWORLD, MOCK_API, MODE, REAL_API, documentScrolls, liveAccessToken, openSignedIn } from './redesign-restaurant.support';
 import { projectMeta } from './mode';
 
 const SHOTS = process.env.WP3_SHOTS_DIR;
 
+
+/** The design board each state must match; a state with no entry has no board that could be identified. */
+const BOARD: Record<string, BoardFor> = {
+  gate: { 1440: 'restaurant/live-orders/Board-gate' },
+  'gate-notif-denied': { 1440: 'restaurant/live-orders/Board-gate-notif-denied' },
+  'offer-one': { 1440: 'restaurant/live-orders/Offer-one', 1024: 'restaurant/live-orders/Tablet-one-offer' },
+  'offer-keyboard': { 1440: 'restaurant/live-orders/Offer-keyboard' },
+  'offer-accepted': { 1440: 'restaurant/live-orders/Offer-accepted' },
+  'offer-four-overflow': { 1440: 'restaurant/live-orders/Offer-four-overflow' },
+  'offer-four-focus': { 1440: 'restaurant/live-orders/Offer-four-focus' },
+  'detail-pending': { 1440: 'restaurant/live-orders/Detail-pending', 1024: 'restaurant/live-orders/Tablet-detail' },
+  'decline-no-reason': { 1440: 'restaurant/live-orders/Decline-no-reason' },
+  'decline-other': { 1440: 'restaurant/live-orders/Decline-other' },
+  'decline-item-unavailable': { 1440: 'restaurant/live-orders/Decline-item-unavailable', 1024: 'restaurant/live-orders/Tablet-decline' },
+  'offer-capture-failed': { 1440: 'restaurant/live-orders/Offer-capture-failed' },
+};
+
 async function shot(page: Page, info: TestInfo, state: string) {
+  const board = BOARD[state];
+  if (board) await expectDesignFor(page, board);
   const file = info.outputPath(`${state}.png`);
-  await page.screenshot({ path: file });
+  await shoot(page, file);
   if (SHOTS) {
     mkdirSync(SHOTS, { recursive: true });
-    copyFileSync(file, join(SHOTS, `${info.project.name}-${state}.png`));
+    copyShot(file, join(SHOTS, `${info.project.name}-${state}.png`));
   }
 }
 

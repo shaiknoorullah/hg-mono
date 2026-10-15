@@ -1,0 +1,97 @@
+# Customer redesign WP5 (#656), CI: item sheet (D9) and cart (C1) for the seeded world. Amina is
+# still signed in from 1-sign-in.yaml, in the same app process. DISH at RESTAURANT has no options, so the sheet adds it
+# straight away; the cart is priced for her default address, then cleared again so nothing is
+# left for the flows after this one. Options, the 20 cap and "Start a new cart?" need devworld's
+# menus: devworld/5-item-cart.yaml.
+# Env: RESTAURANT, DISH.
+appId: com.halalgoes.customer.dev
+name: customer redesign, item sheet and cart
+---
+# The legacy rider app, left online by the cross-app flow, opens its offer screen over this app
+# when an offer re-waves; stopped, it stays out of the way.
+- stopApp: com.halalgoes.rider.dev
+# The app holds its session in memory only (src/api/token.ts), so a relaunch signs out: bring the
+# running app back without restarting it, then step back to Home if a flow left it deeper.
+- launchApp:
+    stopApp: false
+- repeat:
+    while:
+      notVisible:
+        id: "Home-title"
+    times: 4
+    commands:
+      - tapOn:
+          id: "AppBar-back"
+          optional: true
+- extendedWaitUntil:
+    visible:
+      id: "Home-title"
+    timeout: 90000
+- scrollUntilVisible:
+    element: ${RESTAURANT}
+    direction: DOWN
+    timeout: 20000
+- tapOn: ${RESTAURANT}
+- extendedWaitUntil:
+    visible: "View certification"
+    timeout: 30000
+
+# D9: the dish's sheet, then add one.
+- scrollUntilVisible:
+    element: "${DISH}.*"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "${DISH}.*"
+- extendedWaitUntil:
+    visible: "Add to cart"
+    timeout: 15000
+- takeScreenshot: redesign-wp5-01-item-ready
+- tapOn: "Add to cart"
+# A cart left from an earlier run or flow asks first; start a new one.
+- runFlow:
+    when:
+      visible: "Start a new cart\\?"
+    commands:
+      - tapOn: "Start a new cart"
+# The "Added to your cart" toast is transient and can be gone before Maestro looks (CI run
+# 38051366378 shows the cart bar but no toast), so the proof of the add is the cart bar.
+- extendedWaitUntil:
+    visible: "View cart · 1 item · .*"
+    timeout: 15000
+- takeScreenshot: redesign-wp5-04-item-added
+
+# C1: the cart, priced by the server for her address.
+- tapOn: "View cart.*"
+- extendedWaitUntil:
+    visible: "Your cart"
+    timeout: 15000
+- extendedWaitUntil:
+    visible: "Total"
+    timeout: 30000
+- assertVisible: "Service fee"
+# No footer assertion: the cross-app smoke's order is still on the way for Amina, so the footer
+# reads "View order" (checkout opens once it is delivered) rather than "Go to checkout".
+- takeScreenshot: redesign-wp5-06-cart-priced
+
+# Clear cart asks first.
+- tapOn: "Clear cart"
+- extendedWaitUntil:
+    visible: "Clear your cart\\?"
+    timeout: 10000
+# The dialog's confirm button, by id: its label matches the cart's own "Clear cart" behind the
+# dialog, and the index of that second match is not stable across CI builds.
+- tapOn:
+    id: "Cart-confirmClear"
+- extendedWaitUntil:
+    visible: "Your cart is empty"
+    timeout: 15000
+- takeScreenshot: redesign-wp5-10-cart-empty
+# Back to Home for the flows after this one (the app's own back; Android's Back would leave it).
+- repeat:
+    while:
+      notVisible:
+        id: "Home-title"
+    times: 4
+    commands:
+      - tapOn:
+          id: "AppBar-back"
