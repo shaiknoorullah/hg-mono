@@ -135,6 +135,12 @@ function themeFromName(job) {
   return null;
 }
 
+/** page.evaluate has no timeout of its own; a page that never answers must fail the board, not hang the run. */
+function within(promise, ms, what) {
+  let t;
+  return Promise.race([promise, new Promise((_, rej) => { t = setTimeout(() => rej(new Error(`${what} did not finish in ${ms / 1000} s`)), ms); })]).finally(() => clearTimeout(t));
+}
+
 async function render(browser, base, job, out) {
   const scale = PHONE_APPS.has(job.app) ? 3 : 1;
   const named = themeFromName(job);
@@ -156,9 +162,9 @@ async function render(browser, base, job, out) {
       if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) rec.errors.push(`console: ${m.text().slice(0, 200)}`);
     });
     await page.goto(base + job.url, { waitUntil: 'networkidle', timeout: 45_000 });
-    if (!(await page.evaluate(settle, { quietMs: 400, maxMs: 10_000 }))) rec.errors.push('still changing after 10 s');
+    if (!(await within(page.evaluate(settle, { quietMs: 400, maxMs: 10_000 }), 30_000, 'settle'))) rec.errors.push('still changing after 10 s');
     rec.notes = await page.evaluate(hideNotes, { classes: NOTE_CLASSES, prefixes: NOTE_PREFIXES, weakPrefixes: NOTE_WEAK_PREFIXES });
-    await page.evaluate(settle, { quietMs: 150, maxMs: 3_000 });
+    await within(page.evaluate(settle, { quietMs: 150, maxMs: 3_000 }), 30_000, 'settle');
     if (!rec.theme) {
       const t = await page.evaluate(() => document.querySelector('[data-theme]')?.getAttribute('data-theme'));
       if (t === 'dark' || t === 'light') rec.theme = t;
@@ -207,7 +213,11 @@ async function main() {
   // board and a capture rasterise text alike.
   const pick = resolveBrowser({ required: true });
   BROWSER = pick.label;
-  const browser = await chromium.launch({ executablePath: pick.executablePath, args: pick.args });
+  // The launch is bounded. On a host that forbids unprivileged user namespaces Chromium launched,
+  // then died when the first page opened, and every board waited on it for ever; the flags that
+  // prevent that live in src/browser.mjs, which the captures read too, and a launch that still
+  // cannot start now gives up after a minute instead of hanging.
+  const browser = await chromium.launch({ executablePath: pick.executablePath, args: pick.args, timeout: 60_000 });
   const manifestFile = path.join(o.out, 'manifest.json');
   const manifest = existsSync(manifestFile) ? JSON.parse(readFileSync(manifestFile, 'utf8')) : { boards: {}, areas: {} };
   manifest.source = { ref: src.label, commit: src.commit };
