@@ -206,6 +206,10 @@ function ListsSection(): React.ReactElement {
         ]}
       />
       <proposed.ActiveDeliveryBar label="Go to Zaytoun Grill" detail="12 Queen St W" onResume={() => {}} />
+    </View>
+  );
+}
+
 /** The N3 form parts, in the states the canvases draw. */
 function FormsSection(): React.ReactElement {
   const [phone, setPhone] = React.useState('4165550161');
