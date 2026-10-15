@@ -31,9 +31,9 @@ export const REDESIGNED: Partial<Record<RouteId, Screen>> = {
   // ·
   // menuItem: WP-4
   // ·
-  // riders: WP-5
+  riders: lazy(() => import('../riders/queue/RiderQueueRoute')),
   // ·
-  // rider: WP-5
+  rider: lazy(() => import('../riders/application/RiderApplicationRoute')),
   // ·
   // issuingBodies: WP-4
   // ·
