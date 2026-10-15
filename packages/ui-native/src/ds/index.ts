@@ -7,7 +7,8 @@
  * live props are mapped onto them (icon names become Solar `Icon` nodes, `testId` becomes
  * `testID`, `onValueChange` is wired to the legacy `onChange`). The DS-native work packages
  * (N1–N7) replace the internals one entry at a time on React Native Reusables; the names and
- * props here do not change, so app code does not either.
+ * props here do not change, so app code does not either. N1 (core) has landed: Button, IconButton,
+ * Badge, Card and Price now render through the React Native Reusables tier (`../lib`).
  *
  * Native differences from the web `.d.ts`, everywhere: `style` is a `StyleProp`, `onChange`
  * receives the value (there is no change event), money is the branded `Cents`, and labels are
@@ -26,6 +27,10 @@ export type { ButtonProps, IconButtonProps } from './Button';
 
 export { Badge, Card, Price, Rating } from './Content';
 export type { BadgeProps, CardProps, PriceProps, RatingProps } from './Content';
+
+/** Owner-approved (decisions row, 28 Sep) though not yet in the live index.d.ts; props from the canvases. */
+export { KeyValueList, StatCard } from './Content';
+export type { KeyValueListProps, KeyValueListRow, StatCardProps } from './Content';
 
 export { Input, Checkbox, RadioGroup, Radio, Switch, Select } from './Forms';
 export type {

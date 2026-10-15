@@ -8500,8 +8500,9 @@ type RemittableBy string
 
 // RestaurantAccountState A-2.0. Orthogonal to onboarding. These six words mean exactly this everywhere in the
 // product; `suspend`, `ban`, `deactivate` and `delist` are never synonyms.
-// `DELISTED` is the non-punitive system state (lapsed certificate, expired document, no
-// approved menu) and clears automatically when its cause does.
+// `DELISTED` is the non-punitive system state (lapsed certificate, a certificate whose
+// issuing body is no longer accepted, expired document, no approved menu) and clears
+// automatically when its cause does.
 type RestaurantAccountState string
 
 // RestaurantApplication defines model for RestaurantApplication.
@@ -8821,8 +8822,9 @@ type RestaurantOnboardingState string
 type RestaurantOnboardingStatus struct {
 	// AccountState A-2.0. Orthogonal to onboarding. These six words mean exactly this everywhere in the
 	// product; `suspend`, `ban`, `deactivate` and `delist` are never synonyms.
-	// `DELISTED` is the non-punitive system state (lapsed certificate, expired document, no
-	// approved menu) and clears automatically when its cause does.
+	// `DELISTED` is the non-punitive system state (lapsed certificate, a certificate whose
+	// issuing body is no longer accepted, expired document, no approved menu) and clears
+	// automatically when its cause does.
 	AccountState RestaurantAccountState `json:"account_state"`
 
 	// BlockingReason While the application is sent back or rejected, the reason text the admin wrote, verbatim. Null otherwise.
@@ -8922,8 +8924,9 @@ type RestaurantOrderMoney struct {
 type RestaurantProfile struct {
 	// AccountState A-2.0. Orthogonal to onboarding. These six words mean exactly this everywhere in the
 	// product; `suspend`, `ban`, `deactivate` and `delist` are never synonyms.
-	// `DELISTED` is the non-punitive system state (lapsed certificate, expired document, no
-	// approved menu) and clears automatically when its cause does.
+	// `DELISTED` is the non-punitive system state (lapsed certificate, a certificate whose
+	// issuing body is no longer accepted, expired document, no approved menu) and clears
+	// automatically when its cause does.
 	AccountState   RestaurantAccountState `json:"account_state"`
 	Address        PublicAddress          `json:"address"`
 	AvgPrepMinutes *int32                 `json:"avg_prep_minutes,omitempty"`
