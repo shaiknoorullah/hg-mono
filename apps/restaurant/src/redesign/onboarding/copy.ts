@@ -1,5 +1,5 @@
 /**
- * Onboarding copy (canvas ON, WP6/WP7), verbatim from the boards. The boards mix straight and
+ * Onboarding copy (canvas ON, restaurant onboarding), verbatim from the boards. The boards mix straight and
  * curly apostrophes; the app writes `’` throughout and changes no words. Reviewer notes and the
  * file check's reasons are never in this file: they are shown exactly as the server sent them.
  */
@@ -293,4 +293,15 @@ export const ENDS = {
   whatsHappening: 'What’s happening',
   support: 'Partner support',
   goDocuments: 'Go to documents',
+};
+
+export const MENU_STEP = {
+  title: 'Your first menu and opening hours',
+  intro:
+    'You add your menu yourself. Customers can order once a reviewer approves at least one item and your opening hours are set. Prices, preparation times and availability go live straight away; names, descriptions, ingredients, allergens and photos are checked first.',
+  hoursLoading: 'Loading your opening hours…',
+  hoursLoadErrorTitle: 'We couldn’t load your opening hours',
+  hoursLoadErrorBody: 'Your hours aren’t lost. Check your connection and try again.',
+  setTitle: 'Your menu and opening hours are set',
+  setBody: 'That was the last setup task. Continue to finish setting up and go to your orders.',
 };

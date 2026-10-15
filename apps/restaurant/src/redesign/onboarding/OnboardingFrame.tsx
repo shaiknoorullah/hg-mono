@@ -1,5 +1,5 @@
 /**
- * The onboarding frame (WP6, canvas ON `OnbTop` + `OnbSide`, boards `Onb-*`): a 64 px top bar
+ * The onboarding frame (restaurant onboarding, canvas ON `OnbTop` + `OnbSide`, boards `Onb-*`): a 64 px top bar
  * (brand, "Partner setup", the business name, an account menu with Sign out) and a collapsible
  * checklist rail beside the page. The rail shows what the server says: its `current_step`, its
  * `progress_percent` (never computed here) and the seal from `profile.halal` only. With no

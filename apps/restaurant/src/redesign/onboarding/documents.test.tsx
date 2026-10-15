@@ -1,5 +1,5 @@
 /**
- * WP6 — the documents, review and fix steps (canvas ON). Few tests, each pinning something the
+ * Restaurant onboarding, the documents, review and fix steps (canvas ON). Few tests, each pinning something the
  * product cannot be wrong about: the halal rules (no badge without data, never red, expired is
  * slate), the private-bucket road (fresh link per click, link never left in the page), the
  * documents-incomplete refusal, and the rejection-and-resend path.

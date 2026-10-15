@@ -1,5 +1,5 @@
 /**
- * WP6 — the business profile step (canvas ON `Profile-*`): the whole profile is saved at once, a
+ * Restaurant onboarding, the business profile step (canvas ON `Profile-*`): the whole profile is saved at once, a
  * refusal lands on its fields and in a summary whose links open the right section, and what was
  * typed survives a reload on this device only.
  */

@@ -1,5 +1,5 @@
 /**
- * `/onboarding/*` (WP6/WP7, manifest 1.2). One route that renders the step the SERVER names
+ * `/onboarding/*` (restaurant onboarding, #658). One route that renders the step the SERVER names
  * (`current_step`); the sub-paths exist so a refresh lands where the owner was. A path that is
  * not the current step's redirects to it, so the page can never show a step the server has not
  * opened (a step "that isn't open right now" is a 409 the screens also handle). A step this
@@ -16,11 +16,11 @@ import { DocumentWorkspace } from './DocumentWorkspace';
 import { ProfileScreen } from './ProfileScreen';
 import { PayoutScreen } from './PayoutScreen';
 import { DoneScreen } from './DoneScreen';
+import { MenuStep } from './MenuStep';
 import { LapsedCertificate, NotApproved, PausedAccount, Withdrawn } from './EndScreens';
 import { FRAME } from './copy';
 import { STEP_PATH, isKnownStep } from './model';
 import { reportUnknownStep } from './report';
-import { LegacyStep } from './LegacyStep';
 
 function Center({ children, testId }: { children: React.ReactNode; testId?: string }) {
   return (
@@ -85,12 +85,13 @@ function StepRoutes({ onSignOut }: { onSignOut: () => void }) {
     <OnboardingFrame onSignOut={onSignOut}>
       <Routes>
 <Route path="profile" element={<ProfileScreen />} />
+        <Route path="menu" element={<MenuStep />} />
         <Route path="done" element={<DoneScreen />} />
         <Route path="payout/*" element={<PayoutScreen />} />
         <Route path="documents" element={<DocumentWorkspace variant="documents" />} />
         <Route path="review" element={<DocumentWorkspace variant="review" />} />
         <Route path="fix" element={<DocumentWorkspace variant="fix" />} />
-        <Route path="*" element={<LegacyStep />} />
+        <Route path="*" element={<Navigate to={home} replace />} />
       </Routes>
     </OnboardingFrame>
   );

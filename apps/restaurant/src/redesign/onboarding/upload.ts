@@ -1,5 +1,5 @@
 /**
- * Getting one file into the private bucket and onto a document row (WP6, canvas ON `Docs-*`).
+ * Getting one file into the private bucket and onto a document row (restaurant onboarding, canvas ON `Docs-*`).
  *
  * The only road in is the contract's own: `createUpload` (a presigned PUT bound to the file's
  * size, type and SHA-256), the PUT itself, `confirmUpload` (the server checks the bytes and the

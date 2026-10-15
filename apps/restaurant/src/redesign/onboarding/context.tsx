@@ -1,5 +1,5 @@
 /**
- * What every onboarding screen reads (WP6/WP7): the server's onboarding status (which decides
+ * What every onboarding screen reads (restaurant onboarding): the server's onboarding status (which decides
  * the step), the profile (halal, account state), the public config (support contact) and the
  * document list. The status and profile come from the console provider; the documents are read
  * here once and shared by the rail and the screens. Everything refreshes together after a write

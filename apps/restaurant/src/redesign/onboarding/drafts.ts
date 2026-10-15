@@ -1,5 +1,5 @@
 /**
- * The owner's work in progress on each document row (WP6, canvas ON `Docs-Uploading`,
+ * The owner's work in progress on each document row (restaurant onboarding, canvas ON `Docs-Uploading`,
  * `Docs-AttachErrors`, `Docs-UploadErrors`, `Fix-Uploading`, `Fix-Details`): a chosen file being
  * uploaded, then its details waiting to be saved. Nothing here is a server fact; the document
  * list is. A draft holds the `File` and an `AbortController` in refs (never state, never

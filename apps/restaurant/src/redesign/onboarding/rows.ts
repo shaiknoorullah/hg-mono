@@ -1,5 +1,5 @@
 /**
- * One row of the documents list as the screen draws it (WP6, canvas ON `DocsPanes` and
+ * One row of the documents list as the screen draws it (restaurant onboarding, canvas ON `DocsPanes` and
  * `ReviewPanes`): what the server holds for that document type plus the owner's draft in
  * progress, reduced to a badge, a one-line summary and what can be done to it.
  *

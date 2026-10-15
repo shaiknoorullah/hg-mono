@@ -1,5 +1,5 @@
 /**
- * The documents list and detail panes shared by three steps (WP6, canvas ON): Documents
+ * The documents list and detail panes shared by three steps (restaurant onboarding, canvas ON): Documents
  * (`DocsPanes`, current step DOCUMENTS), Awaiting review (`ReviewPanes`, AWAITING_REVIEW) and Fix
  * documents (FIX_DOCUMENTS). The server's `current_step` picks the variant; this file decides
  * nothing about which step is open.

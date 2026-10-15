@@ -1,5 +1,5 @@
 /**
- * WP7 — payout setup (canvas ON `Payout-*`): the connected account is created once even across
+ * Restaurant onboarding, payout setup (canvas ON `Payout-*`): the connected account is created once even across
  * a retry, the owner is sent to the link Stripe gave, and Stripe's own status is what the page
  * reports.
  */

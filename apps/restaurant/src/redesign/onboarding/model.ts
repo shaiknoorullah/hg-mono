@@ -1,5 +1,5 @@
 /**
- * What the onboarding screens decide from the server's answers (WP6/WP7, canvas ON). Pure
+ * What the onboarding screens decide from the server's answers (restaurant onboarding, canvas ON). Pure
  * functions: no fetching, no React. The client never works out the next step itself
  * (`current_step` decides), never computes progress (`progress_percent` is the server's), and
  * never invents a halal claim (the setup rail reads `profile.halal` or says nothing).

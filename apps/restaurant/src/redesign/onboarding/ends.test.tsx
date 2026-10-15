@@ -1,5 +1,5 @@
 /**
- * WP7 — setup done and the ends and blockers (canvas ON `Onb-Done*`, `Withdrawn`,
+ * Restaurant onboarding, setup done and the ends and blockers (canvas ON `Onb-Done*`, `Withdrawn`,
  * `App-NotApproved`, `Delisted-Setup`, `Suspended-Setup`): a lapsed halal certificate is slate
  * and "we can't currently vouch", a final decision shows the reviewer's note and offers no
  * upload, and the done page draws a seal only from the profile's own halal data.
