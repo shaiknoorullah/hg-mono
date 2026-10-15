@@ -11,6 +11,9 @@ export interface ChecklistItem {
   readonly label: string;
 }
 
+// Provisional: the API contract does not define these checklist keys, so the client invents
+// them. They stay provisional until the contract does (issue #840,
+// https://github.com/shaiknoorullah/hg-mono/issues/840).
 export const DOC_CHECKLISTS: Partial<Record<DocType, readonly ChecklistItem[]>> = {
   FOOD_SAFETY: [
     { key: 'ISSUING_HEALTH_UNIT_PRESENT', label: 'Issuing health unit present' },
