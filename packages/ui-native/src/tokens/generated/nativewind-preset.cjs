@@ -281,6 +281,21 @@ module.exports = {
           base: 'var(--hg-skeleton-base)',
           highlight: 'var(--hg-skeleton-highlight)',
         },
+        'elev-surface': {
+          '0': 'var(--hg-elev-surface-0)',
+          '1': 'var(--hg-elev-surface-1)',
+          '2': 'var(--hg-elev-surface-2)',
+          '3': 'var(--hg-elev-surface-3)',
+          '4': 'var(--hg-elev-surface-4)',
+          sticky: 'var(--hg-elev-surface-sticky)',
+        },
+        chrome: {
+          fg: 'var(--hg-chrome-fg)',
+          'fg-muted': 'var(--hg-chrome-fg-muted)',
+          line: 'var(--hg-chrome-line)',
+          active: 'var(--hg-chrome-active)',
+          tile: 'var(--hg-chrome-tile)',
+        },
         action: {
           control: 'var(--hg-action-control)',
           'track-on': 'var(--hg-action-track-on)',

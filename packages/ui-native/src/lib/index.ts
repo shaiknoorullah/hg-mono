@@ -31,6 +31,21 @@ export type { AvatarProps, AvatarSize } from './ui/avatar';
 export { KeyValueList, StatCard } from './ui/key-value';
 export type { KeyValueListProps, KeyValueRow, StatCardProps } from './ui/key-value';
 export { useHgColorScheme, HgColorSchemeBridge } from './useHgColorScheme';
+// N2: navigation and overlays.
+export { AppBar, appBarInk } from './ui/app-bar';
+export type { AppBarProps, AppBarTone, AppBarVariant } from './ui/app-bar';
+export { BottomNav, bottomNavItemClasses } from './ui/bottom-nav';
+export type { BottomNavProps, BottomNavLink, BottomNavTone } from './ui/bottom-nav';
+export { Sheet } from './ui/sheet';
+export type { SheetProps, SheetVariant } from './ui/sheet';
+export { Dialog, DIALOG_WIDTH, STACK_BELOW } from './ui/dialog';
+export type { DialogProps } from './ui/dialog';
+export { Toast, TOAST_INK, TOAST_DURATION, isPersistentToast } from './ui/toast';
+export type { ToastProps, ToastVariant } from './ui/toast';
+export { StickyFooter } from './ui/sticky-footer';
+export type { StickyFooterProps } from './ui/sticky-footer';
+export { OverlayPortal } from './ui/overlay';
+export type { OverlayWrap } from './ui/overlay';
 // N3 forms.
 export { FieldLabel, FieldMessage, ErrorSummaryBox, fieldFrameVariants, frameState, FIELD_MIN_H } from './ui/field';
 export type { FieldSize, FieldLabelProps, FieldMessageProps, ErrorSummaryItem, ErrorSummaryBoxProps } from './ui/field';

@@ -38,6 +38,8 @@ export interface ButtonProps extends DsCommon {
   href?: string;
   accessibilityLabel?: string;
   accessibilityHint?: string;
+  /** The pressable's host node (React 19 passes `ref` as a prop): Modal focuses its least destructive action through it. */
+  ref?: React.Ref<View>;
 }
 
 /** Icon box per size (live: sm 16, md and lg 20, xl and critical 24). */
@@ -77,6 +79,7 @@ export function Button(props: ButtonProps) {
     accessibilityLabel,
     accessibilityHint,
     style,
+    ref,
   } = props;
   const theme = useTheme();
   const field = isFieldTheme(theme);
@@ -107,6 +110,7 @@ export function Button(props: ButtonProps) {
 
   return (
     <LibButton
+      ref={ref as never}
       testID={testID}
       variant={variant}
       size={libSize}
