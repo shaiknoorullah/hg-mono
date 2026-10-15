@@ -261,10 +261,14 @@ describe('routes', () => {
     expect(screen.getByRole('button', { name: 'Back to restaurant applications' }).getAttribute('data-variant')).toBe('tertiary');
   });
 
-  it('falls back to a legacy screen inside the new shell while its work package is open', async () => {
+  // No route falls back to a legacy screen any more: every entry in `LEGACY` (routes.tsx) is now
+  // shadowed by a `REDESIGNED` one, so the fallback has no live example to test. Staff was the
+  // last one to move (#913); this pins that it stays redesigned.
+  it('shows the redesigned Staff page, not the legacy screen', async () => {
     const { container } = renderApp('/staff');
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Staff');
-    await waitFor(() => expect(container.querySelector('[data-legacy-screen="staff"]')).not.toBeNull());
+    await screen.findByRole('region', { name: 'Staff' });
+    expect(container.querySelector('[data-legacy-screen="staff"]')).toBeNull();
     expect(nav()).toBeTruthy();
   });
 
