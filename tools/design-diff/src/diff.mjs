@@ -13,7 +13,9 @@
 // side-by-side (design | app | diff) under <out>/pairs/. A web capture taken by another Chromium than
 // drew its board, or by an unrecorded one, is BROWSER MISMATCH and not compared (src/browser.mjs). A
 // native capture must record its device and app build (NO PROVENANCE) and is then not compared by pixels.
-// Exits 1 when any pair is FAIL, NO BOARD, NOT COMPARED, BROWSER MISMATCH or NO PROVENANCE (the default; --strict is an accepted alias); --no-strict reports and exits 0. A crash or
+// A board whose assets did not all load is DEFECTIVE REFERENCE and not compared: the missing picture
+// is the renderer's, not the app's. Checked after NO BOARD, before the capture is looked at.
+// Exits 1 when any pair is FAIL, NO BOARD, DEFECTIVE REFERENCE, NOT COMPARED, BROWSER MISMATCH or NO PROVENANCE (the default; --strict is an accepted alias); --no-strict reports and exits 0. A crash or
 // usage error exits 2.
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
@@ -92,7 +94,21 @@ export function unusableReference(ref, refsDir) {
   return null;
 }
 
-/** 1 when the run must fail: any pair that is not PASS (FAIL, NO BOARD, NOT COMPARED, BROWSER MISMATCH), unless strict is off. */
+/**
+ * Why a board that rendered is still a defective reference, or null: assets it asked for did not
+ * load (an uploaded image, say), so part of the picture is missing. That absence is the renderer's,
+ * not the app's, and charging it to the app would read as a UI difference. `failedAssets` is
+ * `[{ url, status }]` per board; manifests rendered before it existed carry `missingBlobs`, the
+ * uploaded-image ids, which is checked the same way.
+ * @param {{ failedAssets?: { url: string, status?: number }[], missingBlobs?: string[] }} ref
+ */
+export function referenceIncomplete(ref) {
+  const failed = ref.failedAssets?.length ? ref.failedAssets.map((a) => (a.status ? `${a.url} (${a.status})` : a.url)) : (ref.missingBlobs ?? []).map((id) => `/_blob/${id}`);
+  if (!failed.length) return null;
+  return `the reference is defective: ${failed.length} asset${failed.length === 1 ? '' : 's'} the board asks for did not load (${failed.join(', ')}), so the board did not fully render; a mismatch here would charge the missing asset to the app. Fix the reference (src/render-refs.mjs), do not read this pair as a judgement on the app.`;
+}
+
+/** 1 when the run must fail: any pair that is not PASS (FAIL, NO BOARD, DEFECTIVE REFERENCE, NOT COMPARED, BROWSER MISMATCH, NO PROVENANCE), unless strict is off. */
 export function exitCodeFor(pairs, strict = true) {
   return strict && pairs.some((p) => p.verdict !== 'PASS') ? 1 : 0;
 }
@@ -135,6 +151,12 @@ function main() {
     if (unusable) {
       pairs.push({ ...base, verdict: 'NO BOARD', reason: unusable });
       console.log(`${'NO BOARD'.padEnd(12)} ${''.padStart(8)}    ${c.id}  (${c.rel})  ${unusable}`);
+      continue;
+    }
+    const defective = referenceIncomplete(ref);
+    if (defective) {
+      pairs.push({ ...base, verdict: 'DEFECTIVE REFERENCE', reason: defective, failedAssets: ref.failedAssets ?? (ref.missingBlobs ?? []).map((id) => ({ url: `/_blob/${id}` })) });
+      console.log(`${'DEFECTIVE REFERENCE'.padEnd(12)} ${''.padStart(8)}    ${c.id}  (${c.rel})  ${defective}`);
       continue;
     }
     const wrongBrowser = captureBrowserProblem(ref, app, c.file);
@@ -197,7 +219,7 @@ function main() {
   mkdirSync(o.out, { recursive: true });
   writeFileSync(path.join(o.out, 'results.json'), JSON.stringify(results, null, 1) + '\n');
   const count = (v) => pairs.filter((p) => p.verdict === v).length;
-  console.log(`\n${pairs.length} captures: ${count('PASS')} pass, ${count('FAIL')} fail, ${count('NOT COMPARED')} not compared, ${count('NO BOARD')} without a board, ${count('BROWSER MISMATCH')} from another browser than their board, ${count('NO PROVENANCE')} native without provenance. ${path.join(o.out, 'results.json')}`);
+  console.log(`\n${pairs.length} captures: ${count('PASS')} pass, ${count('FAIL')} fail, ${count('NOT COMPARED')} not compared, ${count('NO BOARD')} without a board, ${count('DEFECTIVE REFERENCE')} with a defective reference, ${count('BROWSER MISMATCH')} from another browser than their board, ${count('NO PROVENANCE')} native without provenance. ${path.join(o.out, 'results.json')}`);
   console.log(`uncaptured boards: ${uncaptured.length}${uncaptured.length ? ` (${uncaptured.slice(0, 10).join(', ')}${uncaptured.length > 10 ? ', ...' : ''})` : ''}`);
   process.exitCode = exitCodeFor(pairs, o.strict);
 }

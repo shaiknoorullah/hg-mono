@@ -195,3 +195,24 @@ export function settle({ quietMs, maxMs }) {
     setTimeout(tick, 50);
   });
 }
+
+/**
+ * What each image whose address holds `match` sits on: the nearest ancestor with an opaque
+ * background, called `dark` when its luminance is under 0.18 (mid-grey), else `light`. A page with no opaque
+ * background is white. Returns `[{ src, surface }]`. Used to check that a wordmark was drawn for
+ * the surface the board puts it on (src/wordmark.mjs).
+ */
+export function surfaceOfImages(match) {
+  const channel = (c) => { const v = c / 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+  const surfaceOf = (el) => {
+    for (let n = el.parentElement; n; n = n.parentElement) {
+      const m = /^rgba?\(([^)]+)\)$/.exec(getComputedStyle(n).backgroundColor);
+      if (!m) continue;
+      const [r, g, b, a = 1] = m[1].split(/[ ,/]+/).filter(Boolean).map(Number);
+      if (a < 0.9) continue;
+      return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b) < 0.18 ? 'dark' : 'light';
+    }
+    return 'light';
+  };
+  return [...document.querySelectorAll('img')].filter((i) => (i.getAttribute('src') ?? '').includes(match)).map((i) => ({ src: i.getAttribute('src'), surface: surfaceOf(i) }));
+}
