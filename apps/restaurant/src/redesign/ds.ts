@@ -110,3 +110,14 @@ export type { PageBannerProps, PageBannerTone } from './_stubs/PageBanner';
 export { PickupCode } from './_stubs/PickupCode';
 export type { PickupCodeProps } from './_stubs/PickupCode';
 export type { InlineNoticeTone } from './_stubs/InlineNotice';
+
+// ── Onboarding stubs (restaurant onboarding, #658) ─────────────────────────────────────────────────────
+export { ProgressBar } from './_stubs/ProgressBar';
+export type { ProgressBarProps } from './_stubs/ProgressBar';
+export { FileDrop } from './_stubs/FileDrop';
+export type { FileDropProps } from './_stubs/FileDrop';
+export { SetupChecklist } from './_stubs/SetupChecklist';
+export type { SetupChecklistProps, SetupStepItem, SetupStepTone } from './_stubs/SetupChecklist';
+export { KeyValueList } from './_stubs/KeyValueList';
+export type { KeyValueRow } from './_stubs/KeyValueList';
+export { Disclosure } from './_stubs/Disclosure';

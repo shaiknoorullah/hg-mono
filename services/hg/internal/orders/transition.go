@@ -70,6 +70,9 @@ func (s *Store) Transition(ctx context.Context, req TransitionRequest, effects .
 // It is the same single function as Transition, not a second writer of
 // order.state (docs/spec/01-platform.md, "P-14 — Order lifecycle states and
 // transitions"). The caller commits or rolls back tx.
+// The admin account actions use it too, to cancel a suspended restaurant's
+// unaccepted orders in the same transaction
+// (https://github.com/shaiknoorullah/hg-mono/issues/253).
 func (s *Store) TransitionInTx(ctx context.Context, tx pgx.Tx, req TransitionRequest, effects ...func(pgx.Tx) error) error {
 	return s.transitionTx(ctx, tx, req, effects...)
 }

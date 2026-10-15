@@ -1,0 +1,30 @@
+{
+  "scenario": "error_account_action_illegal",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `ILLEGAL_STATE_TRANSITION`. An action that is not legal from the current state, naming the state and the actions that are. Also returned for confirming a ban nobody proposed, or one that lapsed.",
+  "operations": [
+    "applyRestaurantAccountAction",
+    "applyRiderAccountAction",
+    "applyCustomerAccountAction"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope",
+    "account-action"
+  ],
+  "payload": {
+    "error": {
+      "code": "ILLEGAL_STATE_TRANSITION",
+      "message": "This action is not possible from the account's current state: SUSPEND is not possible from BANNED.",
+      "request_id": "6W0CRGP930HDHGHJPJMFXAQS09",
+      "details": {
+        "from_state": "BANNED",
+        "action": "SUSPEND",
+        "allowed_actions": [
+          "REINSTATE"
+        ]
+      }
+    }
+  }
+}

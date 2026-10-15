@@ -2,7 +2,7 @@
 covers:
   - apps/admin/**
   - services/hg/internal/admin/**
-reviewed: 2026-10-13
+reviewed: 2026-10-15
 ---
 
 # HalalGoes — ADMIN / SUPER ADMIN / SUPPORT AGENT Specification
@@ -1583,6 +1583,34 @@ These six words mean exactly this everywhere in the product, in the API, and in 
      highlighted, not auto-rejected.
 - **Out of scope**: partial suspension (e.g. suspend delivery but allow pickup — there is no pickup
   product in V1); geographic suspension; suspension of individual menu categories.
+- **At launch** ([#253](https://github.com/shaiknoorullah/hg-mono/issues/253)): release 1.0 ships
+  `applyRestaurantAccountAction` with `SUSPEND`, `DELIST`, `PROPOSE_BAN`, `CONFIRM_BAN`,
+  `DEACTIVATE` and `REINSTATE`, the two-person ban with its 7-day lapse, rules 2, 3 and 6, and
+  acceptance criteria 1 and 4. Reinstating to `LIVE` needs a current halal certificate an admin
+  has checked (the order path's rule); relisting a `DELISTED` restaurant without one is
+  `409 HALAL_CERTIFICATE_REQUIRED`. Deactivating needs the `MERCHANT_REQUEST` reason instead of a
+  linked case, because cases do not ship. A ban withdraws the restaurant's roles from its staff at
+  sign-in and ends their sessions. Not at launch: timed suspensions (rule 1), `CLOSE`, the
+  re-registration flag (rule 5) and the case for a lapsed proposal
+  ([#325](https://github.com/shaiknoorullah/hg-mono/issues/325)); reading the history and the
+  pending bans ([#327](https://github.com/shaiknoorullah/hg-mono/issues/327)). No other path
+  changes an account's state with weaker gates ([#335](https://github.com/shaiknoorullah/hg-mono/pull/335)):
+  the application's database role cannot write a restaurant's, rider's or customer's state, and the
+  only writers are database functions. The one for a staff action is given the request's access
+  token and acts only as the account whose live session, signed in with two-step sign-in, the token
+  was issued for; the application's database role holds only token hashes and cannot rewrite a
+  session. It reads the actor's grants as they stand, checks the transition, the own-account rule
+  (a staff account is not acted on as a rider or a customer) and the two-person ban (the confirming
+  super admin did not make the proposer staff, was not made staff by them, and held the role before
+  the proposal), and writes the state, the history and the audit together. Sign-in still writes the
+  session rows under the same role, so a connection that can insert one can mint a session
+  ([#372](https://github.com/shaiknoorullah/hg-mono/issues/372)). The system's (completing onboarding, out of `PENDING` only, which for a rider is the one `account_state_complete_rider_onboarding` runs when payouts become ready ([rider payout setup](04-rider.md#d-08--payout-account-onboarding-stripe-connect));
+  the halal expiry, which only delists; the halal renewal and a certifying body given back, which
+  only list a `DELISTED` restaurant again) take no actor and decide from the data
+  ([certificate expiry](#a-17--halal-certificate-expiry-monitoring-and-lapse-handling)). Completing
+  onboarding lists a restaurant only with a current halal certificate; without one it is `DELISTED`
+  (rule R4 of [certificate expiry](#a-17--halal-certificate-expiry-monitoring-and-lapse-handling):
+  never `LIVE` without an approved, unexpired certificate).
 - **Version**: V1 · **Size**: M
 
 > **DECISION REQUIRED — D-17 · Payouts to a banned merchant**: When a restaurant is banned, are funds
@@ -1855,6 +1883,16 @@ documents lapse cannot go on shift, but is not punished.
      application is created and flagged, not blocked silently.
 - **Out of scope**: partial restrictions (e.g. banned from a single restaurant); geographic
   restrictions; probationary reinstatement with reduced dispatch priority.
+- **At launch** ([#253](https://github.com/shaiknoorullah/hg-mono/issues/253)): release 1.0 ships
+  `applyRiderAccountAction` with `SUSPEND`, `PROPOSE_BAN`, `CONFIRM_BAN`, `DEACTIVATE` and
+  `REINSTATE`; the rider account status gains `BANNED`. Waiting offers are withdrawn at once and an
+  idle rider goes offline. For every reason, the current delivery finishes and is paid, and the
+  rider goes offline after it ([rider suspended or deactivated](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28));
+  operations may reassign it by hand ([a rider suspended mid-delivery](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01),
+  the reassign operation is [#172](https://github.com/shaiknoorullah/hg-mono/issues/172)), so the
+  automatic recovery in rule 3 and acceptance criterion 1 is not built. Reinstatement notifies the
+  rider (rule 6). Not at launch: `FORCE_OFFLINE`, `CLOSE` and the re-registration flag
+  ([#325](https://github.com/shaiknoorullah/hg-mono/issues/325)).
 - **Version**: V1 · **Size**: S
 
 ---
@@ -1906,6 +1944,12 @@ documents lapse cannot go on shift, but is not punished.
      the suspension is unaffected.
 - **Out of scope**: device/IP-level blocking; fraud-scoring engine (V3); credit-style risk models;
   shadow-banning.
+- **At launch** ([#253](https://github.com/shaiknoorullah/hg-mono/issues/253)): release 1.0 ships
+  `applyCustomerAccountAction` with `SUSPEND`, `PROPOSE_BAN`, `CONFIRM_BAN` and `REINSTATE` on the
+  account's own status (one account per person, so a suspended customer cannot sign in for any
+  role), rule 1 and acceptance criterion 1. A ban ends every session. Not at launch:
+  `ORDERING_RESTRICTED` and the support agent's part in it, deactivating, `CLOSE`, and rules 2 and 5
+  ([#325](https://github.com/shaiknoorullah/hg-mono/issues/325)).
 - **Version**: V1 · **Size**: S
 
 > **DECISION REQUIRED — D-20 · Customer data erasure scope**: On a PIPEDA erasure request, which
@@ -1992,6 +2036,17 @@ documents lapse cannot go on shift, but is not punished.
      per order (verified by the idempotency key).
 - **Out of scope**: partial refunds on intervention (always full); customer choice of
   replacement-restaurant; automatic re-ordering elsewhere.
+- **At launch** ([#253](https://github.com/shaiknoorullah/hg-mono/issues/253)): the account actions
+  apply the restaurant and customer tables above through the order state machine, in the action's
+  own transaction: unaccepted orders are cancelled and their authorisation released; a confirmed ban,
+  or a suspension for `HALAL_INTEGRITY` or `FOOD_SAFETY_RISK`, also cancels and fully refunds orders
+  still `PREPARING`; the restaurant is not settled for them, the proposed default for who bears the
+  food cost on a halal-integrity cancellation (below). Orders already
+  ready or with a rider finish, even under the halal override, until the state machine has a
+  recovery step ([#326](https://github.com/shaiknoorullah/hg-mono/issues/326)). What each action did
+  to each order is recorded on its `account_state_event` row (rules 3 and 6); there is no separate
+  `order_intervention` table. For riders, the owner's decisions replace the rider table above: the
+  delivery finishes.
 - **Version**: V1 · **Size**: M
 
 > **DECISION REQUIRED — D-21 · Rider pay on interrupted deliveries**: What is a rider paid when their

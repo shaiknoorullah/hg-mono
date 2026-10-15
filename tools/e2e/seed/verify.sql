@@ -33,13 +33,13 @@ BEGIN
     problems := array_append(problems, 'the rider is not approved with payouts set up');
   END IF;
   IF (SELECT count(*) FROM address
-       WHERE account_id IN ('e2e00000-0000-4000-8000-00000000c001', 'e2e00000-0000-4000-8000-00000000c002')
-         AND is_default AND deleted_at IS NULL) <> 2 THEN
+       WHERE account_id IN ('e2e00000-0000-4000-8000-00000000c001', 'e2e00000-0000-4000-8000-00000000c002', 'e2e00000-0000-4000-8000-00000000c003')
+         AND is_default AND deleted_at IS NULL) <> 3 THEN
     problems := array_append(problems, 'a customer has no default address');
   END IF;
   IF cardinality(problems) > 0 THEN
     RAISE EXCEPTION 'the end-to-end world is not as expected: %', array_to_string(problems, '; ');
   END IF;
-  RAISE NOTICE 'world verified: 2 restaurants (certified, expired), 2 customers, 1 rider, 1 admin';
+  RAISE NOTICE 'world verified: 2 restaurants (certified, expired), 3 customers, 1 rider, 1 admin';
 END
 $$;

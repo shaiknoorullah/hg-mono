@@ -10,13 +10,16 @@
 // named for an app, or --app. --map adds screenshots named otherwise: { "<path under --captures>":
 // "<app>/<area>/<Board>" }. Phone screenshots lose Android's bars first (--insets, measured, or
 // --profile, the stock heights). Writes <out>/results.json and, per pair, the diff image and the
-// side-by-side (design | app | diff) under <out>/pairs/. Exits 1 when any pair is FAIL, NO BOARD or
-// NOT COMPARED (the default; --strict is an accepted alias); --no-strict reports and exits 0. A crash or
+// side-by-side (design | app | diff) under <out>/pairs/. A web capture taken by another Chromium than
+// drew its board, or by an unrecorded one, is BROWSER MISMATCH and not compared (src/browser.mjs). A
+// native capture must record its device and app build (NO PROVENANCE) and is then not compared by pixels.
+// Exits 1 when any pair is FAIL, NO BOARD, NOT COMPARED, BROWSER MISMATCH or NO PROVENANCE (the default; --strict is an accepted alias); --no-strict reports and exits 0. A crash or
 // usage error exits 2.
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { BROWSER_APPS, browserMismatch, provenanceProblem } from './browser.mjs';
 import { DEFAULTS, compare } from './compare.mjs';
 import { PROFILES, profileInsets } from './insets.mjs';
 import { compareLayouts } from './layout-diff.mjs';
@@ -89,9 +92,29 @@ export function unusableReference(ref, refsDir) {
   return null;
 }
 
-/** 1 when the run must fail: any pair that is FAIL, NO BOARD or NOT COMPARED, unless strict is off. */
+/** 1 when the run must fail: any pair that is not PASS (FAIL, NO BOARD, NOT COMPARED, BROWSER MISMATCH), unless strict is off. */
 export function exitCodeFor(pairs, strict = true) {
   return strict && pairs.some((p) => p.verdict !== 'PASS') ? 1 : 0;
+}
+
+/** Why a web capture and its board came from different browsers, or null. Device captures have no browser. */
+export function captureBrowserProblem(ref, app, captureFile) {
+  if (!BROWSER_APPS.includes(app)) return null;
+  return browserMismatch(ref, readSidecar(captureFile));
+}
+
+function readSidecar(captureFile) {
+  const sidecar = captureFile.replace(/\.png$/, '.capture.json');
+  try {
+    return existsSync(sidecar) ? JSON.parse(readFileSync(sidecar, 'utf8')) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Why a native capture is untrusted (no device or app build recorded), or null. Web captures: null. */
+export function captureProvenanceProblem(app, captureFile) {
+  return BROWSER_APPS.includes(app) ? null : provenanceProblem(readSidecar(captureFile));
 }
 
 function main() {
@@ -114,9 +137,30 @@ function main() {
       console.log(`${'NO BOARD'.padEnd(12)} ${''.padStart(8)}    ${c.id}  (${c.rel})  ${unusable}`);
       continue;
     }
+    const wrongBrowser = captureBrowserProblem(ref, app, c.file);
+    if (wrongBrowser) {
+      pairs.push({ ...base, verdict: 'BROWSER MISMATCH', reason: wrongBrowser });
+      console.log(`${'BROWSER MISMATCH'.padEnd(12)} ${''.padStart(8)}    ${c.id}  (${c.rel})  ${wrongBrowser}`);
+      continue;
+    }
+    const noProvenance = captureProvenanceProblem(app, c.file);
+    if (noProvenance) {
+      pairs.push({ ...base, verdict: 'NO PROVENANCE', reason: noProvenance });
+      console.log(`${'NO PROVENANCE'.padEnd(12)} ${''.padStart(8)}    ${c.id}  (${c.rel})  ${noProvenance}`);
+      continue;
+    }
     let shot = readPng(c.file);
     if (cut) shot = crop(shot, 0, cut.top, shot.width, shot.height - cut.top - cut.bottom);
     const r = compare(readPng(path.join(o.refs, ref.file)), shot, { scale: ref.scale, ...thresholds });
+    if (!BROWSER_APPS.includes(app)) {
+      // A native screen and an HTML board never agree pixel for pixel (different text rasterisers), so
+      // a pixel verdict would be the wrong measurement. The geometry criterion is not built yet
+      // (README, "Native boards"): the figure is shown for information and the pair is not compared.
+      const info = r.mismatchPct ?? null;
+      pairs.push({ ...base, verdict: 'NOT COMPARED', reason: 'native board: measured by layout geometry, which is not implemented yet (README, "Native boards"); pixels are not a criterion for it', informationalMismatchPct: info });
+      console.log(`${'NOT COMPARED'.padEnd(12)} ${String(info ?? '').padStart(8)} %  ${c.id}  (${c.rel})  native: geometry criterion not implemented`);
+      continue;
+    }
     const pair = { ...base, size: `${ref.w}×${ref.h}`, scale: ref.scale, theme: ref.theme, notes: ref.notes, caveats: ref.caveats, missingBlobs: ref.missingBlobs, boardErrors: ref.errors, ...r, images: undefined };
     const layoutFile = c.file.replace(/\.png$/, '.layout.json');
     if (existsSync(layoutFile) && ref.layout && existsSync(path.join(o.refs, ref.layout))) {
@@ -153,7 +197,7 @@ function main() {
   mkdirSync(o.out, { recursive: true });
   writeFileSync(path.join(o.out, 'results.json'), JSON.stringify(results, null, 1) + '\n');
   const count = (v) => pairs.filter((p) => p.verdict === v).length;
-  console.log(`\n${pairs.length} captures: ${count('PASS')} pass, ${count('FAIL')} fail, ${count('NOT COMPARED')} not compared, ${count('NO BOARD')} without a board. ${path.join(o.out, 'results.json')}`);
+  console.log(`\n${pairs.length} captures: ${count('PASS')} pass, ${count('FAIL')} fail, ${count('NOT COMPARED')} not compared, ${count('NO BOARD')} without a board, ${count('BROWSER MISMATCH')} from another browser than their board, ${count('NO PROVENANCE')} native without provenance. ${path.join(o.out, 'results.json')}`);
   console.log(`uncaptured boards: ${uncaptured.length}${uncaptured.length ? ` (${uncaptured.slice(0, 10).join(', ')}${uncaptured.length > 10 ? ', ...' : ''})` : ''}`);
   process.exitCode = exitCodeFor(pairs, o.strict);
 }

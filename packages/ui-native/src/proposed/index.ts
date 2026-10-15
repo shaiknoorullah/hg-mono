@@ -36,6 +36,10 @@ export type {
 // Core (N1): rebuilt on the React Native Reusables tier (`lib/`); the props are unchanged.
 export { Text, Skeleton, Spinner, Separator, Avatar } from '../ds/Core';
 export type { TextProps, SkeletonProps, SpinnerProps, SeparatorProps, AvatarProps } from '../ds/Core';
+// Halal (N4): the restaurant page's halal row (customer canvas D5; issue #196). The shield is
+// never exported.
+export { RestaurantHalalStatus } from '../ds/Halal';
+export type { RestaurantHalalStatusProps } from '../ds/Halal';
 export type { SkeletonVariant } from '../lib/ui/skeleton';
 export type { SpinnerSize } from '../lib/ui/spinner';
 export { Wordmark } from '../primitives';

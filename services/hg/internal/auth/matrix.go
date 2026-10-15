@@ -244,6 +244,10 @@ var matrix = map[httpx.Role]map[httpx.Action]struct{}{
 	httpx.RoleAdmin: withStaffAccount(
 		httpx.Action("chargeback.annotate"),
 		httpx.Action("chargeback.read"),
+		// Account actions (https://github.com/shaiknoorullah/hg-mono/issues/253): the
+		// handler narrows confirming a ban and reinstating a banned account to
+		// super admins.
+		httpx.Action("customer.account_state_change"),
 		httpx.Action("document.review"),
 		httpx.Action("halal_certificate.check"),
 		httpx.Action("halal_certificate.decide"),
@@ -273,9 +277,11 @@ var matrix = map[httpx.Role]map[httpx.Action]struct{}{
 		httpx.Action("refund.read"),
 		httpx.Action("refund.read_any"),
 		httpx.Action("refund.request"),
+		httpx.Action("restaurant.account_state_change"),
 		httpx.Action("restaurant.approve"),
 		httpx.Action("restaurant_application.claim"),
 		httpx.Action("restaurant_application.read"),
+		httpx.Action("rider.account_state_change"),
 		httpx.Action("rider.approve"),
 		httpx.Action("rider_application.claim"),
 		httpx.Action("rider_application.read"),
@@ -286,6 +292,7 @@ var matrix = map[httpx.Role]map[httpx.Action]struct{}{
 	httpx.RoleSuperAdmin: withStaffAccount(
 		httpx.Action("chargeback.annotate"),
 		httpx.Action("chargeback.read"),
+		httpx.Action("customer.account_state_change"),
 		httpx.Action("document.review"),
 		httpx.Action("halal_certificate.check"),
 		httpx.Action("halal_certificate.decide"),
@@ -314,9 +321,11 @@ var matrix = map[httpx.Role]map[httpx.Action]struct{}{
 		httpx.Action("refund.read"),
 		httpx.Action("refund.read_any"),
 		httpx.Action("refund.request"),
+		httpx.Action("restaurant.account_state_change"),
 		httpx.Action("restaurant.approve"),
 		httpx.Action("restaurant_application.claim"),
 		httpx.Action("restaurant_application.read"),
+		httpx.Action("rider.account_state_change"),
 		httpx.Action("rider.approve"),
 		httpx.Action("rider_application.claim"),
 		httpx.Action("rider_application.read"),

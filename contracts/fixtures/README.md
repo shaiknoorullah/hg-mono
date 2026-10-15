@@ -72,16 +72,16 @@ falling through, so a typo is visible immediately.
 
 ## Scenarios by domain
 
-**720 scenarios** across 16 domains.
+**751 scenarios** across 16 domains.
 
 | Domain | Scenarios | What it covers |
 |---|---:|---|
-| [`admin`](#admin) | 48 | Review queues, applications, staff, the menu-review workflow and payout runs. |
+| [`admin`](#admin) | 72 | Review queues, applications, staff, the menu-review workflow, payout runs and every account action (suspend, reinstate, delist, deactivate, ban). |
 | [`cart`](#cart) | 17 | Cart and quote — every blocking reason, the quantity cap, and the money edges. |
 | [`catalogue`](#catalogue) | 57 | Discovery, restaurant detail, hours and menus. |
 | [`dispatch`](#dispatch) | 32 | Dispatch states, rider offers and assignments. |
 | [`documents`](#documents) | 27 | KYC uploads, review states and every rejection reason. |
-| [`errors`](#errors) | 145 | `{error}` envelopes for the codes an app actually branches on. |
+| [`errors`](#errors) | 152 | `{error}` envelopes for the codes an app actually branches on. |
 | [`geo`](#geo) | 11 | Address search through our API to Mapbox — suggestions, a picked place, a map pin, and the no-match and provider-down paths. |
 | [`halal`](#halal) | 37 | Badges, certificates, checks and issuing bodies — the platform's core promise. |
 | [`handoff`](#handoff) | 13 | The package-seal chain of custody (later version: seals are not used at launch) — every `PackageSeal` status, `HandoffEvent` type, and the bind/pickup-scan/delivery-scan/tamper-report results. |
@@ -95,10 +95,15 @@ falling through, so a typo is visible immediately.
 
 ### admin
 
-Review queues, applications, staff, the menu-review workflow and payout runs. — 48 scenarios.
+Review queues, applications, staff, the menu-review workflow, payout runs and every account action (suspend, reinstate, delist, deactivate, ban). — 72 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
+| `customer_ban_proposed` | `AccountStateChange` | 200 | `PROPOSE_BAN`: `SUSPENDED` → `SUSPENDED`. A ban proposed; the customer stays suspended. |
+| `customer_banned` | `AccountStateChange` | 200 | `CONFIRM_BAN`: `SUSPENDED` → `BANNED`. Banned once no accepted order is in progress. Every session ends; any refund owed is still paid. |
+| `customer_reinstated` | `AccountStateChange` | 200 | `REINSTATE`: `SUSPENDED` → `ACTIVE`. Reinstated; the customer can sign in and order again. |
+| `customer_suspended` | `AccountStateChange` | 200 | `SUSPEND`: `ACTIVE` → `SUSPENDED`. Suspended: the order the restaurant had not accepted is cancelled; the accepted one finishes. The customer cannot sign in until reinstated. |
+| `customer_unbanned` | `AccountStateChange` | 200 | `REINSTATE`: `BANNED` → `ACTIVE`. Only a super admin can reinstate a banned customer. |
 | `menu_review_queue` | `array&lt;MenuItemVersion&gt;` | 200 | Three edits waiting, oldest first, from two restaurants. Only the words, the photo and the dietary and allergen tags wait here; price and availability went live on save. Nothing here is ever approved by waiting. |
 | `menu_review_queue_empty` | `array&lt;MenuItemVersion&gt;` | 200 | Nothing queued. A stalled queue must never freeze a restaurant's trading, which is why price and availability bypass review entirely. |
 | `menu_version_approved` | `MenuItemVersion` | 200 | `APPROVED`. Live to customers. |
@@ -125,9 +130,21 @@ Review queues, applications, staff, the menu-review workflow and payout runs. �
 | `restaurant_application_queue` | `array&lt;RestaurantApplicationSummary&gt;` | 200 | Four applications waiting, oldest first. |
 | `restaurant_application_queue_empty` | `array&lt;RestaurantApplicationSummary&gt;` | 200 | Queue drained. `takeNextRestaurantApplication` returns **null data**, not 404. |
 | `restaurant_application_withdrawn` | `RestaurantApplication` | 200 | The owner withdrew the application (`WITHDRAWN`). Terminal: no lock, nothing to decide. |
+| `restaurant_ban_proposed` | `AccountStateChange` | 200 | `PROPOSE_BAN`: `SUSPENDED` → `SUSPENDED`. An admin proposes a ban. The restaurant stays suspended; a different super admin must confirm within 7 days or the proposal lapses. |
+| `restaurant_banned` | `AccountStateChange` | 200 | `CONFIRM_BAN`: `SUSPENDED` → `BANNED`. A super admin confirms the ban. Orders still being prepared are cancelled and refunded; the ready order finishes. Every session of the restaurant's staff ends. |
+| `restaurant_deactivated` | `AccountStateChange` | 200 | `DEACTIVATE`: `LIVE` → `DEACTIVATED`. A voluntary exit, only on the restaurant's own request. |
 | `restaurant_decision_input_approve` | `RestaurantDecisionInput` | 200 | Request body for `decideRestaurantApplication`. APPROVE: an approval reason; `internal_note` stays with staff. |
 | `restaurant_decision_input_reject` | `RestaurantDecisionInput` | 200 | Request body for `decideRestaurantApplication`. REJECT: a rejection reason. Final for this application. |
 | `restaurant_decision_input_request_changes` | `RestaurantDecisionInput` | 200 | Request body for `decideRestaurantApplication`. REQUEST_CHANGES: a rejection reason and exactly which documents to redo. |
+| `restaurant_delisted` | `AccountStateChange` | 200 | `DELIST`: `LIVE` → `DELISTED`. Taken out of listings without a penalty. The menu is **not** locked, so the restaurant can get it ready to be listed again. |
+| `restaurant_reactivated` | `AccountStateChange` | 200 | `REINSTATE`: `DEACTIVATED` → `LIVE`. A deactivated restaurant reactivated on request. |
+| `restaurant_reinstated` | `AccountStateChange` | 200 | `REINSTATE`: `SUSPENDED` → `LIVE`. Back to `LIVE`: the halal certificate is current and no delisting reason is left. |
+| `restaurant_reinstated_still_delisted` | `AccountStateChange` | 200 | `REINSTATE`: `SUSPENDED` → `DELISTED`. Reinstated, but the halal certificate lapsed meanwhile, so the restaurant returns to `DELISTED`, never `LIVE`. |
+| `restaurant_relisted` | `AccountStateChange` | 200 | `REINSTATE`: `DELISTED` → `LIVE`. A delisted restaurant relisted. Needs a current, verified halal certificate. |
+| `restaurant_suspended` | `AccountStateChange` | 200 | `SUSPEND`: `LIVE` → `SUSPENDED`. A live restaurant suspended. The order it had not accepted is cancelled and its authorisation released; the order being prepared and the one with a rider finish. The menu is now locked for everyone, admins included. |
+| `restaurant_suspended_from_delisted` | `AccountStateChange` | 200 | `SUSPEND`: `DELISTED` → `SUSPENDED`. A delisted restaurant can still be suspended. Its delisting reason is kept. |
+| `restaurant_suspended_halal_integrity` | `AccountStateChange` | 200 | `SUSPEND`: `LIVE` → `SUSPENDED`. Suspended for halal integrity: the order still being prepared is cancelled and fully refunded too, at the restaurant's cost. The order already with a rider finishes. |
+| `restaurant_unbanned` | `AccountStateChange` | 200 | `REINSTATE`: `BANNED` → `LIVE`. Only a super admin can reinstate a banned restaurant. |
 | `rider_application_approved` | `RiderApplication` | 200 | `decideRiderApplication` with `rider_decision_input_approve`: the rider moves to `PAYOUT_PENDING`, not straight to dispatchable. They are offered orders only once Stripe reports payouts enabled. |
 | `rider_application_attempt_3` | `RiderApplication` | 200 | The third attempt: the rider was sent back twice before. The reviewer sees the attempt number next to the name. |
 | `rider_application_attempt_4` | `RiderApplication` | 200 | A fourth attempt. The contract sets no cap on attempts; the number is shown so the reviewer can judge a repeat applicant. |
@@ -139,9 +156,16 @@ Review queues, applications, staff, the menu-review workflow and payout runs. �
 | `rider_application_pending_review` | `RiderApplication` | 200 | A rider application with six documents and a vehicle on file. |
 | `rider_application_queue` | `array&lt;RiderApplicationSummary&gt;` | 200 | Nine rider applications waiting. |
 | `rider_application_under_18` | `RiderApplication` | 200 | The ID's date of birth makes the rider 17 (`computed_age_years: 17`), so the first blocker is "Rider is under 18". Approval is refused and no role can override it (`error_rider_under_18`). |
+| `rider_ban_proposed` | `AccountStateChange` | 200 | `PROPOSE_BAN`: `SUSPENDED` → `SUSPENDED`. A ban proposed; the rider stays suspended until a second person decides. |
+| `rider_banned` | `AccountStateChange` | 200 | `CONFIRM_BAN`: `SUSPENDED` → `BANNED`. Banned: every session ends and the rider role is no longer granted at sign-in. Earned money is still paid. |
+| `rider_deactivated` | `AccountStateChange` | 200 | `DEACTIVATE`: `ACTIVE` → `DEACTIVATED`. A voluntary exit, only on the rider's own request. |
 | `rider_decision_input_approve` | `RiderDecisionInput` | 200 | Request body for `decideRiderApplication`. APPROVE: an approval reason, never a rejection reason. The text reaches the rider. |
 | `rider_decision_input_reject` | `RiderDecisionInput` | 200 | Request body for `decideRiderApplication`. REJECT: a document rejection reason and the sentence the rider reads. |
 | `rider_decision_input_request_changes` | `RiderDecisionInput` | 200 | Request body for `decideRiderApplication`. REQUEST_CHANGES: a document rejection reason and exactly which documents to redo. |
+| `rider_reactivated` | `AccountStateChange` | 200 | `REINSTATE`: `DEACTIVATED` → `ACTIVE`. A deactivated rider reactivated on request. |
+| `rider_reinstated` | `AccountStateChange` | 200 | `REINSTATE`: `SUSPENDED` → `ACTIVE`. Reinstated; the rider is told they can go online again. |
+| `rider_suspended_mid_delivery` | `AccountStateChange` | 200 | `SUSPEND`: `ACTIVE` → `SUSPENDED`. Suspended mid-delivery: the waiting offer is withdrawn and no new ones come; the current delivery finishes, is paid, and the rider goes offline afterwards. |
+| `rider_unbanned` | `AccountStateChange` | 200 | `REINSTATE`: `BANNED` → `ACTIVE`. Only a super admin can reinstate a banned rider. |
 | `staff_list` | `array&lt;StaffUser&gt;` | 200 | Platform staff across every `StaffStatus`. The invitee has never signed in and has no two-step sign-in yet. |
 | `staff_list_edge_rows` | `array&lt;StaffUser&gt;` | 200 | Rows that break layouts: a very long name and email, an invitee who never signed in (`last_login_at: null`, no two-step sign-in), an active agent without two-step sign-in, a suspended admin and a long-deactivated agent. |
 | `staff_list_one_super_admin` | `array&lt;StaffUser&gt;` | 200 | The day-one console: one super admin and nobody else. Deactivating or demoting the last super admin is refused, so those actions are not offered on this row. |
@@ -311,10 +335,14 @@ KYC uploads, review states and every rejection reason. — 27 scenarios.
 
 ### errors
 
-`{error}` envelopes for the codes an app actually branches on. — 145 scenarios.
+`{error}` envelopes for the codes an app actually branches on. — 152 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
+| `error_account_action_ban_needs_second_person` | `ErrorEnvelope` | 403 | `403` · `SELF_APPROVAL_FORBIDDEN`. The person who proposed a ban tried to confirm it. |
+| `error_account_action_illegal` | `ErrorEnvelope` | 409 | `409` · `ILLEGAL_STATE_TRANSITION`. An action that is not legal from the current state, naming the state and the actions that are. Also returned for confirming a ban nobody proposed, or one that lapsed. |
+| `error_account_action_needs_two_step_sign_in` | `ErrorEnvelope` | 403 | `403` · `MFA_REQUIRED`. A session without two-step sign-in. Account actions are destructive. |
+| `error_account_action_super_admin_only` | `ErrorEnvelope` | 403 | `403` · `FORBIDDEN_PERMISSION`. An admin confirming a ban, or reinstating a banned account. `details.permission` names what is missing. |
 | `error_account_banned` | `ErrorEnvelope` | 403 | `403` · `ACCOUNT_BANNED`. The signed-in account is banned. Contract-only: `services/hg` answers a banned account with `ACCOUNT_NOT_ACTIVE` at sign-in (`error_account_not_active`) and `SESSION_REVOKED` at refresh (`error_session_revoked`); handle all three. |
 | `error_account_not_active` | `ErrorEnvelope` | 403 | `403` · `ACCOUNT_NOT_ACTIVE`. The account is suspended, banned or deleted. Returned by `login` and by `setRiderAvailability` going online; nothing changed. |
 | `error_account_suspended` | `ErrorEnvelope` | 403 | `403` · `ACCOUNT_SUSPENDED`. The signed-in account is suspended; the app routes to the on-hold screen. Contract-only: `services/hg` answers a suspended account with `ACCOUNT_NOT_ACTIVE` at sign-in (`error_account_not_active`) and `SESSION_REVOKED` at refresh (`error_session_revoked`); handle all three. |
@@ -351,6 +379,7 @@ KYC uploads, review states and every rejection reason. — 27 scenarios.
 | `error_connect_status_not_found` | `ErrorEnvelope` | 404 | `404` · `NOT_FOUND`. The 404 the contract allows on `getConnectStatus`. Contract-only: `services/hg` answers a partner with no Stripe account with `connect_status_not_started` (200) instead; treat both as "not set up". |
 | `error_content_type_mismatch` | `ErrorEnvelope` | 422 | `422` · `CONTENT_TYPE_MISMATCH`. The file's bytes are not the type declared when the upload was created. |
 | `error_current_password_incorrect` | `ErrorEnvelope` | 422 | `422` · `INVALID_CREDENTIALS`. `changePassword` with the wrong current password. Nothing changed and no session was revoked. A 422, not a 401: the session is fine, and the client treats every 401 as an expired session to refresh and retry. |
+| `error_customer_ban_orders_in_progress` | `ErrorEnvelope` | 409 | `409` · `IN_FLIGHT_ORDERS_PRESENT`. Confirming a customer's ban while a restaurant is preparing their order. |
 | `error_decision_approval_reason_required` | `ErrorEnvelope` | 422 | `422` · `VALIDATION_FAILED`. An approval sent with a rejection reason (or none). An approval carries `ALL_CHECKS_PASSED` or `APPROVED_WITH_NOTES`; nothing changed. |
 | `error_decision_rejection_reason_required` | `ErrorEnvelope` | 422 | `422` · `VALIDATION_FAILED`. A rejection or a request for changes without a rejection reason. Every decision is reasoned and audited; nothing changed. |
 | `error_delivery_code_incorrect` | `ErrorEnvelope` | 422 | `422` · `DELIVERY_CODE_INCORRECT`. **Wrong code** at a met handover. The attempt is counted and committed in Postgres per order; no proof is recorded. Neither the code sent nor the expected code is in the body. |
@@ -433,6 +462,8 @@ KYC uploads, review states and every rejection reason. — 27 scenarios.
 | `error_refund_not_refundable` | `ErrorEnvelope` | 409 | `409` · `PAYMENT_NOT_REFUNDABLE`. A refund on an order whose payment was never captured (it was voided). There is nothing to refund; cancel the order instead. |
 | `error_refund_self_approval_forbidden` | `ErrorEnvelope` | 409 | `409` · `SELF_APPROVAL_FORBIDDEN`. The person who asked for a refund, or who sent it up for a second person, tried to approve it. A goodwill refund above CAD 50.00 always needs someone else. |
 | `error_register_restaurant_rate_limited` | `ErrorEnvelope` | 429 | `429` · `RATE_LIMITED` from `registerRestaurant`: more than 5 restaurant sign-ups from one client address in an hour (docs/spec/03-restaurant.md, "R-01 — Restaurant account signup"). Checked before the password is hashed, so nothing was created; the response carries `Retry-After` in seconds. |
+| `error_reinstate_precondition_not_met` | `ErrorEnvelope` | 409 | `409` · `PRECONDITION_NOT_MET`. Reinstating a partner who never finished onboarding. |
+| `error_relist_needs_halal_certificate` | `ErrorEnvelope` | 409 | `409` · `HALAL_CERTIFICATE_REQUIRED`. Relisting a delisted restaurant whose certificate expired. Verify a renewed certificate first. |
 | `error_replace_cart_items_unavailable` | `ErrorEnvelope` | 409 | `409` · `ITEM_UNAVAILABLE`. `replaceCart` is all or nothing. Two of the lines from the old order can't be added today: the code is the first failure's, and `details.lines` names every failing line by its position in the request. The cart is unchanged; the app can offer to put back the rest by calling again without lines 1 and 2. |
 | `error_replace_cart_quantity_over_cap` | `ErrorEnvelope` | 422 | `422` · `VALIDATION_FAILED`. `replaceCart` merges identical lines first, as `addCartLine` does. Two lines that merge to more than 20 are refused, and the cart is unchanged. |
 | `error_replace_cart_restaurant_closed` | `ErrorEnvelope` | 409 | `409` · `RESTAURANT_CLOSED`. `replaceCart` while the restaurant is closed: every line fails, and the cart is unchanged. |
@@ -931,13 +962,13 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 
 | Tag | Count | Meaning |
 |---|---:|---|
-| `error-envelope` | 145 | A `{error}` body with a real `ErrorCode`. |
-| `admin` | 133 | Admin/support-facing surface. |
+| `admin` | 157 | Admin/support-facing surface. |
+| `error-envelope` | 152 | A `{error}` body with a real `ErrorCode`. |
 | `rider` | 132 | Rider-facing surface. |
 | `error-path` | 129 | The unhappy branch a client must handle. |
+| `state-matrix` | 106 | One fixture per member of a closed enum. |
 | `edge` | 90 | A shape that breaks naive layouts — empty, overflowing, at a boundary. |
 | `restaurant` | 90 | Restaurant-facing surface. |
-| `state-matrix` | 82 | One fixture per member of a closed enum. |
 | `money` | 74 | Exercises the money path specifically. |
 | `platform` | 57 | Cross-cutting platform surface. |
 | `halal` | 48 | Touches the halal claim surface. |
@@ -945,6 +976,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `auth` | 43 | Session and identity. |
 | `customer` | 36 |  |
 | `empty` | 32 | Zero items. The empty state, never an error. |
+| `account-action` | 31 | Suspending, reinstating, delisting, deactivating or banning an account. |
 | `realtime` | 25 | WebSocket, not HTTP. |
 | `home` | 24 |  |
 | `script` | 24 | A realtime event sequence, not a response body. |
@@ -997,7 +1029,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 
 ## Operation coverage
 
-158 of the contract's operations have at least one fixture registered against them; the rest are `204 No Content` or write-only operations the mock answers from the response schema. The full map lives in `index.json` under `by_operation`, and `GET /__mock/operations` serves it live.
+161 of the contract's operations have at least one fixture registered against them; the rest are `204 No Content` or write-only operations the mock answers from the response schema. The full map lives in `index.json` under `by_operation`, and `GET /__mock/operations` serves it live.
 
 | Operation | Default scenario | Also available |
 |---|---|---|
@@ -1005,6 +1037,9 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `acceptOrder` | `restaurant_order_preparing` | `restaurant_order_picked_up`, `restaurant_order_ready_for_pickup`, `restaurant_order_rejected`, `restaurant_order_restaurant_pending` |
 | `addCartLine` | `cart_multi_variant_line` | `cart_single_line`, `error_addon_unavailable`, `error_cart_line_variant_missing`, `error_different_restaurant`, `error_invalid_addon`, `error_variant_unavailable` |
 | `addChargebackEvidenceNote` | `chargeback_evidence_note_added` | `error_chargeback_closed` |
+| `applyCustomerAccountAction` | `customer_ban_proposed` | `customer_banned`, `customer_reinstated`, `customer_suspended`, `customer_unbanned`, `error_account_action_ban_needs_second_person`, `error_account_action_illegal`, `error_account_action_needs_two_step_sign_in`, `error_account_action_super_admin_only`, `error_customer_ban_orders_in_progress` |
+| `applyRestaurantAccountAction` | `restaurant_ban_proposed` | `error_account_action_ban_needs_second_person`, `error_account_action_illegal`, `error_account_action_needs_two_step_sign_in`, `error_account_action_super_admin_only`, `error_reinstate_precondition_not_met`, `error_relist_needs_halal_certificate`, `restaurant_banned`, `restaurant_deactivated`, `restaurant_delisted`, `restaurant_reactivated`, `restaurant_reinstated`, `restaurant_reinstated_still_delisted`, `restaurant_relisted`, `restaurant_suspended`, `restaurant_suspended_from_delisted`, `restaurant_suspended_halal_integrity`, `restaurant_unbanned` |
+| `applyRiderAccountAction` | `rider_ban_proposed` | `error_account_action_ban_needs_second_person`, `error_account_action_illegal`, `error_account_action_needs_two_step_sign_in`, `error_account_action_super_admin_only`, `error_reinstate_precondition_not_met`, `rider_banned`, `rider_deactivated`, `rider_reactivated`, `rider_reinstated`, `rider_suspended_mid_delivery`, `rider_unbanned` |
 | `approveRefund` | `admin_refund_authorised` | `admin_refund_pending_approval`, `error_refund_already_decided`, `error_refund_approver_over_daily_limit`, `error_refund_mfa_required`, `error_refund_needs_higher_role`, `error_refund_self_approval_forbidden` |
 | `attachRestaurantDocument` | `document_submitted` | `document_approved`, `document_expired`, `document_in_review`, `document_rejected`, `document_superseded` |
 | `attachRiderDocument` | `error_document_expires_too_soon` | — |
