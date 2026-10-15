@@ -32,6 +32,8 @@ than local and every database that is not on this machine. It loads
 account; reset then sets the shared password and enrols each authenticator.
 `020_customer_addresses.sql` gives amina a Work and an out-of-range Cottage
 address beside Home.
+`030_restaurant_staff.sql` adds bismillah-grill's manager and staff logins and two
+dated hours overrides.
 
 ## Running
 

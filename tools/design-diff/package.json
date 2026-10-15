@@ -1,0 +1,22 @@
+{
+  "name": "@hg/design-diff",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Pixel comparison of the apps with their Claude Design boards: renders the boards, diffs captures against them, reports. README.md.",
+  "exports": {
+    "./page-scripts": "./src/page-scripts.mjs",
+    "./names": "./src/names.mjs"
+  },
+  "scripts": {
+    "render-refs": "node src/render-refs.mjs",
+    "diff": "node src/diff.mjs",
+    "report": "node src/report.mjs",
+    "test:unit": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "pixelmatch": "^7.2.0",
+    "playwright": "1.50.1",
+    "pngjs": "3.4.0"
+  }
+}

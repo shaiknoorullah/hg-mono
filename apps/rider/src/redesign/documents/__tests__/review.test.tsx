@@ -11,6 +11,7 @@ import { act, screen, waitFor, within } from '@testing-library/react-native';
 import * as Notifications from 'expo-notifications';
 
 import { registerForPush } from '../../../push';
+import { payload } from '../../test/mockApi';
 import { SCHEMES } from '../../test/render';
 import { REVIEW_POLL_MS } from '../data';
 import { apiError, docs, hoursAgo, openDocuments, press, route, scooterSet, start, status, stop } from './harness';
@@ -180,7 +181,12 @@ describe.each(SCHEMES)('review (%s)', (scheme) => {
       { payouts: true },
     );
     expect(await screen.findByText('Your documents are approved')).toBeTruthy();
-    expect(screen.getByText(/^Checked \w+day [78] August 2026\. One step left: tell Stripe where to send your pay\.$/)).toBeTruthy();
+    // The day comes from the fixture's instant, read in the local zone the screen formats it in,
+    // so the expectation holds in every timezone and on every date.
+    const decided = new Date(String(payload('rider_onboarding_documents_approved').decided_at));
+    const day = decided.toLocaleDateString('en-US', { weekday: 'long' });
+    const month = decided.toLocaleDateString('en-US', { month: 'long' });
+    expect(screen.getByText(`Checked ${day} ${decided.getDate()} ${month} ${decided.getFullYear()}. One step left: tell Stripe where to send your pay.`)).toBeTruthy();
     expect(screen.getByText('Step 5 of 5: payouts')).toBeTruthy();
     await press('set-up-payouts');
     expect(route()).toBe('payouts {"context":"application"}');
