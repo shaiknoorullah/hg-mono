@@ -25,9 +25,9 @@ export const REDESIGNED: Partial<Record<RouteId, Screen>> = {
   // ·
   // certificateViewer: WP-3
   // ·
-  // restaurants: WP-2
+  restaurants: lazy(() => import('../verification/queue/RestaurantQueueRoute')),
   // ·
-  // restaurant: WP-2
+  restaurant: lazy(() => import('../verification/application/RestaurantApplicationRoute')),
   // ·
   // menuItem: WP-4
   // ·
