@@ -1,0 +1,27 @@
+{
+  "scenario": "error_replace_cart_two_restaurants",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `VALIDATION_FAILED`. `replaceCart` with lines from two restaurants. A cart holds one restaurant, so the request is refused and the cart is unchanged.",
+  "operations": [
+    "replaceCart"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "VALIDATION_FAILED",
+      "message": "Every item must come from the same restaurant.",
+      "request_id": "WDEN2NQ2N7NG8VFMH6EBKG96R3",
+      "details": [
+        {
+          "field": "lines[2].menu_item_id",
+          "code": "different_restaurant",
+          "message": "This item is from a different restaurant than lines[0]."
+        }
+      ]
+    }
+  }
+}

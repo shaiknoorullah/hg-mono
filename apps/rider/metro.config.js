@@ -20,22 +20,23 @@
  * 4. Two `@hg/ui-native` internals do not survive a web bundle as written (variable `require`
  *    of expo-clipboard; `findNodeHandle` in an effect). They are redirected to host-side
  *    adapters with the same export contract, exactly as the customer app does.
+ *
+ * 5. NativeWind 4 (redesign, N0). `withNativeWind` is applied LAST and WRAPS the config: its
+ *    own resolveRequest calls ours first (so the singleton branch still runs first for every
+ *    request) and only swaps the resolved `global.rider.css` for the compiled style module.
+ *    `nativewind`, `react-native-css-interop` (the JSX runtime every compiled file imports), its
+ *    reanimated/worklets peers and the `@rn-primitives/*` packages join the singletons: ui-native
+ *    is compiled as source with the same JSX runtime, and a second css-interop copy would mean a
+ *    second, empty style registry.
  */
-const { getDefaultConfig } = require('expo/metro-config');
 const path = require('path');
+const { NATIVE_SINGLETONS, hgWorkspaceConfig, withHgNativeWind } = require('@hg/ui-native/build-config');
 
 const projectRoot = __dirname;
 const monorepoRoot = path.resolve(projectRoot, '../..');
 
-const config = getDefaultConfig(projectRoot);
-
-config.watchFolders = [monorepoRoot];
-config.resolver.nodeModulesPaths = [
-  path.resolve(projectRoot, 'node_modules'),
-  path.resolve(monorepoRoot, 'node_modules'),
-];
-config.resolver.unstable_enableSymlinks = true;
-config.resolver.unstable_enablePackageExports = true;
+// Expo's defaults plus the workspace watch folders (packages/ui-native/build-config.cjs).
+const config = hgWorkspaceConfig(projectRoot);
 
 const MAPS_STUB = path.resolve(projectRoot, 'shims/react-native-maps.js');
 const CLIPBOARD_SHIM = path.resolve(projectRoot, 'shims/clipboard.ts');
@@ -47,8 +48,9 @@ const WEB_SHIMS = [
   { match: /(^|\/)internal\/a11y$/, filePath: A11Y_SHIM },
 ];
 
-const SINGLETONS = ['react', 'react-native', 'react-native-safe-area-context'];
+const SINGLETONS = NATIVE_SINGLETONS;
 const isSingleton = (n) => SINGLETONS.some((s) => n === s || n.startsWith(s + '/'));
+
 
 const upstreamResolveRequest = config.resolver.resolveRequest;
 
@@ -93,4 +95,5 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   return resolve(context, moduleName, platform);
 };
 
-module.exports = config;
+// NativeWind (redesign N0) wraps the finished config last; its resolveRequest calls ours first.
+module.exports = withHgNativeWind(config, { projectRoot, theme: 'rider' });

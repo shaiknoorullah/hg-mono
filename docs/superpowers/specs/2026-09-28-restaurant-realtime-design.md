@@ -73,6 +73,8 @@ An event never patches local state from its payload. It invalidates and refetche
 | `restaurant.payout_updated` | payouts |
 | `rider.location` | the only payload rendered directly — the map circle's position (see [rider map](#5-rider-map)) |
 
+**2026-10-10, redesign Hours (WP9):** the redesigned `/hours` page (`src/redesign/hours/RightNow.tsx`, behind `VITE_HG_REDESIGN`) subscribes `restaurant:{restaurantId}` through `useRealtimeChannel` and, on `restaurant.status_changed` (or a `refetch` signal after a truncated resume), re-reads `getRestaurantAvailability` — it does not patch the card from the payload. The event is also the only source of the auto-off toast ("HalalGoes switched off new orders", body = the event's `reason`, action "Go to Orders"): it is raised only when `changed_by` names HalalGoes and the toggle went off, never on a page load. Without a socket the shared availability provider re-reads every 60 s and on window focus, and a pause re-reads when its `pause_until` passes.
+
 Why: it keeps the app correct when Redis is flushed or events are dropped (the repo's disposable-Redis rule), and it follows the contract's rule that money, distance and ETA are never derived from event payloads.
 
 Accessibility ([focus is never moved on a data refresh](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/design/04-accessibility.md#42-movement)): a live refetch never moves focus. New offers are announced politely through a live region; the sound is a second channel, never the only one.
@@ -84,6 +86,8 @@ On orders with an assigned rider (READY_FOR_PICKUP and the approach to pickup), 
 Alongside the map: rider first name, vehicle, pickup ETA (from `order.eta_updated` / `dispatch.assigned`, never computed), and **Rider arrived** when that state arrives.
 
 Engine and styles: the shared `LiveMap` in `packages/ui-web/src/live/` (`mapbox-gl`, `VITE_MAPBOX_TOKEN`), used by the admin maps too. Without a token the map renders its empty state and the text facts still show. Colours obey the halal colour rules: no solid green outside `color.halal.*`.
+
+> **2026-10-10 — the redesigned Menu polls.** The menu has no realtime events yet, so the redesigned Menu page (`apps/restaurant/src/redesign/menu/`, WP8) re-reads `getOwnMenu` on window focus and every 60 s, and when a save's response differs from the screen in anything the save did not change it shows "Your menu changed on another device or at HalalGoes" with a Refresh button. Menu item events on `restaurant:{id}` would replace both (Needs API).
 
 > **2026-10-05 — built** (`apps/restaurant/src/components/RiderApproachMap.tsx`, owner request for live maps at launch). The socket (`src/lib/realtime.tsx`) carries only the `order:{id}` channels of cards with an assigned rider; the queue itself still polls every 7 s, so the queue-side events in [events are signals](#4-events-are-signals-rest-is-truth) remain to do.
 

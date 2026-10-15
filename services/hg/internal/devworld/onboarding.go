@@ -167,92 +167,14 @@ func scenarioOnboardRestaurant(ctx context.Context, base string) error {
 	}
 	suffix := randomSuffix()
 	email := "onboard-" + suffix + "@devworld.test"
-	owner := newAPI(base, "restaurant-web")
-
-	// 1. Sign up, then confirm the email from the link the API queued.
-	_, data, err := owner.call(ctx, http.MethodPost, "/v1/auth/register/restaurant", map[string]any{
-		"email": email, "password": OnboardPassword,
-		"business_name": "Devworld Onboard " + suffix, "terms_version": "2026-01",
-	}, true)
-	if err != nil {
-		return fmt.Errorf("devworld: registerRestaurant: %w", err)
-	}
-	var reg struct {
-		RestaurantID string `json:"restaurant_id"`
-	}
-	_ = json.Unmarshal(data, &reg)
-	fmt.Printf("registered  %s  restaurant %s\n", email, reg.RestaurantID)
-	token, err := emailLink(ctx, email, "AUTH_EMAIL_VERIFICATION")
+	app, err := submitRestaurantApplication(ctx, base, email, "Devworld Onboard "+suffix, suffix)
 	if err != nil {
 		return err
 	}
-	if _, _, err := owner.call(ctx, http.MethodPost, "/v1/auth/email/verify", map[string]any{"token": token}, false); err != nil {
-		return fmt.Errorf("devworld: verifyEmail: %w", err)
-	}
-	fmt.Println("email verified from the emailed link")
-	if err := owner.signInPassword(ctx, email, OnboardPassword); err != nil {
-		return err
-	}
-	if err := owner.printRestaurantState(ctx, "signed in"); err != nil {
-		return err
-	}
-
-	// 2. Profile and opening hours.
-	if _, _, err := owner.call(ctx, http.MethodPut, "/v1/restaurant/profile", map[string]any{
-		"display_name": "Devworld Onboard " + suffix, "legal_name": "Devworld Onboard " + suffix + " Inc.",
-		"phone_e164": "+14165550142", "description": "A kitchen the dev world onboarded end to end.",
-		"line1": "1240 Danforth Avenue", "city": "Toronto", "province": "ON", "postal_code": "M4J 1M6",
-		"latitude": 43.6827, "longitude": -79.3301, "cuisine_ids": []string{}, "avg_prep_minutes": 20,
-	}, false); err != nil {
-		return fmt.Errorf("devworld: submitRestaurantProfile: %w", err)
-	}
-	intervals := make([]map[string]any, 0, 7)
-	for d := 0; d < 7; d++ {
-		intervals = append(intervals, map[string]any{"day_of_week": d, "opens_at": "00:00", "closes_at": "23:45"})
-	}
-	if _, _, err := owner.call(ctx, http.MethodPut, "/v1/restaurant/hours", map[string]any{
-		"intervals": intervals, "overrides": []any{},
-	}, false); err != nil {
-		return fmt.Errorf("devworld: setRestaurantHours: %w", err)
-	}
-	if err := owner.printRestaurantState(ctx, "profile and hours"); err != nil {
-		return err
-	}
-
-	// 3. The document pack, the halal certificate with an accepted issuing body.
-	admin, err := staff(ctx, base, "admin-seed", "admin-web")
-	if err != nil {
-		return err
-	}
-	bodyID, err := admin.acceptedIssuingBody(ctx)
-	if err != nil {
-		return err
-	}
-	certNumber := "DW-ONB-" + strings.ToUpper(suffix)
-	validUntil := time.Now().AddDate(1, 0, 0).Format("2006-01-02")
-	for _, doc := range []string{"BUSINESS_LICENCE", "FOOD_SAFETY", "OWNER_ID", "HALAL_CERTIFICATE"} {
-		objectID, err := owner.uploadPDF(ctx, doc)
-		if err != nil {
-			return err
-		}
-		in := map[string]any{"doc_type": doc, "stored_object_id": objectID}
-		if doc == "HALAL_CERTIFICATE" {
-			in["issuer_body_id"], in["certificate_number"], in["valid_until"] = bodyID, certNumber, validUntil
-		}
-		if _, _, err := owner.call(ctx, http.MethodPost, "/v1/restaurant/documents", in, true); err != nil {
-			return fmt.Errorf("devworld: attachRestaurantDocument %s: %w", doc, err)
-		}
-		fmt.Printf("document  %s  uploaded and attached\n", doc)
-	}
-	if _, _, err := owner.call(ctx, http.MethodPost, "/v1/restaurant/documents/submit", nil, true); err != nil {
-		return fmt.Errorf("devworld: submitRestaurantDocuments: %w", err)
-	}
-	if err := owner.printRestaurantState(ctx, "documents submitted"); err != nil {
-		return err
-	}
+	owner, admin := app.Owner, app.Admin
 
 	// 4. The admin reviews every document, runs the halal seven-check and approves.
-	if err := admin.reviewRestaurantApplication(ctx, reg.RestaurantID, bodyID, certNumber, validUntil, suffix); err != nil {
+	if err := admin.reviewRestaurantApplication(ctx, app.RestaurantID, app.BodyID, app.CertNumber, app.ValidUntil, suffix); err != nil {
 		return err
 	}
 	if err := owner.printRestaurantState(ctx, "application approved"); err != nil {
@@ -318,7 +240,7 @@ func scenarioOnboardRestaurant(ctx context.Context, base string) error {
 	if err != nil {
 		return err
 	}
-	_, menu, err := buyer.call(ctx, http.MethodGet, "/v1/restaurants/"+reg.RestaurantID+"/menu", nil, false)
+	_, menu, err := buyer.call(ctx, http.MethodGet, "/v1/restaurants/"+app.RestaurantID+"/menu", nil, false)
 	if err != nil {
 		return fmt.Errorf("devworld: getRestaurantMenu as a customer: %w", err)
 	}
@@ -326,8 +248,117 @@ func scenarioOnboardRestaurant(ctx context.Context, base string) error {
 		return errors.New("devworld: the approved item is not on the customer menu")
 	}
 	fmt.Println("customer  amina sees Chicken Karahi on the menu")
-	fmt.Printf("done  %s is ACTIVE; sign in at the restaurant console as %s / %s\n", reg.RestaurantID, email, OnboardPassword)
+	fmt.Printf("done  %s is ACTIVE; sign in at the restaurant console as %s / %s\n", app.RestaurantID, email, OnboardPassword)
 	return nil
+}
+
+// submittedApplication is what submitRestaurantApplication leaves: a restaurant
+// whose owner has signed up and submitted the four documents, waiting in the
+// admin onboarding queue.
+type submittedApplication struct {
+	RestaurantID string
+	BodyID       string
+	CertNumber   string
+	ValidUntil   string
+	Owner        *apiClient
+	Admin        *apiClient
+}
+
+// submitRestaurantApplication is the owner's half of restaurant onboarding,
+// through the real API: sign up as name, confirm the email from the queued
+// link, fill the profile and hours, upload and attach the four documents (the
+// halal certificate with an accepted issuing body) and submit them. admin-seed
+// signs in only to read the accepted issuing bodies. The caller has already
+// refused a non-local API.
+func submitRestaurantApplication(ctx context.Context, base, email, name, suffix string) (submittedApplication, error) {
+	var out submittedApplication
+	owner := newAPI(base, "restaurant-web")
+
+	// 1. Sign up, then confirm the email from the link the API queued.
+	_, data, err := owner.call(ctx, http.MethodPost, "/v1/auth/register/restaurant", map[string]any{
+		"email": email, "password": OnboardPassword,
+		"business_name": name, "terms_version": "2026-01",
+	}, true)
+	if err != nil {
+		return out, fmt.Errorf("devworld: registerRestaurant: %w", err)
+	}
+	var reg struct {
+		RestaurantID string `json:"restaurant_id"`
+	}
+	_ = json.Unmarshal(data, &reg)
+	fmt.Printf("registered  %s  restaurant %s\n", email, reg.RestaurantID)
+	token, err := emailLink(ctx, email, "AUTH_EMAIL_VERIFICATION")
+	if err != nil {
+		return out, err
+	}
+	if _, _, err := owner.call(ctx, http.MethodPost, "/v1/auth/email/verify", map[string]any{"token": token}, false); err != nil {
+		return out, fmt.Errorf("devworld: verifyEmail: %w", err)
+	}
+	fmt.Println("email verified from the emailed link")
+	if err := owner.signInPassword(ctx, email, OnboardPassword); err != nil {
+		return out, err
+	}
+	if err := owner.printRestaurantState(ctx, "signed in"); err != nil {
+		return out, err
+	}
+
+	// 2. Profile and opening hours.
+	if _, _, err := owner.call(ctx, http.MethodPut, "/v1/restaurant/profile", map[string]any{
+		"display_name": name, "legal_name": name + " Inc.",
+		"phone_e164": "+14165550142", "description": "A kitchen the dev world onboarded end to end.",
+		"line1": "1240 Danforth Avenue", "city": "Toronto", "province": "ON", "postal_code": "M4J 1M6",
+		"latitude": 43.6827, "longitude": -79.3301, "cuisine_ids": []string{}, "avg_prep_minutes": 20,
+	}, false); err != nil {
+		return out, fmt.Errorf("devworld: submitRestaurantProfile: %w", err)
+	}
+	intervals := make([]map[string]any, 0, 7)
+	for d := 0; d < 7; d++ {
+		intervals = append(intervals, map[string]any{"day_of_week": d, "opens_at": "00:00", "closes_at": "23:45"})
+	}
+	if _, _, err := owner.call(ctx, http.MethodPut, "/v1/restaurant/hours", map[string]any{
+		"intervals": intervals, "overrides": []any{},
+	}, false); err != nil {
+		return out, fmt.Errorf("devworld: setRestaurantHours: %w", err)
+	}
+	if err := owner.printRestaurantState(ctx, "profile and hours"); err != nil {
+		return out, err
+	}
+
+	// 3. The document pack, the halal certificate with an accepted issuing body.
+	admin, err := staff(ctx, base, "admin-seed", "admin-web")
+	if err != nil {
+		return out, err
+	}
+	bodyID, err := admin.acceptedIssuingBody(ctx)
+	if err != nil {
+		return out, err
+	}
+	certNumber := "DW-ONB-" + strings.ToUpper(suffix)
+	validUntil := time.Now().AddDate(1, 0, 0).Format("2006-01-02")
+	for _, doc := range []string{"BUSINESS_LICENCE", "FOOD_SAFETY", "OWNER_ID", "HALAL_CERTIFICATE"} {
+		objectID, err := owner.uploadPDF(ctx, doc)
+		if err != nil {
+			return out, err
+		}
+		in := map[string]any{"doc_type": doc, "stored_object_id": objectID}
+		if doc == "HALAL_CERTIFICATE" {
+			in["issuer_body_id"], in["certificate_number"], in["valid_until"] = bodyID, certNumber, validUntil
+		}
+		if _, _, err := owner.call(ctx, http.MethodPost, "/v1/restaurant/documents", in, true); err != nil {
+			return out, fmt.Errorf("devworld: attachRestaurantDocument %s: %w", doc, err)
+		}
+		fmt.Printf("document  %s  uploaded and attached\n", doc)
+	}
+	if _, _, err := owner.call(ctx, http.MethodPost, "/v1/restaurant/documents/submit", nil, true); err != nil {
+		return out, fmt.Errorf("devworld: submitRestaurantDocuments: %w", err)
+	}
+	if err := owner.printRestaurantState(ctx, "documents submitted"); err != nil {
+		return out, err
+	}
+	return submittedApplication{
+		RestaurantID: reg.RestaurantID, BodyID: bodyID, CertNumber: certNumber, ValidUntil: validUntil,
+		Owner: owner, Admin: admin,
+	}, nil
 }
 
 func (c *apiClient) restaurantState(ctx context.Context) (string, error) {
@@ -400,12 +431,37 @@ func (c *apiClient) reviewRestaurantApplication(ctx context.Context, restaurantI
 	if app.HalalCertificate == nil {
 		return errors.New("devworld: the application has no halal certificate")
 	}
-	cert := "/v1/admin/halal-certificates/" + app.HalalCertificate.ID
+	if err := c.passHalalCertificate(ctx, app.HalalCertificate.ID, halalTranscript{
+		number: certNumber, bodyID: bodyID, legalName: "Devworld Onboard " + suffix + " Inc.",
+		address: "1240 Danforth Avenue, Toronto", expiresOn: validUntil,
+	}); err != nil {
+		return err
+	}
+	if _, _, err := c.call(ctx, http.MethodPost, "/v1/admin/restaurant-applications/"+restaurantID+"/decision", map[string]any{
+		"decision": "APPROVE", "reason_code": "ALL_CHECKS_PASSED",
+		"reason_text": "Dev world onboarding: every document and the halal certificate checked.",
+	}, true); err != nil {
+		return fmt.Errorf("devworld: decideRestaurantApplication: %w", err)
+	}
+	fmt.Println("admin  application approved")
+	return nil
+}
+
+// halalTranscript is what the admin reads off a certificate.
+type halalTranscript struct {
+	number, bodyID, legalName, address, expiresOn string
+}
+
+// passHalalCertificate is the seven-check instrument in the admin console:
+// transcribe the certificate, record the checks a person makes (the other two
+// are computed) and approve it.
+func (c *apiClient) passHalalCertificate(ctx context.Context, certID string, t halalTranscript) error {
+	cert := "/v1/admin/halal-certificates/" + certID
 	if _, _, err := c.call(ctx, http.MethodPut, cert+"/transcription", map[string]any{
-		"certificate_number": certNumber, "issuing_body_id": bodyID,
-		"certified_legal_name": "Devworld Onboard " + suffix + " Inc.", "certified_address": "1240 Danforth Avenue, Toronto",
+		"certificate_number": t.number, "issuing_body_id": t.bodyID,
+		"certified_legal_name": t.legalName, "certified_address": t.address,
 		"scope": "WHOLE_ESTABLISHMENT", "issued_on": time.Now().AddDate(0, -1, 0).Format("2006-01-02"),
-		"expires_on": validUntil,
+		"expires_on": t.expiresOn,
 	}, true); err != nil {
 		return fmt.Errorf("devworld: transcribeHalalCertificate: %w", err)
 	}
@@ -420,12 +476,5 @@ func (c *apiClient) reviewRestaurantApplication(ctx context.Context, restaurantI
 		return fmt.Errorf("devworld: decideHalalCertificate: %w", err)
 	}
 	fmt.Println("admin  halal certificate passed all seven checks")
-	if _, _, err := c.call(ctx, http.MethodPost, "/v1/admin/restaurant-applications/"+restaurantID+"/decision", map[string]any{
-		"decision": "APPROVE", "reason_code": "ALL_CHECKS_PASSED",
-		"reason_text": "Dev world onboarding: every document and the halal certificate checked.",
-	}, true); err != nil {
-		return fmt.Errorf("devworld: decideRestaurantApplication: %w", err)
-	}
-	fmt.Println("admin  application approved")
 	return nil
 }

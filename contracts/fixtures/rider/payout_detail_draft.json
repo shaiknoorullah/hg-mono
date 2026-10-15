@@ -1,0 +1,28 @@
+{
+  "scenario": "payout_detail_draft",
+  "domain": "rider",
+  "schema": "PayoutDetail",
+  "describes": "This week's payout, still accruing: no entries stamped yet, amount 0. The amount is exactly the sum of its entries.",
+  "operations": [
+    "getRiderPayout"
+  ],
+  "status": 200,
+  "tags": [
+    "rider",
+    "money",
+    "payout-state-matrix"
+  ],
+  "payload": {
+    "id": "af7c15bc-a857-4ab2-acd3-4941feefff13",
+    "period_start": "2026-08-10T04:00:00.000Z",
+    "period_end": "2026-08-17T04:00:00.000Z",
+    "amount_cents": 0,
+    "currency": "CAD",
+    "state": "DRAFT",
+    "hold_reason": null,
+    "entry_count": 0,
+    "paid_at": null,
+    "failure_message": null,
+    "entries": []
+  }
+}

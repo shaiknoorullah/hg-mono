@@ -4,15 +4,11 @@
  * its screen removes the entry and its route points at the redesigned screen instead.
  */
 import { OnboardingPage } from '../../routes/onboarding/OnboardingPage';
-import { MenuPage } from '../../routes/MenuPage';
-import { HoursPage } from '../../routes/HoursPage';
 import { PayoutsPage } from '../../routes/PayoutsPage';
 import { SettingsPage } from '../../routes/SettingsPage';
 
 export const LEGACY = {
   Onboarding: OnboardingPage,
-  Menu: MenuPage,
-  Hours: HoursPage,
   Payouts: PayoutsPage,
   Settings: SettingsPage,
 };

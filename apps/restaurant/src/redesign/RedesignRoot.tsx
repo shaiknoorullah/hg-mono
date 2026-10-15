@@ -27,6 +27,7 @@ import { ConsoleLayout } from './shell/ConsoleLayout';
 import { ConsoleStatus } from './shell/ConsoleStatus';
 import { LEGACY } from './routes/legacy';
 import { PendingRoute } from './routes/PendingRoute';
+import { MenuPage } from './menu/MenuPage';
 import { AuthLayout } from './auth/frame';
 import { SignInScreen } from './auth/SignInScreen';
 import { RegisterScreen } from './auth/RegisterScreen';
@@ -34,6 +35,7 @@ import { CheckEmailScreen } from './auth/CheckEmailScreen';
 import { VerifyEmailScreen } from './auth/VerifyEmailScreen';
 import { ForgotPasswordScreen } from './auth/ForgotPasswordScreen';
 import { ResetPasswordScreen } from './auth/ResetPasswordScreen';
+import { HoursPage } from './hours/HoursPage';
 import { NewOrdersProvider } from './strip/NewOrdersProvider';
 import { OrdersGate } from './orders/GoLiveGate';
 import { LiveOrdersPage } from './orders/LiveOrdersPage';
@@ -144,7 +146,7 @@ export function RedesignApp() {
     root.setAttribute('data-theme', 'light');
     root.style.colorScheme = 'light';
   }, []);
-  const { Onboarding, Menu, Hours, Payouts, Settings } = LEGACY;
+  const { Onboarding, Payouts, Settings } = LEGACY;
   return (
     <div {...themeAttributes('restaurant')} className="relative h-dvh overflow-hidden bg-surface-sunken text-fg-primary" data-redesign="">
       <AuthProvider>
@@ -190,8 +192,8 @@ export function RedesignApp() {
               path="/orders/history"
               element={<PendingRoute title="Past orders" description="Orders you finished, declined or that were cancelled appear here." />}
             />
-            <Route path="/menu" element={<LegacyPane><Menu /></LegacyPane>} />
-            <Route path="/hours" element={<LegacyPane><Hours /></LegacyPane>} />
+            <Route path="/menu" element={<MenuPage />} />
+            <Route path="/hours" element={<HoursPage />} />
             <Route path="/payouts" element={<LegacyPane><Payouts /></LegacyPane>} />
             <Route path="/settings/*" element={<LegacyPane><Settings /></LegacyPane>} />
           </Route>

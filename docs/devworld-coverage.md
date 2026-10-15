@@ -4,7 +4,7 @@ covers:
   - services/hg/internal/devworld/**
   - services/hg/migrations/devworld/**
   - docs/playbooks/**
-reviewed: 2026-10-13
+reviewed: 2026-10-14
 ---
 
 # Dev world coverage map
@@ -36,9 +36,10 @@ Commands run from `services/hg`, against a local stack (`make up`, `make migrate
 |---|---|---|
 | `amina`, `nour` | `+15550100101`, `+15550100102`, code `000000` | customer app |
 | `rider-sim`, `rider-docs`, `rider-rejected`, `rider-registered` | `+15550100151` to `+15550100154`, code `000000` | rider app |
+| `rider-sim-2` | `+15550100155`, code `000000`, offline | rider app; the second rider of the offer scenarios |
 | Restaurant personas and catalogue owners | `<slug>@seed.hg`, password `Seed!2026` | restaurant console, `http://localhost:5183` |
 | `admin-seed` | `admin-seed@seed.hg`, `Seed!2026`, and the code from `make dev-totp` | admin console |
-| `support-seed` | cannot sign in yet ([#677](https://github.com/shaiknoorullah/hg-mono/issues/677)) | admin console |
+| `support-seed`, `ops-admin` | `support-seed@seed.hg` (support agent) and `ops-admin@seed.hg` (admin), `Seed!2026`, and the code from `make dev-totp email=<address>` | admin console |
 
 The fixed code works only for `+15550100100` to `+15550100199` and only when `HG_ENV` is `local` or `staging` ([scenario sign-in](superpowers/specs/2026-09-28-devworld-harness-design.md#64-scenario-sign-in)). The admin code needs `HG_APP_DATA_KEY` set before `make dev-reset`.
 
@@ -46,11 +47,11 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 
 | Table | Covered | Partial | Missing | Not in V1 | Blocked by external |
 |---|---:|---:|---:|---:|---:|
-| Customer app | 16 | 7 | 0 | 13 | 4 |
-| Restaurant portal | 21 | 7 | 3 | 5 | 0 |
-| Rider app | 21 | 6 | 4 | 1 | 3 |
-| Admin console | 7 | 8 | 12 | 15 | 0 |
-| Platform | 26 | 10 | 0 | 0 | 3 |
+| Customer app | 21 | 2 | 0 | 13 | 4 |
+| Restaurant portal | 22 | 6 | 3 | 5 | 0 |
+| Rider app | 23 | 6 | 2 | 1 | 3 |
+| Admin console | 13 | 2 | 12 | 15 | 0 |
+| Platform | 30 | 6 | 0 | 0 | 3 |
 
 ## Customer app
 
@@ -67,9 +68,9 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [C-09](spec/02-customer.md#c-09--home-feed) | Home feed | `amina` after `make dev-reset`: the 14 restaurants of the [Toronto catalogue](superpowers/specs/2026-09-28-devworld-harness-design.md#51a-toronto-catalogue) | Covered | — |
 | [C-10](spec/02-customer.md#c-10--search-restaurants-and-dishes) | Search restaurants and dishes | `amina`, the Toronto catalogue | Covered | — |
 | [C-11](spec/02-customer.md#c-11--filters-and-sort-advanced-filters) | Advanced filters and sort | — | Not in V1 | — |
-| [C-12](spec/02-customer.md#c-12--halal-certification-display-and-verification--critical) | See the halal badge and the certification panel | `amina`: Bismillah Grill is certified, Bamyan Kebab House (`expiring-halal`) is expiring; `expired-halal` and the onboarding restaurants are never listed. The certificate file does not open | Partial | [#686](https://github.com/shaiknoorullah/hg-mono/issues/686) |
+| [C-12](spec/02-customer.md#c-12--halal-certification-display-and-verification--critical) | See the halal badge and the certification panel | `amina`: Bismillah Grill is certified, Bamyan Kebab House (`expiring-halal`) is expiring; `expired-halal` and the onboarding restaurants are never listed. "View certificate" opens a generated PDF after `make dev-reset` | Covered | — |
 | [C-13](spec/02-customer.md#c-13--restaurant-detail-page) | Restaurant page | `amina`, any catalogue restaurant | Covered | — |
-| [C-14](spec/02-customer.md#c-14--restaurant-availability--serviceability-gating) | Closed, paused or out-of-range restaurant | `amina`: Galata Pide & Grill (`paused`), `padma-river-kitchen` (no hours on the reset day), the ordering pause in the admin console. The catalogue test checks that every catalogue restaurant closed by its hours refuses a cart line. No saved address is out of range | Partial | [#681](https://github.com/shaiknoorullah/hg-mono/issues/681) |
+| [C-14](spec/02-customer.md#c-14--restaurant-availability--serviceability-gating) | Closed, paused or out-of-range restaurant | `amina`: Galata Pide & Grill (`paused`), `padma-river-kitchen` (no hours on the reset day), the ordering pause in the admin console. The catalogue test checks that every catalogue restaurant closed by its hours refuses a cart line. Out of range: `amina`'s `Cottage` address (Huntsville), where the restaurant list by coordinates reads `OUT_OF_RANGE` for all 14; the API still prices a quote there ([#723](https://github.com/shaiknoorullah/hg-mono/issues/723)) and the list ignores `delivery_address_id` ([#724](https://github.com/shaiknoorullah/hg-mono/issues/724)) | Partial | [#723](https://github.com/shaiknoorullah/hg-mono/issues/723), [#724](https://github.com/shaiknoorullah/hg-mono/issues/724) |
 | [C-15](spec/02-customer.md#c-15--food-item-detail) | Dish detail | `amina`, any catalogue dish | Covered | — |
 | [C-16](spec/02-customer.md#c-16--variant-and-add-on-selection) | Choose a size and add-ons | `amina`: catalogue dishes with a size group, required and optional add-ons, and sold-out options | Covered | — |
 | [C-17](spec/02-customer.md#c-17--favourite-restaurants) | Favourite restaurants | — | Not in V1 | — |
@@ -81,18 +82,18 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [C-23](spec/02-customer.md#c-23--order-placement-checkout) | Place an order | `amina` at checkout, or `make dev-scenario s=new-order`. With no `HG_STRIPE_SECRET_KEY` the local fake gateway authorises at once | Covered | — |
 | [C-24](spec/02-customer.md#c-24--payment-methods) | Saved cards | Stripe test keys and the [card payments playbook](playbooks/customer/card-payments.md) | Blocked by external (Stripe test keys) | — |
 | [C-25](spec/02-customer.md#c-25--payment-execution-and-3ds) | Pay, a declined card, 3-D Secure | Paying works on the fake gateway. A decline or a challenge needs Stripe test keys and the [card payments playbook](playbooks/customer/card-payments.md) | Partial | [#680](https://github.com/shaiknoorullah/hg-mono/issues/680) |
-| [C-26](spec/02-customer.md#c-26--order-history-and-active-order-resume) | Order history, and resume an active order | Run `s=customer-cancels`, `s=restaurant-rejected` and `make dev-journey auto=all speed=max` in turn; resume: `s=order-preparing`, then reopen the app | Partial | [#682](https://github.com/shaiknoorullah/hg-mono/issues/682) |
+| [C-26](spec/02-customer.md#c-26--order-history-and-active-order-resume) | Order history, and resume an active order | Run `s=order-history` (a cancelled, a rejected, a deadline-cancelled and a completed order for `amina`); resume: `s=order-preparing`, then reopen the app | Covered | — |
 | [C-27](spec/02-customer.md#c-27--order-receipts) | Receipt | `amina` after `make dev-journey auto=all speed=max` (the journey reads it) | Covered | — |
 | [C-28](spec/02-customer.md#c-28--reorder) | Reorder | — | Not in V1 | [#187](https://github.com/shaiknoorullah/hg-mono/issues/187) |
 | [C-29](spec/02-customer.md#c-29--order-cancellation-by-the-customer) | Cancel before the restaurant accepts | `make dev-scenario s=customer-cancels`, or cancel in the app after `s=new-order` | Covered | — |
-| [C-30](spec/02-customer.md#c-30--delivery-address-management) | Saved delivery addresses | `amina` has one (Home); `nour` has none until a scenario adds one | Partial | [#681](https://github.com/shaiknoorullah/hg-mono/issues/681) |
+| [C-30](spec/02-customer.md#c-30--delivery-address-management) | Saved delivery addresses | `amina` has three (`Home` default, `Work`, `Cottage`); `nour` has none | Covered | — |
 | [C-31](spec/02-customer.md#c-31--address-entry-autocomplete-geocoding-and-map-pin) | Address search and map pin | Needs a Mapbox token; without one, type the address | Blocked by external (Mapbox token) | [#57](https://github.com/shaiknoorullah/hg-mono/issues/57) |
 | [C-32](spec/02-customer.md#c-32--live-order-tracking) | Live tracking | `amina` in the app during `make dev-journey auto=all speed=1x` | Covered | — |
-| [C-33](spec/02-customer.md#c-33--delivery-instructions) | Delivery instructions | None seeded; type them at checkout | Partial | [#681](https://github.com/shaiknoorullah/hg-mono/issues/681) |
+| [C-33](spec/02-customer.md#c-33--delivery-instructions) | Delivery instructions | `amina`'s `Work` address has a unit, buzzer and delivery instructions | Covered | — |
 | [C-34](spec/02-customer.md#c-34--contacting-the-rider) | Call or message the rider | Masked calling goes through Twilio | Blocked by external (Twilio) | [#181](https://github.com/shaiknoorullah/hg-mono/issues/181) |
 | [C-35](spec/02-customer.md#c-35--contacting-the-restaurant) | Contact the restaurant | — | Not in V1 | — |
 | [C-36](spec/02-customer.md#c-36--tipping-the-rider) | Tip the rider | — | Not in V1 | — |
-| [C-37](spec/02-customer.md#c-37--refund-requests-and-refund-tracking) | Ask for a refund and follow it | The journey ends with a full refund request; no staff decision follows | Partial | [#679](https://github.com/shaiknoorullah/hg-mono/issues/679) |
+| [C-37](spec/02-customer.md#c-37--refund-requests-and-refund-tracking) | Ask for a refund and follow it | `s=refund-decisions` asks for a full and a partial refund; the journey also ends with a full refund request | Covered | — |
 | [C-38](spec/02-customer.md#c-38--reviews-and-ratings-submission-restaurant-food-rider) | Rate the food and the rider | The journey submits both ratings | Not in V1 | [#185](https://github.com/shaiknoorullah/hg-mono/issues/185) |
 | [C-39](spec/02-customer.md#c-39--grievances-and-dispute-escalation) | Grievances and disputes | — | Not in V1 | [#190](https://github.com/shaiknoorullah/hg-mono/issues/190) |
 | [C-40](spec/02-customer.md#c-40--notifications-push-in-app-inbox-and-alerts) | Notifications | In-app rows are written during the journey; emails go to the API log; push needs a device and Expo | Blocked by external (push) | [#58](https://github.com/shaiknoorullah/hg-mono/issues/58) |
@@ -110,7 +111,7 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [R-07](spec/03-restaurant.md#r-07--compliance-document-upload) | Upload documents | `docs-todo` | Covered | — |
 | [R-08](spec/03-restaurant.md#r-08--document-pack-submission-and-admin-verification-review) | Submit the pack; admin reviews it | `docs-review`, then `make dev-scenario s=docs-approve` or `s=docs-reject` | Covered | — |
 | [R-09](spec/03-restaurant.md#r-09--verification-status-tracking-real-time) | Follow the review as it happens | The personas show each state; a decision does not arrive live | Partial | [#376](https://github.com/shaiknoorullah/hg-mono/issues/376) |
-| [R-10](spec/03-restaurant.md#r-10--document-expiry-renewal-and-compliance-suspension) | Certificate expiry and renewal | `expiring-halal` and `expired-halal` are seeded in their states; nothing lapses or renews while you watch | Partial | [#685](https://github.com/shaiknoorullah/hg-mono/issues/685) |
+| [R-10](spec/03-restaurant.md#r-10--document-expiry-renewal-and-compliance-suspension) | Certificate expiry and renewal | `expiring-halal` and `expired-halal` are seeded in their states; `s=halal-lapse` lets `expiring-halal` expire, then `s=halal-renew` uploads a new certificate and `admin-seed` approves it | Covered | — |
 | [R-11](spec/03-restaurant.md#r-11--payout-account-add-and-verify-bank-details) | Payout account | `payout`. The fake gateway makes it ready at once; with a test key Stripe hosts the step ([Stripe test mode](playbooks/restaurant/onboarding.md#stripe-test-mode)) | Covered | — |
 | [R-12](spec/03-restaurant.md#r-12--profile-management-after-activation) | Edit the profile once live | `bismillah-grill` | Covered | — |
 | [R-13](spec/03-restaurant.md#r-13--restaurant-imagery-logo-cover-gallery) | Logo and cover pictures | Catalogue restaurants have them; upload one as `bismillah-grill` | Covered | — |
@@ -127,7 +128,7 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [R-24](spec/03-restaurant.md#r-24--order-acceptance-rejection-and-response-timeout) | Accept, reject, or let it time out | `s=new-order`, then **Accept** or **Reject**, or wait 180 seconds; `s=restaurant-timeout` times one out in 30 seconds | Covered | — |
 | [R-25](spec/03-restaurant.md#r-25--preparation-status-updates) | Preparing, then ready | `s=order-preparing`, `s=order-ready` | Covered | — |
 | [R-26](spec/03-restaurant.md#r-26--delay-handling-and-rider-communication) | Report a delay | `s=order-preparing`, then report a delay | Covered | — |
-| [R-27](spec/03-restaurant.md#r-27--order-history-search-and-export) | Order history | Only the orders made since the reset; the list ignores its state filter ([#601](https://github.com/shaiknoorullah/hg-mono/issues/601)) | Partial | [#682](https://github.com/shaiknoorullah/hg-mono/issues/682) |
+| [R-27](spec/03-restaurant.md#r-27--order-history-search-and-export) | Order history | `s=order-history` leaves `bismillah-grill` four past orders in different end states (about 5 minutes); the list ignores its state filter ([#601](https://github.com/shaiknoorullah/hg-mono/issues/601)) | Partial | [#601](https://github.com/shaiknoorullah/hg-mono/issues/601) |
 | [R-28](spec/03-restaurant.md#r-28--restaurant-initiated-cancellation-after-acceptance) | Cancel after accepting | No operation yet | Missing | — |
 | [R-29](spec/03-restaurant.md#r-29--sales-dashboard-and-analytics) | Sales dashboard | — | Not in V1 | [#146](https://github.com/shaiknoorullah/hg-mono/issues/146) |
 | [R-30](spec/03-restaurant.md#r-30--performance-reports) | Performance reports | — | Not in V1 | — |
@@ -156,12 +157,12 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [D-12](spec/04-rider.md#d-12--background-location-during-an-active-delivery) | Location in the background while delivering | Needs a device build; the web app cannot | Partial | [#25](https://github.com/shaiknoorullah/hg-mono/issues/25) |
 | [D-13](spec/04-rider.md#d-13--dispatch-candidate-selection-ranking-and-offer-waves) | Dispatch picks a rider | `make dev-journey auto=all` | Covered | — |
 | [D-14](spec/04-rider.md#d-14--receiving-an-offer-on-the-device) | Receive an offer | `s=offer-to-rider` leaves `rider-sim` holding a real 30-second offer; or `rider-sim` in the app during `make dev-journey auto=all manual=rider`; push needs Expo | Covered | — |
-| [D-15](spec/04-rider.md#d-15--offer-expiry-wave-escalation-and-the-no-rider-found-path) | An offer expires; nobody takes the order | Not produced | Missing | [#684](https://github.com/shaiknoorullah/hg-mono/issues/684) |
-| [D-16](spec/04-rider.md#d-16--accepting-an-offer-single-winner-concurrency) | Two riders accept; one wins | Only one active rider | Missing | [#684](https://github.com/shaiknoorullah/hg-mono/issues/684) |
-| [D-17](spec/04-rider.md#d-17--rejecting-or-ignoring-an-offer) | Reject or ignore an offer | Reject in the app after `manual=rider`; no second rider gets it | Partial | [#684](https://github.com/shaiknoorullah/hg-mono/issues/684) |
+| [D-15](spec/04-rider.md#d-15--offer-expiry-wave-escalation-and-the-no-rider-found-path) | An offer expires; nobody takes the order | `make dev-scenario s=offer-ignored` (expiry, next wave); `s=no-rider` (about 2 minutes to `NO_RIDER_FOUND`) | Covered | — |
+| [D-16](spec/04-rider.md#d-16--accepting-an-offer-single-winner-concurrency) | Two riders accept; one wins | `s=offer-race` with `rider-sim` and `rider-sim-2`; the loser is answered `OFFER_EXPIRED` where the spec says `OFFER_ALREADY_TAKEN` ([#696](https://github.com/shaiknoorullah/hg-mono/issues/696)) | Partial | [#696](https://github.com/shaiknoorullah/hg-mono/issues/696) |
+| [D-17](spec/04-rider.md#d-17--rejecting-or-ignoring-an-offer) | Reject or ignore an offer | `s=offer-reject` or `s=offer-ignored`; `rider-sim-2` gets the next wave | Covered | — |
 | [D-18](spec/04-rider.md#d-18--order-dashboard-active-work--resume) | Active delivery screen | `rider-sim` during `make dev-journey auto=all manual=rider` | Covered | — |
 | [D-19](spec/04-rider.md#d-19--order-details) | Order details | As above | Covered | — |
-| [D-20](spec/04-rider.md#d-20--delivery-status-updates-arrived--picked-up--in-transit--delivered) | Arrived, picked up, delivered | `make dev-journey auto=all`, or by hand with `manual=rider` | Covered | — |
+| [D-20](spec/04-rider.md#d-20--delivery-status-updates-arrived--picked-up--in-transit--delivered) | Arrived, picked up, delivered | `make dev-journey auto=all`, which types the pickup code the restaurant's order view shows, or by hand with `manual=rider` | Covered | — |
 | [D-21](spec/04-rider.md#d-21--proof-of-delivery) | Proof of delivery | The journey uploads a photo; the delivery code check fails ([#259](https://github.com/shaiknoorullah/hg-mono/issues/259)) | Covered | — |
 | [D-22](spec/04-rider.md#d-22--navigation--maps) | Navigation and maps | A straight line without a token; maps and directions need Mapbox | Blocked by external (Mapbox token) | [#57](https://github.com/shaiknoorullah/hg-mono/issues/57) |
 | [D-23](spec/04-rider.md#d-23--distance-tracking-for-payment) | Distance for pay | `rider-sim` after `make dev-journey auto=all` | Covered | — |
@@ -183,7 +184,7 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | Feature | Journey | How to reach it | Status | Gap |
 |---|---|---|---|---|
 | [A-01](spec/05-admin.md#a-01--staff-account-provisioning) | Invite a staff member | In the console as `admin-seed`; or the invitation-to-sign-in scenario `onboard-admin` | Covered | — |
-| [A-02](spec/05-admin.md#a-02--role-based-access-control-model) | Roles: what each staff role may do | Only `admin-seed` can sign in; `support-seed` has no authenticator, and no plain admin exists | Partial | [#677](https://github.com/shaiknoorullah/hg-mono/issues/677) |
+| [A-02](spec/05-admin.md#a-02--role-based-access-control-model) | Roles: what each staff role may do | `admin-seed`, `ops-admin` (admin) and `support-seed` (support agent) all sign in with a code; a support agent gets `403` on `POST /v1/admin/payout-runs` | Covered | — |
 | [A-03](spec/05-admin.md#a-03--staff-authentication-mfa-and-session-policy) | Staff sign-in with a code | `admin-seed`, `make dev-totp`; or `make dev-admin` | Covered | — |
 | [A-04](spec/05-admin.md#a-04--audit-log-append-only-hash-chained) | Audit trail is written | Every admin scenario writes rows; read them in the database | Covered | — |
 | [A-05](spec/05-admin.md#a-05--audit-log-viewer-and-export) | Read and export the audit trail | No operation yet | Missing | [#327](https://github.com/shaiknoorullah/hg-mono/issues/327) |
@@ -194,12 +195,12 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [A-10](spec/05-admin.md#a-10--scheduled-reports-and-data-export) | Scheduled reports | — | Not in V1 | — |
 | [A-11](spec/05-admin.md#a-11--support-team-oversight) | Support team oversight | — | Not in V1 | — |
 | [A-12](spec/05-admin.md#a-12--escalation-routing-and-tiering) | Escalation routing | No case operations yet | Missing | [#190](https://github.com/shaiknoorullah/hg-mono/issues/190) |
-| [A-13](spec/05-admin.md#a-13--restaurant-onboarding-review-queue) | Restaurant onboarding queue | `docs-review` and `docs-rejected`; no full application waits | Partial | [#678](https://github.com/shaiknoorullah/hg-mono/issues/678) |
-| [A-14](spec/05-admin.md#a-14--kyc-document-review-non-halal-documents) | Review a document | `make dev-scenario s=docs-approve` or `s=docs-reject`; the seeded file does not open | Partial | [#686](https://github.com/shaiknoorullah/hg-mono/issues/686) |
-| [A-15](spec/05-admin.md#a-15--halal-certification-verification--core-product-function) | Halal seven-check verification | Only inside `s=onboard-restaurant`; no certificate waits for checks after a reset | Partial | [#678](https://github.com/shaiknoorullah/hg-mono/issues/678) |
+| [A-13](spec/05-admin.md#a-13--restaurant-onboarding-review-queue) | Restaurant onboarding queue | `docs-review` and `docs-rejected`; `s=application-in-review` leaves a full application waiting (certificate `PENDING`, no check recorded) | Covered | — |
+| [A-14](spec/05-admin.md#a-14--kyc-document-review-non-halal-documents) | Review a document | `make dev-scenario s=docs-approve` or `s=docs-reject`; the seeded file opens as a generated PDF | Covered | — |
+| [A-15](spec/05-admin.md#a-15--halal-certification-verification--core-product-function) | Halal seven-check verification | `s=application-in-review`, then record the checks as `admin-seed`; `s=application-reject` fails the address-match check and the approval is refused (`CHECK_FAILED`) | Covered | — |
 | [A-16](spec/05-admin.md#a-16--halal-issuing-body-registry) | Issuing bodies | `admin-seed`; the reference seed has accepted bodies | Covered | — |
-| [A-17](spec/05-admin.md#a-17--halal-certificate-expiry-monitoring-and-lapse-handling) | Certificate expiry and lapse | `expiring-halal`, `expired-halal`; nothing lapses while you watch | Partial | [#685](https://github.com/shaiknoorullah/hg-mono/issues/685) |
-| [A-18](spec/05-admin.md#a-18--restaurant-approval--rejection-decision) | Approve or reject a restaurant | Approval inside `s=onboard-restaurant`; a rejection only seeded (`docs-rejected`) | Partial | [#678](https://github.com/shaiknoorullah/hg-mono/issues/678) |
+| [A-17](spec/05-admin.md#a-17--halal-certificate-expiry-monitoring-and-lapse-handling) | Certificate expiry and lapse | `expiring-halal`, `expired-halal`; `s=halal-lapse` runs the expiry job for `expiring-halal` (`EXPIRED`, delisted, owner notified); reminders are not produced | Partial | [#685](https://github.com/shaiknoorullah/hg-mono/issues/685) |
+| [A-18](spec/05-admin.md#a-18--restaurant-approval--rejection-decision) | Approve or reject a restaurant | Approval inside `s=onboard-restaurant`; `s=application-reject` rejects live (`DOCUMENTS_REJECTED`, `HALAL_CERTIFICATION_INVALID`, owner notified) | Covered | — |
 | [A-19](spec/05-admin.md#a-19--menu-approval-queue) | Menu review queue | `menu`, then `s=menu-approve` or `s=menu-reject` | Covered | — |
 | [A-20](spec/05-admin.md#a-20--restaurant-compliance-monitoring-violations-register) | Violations register | — | Not in V1 | — |
 | [A-21](spec/05-admin.md#a-21--restaurant-performance-monitoring) | Restaurant performance | — | Not in V1 | — |
@@ -214,12 +215,12 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [A-30](spec/05-admin.md#a-30--review-moderation) | Review moderation | — | Not in V1 | — |
 | [A-31](spec/05-admin.md#a-31--abuse-and-fraud-report-handling) | Abuse and fraud reports | — | Not in V1 | — |
 | [A-32](spec/05-admin.md#a-32--feedback-and-ratings-review) | Feedback and ratings review | — | Not in V1 | — |
-| [A-33](spec/05-admin.md#a-33--refund-issuance-and-authority-limits) | Approve, decline or issue a refund | The journey leaves one refund request; decide it by hand | Partial | [#679](https://github.com/shaiknoorullah/hg-mono/issues/679) |
+| [A-33](spec/05-admin.md#a-33--refund-issuance-and-authority-limits) | Approve, decline or issue a refund | `s=refund-decisions`: `admin-seed` approves one refund and declines the other (the approved one stays `SUBMITTED` on the fake gateway) | Covered | — |
 | [A-34](spec/05-admin.md#a-34--goodwill-credit-issuance) | Goodwill credit | — | Not in V1 | — |
 | [A-35](spec/05-admin.md#a-35--dispute-case-management) | Dispute cases | — | Not in V1 | [#186](https://github.com/shaiknoorullah/hg-mono/issues/186) |
 | [A-36](spec/05-admin.md#a-36--rider-earnings-and-payout-dispute-assistance) | Rider pay disputes | — | Not in V1 | — |
 | [A-37](spec/05-admin.md#a-37--case-model-queue-and-assignment) | Case queue | No operation yet | Missing | [#190](https://github.com/shaiknoorullah/hg-mono/issues/190) |
-| [A-38](spec/05-admin.md#a-38--order-lookup-and-admin-order-intervention) | Find an order; cancel it as staff | Any scenario order; staff cancel: `s=admin-cancel`, or `s=order-preparing`, then cancel in the console | Covered | — |
+| [A-38](spec/05-admin.md#a-38--order-lookup-and-admin-order-intervention) | Find an order; cancel it as staff | Any scenario order, found by its code (`s=order-history` checks four); staff cancel: `s=admin-cancel`, or `s=order-preparing`, then cancel in the console | Covered | — |
 | [A-39](spec/05-admin.md#a-39--restaurant-and-rider-document-upload-assistance) | Upload a document for a partner | No operation yet | Missing | — |
 | [A-40](spec/05-admin.md#a-40--customer-account-assistance) | Help a customer with their account | No operation yet | Missing | — |
 | [A-41](spec/05-admin.md#a-41--delivery-issue-resolution) | Delivery issue resolution | — | Not in V1 | — |
@@ -240,7 +241,7 @@ All local money runs on the fake payment gateway, which the API uses when `HG_EN
 | [P-16](spec/01-platform.md#p-16--paymentintent-lifecycle-and-capture-timing) | A card is declined, or never paid | Only with Stripe test keys | Partial | [#680](https://github.com/shaiknoorullah/hg-mono/issues/680) |
 | [P-16](spec/01-platform.md#p-16--paymentintent-lifecycle-and-capture-timing) | The capture fails at acceptance | Not produced | Missing | [#676](https://github.com/shaiknoorullah/hg-mono/issues/676) |
 | [P-18](spec/01-platform.md#p-18--refunds-cancellations-and-compensation) | The customer asks for a refund | `make dev-journey auto=all speed=max` (last step) | Covered | — |
-| [P-18](spec/01-platform.md#p-18--refunds-cancellations-and-compensation) | Staff approve, decline or issue a refund | By hand in the admin console | Missing | [#679](https://github.com/shaiknoorullah/hg-mono/issues/679) |
+| [P-18](spec/01-platform.md#p-18--refunds-cancellations-and-compensation) | Staff approve or decline a refund | `s=refund-decisions` (issuing one outside a request is not covered) | Covered | — |
 | [P-17](spec/01-platform.md#p-17--webhooks-idempotency-and-reconciliation) | A card dispute (chargeback) | Stripe test mode, its dispute test card and `stripe listen` ([card payments playbook](playbooks/customer/card-payments.md)) | Blocked by external (Stripe test keys) | — |
 | [P-19](spec/01-platform.md#p-19--stripe-connect-onboarding-and-payouts-canada) | Weekly payouts to restaurants and riders | No payout run; the fake gateway would leave a payout transferred | Missing | [#676](https://github.com/shaiknoorullah/hg-mono/issues/676) |
 | [P-13](spec/01-platform.md#p-13--the-ledger-and-the-zero-residual-invariant) | Every order nets to zero in the ledger | After `make dev-journey auto=all`, sum the order's ledger lines in the database | Covered | — |
@@ -281,10 +282,10 @@ The four states a customer can see a restaurant in. A restaurant that is not `CE
 | [C-12](spec/02-customer.md#c-12--halal-certification-display-and-verification--critical) | `EXPIRING_SOON` | `expiring-halal` (Bamyan Kebab House) | Covered | — |
 | [C-12](spec/02-customer.md#c-12--halal-certification-display-and-verification--critical) | `EXPIRED` | `expired-halal`, delisted and hidden from customers | Covered | — |
 | [C-12](spec/02-customer.md#c-12--halal-certification-display-and-verification--critical) | `UNVERIFIED` | `fresh`, `profile`, `docs-todo`, `docs-review`, `docs-rejected`; never listed | Covered | — |
-| [A-17](spec/05-admin.md#a-17--halal-certificate-expiry-monitoring-and-lapse-handling) | A certificate lapses as the days pass | `s=cert-lapse-mid-order` moves `bismillah-grill`'s expiry to yesterday with an order live: `EXPIRED`, delisted, no badge, until `make dev-reset` | Covered | — |
+| [A-17](spec/05-admin.md#a-17--halal-certificate-expiry-monitoring-and-lapse-handling) | A certificate lapses as the days pass | `s=cert-lapse-mid-order` moves `bismillah-grill`'s expiry to yesterday with an order live: `EXPIRED`, delisted, no badge, until `make dev-reset`; or `s=halal-lapse` for `expiring-halal`, no order live | Covered | — |
 | [A-17](spec/05-admin.md#a-17--halal-certificate-expiry-monitoring-and-lapse-handling) | Renewal reminders (30, 14, 7 and 1 days) | Not produced | Missing | [#685](https://github.com/shaiknoorullah/hg-mono/issues/685) |
-| [R-10](spec/03-restaurant.md#r-10--document-expiry-renewal-and-compliance-suspension) | A renewed certificate relists the restaurant | Not produced | Missing | [#685](https://github.com/shaiknoorullah/hg-mono/issues/685) |
-| [C-12](spec/02-customer.md#c-12--halal-certification-display-and-verification--critical) | Open the certificate | The seeded file is missing from storage | Partial | [#686](https://github.com/shaiknoorullah/hg-mono/issues/686) |
+| [R-10](spec/03-restaurant.md#r-10--document-expiry-renewal-and-compliance-suspension) | A renewed certificate relists the restaurant | `s=halal-renew` after `s=halal-lapse`: `CERTIFIED`, `LIVE`, public page 200 | Covered | — |
+| [C-12](spec/02-customer.md#c-12--halal-certification-display-and-verification--critical) | Open the certificate | `make dev-reset` uploads a generated PDF for each seeded document and certificate to the private bucket (22 files); `devworld verify` lists any missing | Covered | — |
 
 ### Realtime
 
@@ -337,7 +338,7 @@ Every platform feature, for completeness. Most are exercised by any journey abov
 | [P-15](spec/01-platform.md#p-15--deadlines-and-timeout-actions-waits-forever-is-unrepresentable) | Deadlines | See [order states and deadlines](#order-states-and-deadlines) | Covered | — |
 | [P-16](spec/01-platform.md#p-16--paymentintent-lifecycle-and-capture-timing) | Payment authorise and capture | See [money](#money) | Partial | [#680](https://github.com/shaiknoorullah/hg-mono/issues/680) |
 | [P-17](spec/01-platform.md#p-17--webhooks-idempotency-and-reconciliation) | Stripe webhooks | Stripe test keys and `stripe listen` ([card payments playbook](playbooks/customer/card-payments.md)) | Blocked by external (Stripe test keys) | — |
-| [P-18](spec/01-platform.md#p-18--refunds-cancellations-and-compensation) | Refunds and cancellations | See [money](#money) | Partial | [#679](https://github.com/shaiknoorullah/hg-mono/issues/679) |
+| [P-18](spec/01-platform.md#p-18--refunds-cancellations-and-compensation) | Refunds and cancellations | See [money](#money) | Covered | — |
 | [P-19](spec/01-platform.md#p-19--stripe-connect-onboarding-and-payouts-canada) | Connect accounts and payouts | Accounts: `payout`, `s=onboard-rider`. Payouts: none | Partial | [#676](https://github.com/shaiknoorullah/hg-mono/issues/676) |
 | [P-20](spec/01-platform.md#p-20--websocket-connection-authentication) | Socket sign-in | See [realtime](#realtime) | Covered | — |
 | [P-21](spec/01-platform.md#p-21--channels-and-subscriptions) | Channels | See [realtime](#realtime) | Covered | — |
@@ -347,11 +348,11 @@ Every platform feature, for completeness. Most are exercised by any journey abov
 | [P-25](spec/01-platform.md#p-25--push-notifications-expo) | Push | See [notifications](#notifications) | Blocked by external (push) | [#58](https://github.com/shaiknoorullah/hg-mono/issues/58) |
 | [P-26](spec/01-platform.md#p-26--sms-and-email) | Text and email | See [notifications](#notifications) | Blocked by external (Twilio) | [#59](https://github.com/shaiknoorullah/hg-mono/issues/59) |
 | [P-27](spec/01-platform.md#p-27--bucket-layout-and-private-by-default) | Private buckets | Local storage from `make up` | Covered | — |
-| [P-28](spec/01-platform.md#p-28--presigned-upload-and-download) | Signed upload and download | Uploads: the onboarding scenarios and the journey photo. Downloads of seeded files fail | Partial | [#686](https://github.com/shaiknoorullah/hg-mono/issues/686) |
+| [P-28](spec/01-platform.md#p-28--presigned-upload-and-download) | Signed upload and download | Uploads: the onboarding scenarios and the journey photo. Downloads: `make dev-reset` puts the seeded documents and certificates in private storage | Covered | — |
 | [P-29](spec/01-platform.md#p-29--document-lifecycle-review-and-retention) | Document lifecycle | The restaurant and rider onboarding personas | Covered | — |
 | [P-30](spec/01-platform.md#p-30--canonical-geography-schema-one-column-no-split-brain) | Locations | The catalogue around Danforth and downtown Toronto | Covered | — |
 | [P-31](spec/01-platform.md#p-31--distance-duration-and-eta) | Distance and arrival times | The journey | Covered | — |
-| [P-32](spec/01-platform.md#p-32--rider-search-and-offer) | Find a rider and offer | One rider only | Partial | [#684](https://github.com/shaiknoorullah/hg-mono/issues/684) |
+| [P-32](spec/01-platform.md#p-32--rider-search-and-offer) | Find a rider and offer | `s=offer-reject`, `s=offer-ignored`, `s=offer-race`, `s=no-rider` with two riders | Covered | — |
 | [P-33](spec/01-platform.md#p-33--restaurant-and-dish-search) | Restaurant and dish search | The catalogue | Covered | — |
 | [P-34](spec/01-platform.md#p-34--filters-and-halal-certification) | Halal filters | See [halal states](#halal-states) | Covered | — |
 | [P-35](spec/01-platform.md#p-35--append-only-audit-trail) | Audit trail | Every admin scenario | Covered | — |
@@ -374,8 +375,7 @@ Not filed as dev world issues:
 | Area | Issue | Proposed |
 |---|---|---|
 | Admin | [#677](https://github.com/shaiknoorullah/hg-mono/issues/677) support agent and admin staff who can sign in | personas `support-seed` (enrolled), `ops-admin` |
-| Admin | [#678](https://github.com/shaiknoorullah/hg-mono/issues/678) a restaurant application waiting for halal verification | `application-in-review`, `application-reject` |
-| Money | [#679](https://github.com/shaiknoorullah/hg-mono/issues/679) staff refund decisions | `refund-decisions` |
+| Admin | [#678](https://github.com/shaiknoorullah/hg-mono/issues/678) a restaurant application held for halal verification | `application-in-review`, `application-reject` |
 | Money | [#680](https://github.com/shaiknoorullah/hg-mono/issues/680) a declined card and an unpaid order without Stripe keys | `payment-failed`, `payment-unpaid` |
 | Money | [#676](https://github.com/shaiknoorullah/hg-mono/issues/676), already filed: payout run, capture failure | `payout-run`, `capture-fails` |
 | Customer account | [#681](https://github.com/shaiknoorullah/hg-mono/issues/681) an address book with an address out of range | personas: three addresses for `amina`, none for `nour` |
@@ -383,7 +383,6 @@ Not filed as dev world issues:
 | Restaurant | [#683](https://github.com/shaiknoorullah/hg-mono/issues/683) manager and staff logins, hours overrides | personas `bismillah-manager`, `bismillah-staff` |
 | Rider | [#684](https://github.com/shaiknoorullah/hg-mono/issues/684) offers rejected, ignored, raced, and no rider found | `offer-reject`, `offer-ignored`, `offer-race`, `no-rider`; persona `rider-sim-2` |
 | Time passing | [#685](https://github.com/shaiknoorullah/hg-mono/issues/685) a certificate lapses and is renewed | `halal-lapse`, `halal-renew` |
-| Other | [#686](https://github.com/shaiknoorullah/hg-mono/issues/686) seeded documents and certificates open as files | part of `make dev-reset` |
 | Other | [#687](https://github.com/shaiknoorullah/hg-mono/issues/687) restaurant playbooks name personas and commands that exist | playbook fixes |
 
 Order deadlines are reached by waiting, by design: the [harness design's non-goals](superpowers/specs/2026-09-28-devworld-harness-design.md#2-goals-and-non-goals) rule out a dev clock that moves `deadline_at` ([every non-terminal order state carries a deadline (invariant 4)](../AGENTS.md#3-non-negotiable-invariants)). A shorter local response window is asked for in [#676](https://github.com/shaiknoorullah/hg-mono/issues/676).

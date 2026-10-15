@@ -18,6 +18,8 @@ export interface MenuItemDef {
   /** Radio semantics when defined. */
   checked?: boolean;
   separatorBefore?: boolean;
+  /** A second line under the label (MH length menu: "If it’s still off after 14 days, …"). */
+  description?: string;
 }
 
 export interface MenuProps {
@@ -33,6 +35,9 @@ export interface MenuProps {
   disabled?: boolean;
   className?: string;
   testId?: string;
+  /** Controlled open state (MH: the length menu opens by itself after a switch-off). */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 const TRIGGER = {
@@ -41,8 +46,26 @@ const TRIGGER = {
   chrome: 'bg-transparent text-fg-on-accent border border-transparent',
 } as const;
 
-export function Menu({ label, trigger, triggerLabel, items, align = 'start', variant = 'tonal', disabled, className, testId }: MenuProps) {
-  const [open, setOpen] = useState(false);
+export function Menu({
+  label,
+  trigger,
+  triggerLabel,
+  items,
+  align = 'start',
+  variant = 'tonal',
+  disabled,
+  className,
+  testId,
+  open: openProp,
+  onOpenChange,
+}: MenuProps) {
+  const [openState, setOpenState] = useState(false);
+  const open = openProp ?? openState;
+  const setOpen = (next: boolean | ((o: boolean) => boolean)) => {
+    const value = typeof next === 'function' ? next(open) : next;
+    setOpenState(value);
+    onOpenChange?.(value);
+  };
   const [active, setActive] = useState(0);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
@@ -107,6 +130,8 @@ export function Menu({ label, trigger, triggerLabel, items, align = 'start', var
           aria-label={label}
           className={`absolute top-full z-50 mt-1 min-w-56 rounded-md border border-line-decorative bg-surface-raised p-1 text-fg-primary shadow-lg ${align === 'end' ? 'right-0' : 'left-0'}`}
           onKeyDown={(e) => {
+            // The menu owns its keys: a menu inside a data grid must not move the grid's cell.
+            e.stopPropagation();
             if (e.key === 'ArrowDown') {
               e.preventDefault();
               move(1);
@@ -151,6 +176,7 @@ export function Menu({ label, trigger, triggerLabel, items, align = 'start', var
                   {item.label}
                   {item.checked ? <span className="sr-only">, current</span> : null}
                 </span>
+                {item.description ? <span className="text-[13px] text-fg-secondary">{item.description}</span> : null}
                 {item.disabled && item.disabledReason ? <span className="text-[13px] text-fg-secondary">{item.disabledReason}</span> : null}
               </button>
             </li>
