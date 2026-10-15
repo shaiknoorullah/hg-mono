@@ -78,9 +78,10 @@ name: customer redesign, item sheet and cart
 - extendedWaitUntil:
     visible: "Clear your cart\\?"
     timeout: 10000
+# The dialog's confirm button, by id: its label matches the cart's own "Clear cart" behind the
+# dialog, and the index of that second match is not stable across CI builds.
 - tapOn:
-    text: "Clear cart"
-    index: 1
+    id: "Cart-confirmClear"
 - extendedWaitUntil:
     visible: "Your cart is empty"
     timeout: 15000
