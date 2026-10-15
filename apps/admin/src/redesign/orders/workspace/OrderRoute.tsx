@@ -11,8 +11,10 @@
  * - Cancel and Reveal open in-page and replace More detail while open; Escape and Close return.
  * - Offline: the order stays readable; every action is off, and nothing is queued.
  *
- * Not on this page, with the reason in the pull request: the refund panel (the refunds work
- * package), the live map pane (the design system has no map component yet), resolving a dispute and
+ * - Issue refund opens the refund panel in the same place. It is a visible button once money has been
+ *   captured and the order is delivered or beyond, and a "More actions" item before that.
+ *
+ * Not on this page, with the reason in the pull request: the live map pane (the design system has no map component yet), resolving a dispute and
  * opening an incident (no API), click-to-call (no API).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -28,6 +30,8 @@ import { useOnline } from '../../auth/online';
 import { Banner, Button, EmptyState, ErrorState, InlineAlert, Menu, Skeleton, SplitPanes } from '../../ds';
 import { useSyncExternalStore } from 'react';
 import { asContract } from '../model';
+import { REFUND_BUTTON_STATES } from '../../refunds/model';
+import { RefundPanel } from '../../refunds/RefundPanel';
 import { staffCanCancel } from './notes';
 import { CancelPanel } from './CancelPanel';
 import { ListPane, listSourceOf } from './ListPane';
@@ -49,7 +53,7 @@ import {
 
 type Order = Schema['OrderAdminView'];
 type Load = { kind: 'loading' } | { kind: 'ready'; order: Order } | { kind: 'not-found' } | { kind: 'error' };
-type Panel = 'none' | 'cancel' | 'reveal';
+type Panel = 'none' | 'cancel' | 'reveal' | 'refund';
 type Result = { refunded: boolean; at: string } | null;
 
 export default function OrderRoute() {
@@ -58,7 +62,8 @@ export default function OrderRoute() {
   const from = listSourceOf(search.get('from'));
   const online = useOnline();
   const session = useSyncExternalStore(subscribeSession, getSession, getSession);
-  const isSupport = staffRoleOf(session.principal) === 'SUPPORT_AGENT';
+  const role = staffRoleOf(session.principal);
+  const isSupport = role === 'SUPPORT_AGENT';
 
   const [load, setLoad] = useState<Load>({ kind: 'loading' });
   const [panel, setPanel] = useState<Panel>('none');
@@ -104,6 +109,13 @@ export default function OrderRoute() {
   const actions = useMemo(
     () => [
       {
+        key: 'refund',
+        label: 'Issue refund…',
+        disabled: !order || !online,
+        ...(!online ? { disabledReason: 'You are offline.' } : {}),
+        onSelect: () => setPanel('refund'),
+      },
+      {
         key: 'cancel',
         label: 'Cancel order…',
         destructive: true,
@@ -140,7 +152,21 @@ export default function OrderRoute() {
       <div className="flex flex-col gap-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <OrderHeader order={o} />
-          <Menu label="More actions" triggerText="More actions" items={actions} align="end" disabled={!online} />
+          <div className="flex flex-wrap items-center gap-2">
+            {REFUND_BUTTON_STATES.includes(o.state) ? (
+              <Button
+                variant="primary"
+                disabled={!online}
+                onPress={() => {
+                  openedBy.current = document.activeElement as HTMLElement | null;
+                  setPanel('refund');
+                }}
+              >
+                Issue refund
+              </Button>
+            ) : null}
+            <Menu label="More actions" triggerText="More actions" items={actions} align="end" disabled={!online} />
+          </div>
         </div>
         {result ? (
           <InlineAlert tone="info" blocking title={result.refunded ? 'Cancelled. Refund issued.' : 'Cancelled. Authorisation voided.'}>
@@ -188,6 +214,17 @@ export default function OrderRoute() {
             setResult({ refunded, at: new Date().toISOString() });
             setPanel('none');
           }}
+        />
+      );
+    }
+    if (order && panel === 'refund') {
+      return (
+        <RefundPanel
+          order={order}
+          role={role}
+          onClose={close}
+          onReload={() => void read(true)}
+          onAnswered={() => void read(true)}
         />
       );
     }

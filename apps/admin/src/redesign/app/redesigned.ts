@@ -47,7 +47,7 @@ export const REDESIGNED: Partial<Record<RouteId, Screen>> = {
   // ·
   order: lazy(() => import('../orders/workspace/OrderRoute')),
   // ·
-  // refunds: WP-8
+  refunds: lazy(() => import('../refunds/RefundsRoute')),
   // ·
   // alerts: WP-9
   // ·
