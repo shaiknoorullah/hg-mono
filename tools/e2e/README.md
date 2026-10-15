@@ -2,7 +2,7 @@
 covers:
   - .github/workflows/e2e.yml
   - tools/e2e/**
-reviewed: 2026-10-15
+reviewed: 2026-10-16
 ---
 
 # End-to-end flows
