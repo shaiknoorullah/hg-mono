@@ -13,15 +13,21 @@
  *    sheet and during checkout: a modal flow must not offer an escape hatch that abandons a payment
  *    or a live offer. Hiding unmounts it rather than dimming it, so it is not in the tab order.
  *
- * Visual treatment: a floating **glass pill** — translucent chrome (`withAlpha` over
- * `surface.chrome`, see `feedback/internal/theme.ts`), not the old opaque full-width bar — with
- * an optional **detached primary action button** that floats above it, its own elevated circle
- * rather than a tab embedded in the row. The action button is a **soft tint**, never a heavy
- * solid fill: an earlier solid-orange version measured as "too much on the eyes" in review, so
- * this one uses `state.selectedTint` (a light peach wash of the action ramp) with an
- * `action.primary` orange border and glyph — visible, but quiet. It is always orange
+ * Visual treatment: a **full-width raised bar**, as the approved design system draws it
+ * (Claude Design, `BottomNav`): `surface.raised` with a decorative top border and the sticky
+ * shadow, a 56 dp row, and a 2 dp rounded indicator over the middle of the active tab. The active
+ * tab's icon, label and indicator take `border.brand` (brand 600 light, 400 dark); the rest take
+ * `text.tertiary`. It replaced a translucent "glass pill" over `surface.chrome`, which read as a
+ * dark green capsule floating over content — not the approved design, and green near a halal claim.
+ *
+ * An optional **detached primary action button** floats above the bar (the rider's availability
+ * shortcut) as its own elevated circle rather than a tab embedded in the row. The action button is
+ * a **soft tint**, never a heavy solid fill: an earlier solid-orange version measured as "too much
+ * on the eyes" in review, so this one uses `state.selectedTint` (a light peach wash of the action
+ * ramp) with an `action.primary` orange border and glyph — visible, but quiet. It is always orange
  * (`color.action.primary` / `color.border.brand`) and never green: RULE H-1 reserves solid green
- * for `color.halal.*` alone, and a CTA is not a certification.
+ * for `color.halal.*` alone, and a CTA is not a certification. The customer app does not use it:
+ * its cart is a full-width bar above the nav, per the approved Home canvas.
  *
  * Icon convention (shared with `@hg/ui-native`'s `Icon` primitive, `../primitives/Icon`):
  * **linear = inactive, bold = active.** `items[].icon`/`activeIcon` and `action.icon` stay
@@ -30,7 +36,8 @@
  * `<Icon name="..." weight={selected ? 'bold' : 'linear'} />`.
  */
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import type { ReactNode } from 'react';
+import { cloneElement, isValidElement } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import type { ViewStyle } from 'react-native';
 
 import {
@@ -76,7 +83,7 @@ export interface BottomNavProps {
   active: string;
   onChange: (key: string) => void;
   /**
-   * A DETACHED primary action floating above the pill — e.g. "new order", a rider's "go
+   * A DETACHED primary action floating above the bar — e.g. "new order", a rider's "go
    * online" toggle. Omit for the plain tab bar. Soft-tint orange by construction; there is no
    * prop to make it a solid fill or any other hue (see the module doc).
    */
@@ -90,6 +97,13 @@ export interface BottomNavProps {
 const BAR_HEIGHT = 56;
 /** How far the action button's centre sits above the pill's top edge — the "detached" gap. */
 const ACTION_OVERLAP = 0.6;
+
+/** The tab's colour on its icon, unless the call site chose one: icon and label read as one. */
+function tinted(node: ReactNode, color: string): ReactNode {
+  if (!isValidElement(node)) return node;
+  const el = node as ReactElement<{ color?: string }>;
+  return el.props.color == null ? cloneElement(el, { color }) : el;
+}
 
 function badgeSuffix(item: BottomNavItem): string {
   if (item.badge == null || item.badge === false) return '';
@@ -119,29 +133,25 @@ export function BottomNav({
   const actionDiameter = rowHeight + 8;
 
   return (
-    <View
-      testID={testID}
-      style={[
-        {
-          paddingBottom: bottomInset,
-          paddingHorizontal: theme.target.spacing * 2,
-          zIndex: zIndex.bottomNav,
-        },
-        style,
-      ]}
-    >
+    <View testID={testID} style={[{ zIndex: zIndex.bottomNav }, style]}>
       {action ? (
         <View
           pointerEvents="box-none"
           style={[
             styles.actionWrap,
-            { height: actionDiameter * ACTION_OVERLAP, zIndex: zIndex.bottomNav + 1 },
+            {
+              height: actionDiameter * ACTION_OVERLAP,
+              zIndex: zIndex.bottomNav + 1,
+            },
           ]}
         >
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={action.label}
-            accessibilityState={{ disabled: action.disabled, selected: action.active }}
+            accessibilityState={{
+              disabled: action.disabled,
+              selected: action.active,
+            }}
             onPress={action.onPress}
             disabled={action.disabled}
             testID={action.testID ?? `${testID}-action`}
@@ -167,27 +177,22 @@ export function BottomNav({
         </View>
       ) : null}
 
-      {/*
-        Shadow lives on this OUTER view. `styles.pill` below sets `overflow: 'hidden'` so a
-        pressed tab's highlight never pokes past the rounded ends — but `overflow: 'hidden'` and
-        an RN shadow on the same view clip the shadow to invisible, so the shadow has to sit one
-        level up, on a view with no overflow clipping of its own.
-      */}
-      <View style={[elevationStyle(theme, '3'), { borderRadius: radius.full }]}>
-        <View
-          accessibilityRole="tablist"
-          style={[
-            styles.pill,
-            {
-              backgroundColor: withAlpha(theme.color.surface.chrome, 0.78),
-              borderColor: withAlpha(theme.color.border.decorative, 0.4),
-              borderRadius: radius.full,
-            },
-          ]}
-        >
+      <View
+        testID={`${testID}-bar`}
+        style={[
+          elevationStyle(theme, 'sticky'),
+          styles.bar,
+          {
+            backgroundColor: theme.color.surface.raised,
+            borderTopColor: theme.color.border.decorative,
+            paddingBottom: bottomInset,
+          },
+        ]}
+      >
+        <View accessibilityRole="tablist" style={styles.row}>
           {items.map((item) => {
             const selected = item.key === active;
-            const tint = selected ? brand.solid : theme.color.text.tertiary;
+            const tint = selected ? theme.color.border.brand : theme.color.text.tertiary;
             return (
               <Pressable
                 key={item.key}
@@ -205,19 +210,17 @@ export function BottomNav({
                   },
                 ]}
               >
-                {/* 2 dp indicator above the active tab. Never the only signal — the tint and
-                    the selected state carry it too. */}
+                {/* 2 dp rounded indicator over the middle of the active tab. Never the only
+                    signal — the tint, the bold icon and the selected state carry it too. */}
                 <View
                   accessibilityElementsHidden
                   importantForAccessibility="no-hide-descendants"
-                  style={[
-                    styles.indicator,
-                    { backgroundColor: selected ? brand.solid : 'transparent' },
-                  ]}
+                  testID={`${testID}-indicator-${item.key}`}
+                  style={[styles.indicator, { backgroundColor: selected ? tint : 'transparent' }]}
                 />
                 <View style={styles.iconWrap}>
                   <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-                    {selected ? (item.activeIcon ?? item.icon) : item.icon}
+                    {tinted(selected ? (item.activeIcon ?? item.icon) : item.icon, tint)}
                   </View>
                   <View style={styles.badge}>
                     <MutedBadge
@@ -232,7 +235,14 @@ export function BottomNav({
                   // (04-accessibility.md §5). `allowFontScaling` stays on — this is a cap, not a
                   // freeze.
                   maxFontSizeMultiplier={1.6}
-                  style={[type(theme, 'label.md'), { color: tint, marginTop: 2 }]}
+                  style={[
+                    type(theme, 'label.md'),
+                    {
+                      color: tint,
+                      marginTop: 2,
+                      fontWeight: selected ? '600' : '500',
+                    },
+                  ]}
                 >
                   {item.label}
                 </Text>
@@ -246,9 +256,22 @@ export function BottomNav({
 }
 
 const styles = StyleSheet.create({
-  pill: { flexDirection: 'row', borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
-  tab: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  indicator: { position: 'absolute', top: 0, start: 0, end: 0, height: 2 },
+  bar: { borderTopWidth: StyleSheet.hairlineWidth },
+  row: { flexDirection: 'row', alignItems: 'stretch' },
+  tab: {
+    flex: 1,
+    minWidth: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  indicator: {
+    position: 'absolute',
+    top: 0,
+    start: '28%',
+    end: '28%',
+    height: 2,
+    borderRadius: radius.full,
+  },
   iconWrap: { alignItems: 'center', justifyContent: 'center' },
   badge: { position: 'absolute', top: -4, end: -10 },
   actionWrap: { alignItems: 'center', justifyContent: 'flex-end' },

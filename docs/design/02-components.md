@@ -14,7 +14,7 @@ covers:
   - packages/ui-native/src/ds/**
   - packages/ui-native/src/lib/**
   - packages/ui-native/src/proposed/**
-reviewed: 2026-10-10
+reviewed: 2026-10-15
 ---
 
 # HalalGoes — Component Inventory
@@ -500,7 +500,7 @@ There is **no** `value: number` prop and **no** `formatted: string` prop. A comp
 **Props.** `items: {key, label, icon, badge}[]`, `active`, `onChange`.
 **Customer items (5, fixed):** Home · Search · Orders · Favourites · Account.
 **Rider items (3, fixed):** Home · Earnings · Account. (Deliberately minimal — the rider's real navigation is the assignment flow, which takes over the screen.)
-**Layout.** 56 + safe-area inset. Icon 24 + `label.md`. **Labels are always visible** — icon-only tabs fail recognition and fail SR users who get a bare glyph name.
+**Layout.** A full-width `surface.raised` bar with a top border and the sticky shadow, not a floating pill: 56 + safe-area inset. Icon 24 + `label.md`. **Labels are always visible** — icon-only tabs fail recognition and fail SR users who get a bare glyph name.
 **States.** active (`color.brand.600` icon + label, 2px indicator above) · inactive (`text.tertiary`) · pressed · focus-visible · badge (dot or count, inside the tab's accessible name).
 **Accessibility.** `role="tablist"` with `role="tab"` children, `aria-selected`. Each tab ≥44 and full-height. Badges are in the name ("Orders, 2 active"), not separate nodes. **Hidden entirely during the rider offer sheet and during checkout** — a modal flow must not offer an escape hatch that abandons a payment or a live offer.
 
