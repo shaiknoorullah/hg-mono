@@ -261,11 +261,18 @@ describe('routes', () => {
     expect(screen.getByRole('button', { name: 'Back to restaurant applications' }).getAttribute('data-variant')).toBe('tertiary');
   });
 
-  it('falls back to the legacy Orders screen inside the new shell', async () => {
+  it('falls back to the legacy Refunds screen inside the new shell', async () => {
+    const { container } = renderApp('/refunds');
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Refunds & disputes');
+    await waitFor(() => expect(container.querySelector('[data-legacy-screen="refunds"]')).not.toBeNull());
+    expect(nav()).toBeTruthy();
+  });
+
+  it('shows the redesigned Orders list, not the legacy screen', async () => {
     const { container } = renderApp('/orders');
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Orders');
-    await waitFor(() => expect(container.querySelector('[data-legacy-screen="orders"] #orders-heading')).not.toBeNull());
-    expect(nav()).toBeTruthy();
+    await screen.findByRole('region', { name: 'Orders page' });
+    expect(container.querySelector('[data-legacy-screen="orders"]')).toBeNull();
   });
 
   it('names the work package on a route that is not built yet', () => {

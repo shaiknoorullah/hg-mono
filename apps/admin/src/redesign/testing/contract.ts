@@ -45,3 +45,8 @@ export function contractRoutes(): Route[] {
 }
 
 export type { Route };
+
+/** The parsed `contracts/openapi.yaml`, for a test that checks a UI map against the contract's own enums. */
+export function contractSpec(): { components: { schemas: Record<string, { enum?: string[]; properties?: Record<string, { enum?: string[] }> }> } } {
+  return routesModule.loadRoutes().spec;
+}
