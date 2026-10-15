@@ -8,7 +8,7 @@
  * explainer (wp1 §7).
  */
 import { useEffect, useState, type ReactElement } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import type { Schema } from '@hg/api-client';
 import { PageBanner, type PageBannerTone } from '../ds';
 import { useConsole } from '../data/console';
@@ -51,6 +51,7 @@ export function Banners() {
   const connection = useConnection();
   const stale = useStale();
   const navigate = useNavigate();
+  const onPayouts = useLocation().pathname.startsWith('/payouts');
   const [params] = useSearchParams();
 
   const halalState = profile.data?.halal?.display_state;
@@ -179,7 +180,8 @@ export function Banners() {
   }
 
   const c = connect.data;
-  if (c && !c.payouts_enabled) {
+  // The Payouts pages say this themselves, in more detail: no second banner above them.
+  if (c && !c.payouts_enabled && !onPayouts) {
     const due = c.requirements.currently_due;
     const asking = due.length ? due.join(', ') : (c.requirements.disabled_reason ?? '');
     banners.push(
