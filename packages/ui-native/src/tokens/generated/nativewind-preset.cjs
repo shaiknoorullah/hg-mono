@@ -281,6 +281,15 @@ module.exports = {
           base: 'var(--hg-skeleton-base)',
           highlight: 'var(--hg-skeleton-highlight)',
         },
+        action: {
+          control: 'var(--hg-action-control)',
+          'track-on': 'var(--hg-action-track-on)',
+        },
+        state: {
+          'hover-overlay': 'var(--hg-state-hover-overlay)',
+          'pressed-overlay': 'var(--hg-state-pressed-overlay)',
+          'selected-tint': 'var(--hg-state-selected-tint)',
+        },
         progress: {
           fill: 'var(--hg-progress-fill)',
         },

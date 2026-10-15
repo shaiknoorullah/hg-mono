@@ -50,7 +50,10 @@ var ScenarioNames = []string{
 	"offer-ignored",
 	"offer-race",
 	"no-rider",
+	"order-history",
 	"onboard-admin",
+	"application-in-review",
+	"application-reject",
 	"offer-to-rider",
 	"restaurant-timeout",
 	"admin-cancel",
@@ -58,6 +61,7 @@ var ScenarioNames = []string{
 	"pickup-lapse-cancelled",
 	"cert-lapse-mid-order",
 	"order-completed",
+	"refund-decisions",
 	"halal-lapse",
 	"halal-renew",
 }
@@ -82,6 +86,8 @@ var scenarioSummaries = map[string]string{
 	"offer-race":             "rider-sim and rider-sim-2 accept at once; one assignment, one refused",
 	"no-rider":               "both riders offline; the search ends NO_RIDER_FOUND (READY_FOR_PICKUP, no rider)",
 	"onboard-admin":          "an invited admin sets a password, signs in, turns on two-step sign-in and signs in with a code",
+	"application-in-review":  "a new restaurant waits in DOCUMENTS_REVIEW with a pending certificate and no checks",
+	"application-reject":     "admin-seed fails the address check, approval is refused, the application is rejected (DOCUMENTS_REJECTED)",
 	"offer-to-rider":         "rider-sim is online at bismillah-grill with a pending 30 s offer for a ready order",
 	"restaurant-timeout":     "an order's restaurant window is cut to 30 s; it times out (CANCELLED, RESTAURANT_TIMEOUT)",
 	"admin-cancel":           "admin-seed cancels an accepted order (CANCELLED, SUPPORT_CANCELLED, full refund)",
@@ -89,8 +95,10 @@ var scenarioSummaries = map[string]string{
 	"pickup-lapse-cancelled": "rider-sim offline; a ready order lapses to the cap (CANCELLED, NO_RIDER_FOUND, full refund)",
 	"cert-lapse-mid-order":   "an accepted order is live when bismillah-grill's certificate lapses (EXPIRED, delisted until dev-reset)",
 	"order-completed":        "rider-sim delivers an order and it settles (COMPLETED, receipt, rider earnings)",
+	"refund-decisions":       "amina's full refund is approved (SUBMITTED), her partial refund declined (DECLINED); every ledger batch sums to zero",
 	"halal-lapse":            "the certificate expiry job runs as of two days ahead; expiring-halal reads EXPIRED and is delisted (local only, dev-reset undoes it)",
 	"halal-renew":            "after halal-lapse: the owner attaches a new certificate and admin-seed approves it; expiring-halal is CERTIFIED and LIVE again",
+	"order-history":          "amina has four past orders in every end state (cancelled by her, rejected, deadline-cancelled, completed) and no active order",
 }
 
 // RunScenario signs in as the personas the scenario needs and calls the API
@@ -132,6 +140,12 @@ func RunScenario(ctx context.Context, baseURL, name string) error {
 		return scenarioOnboardRider(ctx, baseURL)
 	case "offer-reject", "offer-ignored", "offer-race", "no-rider":
 		return runOfferScenario(ctx, baseURL, name)
+	case "application-in-review":
+		return scenarioApplicationInReview(ctx, baseURL)
+	case "application-reject":
+		return scenarioApplicationReject(ctx, baseURL)
+	case "order-history":
+		return scenarioOrderHistory(ctx, baseURL)
 	case "onboard-admin":
 		return scenarioOnboardAdmin(ctx, baseURL)
 	case "offer-to-rider":
@@ -146,6 +160,8 @@ func RunScenario(ctx context.Context, baseURL, name string) error {
 		return scenarioPickupLapse(ctx, baseURL, true)
 	case "cert-lapse-mid-order":
 		return scenarioCertLapse(ctx, baseURL)
+	case "refund-decisions":
+		return scenarioRefundDecisions(ctx, baseURL)
 	case "order-completed":
 		return scenarioOrderCompleted(ctx, baseURL)
 	case "halal-lapse":
