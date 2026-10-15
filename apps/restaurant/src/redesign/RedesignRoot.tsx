@@ -39,6 +39,7 @@ import { HoursPage } from './hours/HoursPage';
 import { NewOrdersProvider } from './strip/NewOrdersProvider';
 import { OrdersGate } from './orders/GoLiveGate';
 import { LiveOrdersPage } from './orders/LiveOrdersPage';
+import { OnboardingRoutes } from './onboarding/OnboardingRoutes';
 
 // Legacy screens hosted by the redesign refresh on 401 too.
 setUnauthorizedOverride(async () => (getSession() ? refreshAccessToken() : false));
@@ -146,7 +147,7 @@ export function RedesignApp() {
     root.setAttribute('data-theme', 'light');
     root.style.colorScheme = 'light';
   }, []);
-  const { Onboarding, Payouts, Settings } = LEGACY;
+  const { Payouts, Settings } = LEGACY;
   return (
     <div {...themeAttributes('restaurant')} className="relative h-dvh overflow-hidden bg-surface-sunken text-fg-primary" data-redesign="">
       <AuthProvider>
@@ -160,14 +161,12 @@ export function RedesignApp() {
             <Route path="/forgot-password" element={<ForgotPasswordScreen />} />
             <Route path="/reset-password" element={<ResetPasswordScreen />} />
           </Route>
-          {/* Onboarding (WP6/WP7 replace this). */}
+          {/* Onboarding (WP6/WP7, #658): the frame, then the step the server names. */}
           <Route
             path="/onboarding/*"
             element={
               <RequireSession>
-                <div className="h-dvh overflow-auto">
-                  <Onboarding />
-                </div>
+                <OnboardingEntry />
               </RequireSession>
             }
           />
@@ -204,6 +203,11 @@ export function RedesignApp() {
       </AuthProvider>
     </div>
   );
+}
+
+function OnboardingEntry() {
+  const navigate = useNavigate();
+  return <OnboardingRoutes onSignOut={() => void signOut(navigate)} />;
 }
 
 /** "Back to sign in" from a sign-in card is a new visit: a clean form, not the last state. */
