@@ -188,6 +188,10 @@ function HalalSection(): React.ReactElement {
       <ds.HalalCertificationPanel restaurantId="gallery" certification={{ ...CERTIFICATION, display_state: 'EXPIRED' }} />
       <ds.HalalCertificationPanel restaurantId="gallery" status="loading" />
       <ds.HalalCertificationPanel restaurantId="gallery" status="error" onRetry={() => {}} />
+    </View>
+  );
+}
+
 /** The N3 form parts, in the states the canvases draw. */
 function FormsSection(): React.ReactElement {
   const [phone, setPhone] = React.useState('4165550161');
