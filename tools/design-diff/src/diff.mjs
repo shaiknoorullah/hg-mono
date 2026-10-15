@@ -4,13 +4,15 @@
 //   node src/diff.mjs --refs <render-refs out> --captures <dir> --out <dir>
 //                     [--app customer] [--insets insets.json | --profile phone-390]
 //                     [--map pairs.json] [--threshold 0.1] [--max-mismatch 0.1]
-//                     [--max-region 4] [--strict]
+//                     [--max-region 4] [--no-strict]
 //
 // A capture is any design--<area>--<Board>.png under --captures; its app is the nearest folder
 // named for an app, or --app. --map adds screenshots named otherwise: { "<path under --captures>":
 // "<app>/<area>/<Board>" }. Phone screenshots lose Android's bars first (--insets, measured, or
 // --profile, the stock heights). Writes <out>/results.json and, per pair, the diff image and the
-// side-by-side (design | app | diff) under <out>/pairs/. --strict exits 1 when a pair fails or names no board.
+// side-by-side (design | app | diff) under <out>/pairs/. Exits 1 when any pair is FAIL, NO BOARD or
+// NOT COMPARED (the default; --strict is an accepted alias); --no-strict reports and exits 0. A crash or
+// usage error exits 2.
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -22,7 +24,7 @@ import { APPS, parseBoardId, parseCaptureFile } from './names.mjs';
 import { crop, readPng, shrink, sideBySide, writePng } from './png.mjs';
 
 function args(argv) {
-  const o = { refs: null, captures: null, out: null, app: null, insets: null, profile: null, map: null, strict: false, thresholds: {} };
+  const o = { refs: null, captures: null, out: null, app: null, insets: null, profile: null, map: null, strict: true, thresholds: {} };
   const num = (name, v) => {
     const n = Number(v);
     if (!Number.isFinite(n) || n < 0) throw new Error(`${name} needs a number, not "${v}"`);
@@ -42,6 +44,7 @@ function args(argv) {
       case '--max-mismatch': o.thresholds.maxMismatchPct = num('--max-mismatch', v()); break;
       case '--max-region': o.thresholds.maxRegionPx = num('--max-region', v()); break;
       case '--strict': o.strict = true; break;
+      case '--no-strict': o.strict = false; break;
       default: throw new Error(`unknown option ${argv[i]} (see the header of src/diff.mjs)`);
     }
   }
@@ -78,6 +81,19 @@ export function findCaptures(root, { app = null, map = {} } = {}) {
   return found;
 }
 
+/** Why a board cannot be compared against, or null when its reference is sound. */
+export function unusableReference(ref, refsDir) {
+  if (!ref) return 'no board of that name in the references (a typo, or its app and area were not rendered)';
+  if (ref.errors?.length) return `the reference recorded errors, so it is not a sound reference: ${ref.errors.join('; ')}`;
+  if (!existsSync(path.join(refsDir, ref.file))) return 'the board did not render (its reference image is missing)';
+  return null;
+}
+
+/** 1 when the run must fail: any pair that is FAIL, NO BOARD or NOT COMPARED, unless strict is off. */
+export function exitCodeFor(pairs, strict = true) {
+  return strict && pairs.some((p) => p.verdict !== 'PASS') ? 1 : 0;
+}
+
 function main() {
   const o = args(process.argv.slice(2));
   const manifest = JSON.parse(readFileSync(path.join(o.refs, 'manifest.json'), 'utf8'));
@@ -92,9 +108,10 @@ function main() {
     const { app, area, board } = parseBoardId(c.id);
     const ref = manifest.boards[c.id];
     const base = { id: c.id, app, area, board, capture: c.rel, title: ref?.title ?? null };
-    if (!ref || !existsSync(path.join(o.refs, ref.file))) {
-      pairs.push({ ...base, verdict: 'NO BOARD', reason: ref ? `the board did not render: ${ref.errors.join('; ')}` : 'no board of that name in the references (a typo, or its app and area were not rendered)' });
-      console.log(`${'NO BOARD'.padEnd(12)} ${''.padStart(8)}    ${c.id}  (${c.rel})`);
+    const unusable = unusableReference(ref, o.refs);
+    if (unusable) {
+      pairs.push({ ...base, verdict: 'NO BOARD', reason: unusable });
+      console.log(`${'NO BOARD'.padEnd(12)} ${''.padStart(8)}    ${c.id}  (${c.rel})  ${unusable}`);
       continue;
     }
     let shot = readPng(c.file);
@@ -121,12 +138,15 @@ function main() {
   }
 
   const apps = new Set(pairs.map((p) => p.app));
+  const captured = new Set(captures.map((c) => c.id));
+  const uncaptured = Object.keys(manifest.boards).filter((id) => apps.has(id.split('/')[0]) && !captured.has(id)).sort();
   const results = {
     refs: o.refs,
     source: manifest.source,
     thresholds,
     crop: cut,
     pairs,
+    uncaptured,
     areas: Object.fromEntries(Object.entries(manifest.areas).filter(([id]) => apps.has(id.split('/')[0]))),
     caveatBoards: Object.fromEntries(Object.entries(manifest.boards).filter(([id, b]) => apps.has(id.split('/')[0]) && b.caveats?.length).map(([id, b]) => [id, { title: b.title, caveats: b.caveats }])),
   };
@@ -134,7 +154,8 @@ function main() {
   writeFileSync(path.join(o.out, 'results.json'), JSON.stringify(results, null, 1) + '\n');
   const count = (v) => pairs.filter((p) => p.verdict === v).length;
   console.log(`\n${pairs.length} captures: ${count('PASS')} pass, ${count('FAIL')} fail, ${count('NOT COMPARED')} not compared, ${count('NO BOARD')} without a board. ${path.join(o.out, 'results.json')}`);
-  if (o.strict && pairs.some((p) => p.verdict === 'FAIL' || p.verdict === 'NO BOARD')) process.exitCode = 1;
+  console.log(`uncaptured boards: ${uncaptured.length}${uncaptured.length ? ` (${uncaptured.slice(0, 10).join(', ')}${uncaptured.length > 10 ? ', ...' : ''})` : ''}`);
+  process.exitCode = exitCodeFor(pairs, o.strict);
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

@@ -2,12 +2,17 @@
 // and the worded layout findings. Run: pnpm --filter @hg/design-diff test:unit
 
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { test } from 'node:test';
+import { exitCodeFor, unusableReference } from '../src/diff.mjs';
 import { compare } from '../src/compare.mjs';
 import { parseInsets } from '../src/insets.mjs';
 import { compareLayouts } from '../src/layout-diff.mjs';
 import { parseBoardId, parseCaptureFile } from '../src/names.mjs';
-import { canvas } from '../src/png.mjs';
+import { canvas, writePng } from '../src/png.mjs';
 
 const WHITE = [255, 255, 255, 255];
 const INK = [30, 30, 30, 255];
@@ -84,4 +89,35 @@ test('layout findings: copy, type, colour, box and spacing in words', () => {
   assert.match(words, /Copy differs: “Forgot your password\?” in the design, “Forgot your password \?” in the app/);
   assert.match(words, /Box holding “Email”: corner radius 12 vs 8/);
   assert.match(words, /“Email” sits 12 dp lower in the app/);
+});
+
+test('the diff fails by default: any non-PASS verdict exits 1, --no-strict exits 0', () => {
+  assert.equal(exitCodeFor([{ verdict: 'PASS' }]), 0);
+  for (const verdict of ['FAIL', 'NO BOARD', 'NOT COMPARED']) {
+    assert.equal(exitCodeFor([{ verdict: 'PASS' }, { verdict }]), 1, `${verdict} fails the run`);
+    assert.equal(exitCodeFor([{ verdict }], false), 0, `${verdict} under --no-strict`);
+  }
+});
+
+test('a reference with recorded errors is no board, even when its PNG exists and the capture matches', () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'dd-'));
+  const refs = path.join(dir, 'refs');
+  const caps = path.join(dir, 'customer');
+  mkdirSync(refs);
+  mkdirSync(caps);
+  writePng(path.join(refs, 'b.png'), canvas(20, 20, WHITE));
+  writePng(path.join(caps, 'design--home--Board.png'), canvas(20, 20, WHITE));
+  const board = { file: 'b.png', w: 20, h: 20, scale: 1, errors: ['font not vendored: Foo'], notes: [], caveats: [] };
+  writeFileSync(path.join(refs, 'manifest.json'), JSON.stringify({ boards: { 'customer/home/Board': board, 'customer/home/Other': { ...board, errors: [] } }, areas: {} }));
+  assert.match(unusableReference(board, refs), /recorded errors/);
+  assert.equal(unusableReference({ ...board, errors: [] }, refs), null);
+
+  const run = (...extra) => spawnSync(process.execPath, [path.join(import.meta.dirname, '../src/diff.mjs'), '--refs', refs, '--captures', caps, '--app', 'customer', '--out', path.join(dir, 'out'), ...extra], { encoding: 'utf8' });
+  const strict = run();
+  assert.equal(strict.status, 1, strict.stderr);
+  assert.match(strict.stdout, /NO BOARD/);
+  assert.match(strict.stdout, /font not vendored/);
+  assert.match(strict.stdout, /uncaptured boards: 1 \(customer\/home\/Other\)/);
+  assert.equal(run('--no-strict').status, 0);
+  assert.equal(run('--bogus').status, 2);
 });

@@ -79,10 +79,15 @@ compares them (`src/compare.mjs`) and writes `<out>/results.json` and, per pair,
 
 **Verdict.** After pixelmatch's anti-aliasing detection, a pair passes when at most 0.1 % of the
 board's pixels differ and no connected group of differing pixels is larger than 4 × 4 device px.
+Both limits, the 0.1 % and the 4 × 4 cap, are measured in device pixels, not density-independent pixels: on a
+390 × 844 board rendered at deviceScaleFactor 3 the 4 × 4 cap is about 1.3 × 1.3 dp.
 Anything else fails, with the regions in dp. `--max-mismatch`, `--max-region` and `--threshold`
 (pixelmatch's colour threshold, 0.1) change the bars. A capture of another width is listed as not
 compared; a taller one is cut to the board, a shorter one padded, and the padding counts as
-different. `--strict` exits 1 when a pair fails or names no board.
+different. The diff fails by default: it exits 1 when any pair is FAIL, NO BOARD (including a board whose
+reference recorded errors) or NOT COMPARED; `--no-strict` reports and exits 0, `--strict` is an accepted
+alias of the default, and a crash or usage error exits 2. The summary also lists the uncaptured boards
+(boards of the rendered apps with no capture); that count alone does not fail the run.
 
 **In words.** When the capture has a `.layout.json` (every Playwright capture does), the diff
 matches texts and boxes with the board's and words what differs, most telling first: copy only in
