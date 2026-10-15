@@ -47,7 +47,7 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 
 | Table | Covered | Partial | Missing | Not in V1 | Blocked by external |
 |---|---:|---:|---:|---:|---:|
-| Customer app | 20 | 3 | 0 | 13 | 4 |
+| Customer app | 21 | 2 | 0 | 13 | 4 |
 | Restaurant portal | 22 | 6 | 3 | 5 | 0 |
 | Rider app | 23 | 6 | 2 | 1 | 3 |
 | Admin console | 13 | 2 | 12 | 15 | 0 |
@@ -82,7 +82,7 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [C-23](spec/02-customer.md#c-23--order-placement-checkout) | Place an order | `amina` at checkout, or `make dev-scenario s=new-order`. With no `HG_STRIPE_SECRET_KEY` the local fake gateway authorises at once | Covered | — |
 | [C-24](spec/02-customer.md#c-24--payment-methods) | Saved cards | Stripe test keys and the [card payments playbook](playbooks/customer/card-payments.md) | Blocked by external (Stripe test keys) | — |
 | [C-25](spec/02-customer.md#c-25--payment-execution-and-3ds) | Pay, a declined card, 3-D Secure | Paying works on the fake gateway. A decline or a challenge needs Stripe test keys and the [card payments playbook](playbooks/customer/card-payments.md) | Partial | [#680](https://github.com/shaiknoorullah/hg-mono/issues/680) |
-| [C-26](spec/02-customer.md#c-26--order-history-and-active-order-resume) | Order history, and resume an active order | Run `s=customer-cancels`, `s=restaurant-rejected` and `make dev-journey auto=all speed=max` in turn; resume: `s=order-preparing`, then reopen the app | Partial | [#682](https://github.com/shaiknoorullah/hg-mono/issues/682) |
+| [C-26](spec/02-customer.md#c-26--order-history-and-active-order-resume) | Order history, and resume an active order | Run `s=order-history` (a cancelled, a rejected, a deadline-cancelled and a completed order for `amina`); resume: `s=order-preparing`, then reopen the app | Covered | — |
 | [C-27](spec/02-customer.md#c-27--order-receipts) | Receipt | `amina` after `make dev-journey auto=all speed=max` (the journey reads it) | Covered | — |
 | [C-28](spec/02-customer.md#c-28--reorder) | Reorder | — | Not in V1 | [#187](https://github.com/shaiknoorullah/hg-mono/issues/187) |
 | [C-29](spec/02-customer.md#c-29--order-cancellation-by-the-customer) | Cancel before the restaurant accepts | `make dev-scenario s=customer-cancels`, or cancel in the app after `s=new-order` | Covered | — |
@@ -128,7 +128,7 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [R-24](spec/03-restaurant.md#r-24--order-acceptance-rejection-and-response-timeout) | Accept, reject, or let it time out | `s=new-order`, then **Accept** or **Reject**, or wait 180 seconds; `s=restaurant-timeout` times one out in 30 seconds | Covered | — |
 | [R-25](spec/03-restaurant.md#r-25--preparation-status-updates) | Preparing, then ready | `s=order-preparing`, `s=order-ready` | Covered | — |
 | [R-26](spec/03-restaurant.md#r-26--delay-handling-and-rider-communication) | Report a delay | `s=order-preparing`, then report a delay | Covered | — |
-| [R-27](spec/03-restaurant.md#r-27--order-history-search-and-export) | Order history | Only the orders made since the reset; the list ignores its state filter ([#601](https://github.com/shaiknoorullah/hg-mono/issues/601)) | Partial | [#682](https://github.com/shaiknoorullah/hg-mono/issues/682) |
+| [R-27](spec/03-restaurant.md#r-27--order-history-search-and-export) | Order history | `s=order-history` leaves `bismillah-grill` four past orders in different end states (about 5 minutes); the list ignores its state filter ([#601](https://github.com/shaiknoorullah/hg-mono/issues/601)) | Partial | [#601](https://github.com/shaiknoorullah/hg-mono/issues/601) |
 | [R-28](spec/03-restaurant.md#r-28--restaurant-initiated-cancellation-after-acceptance) | Cancel after accepting | No operation yet | Missing | — |
 | [R-29](spec/03-restaurant.md#r-29--sales-dashboard-and-analytics) | Sales dashboard | — | Not in V1 | [#146](https://github.com/shaiknoorullah/hg-mono/issues/146) |
 | [R-30](spec/03-restaurant.md#r-30--performance-reports) | Performance reports | — | Not in V1 | — |
@@ -220,7 +220,7 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [A-35](spec/05-admin.md#a-35--dispute-case-management) | Dispute cases | — | Not in V1 | [#186](https://github.com/shaiknoorullah/hg-mono/issues/186) |
 | [A-36](spec/05-admin.md#a-36--rider-earnings-and-payout-dispute-assistance) | Rider pay disputes | — | Not in V1 | — |
 | [A-37](spec/05-admin.md#a-37--case-model-queue-and-assignment) | Case queue | No operation yet | Missing | [#190](https://github.com/shaiknoorullah/hg-mono/issues/190) |
-| [A-38](spec/05-admin.md#a-38--order-lookup-and-admin-order-intervention) | Find an order; cancel it as staff | Any scenario order; staff cancel: `s=admin-cancel`, or `s=order-preparing`, then cancel in the console | Covered | — |
+| [A-38](spec/05-admin.md#a-38--order-lookup-and-admin-order-intervention) | Find an order; cancel it as staff | Any scenario order, found by its code (`s=order-history` checks four); staff cancel: `s=admin-cancel`, or `s=order-preparing`, then cancel in the console | Covered | — |
 | [A-39](spec/05-admin.md#a-39--restaurant-and-rider-document-upload-assistance) | Upload a document for a partner | No operation yet | Missing | — |
 | [A-40](spec/05-admin.md#a-40--customer-account-assistance) | Help a customer with their account | No operation yet | Missing | — |
 | [A-41](spec/05-admin.md#a-41--delivery-issue-resolution) | Delivery issue resolution | — | Not in V1 | — |
@@ -375,7 +375,7 @@ Not filed as dev world issues:
 | Area | Issue | Proposed |
 |---|---|---|
 | Admin | [#677](https://github.com/shaiknoorullah/hg-mono/issues/677) support agent and admin staff who can sign in | personas `support-seed` (enrolled), `ops-admin` |
-| Admin | [#678](https://github.com/shaiknoorullah/hg-mono/issues/678) a restaurant application waiting for halal verification | `application-in-review`, `application-reject` |
+| Admin | [#678](https://github.com/shaiknoorullah/hg-mono/issues/678) a restaurant application held for halal verification | `application-in-review`, `application-reject` |
 | Money | [#680](https://github.com/shaiknoorullah/hg-mono/issues/680) a declined card and an unpaid order without Stripe keys | `payment-failed`, `payment-unpaid` |
 | Money | [#676](https://github.com/shaiknoorullah/hg-mono/issues/676), already filed: payout run, capture failure | `payout-run`, `capture-fails` |
 | Customer account | [#681](https://github.com/shaiknoorullah/hg-mono/issues/681) an address book with an address out of range | personas: three addresses for `amina`, none for `nour` |

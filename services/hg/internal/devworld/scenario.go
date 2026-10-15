@@ -50,6 +50,7 @@ var ScenarioNames = []string{
 	"offer-ignored",
 	"offer-race",
 	"no-rider",
+	"order-history",
 	"onboard-admin",
 	"application-in-review",
 	"application-reject",
@@ -97,6 +98,7 @@ var scenarioSummaries = map[string]string{
 	"refund-decisions":       "amina's full refund is approved (SUBMITTED), her partial refund declined (DECLINED); every ledger batch sums to zero",
 	"halal-lapse":            "the certificate expiry job runs as of two days ahead; expiring-halal reads EXPIRED and is delisted (local only, dev-reset undoes it)",
 	"halal-renew":            "after halal-lapse: the owner attaches a new certificate and admin-seed approves it; expiring-halal is CERTIFIED and LIVE again",
+	"order-history":          "amina has four past orders in every end state (cancelled by her, rejected, deadline-cancelled, completed) and no active order",
 }
 
 // RunScenario signs in as the personas the scenario needs and calls the API
@@ -142,6 +144,8 @@ func RunScenario(ctx context.Context, baseURL, name string) error {
 		return scenarioApplicationInReview(ctx, baseURL)
 	case "application-reject":
 		return scenarioApplicationReject(ctx, baseURL)
+	case "order-history":
+		return scenarioOrderHistory(ctx, baseURL)
 	case "onboard-admin":
 		return scenarioOnboardAdmin(ctx, baseURL)
 	case "offer-to-rider":

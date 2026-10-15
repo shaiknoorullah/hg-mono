@@ -427,12 +427,6 @@ func (c *apiClient) firstLine(ctx context.Context, orderID string) (int, error) 
 	return o.Lines[0].LineNo, nil
 }
 
-// ScenarioTimeout is how long `devworld scenario <name>` may run. A scenario
-// that drives journeys to completion waits about two minutes for each order
-// to complete, which the default five minutes does not leave room for.
-func ScenarioTimeout(name string) time.Duration {
-	if name == "refund-decisions" {
-		return 12 * time.Minute
-	}
-	return 5 * time.Minute
-}
+// RefundDecisionsTimeout is the refund-decisions command's limit: it drives
+// two journeys to completion, about two minutes each, before the refunds.
+const RefundDecisionsTimeout = 12 * time.Minute
