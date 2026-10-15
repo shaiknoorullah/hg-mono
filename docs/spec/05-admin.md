@@ -2710,6 +2710,23 @@ documents lapse cannot go on shift, but is not punished.
     It applies only to the handover the order is waiting on, once per handover; the order moves
     through the one transition function, and the append-only `handover_override` record commits
     in the same transaction ([#310](https://github.com/shaiknoorullah/hg-mono/issues/310)).
+  - R9 The redesigned Orders list shows every restaurant's orders, newest first (the server gives no
+    other order), 25 at a time. A typed order code is checked for its shape before it is sent and
+    an invalid one is never searched, because the server's "no order" would be a different claim.
+    **Still running** means exactly the nine states that carry a deadline (Created through Rider
+    arrived, Delivered and Disputed); a final state has none. Disputes loads every page of
+    `state=DISPUTED` and only then sorts by `deadline_at`, since an old dispute can be the most
+    urgent; if a page fails it says the list is not in deadline order. A page never re-arms or acts
+    on a deadline: past it, the row reads "0:00, passed N s ago" and what is due until the server
+    moves the order.
+  - R10 The order page offers Cancel from Created up to Ready for pickup, by state, **not** by
+    `can_cancel`: on the admin view that flag is the customer's own and turns false once the
+    restaurant accepts, when staff can still cancel. The request names a reason, notes and a case
+    and never an amount or a refund type: the server chooses both. A timeout is shown as "unknown"
+    and a retry reuses the same `Idempotency-Key`.
+  - R11 While the delivery address is masked (`pii_revealed` false) the page draws no destination at
+    all, even if the body carries a street. It appears only after a justified reveal
+    (`reveal_pii` with a justification of 10 to 500 characters), which is audited.
 - **Acceptance criteria**:
   1. Given a support agent and an order in `PREPARING`, when they attempt `CANCEL_ORDER`, then
      `403 FORBIDDEN_PERMISSION` and the UI offers "escalate to Tier 2" which creates the escalation.

@@ -41,11 +41,11 @@ export const REDESIGNED: Partial<Record<RouteId, Screen>> = {
   // ·
   // menuReview: WP-4
   // ·
-  // orders: WP-6
+  orders: lazy(() => import('../orders/OrdersRoute')),
   // ·
-  // disputes: WP-6
+  disputes: lazy(() => import('../orders/DisputesRoute')),
   // ·
-  // order: WP-7
+  order: lazy(() => import('../orders/workspace/OrderRoute')),
   // ·
   // refunds: WP-8
   // ·
