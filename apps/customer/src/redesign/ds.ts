@@ -58,6 +58,10 @@ export type { ClientErrorReporter, TabSpec } from '@hg/ui-native';
 // the spacing scale those pages lay out with.
 export { Wordmark, tokens } from '@hg/ui-native';
 
+// Checkout (rows for address, handover and payment; the rider note and cancellation note fields):
+// both are in the proposed barrel, not the root.
+export { ListRow, Textarea } from '@hg/ui-native/proposed';
+
 // Order tracking (the waiting screen's reply-by bar): the proposed neutral progress bar, which is
 // driven by the server's deadline and never turns an urgent colour.
 export { ProgressBar } from '@hg/ui-native/proposed';
