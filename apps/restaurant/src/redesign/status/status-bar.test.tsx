@@ -95,11 +95,11 @@ describe('open state, switch and pause', () => {
     expect(within(region).getByRole('button', { name: 'Pause' }).hasAttribute('disabled')).toBe(true);
   });
 
-  it('Pause offers 15, 30 and 60 minutes (no “until closing” before #312) and sends pause_until', async () => {
+  it('Pause offers 15, 30 and 60 minutes and until closing; a timed pause sends pause_until', async () => {
     const { api, region } = await bar({ 'PATCH /v1/restaurant/availability': { body: open({ open_state: 'PAUSED', reason: 'Until 7:10 pm' }) } });
     fireEvent.click(within(region).getByRole('button', { name: 'Pause' }));
     const menu = screen.getByRole('menu', { name: 'Pause new orders' });
-    expect(within(menu).getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['Pause for 15 minutes', 'Pause for 30 minutes', 'Pause for 1 hour']);
+    expect(within(menu).getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['Pause for 15 minutes', 'Pause for 30 minutes', 'Pause for 1 hour', 'Pause until closing']);
     const before = Date.now();
     fireEvent.click(within(menu).getByRole('menuitem', { name: 'Pause for 15 minutes' }));
     await waitFor(() => expect(api.callsTo('PATCH /v1/restaurant/availability')).toHaveLength(1));
@@ -111,6 +111,27 @@ describe('open state, switch and pause', () => {
     expect(minutes).toBeLessThan(15.1);
     expect(await within(region).findByRole('button', { name: 'Resume now' })).toBeTruthy();
     expect(within(region).getByTestId('open-state-badge').textContent).toBe('Paused');
+  });
+
+  it('Pause until closing sends pause_until_closing alone, never a time the browser worked out', async () => {
+    const until = new Date(Date.now() + 3 * 3_600_000).toISOString();
+    const { api, region } = await bar({ 'PATCH /v1/restaurant/availability': { body: open({ open_state: 'PAUSED', pause_until: until, reason: 'Until closing' }) } });
+    fireEvent.click(within(region).getByRole('button', { name: 'Pause' }));
+    fireEvent.click(within(screen.getByRole('menu', { name: 'Pause new orders' })).getByRole('menuitem', { name: 'Pause until closing' }));
+    await waitFor(() => expect(api.callsTo('PATCH /v1/restaurant/availability')).toHaveLength(1));
+    expect(await api.callsTo('PATCH /v1/restaurant/availability')[0]!.json()).toEqual({ is_accepting_orders: true, pause_until_closing: true });
+    expect(await within(region).findByRole('button', { name: 'Resume now' })).toBeTruthy();
+  });
+
+  it('Pause until closing outside trading hours says there is no closing, and stays unpaused', async () => {
+    const { api, region } = await bar({
+      'PATCH /v1/restaurant/availability': { status: 409, body: { error: { code: 'RESTAURANT_CLOSED', message: 'closed', request_id: 'r1' } } },
+    });
+    fireEvent.click(within(region).getByRole('button', { name: 'Pause' }));
+    fireEvent.click(within(screen.getByRole('menu', { name: 'Pause new orders' })).getByRole('menuitem', { name: 'Pause until closing' }));
+    expect(await screen.findByText('No closing to pause until')).toBeTruthy();
+    expect(api.callsTo('PATCH /v1/restaurant/availability')).toHaveLength(1);
+    expect(within(region).queryByRole('button', { name: 'Resume now' })).toBeNull();
   });
 
   it('Resume now confirms first (Stay paused focused), then clears the pause', async () => {
