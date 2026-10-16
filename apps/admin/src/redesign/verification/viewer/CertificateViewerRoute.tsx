@@ -11,27 +11,19 @@
  * states drawn inside the three composite boards `Viewer-States`, `Viewer-More` and `Viewer-Limits`.
  * What is not built, and why, is in the pull request that added this file.
  */
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { useHref, useParams } from 'react-router-dom';
 import type { Schema } from '@hg/api-client';
 
-import { api } from '../../data/api';
 import { formatLongDate, formatTime } from '../../data/format';
 import { Button, DocumentViewer, EmptyState, ErrorState, KeyValueList, Skeleton, type KeyValueItem } from '../../ds';
-import { unwrap, useLoad } from '../../../lib/load';
 import { usePageTitle } from '../../app/pageTitle';
 import { useDocumentUrl } from '../application/useDocumentUrl';
+import { useCertificateLoad } from '../shared/useCertificateLoad';
 import { SCOPE_LABEL } from '../console/model';
 import { useViewer } from '../shared/useViewer';
 
 type Certificate = Schema['HalalCertificate'];
-type Application = Schema['RestaurantApplication'];
-
-interface Loaded {
-  certificate: Certificate;
-  application: Application | null;
-}
-
 /** The transcription as the reviewer saved it. A field nobody has transcribed says so; it never reads as a value. */
 export function transcriptionRows(certificate: Certificate): KeyValueItem[] {
   return [
@@ -55,17 +47,7 @@ export default function CertificateViewerRoute() {
   const queueHref = useHref('/restaurants');
   const [railOpen, setRailOpen] = useState(true);
 
-  const fetcher = useCallback(async (): Promise<Loaded> => {
-    const certificate = (await unwrap(api.GET('/v1/admin/halal-certificates/{certificateId}', { params: { path: { certificateId } } }))).data;
-    let application: Application | null = null;
-    try {
-      application = (await unwrap(api.GET('/v1/admin/restaurant-applications/{restaurantId}', { params: { path: { restaurantId: certificate.restaurant_id } } }))).data;
-    } catch {
-      application = null;
-    }
-    return { certificate, application };
-  }, [certificateId]);
-  const load = useLoad<Loaded>(fetcher);
+  const load = useCertificateLoad(certificateId);
 
   const certificate = load.data?.certificate ?? null;
   // A support agent may not open documents: no link is asked for, so none is made and none is audited.

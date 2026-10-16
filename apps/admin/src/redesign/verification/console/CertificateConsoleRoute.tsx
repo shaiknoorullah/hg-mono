@@ -33,6 +33,7 @@ import { unwrap, useLoad } from '../../../lib/load';
 import { usePageTitle } from '../../app/pageTitle';
 import { DecisionPanel, type DecisionResult } from '../application/DecisionPanel';
 import { useDocumentUrl } from '../application/useDocumentUrl';
+import { useCertificateLoad } from '../shared/useCertificateLoad';
 import { CHECK_ORDER, effectiveResult, findCheck, rollupText, summarise, type CheckKey } from '../shared/checks';
 import { claimOf } from '../shared/claim';
 import { errorCode, errorObject, fieldErrors, stringList } from '../shared/errors';
@@ -64,11 +65,6 @@ import { Transcription } from './Transcription';
 
 type Application = Schema['RestaurantApplication'];
 
-interface Loaded {
-  certificate: Certificate;
-  application: Application | null;
-}
-
 type PanelKind = HalalDecision | 'ask';
 
 type PageAlert =
@@ -92,17 +88,7 @@ export default function CertificateConsoleRoute() {
   const viewerHref = useHref(`/certificates/${certificateId}/viewer`);
   const restaurantBase = useHref('/restaurants');
 
-  const fetcher = useCallback(async (): Promise<Loaded> => {
-    const certificate = (await unwrap(api.GET('/v1/admin/halal-certificates/{certificateId}', { params: { path: { certificateId } } }))).data;
-    let application: Application | null = null;
-    try {
-      application = (await unwrap(api.GET('/v1/admin/restaurant-applications/{restaurantId}', { params: { path: { restaurantId: certificate.restaurant_id } } }))).data;
-    } catch {
-      application = null;
-    }
-    return { certificate, application };
-  }, [certificateId]);
-  const load = useLoad<Loaded>(fetcher);
+  const load = useCertificateLoad(certificateId);
 
   const bodiesFetcher = useCallback(async () => {
     const res = await unwrap(
