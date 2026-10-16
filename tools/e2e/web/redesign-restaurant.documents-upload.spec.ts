@@ -1,7 +1,7 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
 
 import { expectDesignFor, type BoardFor } from './design';
-import { MOCK_API, MODE, openSignedIn } from './redesign-restaurant.support';
+import { MODE, openSignedIn, scenarioPayload as fixture, torontoDateIn as torontoDate } from './redesign-restaurant.support';
 
 test.skip(MODE !== 'mock', 'written against the mock server; run with E2E_MODE=mock');
 
@@ -32,17 +32,6 @@ test.skip(MODE !== 'mock', 'written against the mock server; run with E2E_MODE=m
  */
 
 const never = () => new Promise<void>(() => undefined);
-
-async function fixture<T = any>(page: Page, name: string): Promise<T> {
-  const res = await page.request.get(`${MOCK_API}/__mock/scenarios/${name}`);
-  return (await res.json()).data.payload;
-}
-
-/** Restaurant-timezone "YYYY-MM-DD", `days` from today. */
-function torontoDate(days: number): string {
-  const d = new Date(Date.now() + days * 86_400_000);
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
-}
 
 const problem = (status: number, code: string) => ({ status, json: { error: { code, message: code, request_id: 'req_e2e' } } });
 
