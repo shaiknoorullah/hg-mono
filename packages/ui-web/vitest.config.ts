@@ -3,6 +3,8 @@ import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 
+import { forkPool } from '../../vitest.shared';
+
 const here = (path: string): string => fileURLToPath(new URL(path, import.meta.url));
 
 export default defineConfig({
@@ -10,6 +12,7 @@ export default defineConfig({
   // components.json's shadcn aliases (`@hg/ui-web/lib/utils`), without a self-install.
   resolve: { alias: [{ find: /^@hg\/ui-web\/lib\//, replacement: `${here('./src/lib')}/` }] },
   test: {
+    ...forkPool(),
     globals: true,
     environment: 'jsdom',
     // jsdom lacks ResizeObserver / pointer capture, which every Radix floating
