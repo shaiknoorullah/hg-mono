@@ -61,7 +61,7 @@ const textOf = (id: string) => {
 };
 
 describe('waiting layout', () => {
-  it('RESTAURANT_PENDING: one neutral bar with the absolute reply-by time, the total, no cancel', async () => {
+  it('RESTAURANT_PENDING: one neutral bar with the absolute reply-by time, the total, and Cancel order while the server allows it', async () => {
     const base = order('order_restaurant_pending');
     const o = { ...base, server_time: serverAt(Date.parse(base.deadline_at!) - 100_000) };
     phoneRunsFast();
@@ -71,7 +71,8 @@ describe('waiting layout', () => {
     expect(screen.getByText("Your card is authorised, not charged. If they don't accept in time, the hold is released.")).toBeTruthy();
     expect(screen.getByText(/replies by \d{1,2}:\d{2} (am|pm)$/)).toBeTruthy();
     expect(screen.getByTestId('Tracking-total')).toBeTruthy();
-    expect(screen.queryByText(/cancel/i)).toBeNull();
+    expect(screen.getByTestId('Tracking-cancel')).toBeTruthy();
+    expect(screen.queryByTestId('Tracking-getHelp')).toBeNull();
     expect(screen.queryByTestId('Tracking-halalLine')).toBeNull();
   });
 
@@ -297,7 +298,7 @@ describe('states of the page', () => {
     expect(await screen.findByTestId('Tracking-body')).toBeTruthy();
   });
 
-  it('a state this page does not draw hands over to the legacy screen', async () => {
+  it('a delivered order still hands over to the legacy screen', async () => {
     renderTracking({ getOrder: 'order_delivered' });
     expect(await screen.findByTestId('LegacyTracking')).toBeTruthy();
     expect(mock.callsTo('getOrderTracking')).toHaveLength(0);

@@ -12,9 +12,9 @@
  *   the map, the timeline, the restaurant and halal row, the rider or the search for one, the
  *   delivery code at a met handover, and an open report.
  *
- * Every other state (delivered, finished, ended, disputed) belongs to the delivered and outcome
- * screens, which are not built yet: those states hand over to the legacy tracking screen through
- * the legacy bridge, so nothing regresses (design plan, route-by-route fallback).
+ * Every other state hands over: an ended order (cancelled, rejected, failed, disputed, resolved) to
+ * the outcome screen, a delivered or completed one to the legacy tracking screen through the legacy
+ * bridge, so nothing regresses (design plan, route-by-route fallback).
  *
  * Rules this page holds:
  * - Money is a server field through Price; the page adds and subtracts nothing and sends nothing.
@@ -28,8 +28,10 @@
  * - Offline (or a failed re-read) keeps the last copy on screen, says when it was current, and
  *   drops the halal badge once that copy is more than 15 minutes old.
  *
- * Not on this page yet (each is a separate surface, filed as a follow-up): the cancel sheet, the Get
- * help sheet, payment recovery, and live socket updates (the page polls, which the contract allows).
+ * The cancel and Get help sheets, and the page for an order that has ended, live in
+ * `OrderActions.tsx`. Not on this page yet (each is a separate surface, filed as a follow-up):
+ * payment recovery, the delivered and completed pages, and live socket updates (the page polls,
+ * which the contract allows).
  */
 import * as React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -53,14 +55,13 @@ import {
   useTheme,
   useTypeStyle,
 } from '../ds';
-import { LegacyBridge } from '../navigation/LegacyBridge';
-import { TrackingScreen as LegacyTrackingScreen } from '../../screens/TrackingScreen';
 import { useConnectivity } from '../lib/connectivity';
 import { orderShowsHalal, presentHalal } from '../lib/halal';
 import { useNow, useServerNow } from '../lib/now';
 import { formatTime } from '../lib/time';
 import { useNav } from '../navigation/context';
 import { cardName } from '../orders/format';
+import { EndedOrder, OrderActions } from './OrderActions';
 import type { TrackedOrder } from './trackingApi';
 import {
   SLOW_AUTHORIZED_MS,
@@ -107,13 +108,10 @@ export function TrackingScreen({ orderId, pollMs }: { orderId: string; pollMs?: 
   const ready = state.kind === 'ready' ? state : null;
   const order = ready?.data.order ?? null;
 
-  // A state this page does not draw: hand over to the legacy screen, whole (it brings its own bar).
+  // A state this page does not draw: the outcome screen for an order that ended, else the legacy
+  // screen, whole (it brings its own bar).
   if (order && !isWaitingLayout(order.state) && !isLiveLayout(order.state)) {
-    return (
-      <LegacyBridge nav={nav} route={{ name: 'tracking', orderId }}>
-        <LegacyTrackingScreen orderId={orderId} />
-      </LegacyBridge>
-    );
+    return <EndedOrder order={order} />;
   }
 
   const back = { onPress: nav.back, previousTitle: 'Orders' };
@@ -161,6 +159,7 @@ export function TrackingScreen({ orderId, pollMs }: { orderId: string; pollMs?: 
     <View style={[styles.fill, { backgroundColor: theme.color.surface.base }]} testID="TrackingScreen">
       <AppBar title={title} subtitle={subtitle} back={back} backLabel={TRACKING_COPY.backToOrders} tone="cream" isPageHeading={false} />
       {body}
+      {order ? <OrderActions order={order} tracking={ready?.data.tracking ?? null} reload={reload} /> : null}
     </View>
   );
 }
