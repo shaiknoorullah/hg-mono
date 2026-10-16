@@ -82,7 +82,7 @@ An event never patches local state from its payload. It invalidates and refetche
 
 Why: it keeps the app correct when Redis is flushed or events are dropped (the repo's disposable-Redis rule), and it follows the contract's rule that money, distance and ETA are never derived from event payloads.
 
-Accessibility ([focus is never moved on a data refresh](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/design/04-accessibility.md#42-movement)): a live refetch never moves focus. New offers are announced politely through a live region; the sound is a second channel, never the only one.
+Accessibility ([focus is never moved on a data refresh](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/design/04-accessibility.md#42-movement)): a live refetch never moves focus. New offers are announced politely through a live region; the sound is a second channel, never the only one. Switching the order sound off in Settings, "This device" ([#883](https://github.com/shaiknoorullah/hg-mono/issues/883)) mutes the chime only: the flash and the browser notification still announce the order, and the choice, like keeping the screen awake, belongs to that browser.
 
 ## 5. Rider map
 

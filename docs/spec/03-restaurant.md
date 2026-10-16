@@ -489,6 +489,9 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
      `pause_until_closing: true` on `setRestaurantAcceptingOrders` and the server works out the
      closing time; outside trading hours it is `409 RESTAURANT_CLOSED`
      ([pausing on late nights](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), ["for how long" options](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
+     The redesigned console offers it beside 15, 30 and 60 minutes, in the status bar and on Hours; it cannot
+     name the closing time before the choice (the contract carries no next closing time), so the paused
+     state names the time the server chose ([#968](https://github.com/shaiknoorullah/hg-mono/issues/968)).
      Pausing does **not** affect already-accepted orders.
   7. Editing hours while orders are in flight is allowed and has no effect on them.
   8. `is_open_now` is computed server-side in the restaurant's timezone with DST handled by the
