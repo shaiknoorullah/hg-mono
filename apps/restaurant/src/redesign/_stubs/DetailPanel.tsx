@@ -42,6 +42,11 @@ export interface DetailPanelProps {
   closeDisabled?: boolean;
   /** `aria-busy` on the body while it is loading or submitting. */
   busy?: boolean;
+  /**
+   * Below 1024 px the panel takes the whole pane row (the page beside it hides itself, see the
+   * page's own `max-lg:hidden`) instead of squeezing the page into what is left of 380 px.
+   */
+  fullBelowLg?: boolean;
 }
 
 const WIDTH = {
@@ -69,6 +74,7 @@ export function DetailPanel({
   headerExtra,
   closeDisabled,
   busy,
+  fullBelowLg,
 }: DetailPanelProps) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   const autoId = useId();
@@ -90,7 +96,7 @@ export function DetailPanel({
           if (!closeDisabled) onClose();
         }
       }}
-      className={`flex min-h-0 flex-col overflow-hidden rounded-lg border border-line-decorative bg-surface-raised text-fg-primary ${WIDTH[width]}`}
+      className={`flex min-h-0 flex-col overflow-hidden rounded-lg border border-line-decorative bg-surface-raised text-fg-primary ${WIDTH[width]}${fullBelowLg ? ' max-lg:w-auto max-lg:min-w-0 max-lg:flex-1' : ''}`}
     >
       <div className="flex items-start gap-2 border-b border-line-decorative px-4 py-3">
         <div className="min-w-0 flex-1">

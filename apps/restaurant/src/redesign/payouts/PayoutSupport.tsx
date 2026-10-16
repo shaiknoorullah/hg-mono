@@ -19,6 +19,7 @@ export function PayoutSupport({ onClose, payoutId, onBack }: { onClose: () => vo
       closeLabel="Close contact support"
       onClose={onClose}
       width="task"
+      fullBelowLg
       testId="payout-support-panel"
       footer={
         <Button variant="tertiary" size="lg" fullWidth onPress={onBack ?? onClose}>

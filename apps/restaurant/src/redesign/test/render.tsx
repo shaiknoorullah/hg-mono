@@ -47,10 +47,19 @@ export interface RenderRedesignOptions {
   signedIn?: boolean;
   /** Pass the go-live gate first, for tests of what /orders shows under it. */
   live?: boolean;
+  /** Below 768 px: the shared DOM shims match no media query, so this one matches the phone query. */
+  phone?: boolean;
 }
 
-export async function renderRedesign(path: string, { signedIn = true, live = false }: RenderRedesignOptions = {}) {
+export async function renderRedesign(path: string, { signedIn = true, live = false, phone = false }: RenderRedesignOptions = {}) {
   installDomShims();
+  if (phone) {
+    const shim = window.matchMedia;
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: (query: string) => ({ ...shim(query), matches: query.includes('max-width: 767') }),
+    });
+  }
   resetServerClock();
   resetSignedOut();
   resetHeartbeatHealth();
