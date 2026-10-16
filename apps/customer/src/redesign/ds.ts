@@ -57,3 +57,7 @@ export type { ClientErrorReporter, TabSpec } from '@hg/ui-native';
 // WP1 (sign-in, first run, forced routes): the wordmark on Sign in and the blocked screens, and
 // the spacing scale those pages lay out with.
 export { Wordmark, tokens } from '@hg/ui-native';
+
+// Order tracking (the waiting screen's reply-by bar): the proposed neutral progress bar, which is
+// driven by the server's deadline and never turns an urgent colour.
+export { ProgressBar } from '@hg/ui-native/proposed';
