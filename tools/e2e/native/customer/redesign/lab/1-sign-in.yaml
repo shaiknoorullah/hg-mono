@@ -32,12 +32,21 @@ name: customer redesign, sign in (returning customer)
 - hideKeyboard
 - tapOn: "Send code"
 - assertVisible: ".*Enter all 10 digits of your mobile number.*"
-- takeScreenshot: redesign-wp1-02-invalid
+- runFlow:
+    file: ../../../design-capture.yaml
+    env:
+      SHOT: design--sign-in--SignIn-invalid
+      APP_ID: com.halalgoes.customer.dev
 - tapOn:
     id: "SignIn-phone-field"
 - eraseText: 20
 - inputText: ${PHONE.slice(-10)}
 - hideKeyboard
+- runFlow:
+    file: ../../../design-capture.yaml
+    env:
+      SHOT: design--sign-in--SignIn-ready
+      APP_ID: com.halalgoes.customer.dev
 - tapOn: "Send code"
 - extendedWaitUntil:
     visible: "Enter the 6-digit code"
@@ -45,11 +54,17 @@ name: customer redesign, sign in (returning customer)
 - assertVisible: "We sent it to \\+1 .*\\."
 - takeScreenshot: redesign-wp1-03-code
 
-# Too few digits: said on Verify, nothing sent.
+# Five digits typed, not yet sent: the code board draws exactly this (48291). Too few digits is
+# then said on Verify, and nothing is sent.
 - tapOn:
     id: "Code-input-cell-0"
-- inputText: "000"
+- inputText: "48291"
 - hideKeyboard
+- runFlow:
+    file: ../../../design-capture.yaml
+    env:
+      SHOT: design--sign-in--SignInCode
+      APP_ID: com.halalgoes.customer.dev
 - tapOn: "Verify and continue"
 - assertVisible: ".*Enter all 6 digits of the code\\..*"
 - runFlow:

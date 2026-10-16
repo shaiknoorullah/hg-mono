@@ -41,7 +41,11 @@ env:
 - assertVisible: "Quickest delivery"
 - assertVisible: "How we check halal certificates"
 - assertVisible: "Bismillah Grill"
-- takeScreenshot: redesign-wp2-01-home
+- runFlow:
+    file: ../../../design-capture.yaml
+    env:
+      SHOT: design--discover-order--Main
+      APP_ID: com.halalgoes.customer.dev
 - scrollUntilVisible:
     element: "All restaurants"
     direction: DOWN
@@ -71,7 +75,11 @@ env:
     timeout: 10000
 - assertVisible: "How we check"
 - assertVisible: "All seven must pass.*"
-- takeScreenshot: redesign-wp2-04-how-we-check
+- runFlow:
+    file: ../../../design-capture.yaml
+    env:
+      SHOT: design--account--Legal
+      APP_ID: com.halalgoes.customer.dev
 - back
 - extendedWaitUntil:
     visible: "Open now, closest first"

@@ -150,4 +150,8 @@ env:
 - extendedWaitUntil:
     visible: "Your cart is empty"
     timeout: 15000
-- takeScreenshot: redesign-wp5-10-cart-empty
+- runFlow:
+    file: ../../../design-capture.yaml
+    env:
+      SHOT: design--cart-checkout--Cart-empty
+      APP_ID: com.halalgoes.customer.dev

@@ -254,6 +254,14 @@ board by that name, and judges it (a web capture pixel by pixel, a native one by
   example `design--sign-in--Main` in `native/customer/redesign/lab/1-sign-in.yaml` (a device-lab flow).
   A native capture is judged on layout geometry and colour, not pixels. Capture on the
   design AVD in the state the board is drawn in ([phone captures](../design-diff/README.md#phone-captures)).
+  `<area>` is the canvas folder and `<Board>` the file name without `.dc.html`, spelled exactly (case included);
+  the app is the folder the screenshots are in, so a customer capture is the board `customer/<area>/<Board>`.
+  Capture in the device-lab flows (`lab/`, and `1-first-run.yaml` that the sign-in mission also runs), not the flows
+  `run.sh` runs in CI: that emulator is 411 dp wide, and a native capture of another width than its board is not compared.
+  The customer boards that no flow captures, each with its reason, are in
+  [`native/customer-boards.mjs`](native/customer-boards.mjs); `pnpm e2e:boards:check` fails on a capture named for a
+  board that does not exist, and (with `origin/claude/redesign-canvases` fetched) on a board that is neither captured nor
+  given a reason. A new flow screenshot of a board's screen should be named for it; a screen with no board stays unnamed.
 
 Every redesign web spec declares the board of each screenshot it takes, and the board has to be
 the exact file `canvases/<app>/<area>/project/<Board>.dc.html` on `origin/claude/redesign-canvases`.
