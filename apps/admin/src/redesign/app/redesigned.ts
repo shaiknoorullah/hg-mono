@@ -29,17 +29,17 @@ export const REDESIGNED: Partial<Record<RouteId, Screen>> = {
   // ·
   restaurant: lazy(() => import('../verification/application/RestaurantApplicationRoute')),
   // ·
-  // menuItem: WP-4
+  menuItem: lazy(() => import('../menus/MenuItemRoute')),
   // ·
   riders: lazy(() => import('../riders/queue/RiderQueueRoute')),
   // ·
   rider: lazy(() => import('../riders/application/RiderApplicationRoute')),
   // ·
-  // issuingBodies: WP-4
+  issuingBodies: lazy(() => import('../bodies/BodiesRoute')),
   // ·
-  // menuReviews: WP-4
+  menuReviews: lazy(() => import('../menus/MenuReviewsRoute')),
   // ·
-  // menuReview: WP-4
+  menuReview: lazy(() => import('../menus/MenuReviewsRoute')),
   // ·
   orders: lazy(() => import('../orders/OrdersRoute')),
   // ·
