@@ -6,6 +6,9 @@ reviewed: 2026-10-16
 
 # What the old restaurant web app teaches the redesign
 
+> **2026-10-16:** the redesigned console frame's rail and header bar are now drawn on the dark forest
+> chrome surface that every board paints them on ([#977](https://github.com/shaiknoorullah/hg-mono/issues/977)).
+>
 > **2026-10-16:** the redesigned console frame now reflows below 768 px
 > (`apps/restaurant/src/redesign/shell/ConsoleLayout.tsx`): the icon rail is replaced by an
 > "Open navigation" button opening the six links in a drawer, the orders strip becomes the one-row
