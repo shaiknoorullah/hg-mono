@@ -51,7 +51,12 @@ async function open(page: Page, { notifications = 'granted', sound = 'plays', wa
         },
       });
       if (wakeLock) Object.defineProperty(navigator, 'wakeLock', { value: { request: async () => ({ release: async () => undefined }) }, configurable: true });
-      else Object.defineProperty(navigator, 'wakeLock', { value: undefined, configurable: true });
+      else {
+        // Remove the property, not set it to undefined: the component feature-detects with `'wakeLock' in navigator`,
+        // which a defined-but-undefined property still satisfies. Chromium puts it on the prototype.
+        Reflect.deleteProperty(navigator, 'wakeLock');
+        Reflect.deleteProperty(Navigator.prototype, 'wakeLock');
+      }
       if (soundOff) window.localStorage.setItem('hg.restaurant.device', JSON.stringify({ soundOff: true }));
     },
     { notifications, sound, wakeLock, soundOff },
