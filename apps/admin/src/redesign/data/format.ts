@@ -59,7 +59,9 @@ export function formatShortDateTime(value: string | Date | null | undefined, now
 
 /** "14 October 2026". */
 export function formatLongDate(value: string | Date | null | undefined): string {
-  const d = parse(value);
+  // A calendar date ("2027-03-09": a certificate's expiry) has no time or zone. Read as midnight UTC
+  // it falls on the evening before in Toronto and would show a day early, so read it as noon.
+  const d = parse(typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T12:00:00Z` : value);
   if (!d) return '';
   const p = parts(d, { day: 'numeric', month: 'long', year: 'numeric' });
   return `${p['day']} ${p['month']} ${p['year']}`;

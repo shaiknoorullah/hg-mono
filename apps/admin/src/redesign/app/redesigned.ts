@@ -23,7 +23,7 @@ export const REDESIGNED: Partial<Record<RouteId, Screen>> = {
   // ·
   certificate: lazy(() => import('../verification/console/CertificateConsoleRoute')),
   // ·
-  // certificateViewer: WP-3
+  certificateViewer: lazy(() => import('../verification/viewer/CertificateViewerRoute')),
   // ·
   restaurants: lazy(() => import('../verification/queue/RestaurantQueueRoute')),
   // ·
