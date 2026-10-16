@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
 import { declaredBoard, exitCodeFor, findCaptures, referenceIncomplete, unusableReference } from '../src/diff.mjs';
-import { compare } from '../src/compare.mjs';
+import { DEFAULTS, compare } from '../src/compare.mjs';
 import { parseInsets } from '../src/insets.mjs';
 import { compareLayouts } from '../src/layout-diff.mjs';
 import { parseBoardId, parseCaptureFile } from '../src/names.mjs';
@@ -74,6 +74,11 @@ test('sizes: a shortfall of one dp-to-px rounding (ceil(scale) device px) is rep
   assert.equal(compare(board, paint(canvas(60, 89, WHITE), 6, 6, 30, 9)).verdict, 'PASS', 'scale 1: one px');
   assert.equal(compare(board, paint(canvas(60, 88, WHITE), 6, 6, 30, 9)).verdict, 'FAIL');
   assert.equal(compare(board, paint(canvas(60, 86, WHITE), 6, 6, 30, 9), { scale: 3, maxShortfallPx: 4 }).verdict, 'PASS', 'configurable');
+});
+
+test('thresholds: the shortfall limit is self-describing, never null', () => {
+  assert.equal(DEFAULTS.maxShortfallPx, 'ceil(scale)');
+  assert.equal(compare(paint(canvas(60, 90, WHITE), 6, 6, 30, 9), canvas(60, 90, WHITE), { scale: 2 }).shortfall.limitPx, 2);
 });
 
 test('sizes: the same height, or a taller capture, has no shortfall and the same percentage as before', () => {

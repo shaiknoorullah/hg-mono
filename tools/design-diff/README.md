@@ -102,7 +102,7 @@ that area. A taller capture is cut to the board's height (the part below was not
 A shorter capture is not padded: its missing rows are not counted as different. They are reported as
 `shortfall` (`dp`, and `pctOfBoardArea`, the share of the board's area that was not compared), and a
 pair whose shortfall is over `--max-shortfall` cannot `PASS`, because nothing vouches for the part that
-was not drawn. The default is `ceil(scale)` device px, one dp of rounding: it covers a shortfall that is only
+was not drawn. The default is `ceil(scale)` device px, one dp of rounding (`results.json` `thresholds.maxShortfallPx` reads `"ceil(scale)"`, or the number you passed): it covers a shortfall that is only
 an artefact of converting dp to device px, and nothing larger. A wider allowance would change what `PASS`
 means, which is the owner's decision ([issue 877](https://github.com/shaiknoorullah/hg-mono/issues/877)), not
 a harness default. The shortfall is always reported, in dp and in device px (`shortfall.dp`, `.px`, the

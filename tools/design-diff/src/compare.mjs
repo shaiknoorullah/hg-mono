@@ -38,12 +38,13 @@ export const DEFAULTS = {
   /** Largest connected group of differing pixels that still passes, in device px a side. */
   maxRegionPx: 4,
   /**
-   * Largest shortfall (capture shorter than the board) that still passes, in device px. null means
-   * the rounding error of one dp-to-px conversion, Math.ceil(scale) device px for that board. It covers
+   * Largest shortfall (capture shorter than the board) that still passes, in device px. The string
+   * 'ceil(scale)' (never null, which would read as no limit) means the rounding error of one dp-to-px
+   * conversion, Math.ceil(scale) device px for that board; a number overrides it. It covers
    * unit-conversion rounding only; a wider allowance changes what PASS means and is the owner's decision
    * (https://github.com/shaiknoorullah/hg-mono/issues/877).
    */
-  maxShortfallPx: null,
+  maxShortfallPx: 'ceil(scale)',
   /** Differences closer than this (dp) are listed as one area in the report. */
   clusterGapDp: 8,
   /** Areas listed per pair. */
@@ -67,7 +68,7 @@ export function compare(ref, cap, { scale = 1, ...options } = {}) {
   const heightNotes = [];
   const shared = Math.min(H, cap.height);
   const shortfallPx = H - shared;
-  const limitPx = o.maxShortfallPx ?? Math.ceil(scale);
+  const limitPx = o.maxShortfallPx === 'ceil(scale)' ? Math.ceil(scale) : o.maxShortfallPx;
   const blocksPass = shortfallPx > limitPx;
   const shortfall = { dp: dp(shortfallPx), px: shortfallPx, pctOfBoardArea: round(100 * shortfallPx / H, 2), limitPx, limitDp: dp(limitPx), blocksPass };
   if (cap.height > H) heightNotes.push(`The capture is ${dp(cap.height - H)} dp taller than the board; the part below the board was not compared.`);
