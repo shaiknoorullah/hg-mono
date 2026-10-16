@@ -6,6 +6,13 @@ reviewed: 2026-10-16
 
 # What the old restaurant web app teaches the redesign
 
+> **2026-10-16:** the old app's four document tiles (above) have a successor in the redesigned
+> Settings, Documents section: each food safety, business licence and owner ID row opens a sheet
+> that uploads the file, takes the details and sends it, the same road the halal renewal uses; a
+> cancel on an upload in flight asks first
+> ([#883](https://github.com/shaiknoorullah/hg-mono/issues/883), tracking
+> [#658](https://github.com/shaiknoorullah/hg-mono/issues/658)).
+
 > **2026-10-16:** the redesigned console frame's rail and header bar are now drawn on the dark forest
 > chrome surface that every board paints them on ([#977](https://github.com/shaiknoorullah/hg-mono/issues/977)).
 >

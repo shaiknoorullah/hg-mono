@@ -777,6 +777,12 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
      R-36 semantics exactly: no new offers, all accepted orders run to completion.
   4. Renewal may be uploaded from T−60 days. Uploading a renewal does **not** lift a suspension;
      admin approval does.
+     The 60-day window is the browser's rule: the console turns the upload button off before it and
+     says from which date, while `attachRestaurantDocument` can still answer `409 STEP_NOT_AVAILABLE`,
+     which the upload panel explains with the same date and keeps the file and details. In
+     settings the Documents section sends a new version of `FOOD_SAFETY`, `BUSINESS_LICENCE` or
+     `OWNER_ID` through the same upload road and send as the halal renewal; cancelling an upload in
+     flight asks first.
   5. Reminders go to the owner email + in-app banner + `restaurant_event`. Each reminder is sent at
      most once (enforced by the unique `(restaurant_document_id, offset_days)` index).
   6. The suspension banner names the document, the expiry date and the exact action required.
