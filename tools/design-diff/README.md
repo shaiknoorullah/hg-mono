@@ -279,6 +279,7 @@ of a restaurant page fails the "texts present" bar above until the dev world is 
 hand-written dump in the AOSP `uiautomator` shape (`test/fixtures/native-home.hierarchy.xml`) and
 the capture server against a stand-in `adb`; neither has run against a real emulator or Maestro, as
 none was available when this was written. Run one flow on the design AVD and read the result before
-trusting a number. The comparator itself landed with
-[#844](https://github.com/shaiknoorullah/hg-mono/issues/844); which emulator takes design captures
-is [#963](https://github.com/shaiknoorullah/hg-mono/issues/963).
+trusting a number: that run is [#966](https://github.com/shaiknoorullah/hg-mono/issues/966). Which
+emulator takes design captures at all is [#963](https://github.com/shaiknoorullah/hg-mono/issues/963)
+— the boards are 390 dp and the emulator the pull-request flows use is 411 dp, so a capture taken
+there is never compared.
