@@ -193,6 +193,8 @@ export function CheckoutScreen(): React.ReactElement {
   const [phase, setPhase] = React.useState<Phase>({ kind: 'compose' });
   const [sheet, setSheet] = React.useState<Sheet>(null);
   const [staleModal, setStaleModal] = React.useState<{ was: Quote; now: Quote } | null>(null);
+  /** "Place order" on the stale-price dialog: place once the page holds the fresh quote. */
+  const [placeAgain, setPlaceAgain] = React.useState(false);
   const [raceOrder, setRaceOrder] = React.useState<ActiveOrder | null>(null);
   const [cancelling, setCancelling] = React.useState<{ busy: boolean; failed: boolean } | null>(null);
   const [putBack, setPutBack] = React.useState<PutBack>({ kind: 'idle' });
@@ -269,8 +271,9 @@ export function CheckoutScreen(): React.ReactElement {
 
   const lapsed = cart?.restaurant?.halal?.display_state === 'EXPIRED';
   const baseBlock = state ? cartBlock(state) : null;
+  // Whether this cart, address and tip can be priced. Not tied to the phase: coming back to the
+  // page after a refusal must not price again over the quote the server just sent.
   const wantsQuote =
-    phase.kind === 'compose' &&
     cart !== null &&
     cart.lines.length > 0 &&
     cart.is_quotable &&
@@ -327,8 +330,9 @@ export function CheckoutScreen(): React.ReactElement {
   // Price on entry and whenever the cart, address or tip changes.
   const tipKey = quoteTip;
   React.useEffect(() => {
+    if (phase.kind !== 'compose') return;
     if (wantsQuote && cart && addressId && quoteTip !== null) price(cart, addressId, quoteTip, true);
-    else if (!wantsQuote && phase.kind === 'compose') {
+    else if (!wantsQuote) {
       quoteSeq.current += 1;
       setQuote((q) => (q.kind === 'ready' ? q : { kind: 'none' }));
     }
@@ -337,7 +341,7 @@ export function CheckoutScreen(): React.ReactElement {
 
   // A quote past its lifetime is not a price any more: price again, and say what changed.
   React.useEffect(() => {
-    if (!wantsQuote || quote.kind !== 'ready' || now < quote.staleAt || !cart || !addressId || quoteTip === null) return;
+    if (phase.kind !== 'compose' || !wantsQuote || quote.kind !== 'ready' || now < quote.staleAt || !cart || !addressId || quoteTip === null) return;
     setPrevious({ quote: quote.quote, why: 'expired' });
     price(cart, addressId, quoteTip, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -506,6 +510,12 @@ export function CheckoutScreen(): React.ReactElement {
       placing.current = false;
     }
   }, [ready, phase.kind, handover, savedPay, enterOrder, checkWhetherPlaced, cart, addressId, quoteTip, price]);
+
+  React.useEffect(() => {
+    if (!placeAgain || !ready || phase.kind !== 'compose' || staleModal) return;
+    setPlaceAgain(false);
+    void place();
+  }, [placeAgain, ready, phase.kind, staleModal, place]);
 
   /* ------------------------------------- an unpaid order: retry, wait, end */
 
@@ -1200,7 +1210,7 @@ export function CheckoutScreen(): React.ReactElement {
             onPress: () => {
               setPrevious(staleModal ? { quote: staleModal.was, why: 'stale' } : null);
               setStaleModal(null);
-              setTimeout(() => void place(), 0);
+              setPlaceAgain(true);
             },
           },
         ]}

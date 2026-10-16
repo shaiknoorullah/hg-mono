@@ -240,6 +240,22 @@ describe('checkout: placing the order', () => {
     expect(payWithSheet).not.toHaveBeenCalled();
   });
 
+  it('"Place order" on the changed-price dialog places from the FRESH quote, not the old one', async () => {
+    const fresh = { ...QUOTE, id: 'fa7c1d6e-0000-4000-8000-000000000001', total_cents: QUOTE.total_cents + 150 };
+    payWithSheet.mockResolvedValue({ status: 'paid' });
+    mock.answer('createOrder', [{ status: 409, code: 'QUOTE_STALE', details: { quote: fresh } }, created]);
+    show();
+    await ready();
+    await place();
+    fireEvent.press(await screen.findByTestId('Checkout-placeNew'));
+    await waitFor(() => expect(nav.log).toContainEqual({ action: 'reset', route: { name: 'tracking', orderId: ORDER.id } }));
+    const orders = mock.callsTo('createOrder');
+    expect(orders).toHaveLength(2);
+    expect((orders[0]!.body as { quote_id: string }).quote_id).toBe(QUOTE.id);
+    expect((orders[1]!.body as { quote_id: string }).quote_id).toBe(fresh.id);
+    expect(orders[1]!.headers['idempotency-key']).not.toBe(orders[0]!.headers['idempotency-key']);
+  });
+
   it('a second order is refused: the way to the order already on the way', async () => {
     mock.answer('createOrder', { status: 409, code: 'ACTIVE_ORDER_EXISTS' });
     show();
