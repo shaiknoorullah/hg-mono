@@ -18,8 +18,11 @@ import { useConsole } from '../data/console';
 import { OnboardingProvider } from '../onboarding/context';
 import { RenewPanel } from '../onboarding/RenewPanel';
 import { displayPhone } from '../onboarding/profile';
+import { DOC_META, type ShownDocType } from '../onboarding/model';
 import { supportFrom } from '../auth/api';
+import { addDays } from '../format/time';
 import {
+  RENEWAL_OPENS_DAYS,
   passwordFailure,
   profileBody,
   validateImmediate,
@@ -279,13 +282,39 @@ export function SupportPanel({ about, onClose }: { about: 'change' | 'general'; 
  * `attachRestaurantDocument`, `submitRestaurantDocuments`). Whether the server accepts it for a
  * live restaurant is not confirmed in the contract; a refusal reads as "can't send from here".
  */
-export function RenewHalalPanel({ onClose }: { onClose: () => void }) {
+export function RenewHalalPanel({ onClose, expiresOn }: { onClose: () => void; expiresOn?: string | null }) {
   const { core } = useConsole();
   if (!core.data) return null;
+  const tooEarly = expiresOn ? { opens: addDays(expiresOn, -RENEWAL_OPENS_DAYS), expires: expiresOn } : null;
   return (
     <Shell title="Upload renewed halal certificate" label="Upload renewed halal certificate" closeLabel="Close without sending" onClose={onClose} testId="renew-shell">
       <OnboardingProvider data={core.data}>
-        <RenewPanel context="live" />
+        <RenewPanel context="live" tooEarly={tooEarly} />
+      </OnboardingProvider>
+    </Shell>
+  );
+}
+
+// ── Upload another document ───────────────────────────────────────────────────────────────
+
+/** The sheet's title is the document's own name (settings boards `Doc-Upload`, `Doc-UploadLicence`, `Doc-UploadOwnerId`). */
+export function uploadSheetTitle(type: ShownDocType): string {
+  return `Upload ${DOC_META[type].lc}`;
+}
+
+/**
+ * Send a new version of the food safety certificate, the business licence or the owner ID. It is
+ * the road the halal renewal walks (`RenewPanel`), so the upload, the details and the send are one
+ * implementation; this only gives it the sheet and says so once it is sent.
+ */
+export function UploadDocPanel({ docType, onClose, onSent }: { docType: ShownDocType; onClose: () => void; onSent: () => void }) {
+  const { core } = useConsole();
+  if (!core.data) return null;
+  const title = uploadSheetTitle(docType);
+  return (
+    <Shell title={title} label={title} closeLabel="Close without sending" onClose={onClose} testId="doc-shell">
+      <OnboardingProvider data={core.data}>
+        <RenewPanel context="live" docType={docType} onSent={onSent} />
       </OnboardingProvider>
     </Shell>
   );

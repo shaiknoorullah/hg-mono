@@ -75,8 +75,12 @@ export interface UseDraftsOptions {
   timezone: string;
   /** Called after a document was saved, so the list is read again. */
   onSaved: () => void;
-  /** The attach call answered 409: the step moved on (another device sent the documents). */
-  onLocked: () => void;
+  /**
+   * The attach call answered 409: the step moved on (another device sent the documents), or, for a
+   * live restaurant, it is too early to renew (`STEP_NOT_AVAILABLE`). The server's code is passed so
+   * the screen can tell the two apart.
+   */
+  onLocked: (code?: string) => void;
 }
 
 export function useDocumentDrafts({ timezone, onSaved, onLocked }: UseDraftsOptions) {
@@ -216,7 +220,7 @@ export function useDocumentDrafts({ timezone, onSaved, onLocked }: UseDraftsOpti
       }
       if (res.status === 409) {
         patch(type, { phase: 'details' });
-        onLocked();
+        onLocked(res.code);
         return false;
       }
       if (res.code === 'DOCUMENT_ALREADY_EXPIRED') {
