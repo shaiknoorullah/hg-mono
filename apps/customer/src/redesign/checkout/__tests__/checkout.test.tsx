@@ -178,6 +178,21 @@ describe('checkout: placing the order', () => {
     expect(screen.getByText('The payment sheet was closed')).toBeTruthy();
   });
 
+  it('the hold is judged on the server\'s clock: a phone running past the deadline does not end the order', async () => {
+    payWithSheet.mockResolvedValue({ status: 'canceled' });
+    mock.answer('getOrderPayment', 'payment_requires_payment_method');
+    // If the page believed the phone, the deadline has passed and this read would end the order.
+    mock.answer('getOrder', 'order_cancelled');
+    show();
+    await ready();
+    setNowOverride({ at: Date.parse(ORDER.deadline_at!) + 30 * 60_000 });
+    await place();
+    expect(await screen.findByTestId('Checkout-closed')).toBeTruthy();
+    await new Promise((r) => setTimeout(r, 60));
+    expect(screen.queryByTestId('Checkout-ended-deadline')).toBeNull();
+    expect(screen.queryByTestId('Checkout-ended-cancelled')).toBeNull();
+  });
+
   it('a bank challenge is a normal path: confirm with the bank', async () => {
     payWithSheet.mockResolvedValue({ status: 'failed' });
     mock.answer('getOrderPayment', 'payment_requires_action');

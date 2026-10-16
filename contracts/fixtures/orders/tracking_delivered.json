@@ -15,6 +15,7 @@
     "order_id": "86e927df-0e4c-41b4-a4da-74b86551a63a",
     "state": "DELIVERED",
     "dispatch_state": "COMPLETED",
+    "server_time": "2026-08-10T18:42:11.412Z",
     "eta_at": null,
     "eta_window_minutes": null,
     "restaurant_location": {

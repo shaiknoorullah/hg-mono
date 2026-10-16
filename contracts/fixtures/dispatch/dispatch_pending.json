@@ -17,6 +17,7 @@
     "state": "RESTAURANT_PENDING",
     "state_since": "2026-08-10T18:40:41.412Z",
     "deadline_at": "2026-08-10T18:44:31.412Z",
+    "server_time": "2026-08-10T18:42:11.412Z",
     "quote_id": "f5189a27-320f-47ce-a87f-90e42b35a33b",
     "restaurant": {
       "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",

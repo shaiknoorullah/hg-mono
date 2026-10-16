@@ -15,6 +15,7 @@
     "order_id": "abbb948c-d80a-4a97-a5e6-cf2528dfe677",
     "state": "PICKED_UP",
     "dispatch_state": "CARRYING",
+    "server_time": "2026-08-10T18:42:11.412Z",
     "eta_at": "2026-08-10T18:55:11.412Z",
     "eta_window_minutes": 10,
     "restaurant_location": {

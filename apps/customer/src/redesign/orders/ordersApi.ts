@@ -9,6 +9,7 @@
 import { isApiError, unwrap, type Schema } from '@hg/api-client';
 
 import { api } from '../api/client';
+import { adoptServerTime } from '../lib/now';
 
 export type OrderSummary = Schema['OrderSummary'];
 export type OrderStatusGroup = Schema['OrderStatusGroup'];
@@ -50,7 +51,9 @@ export async function listOrdersPage(group: OrderStatusGroup, cursor?: string | 
 /** The live card's ETA (`eta_at`, `eta_window_minutes`) for an active order. */
 export async function getOrderTracking(orderId: string): Promise<OrderTracking> {
   const body = await unwrap(api.GET('/v1/orders/{orderId}/tracking', { params: { path: { orderId } } }));
-  return body.data as unknown as OrderTracking;
+  const tracking = body.data as unknown as OrderTracking;
+  adoptServerTime(tracking.server_time);
+  return tracking;
 }
 
 /** The receipt, read from the frozen snapshot written once at COMPLETED. */
@@ -66,7 +69,9 @@ export async function getOrderPayment(orderId: string): Promise<OrderPayment> {
 
 export async function getOrder(orderId: string): Promise<OrderCustomerView> {
   const body = await unwrap(api.GET('/v1/orders/{orderId}', { params: { path: { orderId } } }));
-  return body.data as unknown as OrderCustomerView;
+  const order = body.data as unknown as OrderCustomerView;
+  adoptServerTime(order.server_time);
+  return order;
 }
 
 /** `GET /v1/refunds?order_id=…`: the refunds on one order, newest state from the server. */

@@ -412,6 +412,7 @@ type adminOrderView struct {
 	Lines      []adminOrderLine     `json:"lines"`
 	Money      adminOrderMoney      `json:"money"`
 	PlacedAt   string               `json:"placed_at"`
+	ServerTime string               `json:"server_time"`
 
 	// OrderCustomerView optional fields (nullable; populated where data is available).
 	// delivery_address is oneOf[Address,null]; rider is oneOf[RiderPublicProfile,null].
