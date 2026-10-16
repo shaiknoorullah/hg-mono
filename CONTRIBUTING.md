@@ -8,6 +8,12 @@ Humans and agents follow the same rules. Read [`AGENTS.md`](AGENTS.md) first.
 - Before starting, check for an existing issue. Say on the issue that you've started.
 - Write issues so someone else can pick them up: what exists today, scope, "done when", dependencies as issue numbers.
 
+## Node version
+
+The repository needs **Node 22**, pinned in [`.nvmrc`](.nvmrc). CI reads that file, `engines` in `package.json` says the same, and `engine-strict` in [`.npmrc`](.npmrc) makes `pnpm` refuse any other version. Under Node 24 the admin readiness-probe tests fail for a reason that is not a bug in the code ([issue 919](https://github.com/shaiknoorullah/hg-mono/issues/919)).
+
+A git hook runs with the `PATH` of whoever ran `git push`, so an agent or editor that launches `git` from a different environment can pick up a different Node than your terminal. The pre-push hook checks first and stops with the reason (`node scripts/check-node.mjs`). Fix it by putting Node 22 first on `PATH` for the process that runs `git push`; `fnm use`, `nvm use` and `mise` all read `.nvmrc`. Skipping the check with `LEFTHOOK=0` only moves the failure to CI.
+
 ## Pull requests
 
 **One PR does one thing, in one place.** A second fix is a second PR. Over 400 changed lines (generated files excluded), the check warns: split it if you can.

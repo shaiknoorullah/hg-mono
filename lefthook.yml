@@ -67,6 +67,8 @@ pre-push:
     packages:
       glob: "{apps,packages,tools}/**"
       run: |
+        # Wrong Node: stop here with the reason, not after seven confusing test failures.
+        node scripts/check-node.mjs || exit 1
         base="$(git merge-base origin/main HEAD)" || exit 1
         filters=""
         for dir in $(git diff --name-only "$base" HEAD -- apps packages tools | cut -d/ -f1,2 | sort -u); do
