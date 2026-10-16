@@ -261,11 +261,22 @@ describe('routes', () => {
     expect(screen.getByRole('button', { name: 'Back to restaurant applications' }).getAttribute('data-variant')).toBe('tertiary');
   });
 
-  it('falls back to the legacy Refunds screen inside the new shell', async () => {
+  // No route falls back to a legacy screen any more: every entry in `LEGACY` (routes.tsx) is now
+  // shadowed by a `REDESIGNED` one, so the fallback has no live example to test. Staff was the
+  // last one to move (#913); this pins that it stays redesigned.
+  it('shows the redesigned Staff page, not the legacy screen', async () => {
+    const { container } = renderApp('/staff');
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Staff');
+    await screen.findByRole('region', { name: 'Staff' });
+    expect(container.querySelector('[data-legacy-screen="staff"]')).toBeNull();
+    expect(nav()).toBeTruthy();
+  });
+
+  it('shows the redesigned Refunds page, not the legacy screen', async () => {
     const { container } = renderApp('/refunds');
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Refunds & disputes');
-    await waitFor(() => expect(container.querySelector('[data-legacy-screen="refunds"]')).not.toBeNull());
-    expect(nav()).toBeTruthy();
+    await screen.findByRole('region', { name: 'Refunds' });
+    expect(container.querySelector('[data-legacy-screen="refunds"]')).toBeNull();
   });
 
   it('shows the redesigned Orders list, not the legacy screen', async () => {
