@@ -16,6 +16,7 @@ import {
 import { environmentBanner } from '../../system/banners';
 import { FakeRealtimeSocket, mockApi, principalFor, renderRedesign, resetSession, type MockApi } from '../../testing';
 import { RedesignApp } from '../RedesignRoot';
+import { NotBuilt } from '../routes';
 
 // The public auth screens belong to another work stream; the shell only needs to know which one
 // it shows.
@@ -287,7 +288,8 @@ describe('routes', () => {
   });
 
   it('names the work package on a route that is not built yet', () => {
-    renderApp('/issuing-bodies');
+    // Every route has a screen now, so the placeholder is rendered on its own.
+    renderRedesign(<NotBuilt title="Issuing bodies" wp="WP-4" />, { principal: 'ADMIN' });
     expect(screen.getByRole('status').textContent).toContain('Issuing bodies comes with WP-4');
   });
 
@@ -463,7 +465,7 @@ describe('session ended dialog', () => {
         return { data: { access_token: 'fresh-token', refresh_token: null, expires_in: 900, is_new_account: false, principal: admin } };
       },
     });
-    renderApp('/issuing-bodies', 'ADMIN');
+    renderApp('/system', 'ADMIN');
     act(() => markSessionEnded('expired'));
 
     const dialog = await screen.findByRole('dialog', { name: 'Your session ended' });
@@ -473,7 +475,7 @@ describe('session ended dialog', () => {
       ),
     ).toBeTruthy();
     // The page is still there behind the dialog.
-    expect(screen.getByText(/Issuing bodies comes with WP-4/)).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: 'System status' })).toBeTruthy();
 
     fireEvent.click(within(dialog).getByRole('button', { name: 'Sign in again' }));
     fireEvent.change(within(dialog).getByLabelText(/Work email/), { target: { value: 'aminah@halalgoes.ca' } });
@@ -491,8 +493,8 @@ describe('session ended dialog', () => {
     expect(api.callsTo('login')[1]!.body).toEqual({ email: 'aminah@halalgoes.ca', password: 'correct horse battery', totp_code: '123456' });
     expect(getToken()).toBe('fresh-token');
     expect(getSession().ended).toBeNull();
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Issuing bodies');
-    expect(screen.getByText(/Issuing bodies comes with WP-4/)).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('System status');
+    expect(screen.getByRole('heading', { level: 1, name: 'System status' })).toBeTruthy();
   });
 
   it('uses the revoked copy when the session was ended elsewhere', async () => {
@@ -515,20 +517,20 @@ describe('session ended dialog', () => {
     ['SESSION_REVOKED', 'Your session was ended'],
   ])('a 401 %s on a signed-in redesign call raises the dialog and keeps the page', async (code, title) => {
     api.set({ createRealtimeTicket: { status: 401, body: envelope(code) } });
-    renderApp('/issuing-bodies', 'ADMIN');
+    renderApp('/system', 'ADMIN');
     await screen.findByRole('dialog', { name: title });
-    expect(screen.getByText(/Issuing bodies comes with WP-4/)).toBeTruthy();
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Issuing bodies');
+    expect(screen.getByRole('heading', { level: 1, name: 'System status' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('System status');
     expect(getSession().principal).not.toBeNull();
   });
 
   it('a 401 on a legacy fallback screen raises the same dialog, not a false "signed out"', async () => {
-    renderApp('/issuing-bodies', 'ADMIN');
+    renderApp('/system', 'ADMIN');
     // What `src/lib/api.ts` does on a 401.
     act(() => setToken(null));
     await screen.findByRole('dialog', { name: 'Your session ended' });
     expect(screen.queryByRole('heading', { name: 'Sign-in screen' })).toBeNull();
-    expect(screen.getByText(/Issuing bodies comes with WP-4/)).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: 'System status' })).toBeTruthy();
     expect(wasSignedOutOnPurpose()).toBe(false);
   });
 
@@ -549,7 +551,7 @@ describe('session ended dialog', () => {
   it('signs in again for real: login goes out with no bearer, as the server requires', async () => {
     const admin = principalFor('ADMIN');
     api.set({ login: strictLogin(grantFor(admin)), createRealtimeTicket: { status: 401, body: envelope('SESSION_EXPIRED') } });
-    renderApp('/issuing-bodies', 'ADMIN');
+    renderApp('/system', 'ADMIN');
     saveDraft('decision-note', 'Certificate number matches the register.');
     const dialog = await screen.findByRole('dialog', { name: 'Your session ended' });
     api.set({ createRealtimeTicket: undefined });
@@ -560,7 +562,7 @@ describe('session ended dialog', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(api.callsTo('login')[0]!.headers.authorization).toBeUndefined();
     expect(getToken()).toBe('fresh-token');
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Issuing bodies');
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('System status');
     // The same person is back: their unsent input is still there to restore.
     expect(loadDraft('decision-note')).toBe('Certificate number matches the register.');
   });
@@ -599,7 +601,7 @@ describe('session ended dialog', () => {
   it('a different account signing in goes to its own landing page and keeps nothing of the previous person', async () => {
     const support = principalFor('SUPPORT_AGENT');
     api.set({ login: strictLogin(grantFor(support)) });
-    renderApp('/issuing-bodies', 'ADMIN');
+    renderApp('/system', 'ADMIN');
     saveDraft('refund-note', 'Customer at 12 Elm St said the order was cold');
     applyQueueDepthFrame({ pending_restaurant_reviews: 4, pending_rider_reviews: 2, failed_refunds: 1, open_disputes: 0 }, null, 'ADMIN');
     act(() => markSessionEnded('expired'));

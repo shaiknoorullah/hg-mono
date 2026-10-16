@@ -140,7 +140,7 @@ function Loading() {
 }
 
 /** A route whose redesigned screen has not landed and that has no legacy screen. */
-function NotBuilt({ title, wp }: { title: string; wp: string }) {
+export function NotBuilt({ title, wp }: { title: string; wp: string }) {
   return (
     <section aria-labelledby="not-built-heading" className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-6">
       <div role="status" className="w-full max-w-[552px] rounded-lg border border-line-decorative bg-surface-raised px-6 py-10 text-center">
