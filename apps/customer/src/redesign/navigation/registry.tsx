@@ -17,6 +17,7 @@ import { ProfileScreen } from '../../screens/ProfileScreen';
 import { AddressesScreen } from '../../screens/AddressesScreen';
 import { AddressFormScreen } from '../../screens/AddressFormScreen';
 import { CartScreen as RedesignedCartScreen } from '../cart/CartScreen';
+import { CheckoutScreen as RedesignedCheckoutScreen } from '../checkout/CheckoutScreen';
 import { OrdersScreen as RedesignedOrdersScreen } from '../orders/OrdersScreen';
 import { ReceiptScreen } from '../orders/ReceiptScreen';
 import { HomeScreen } from '../discover/HomeScreen';
@@ -51,6 +52,8 @@ export const REDESIGNED: Registry = {
   certificate: (r) => <CertificateScreen restaurantId={r.restaurantId} />,
   // WP5: the cart (the item sheet is owned by the restaurant page and the cart, not a route).
   cart: () => <RedesignedCartScreen />,
+  // Checkout: the last step of the order flow (price, pay, recover a declined payment).
+  checkout: () => <RedesignedCheckoutScreen />,
   // WP9: Orders history (T9) and Receipt (T10).
   orders: () => <RedesignedOrdersScreen />,
   receipt: (route) => <ReceiptScreen orderId={route.orderId} />,
