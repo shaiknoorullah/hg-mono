@@ -101,7 +101,7 @@ export default function RiderApplicationRoute() {
   const [answers, setAnswers] = useState<Record<string, CheckAnswers>>({});
   const [notes, setNotes] = useState<Record<string, CheckNotes>>({});
   const [cardNotes, setCardNotes] = useState<Record<string, string>>({});
-  const [reviewProblem, setReviewProblem] = useState<ReviewProblem | null>(null);
+  const [reportedProblem, setReviewProblem] = useState<ReviewProblem | null>(null);
   const [takeNotice, setTakeNotice] = useState<'none' | 'failed' | null>(null);
   const [focusApprove, setFocusApprove] = useState(false);
 
@@ -116,6 +116,10 @@ export default function RiderApplicationRoute() {
   const docs = useMemo(() => (app ? currentDocuments(app.documents) : []), [app]);
   const selected = docs.find((d) => d.id === selectedId) ?? docs.find((d) => d.state === 'IN_REVIEW' || d.state === 'SUBMITTED') ?? docs[0] ?? null;
   const url = useDocumentUrl(selected?.id ?? null, selected !== null && canOpenDocuments(mode));
+
+  // A replaced document is gone from the list after the reload, so its notice moves to the
+  // document the page moved on to instead of vanishing with the removed one.
+  const reviewProblem = reportedProblem && !docs.some((d) => d.id === reportedProblem.docId) && selected ? { ...reportedProblem, docId: selected.id } : reportedProblem;
 
   // After the last document is approved the page lands on Approve rider.
   useEffect(() => {
@@ -179,6 +183,11 @@ export default function RiderApplicationRoute() {
       if (errorCode(result.error) === 'REVIEW_LOCK_LOST') {
         setRefusal({ kind: 'claim-lost' });
         void load.refresh();
+        return;
+      }
+      if (result.error.status === 403) {
+        // The role changed while the claim was held: the page says so and keeps the answers.
+        setRefusal({ kind: 'forbidden' });
         return;
       }
       setReviewProblem({ docId: doc.id, title: 'The server didn’t approve the document', body: `${result.error.message} Nothing was changed. Your answers are kept.` });
