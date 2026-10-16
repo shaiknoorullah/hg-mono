@@ -66,8 +66,8 @@ export { ListRow, Textarea } from '@hg/ui-native/proposed';
 // driven by the server's deadline and never turns an urgent colour.
 export { ProgressBar } from '@hg/ui-native/proposed';
 
-// Browse and Search: the removable filter chip, the sort menu and the recent-search row.
+// Browse and Search: the removable filter chip, the sort menu and the recent-search row. The row is
+// the same `ListRow` the checkout screens export above, so it is not re-exported here.
 export { Chip } from '@hg/ui-native';
 export { Menu } from '@hg/ui-native/ds';
 export type { MenuItem } from '@hg/ui-native/ds';
-export { ListRow } from '@hg/ui-native/proposed';
