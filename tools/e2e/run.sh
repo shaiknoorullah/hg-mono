@@ -80,9 +80,14 @@ maestro_flow() {
   [ "$(dirname "$flow")" = . ] || shots="$shots/$(dirname "$flow")"
   local dir="$E2E_OUT/maestro/$name"
   mkdir -p "$dir" "$shots"
+  # The design captures' view hierarchy and provenance (tools/e2e/native/design-capture.yaml) are
+  # written by this, beside the screenshots; without it the flow still passes and the diff says NO LAYOUT.
+  CAPTURE_DIR="$shots" node "$root/tools/design-diff/android/capture-server.mjs" >"$dir/capture-server.log" 2>&1 &
+  local capture_pid=$!
   (cd "$shots" && maestro test --format junit --output "$dir/junit.xml" \
     --test-output-dir "$dir" "$@" "$e2e/native/$app/$flow")
   rc=$?
+  kill "$capture_pid" 2>/dev/null || true
   find "$dir" -name '*.png' -exec cp {} "$shots/" \; 2>/dev/null
   return $rc
 }

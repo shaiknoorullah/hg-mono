@@ -29,10 +29,10 @@ function sameColour(a, b) {
 /** A family's name without the packaging: "Plus Jakarta Sans Variable" is Plus Jakarta Sans. */
 const familyOf = (f) => (f ?? '').replace(/ Variable$/, '');
 const typeOf = (t) => `${num(t.size)}/${num(t.line)} ${WEIGHTS[t.weight] ?? t.weight}${t.letter ? ` ${num(t.letter)} tracking` : ''} ${familyOf(t.family)}`;
-const loose = (s) => s.toLowerCase().replace(/[’‘]/g, "'").replace(/[“”]/g, '"').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+export const loose = (s) => s.toLowerCase().replace(/[’‘]/g, "'").replace(/[“”]/g, '"').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 
 /** Pairs the items of `a` and `b` with the same `key`, in reading order. */
-function pairUp(a, b, key) {
+export function pairUp(a, b, key) {
   const order = (x, y) => x.y - y.y || x.x - y.x;
   const rest = new Map();
   for (const it of [...b].sort(order)) rest.set(key(it), [...(rest.get(key(it)) ?? []), it]);

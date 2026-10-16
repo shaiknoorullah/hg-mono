@@ -1,0 +1,18 @@
+# A design capture: the screenshot, and the view hierarchy and provenance beside it, for the
+# design-diff harness (tools/design-diff/README.md, "Native boards"). From a flow:
+#
+#   - runFlow:
+#       file: ../../design-capture.yaml      # relative to the flow
+#       env:
+#         SHOT: design--<area>--<Board>
+#         APP_ID: com.halalgoes.customer.dev
+#
+# The hierarchy comes from tools/design-diff/android/capture-server.mjs, which run.sh starts for
+# every flow. With it not running the screenshot is still taken and the flow still passes; the diff
+# then reports the capture as NO LAYOUT, not as a pass.
+- takeScreenshot: ${SHOT}
+- runScript:
+    file: design-capture.js
+    env:
+      SHOT: ${SHOT}
+      APP_ID: ${APP_ID}

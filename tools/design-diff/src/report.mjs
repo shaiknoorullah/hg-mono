@@ -14,7 +14,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-const ORDER = { FAIL: 0, 'NO BOARD': 1, UNCOVERED: 1, 'DEFECTIVE REFERENCE': 1, 'NOT COMPARED': 2, UNPAIRABLE: 2, 'BROWSER MISMATCH': 3, 'NO PROVENANCE': 3, PASS: 4 };
+const ORDER = { FAIL: 0, 'NO BOARD': 1, UNCOVERED: 1, 'DEFECTIVE REFERENCE': 1, 'NOT COMPARED': 2, UNPAIRABLE: 2, 'BROWSER MISMATCH': 3, 'NO PROVENANCE': 3, 'NO LAYOUT': 3, PASS: 4 };
 const KIND_ORDER = ['missing', 'extra', 'copy', 'type', 'colour', 'box', 'spacing'];
 
 function args(argv) {
@@ -81,7 +81,7 @@ function main() {
 main{max-width:1280px;margin:0 auto;padding:24px 16px 64px}h1{font-size:28px;margin:0 0 4px}h2{font-size:20px;margin:40px 0 12px}h3{font-size:16px;margin:0;word-break:break-all}h4{margin:16px 0 4px;font-size:14px}
 a{color:var(--link)}code{font-size:13px}.sub,.more,.reason,figcaption{color:var(--muted);font-size:13px}
 .summary{display:flex;flex-wrap:wrap;gap:12px;margin:16px 0}.summary div{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;min-width:120px}.summary b{display:block;font-size:24px}
-.verdict{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap}.v-fail{color:var(--fail);background:var(--fail-bg)}.v-pass{color:var(--pass);background:var(--pass-bg)}.v-not-compared,.v-unpairable,.v-uncovered,.v-no-board,.v-defective-reference,.v-browser-mismatch,.v-no-provenance{color:var(--na);background:var(--na-bg)}
+.verdict{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap}.v-fail{color:var(--fail);background:var(--fail-bg)}.v-pass{color:var(--pass);background:var(--pass-bg)}.v-not-compared,.v-unpairable,.v-uncovered,.v-no-board,.v-defective-reference,.v-browser-mismatch,.v-no-provenance,.v-no-layout{color:var(--na);background:var(--na-bg)}
 .flag{font-size:11px;padding:1px 6px;border:1px solid var(--warn-line);background:var(--warn-bg);border-radius:4px;white-space:nowrap}
 .tablewrap{overflow-x:auto}table{border-collapse:collapse;width:100%;background:var(--card);font-size:13px}th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .pair{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin:16px 0}.pair header{display:flex;gap:12px;align-items:center;justify-content:space-between}

@@ -106,7 +106,7 @@ compared; a taller one is cut to the board, a shorter one padded, and the paddin
 different. A board with any `failedAssets` is `DEFECTIVE REFERENCE`: the diff names the assets and does
 not compare it, because the missing picture is the renderer's and would be charged to the app as a UI
 difference. The diff fails by default: it exits 1 when any pair is FAIL, NO BOARD (including a board whose
-reference recorded errors, and a declared board missing from the manifest), UNCOVERED, DEFECTIVE REFERENCE, NOT COMPARED, BROWSER MISMATCH or NO PROVENANCE;
+reference recorded errors, and a declared board missing from the manifest), UNCOVERED, DEFECTIVE REFERENCE, NOT COMPARED, BROWSER MISMATCH, NO PROVENANCE or NO LAYOUT;
 UNPAIRABLE, a capture its spec declared cannot be compared, does not fail the run; `--no-strict` reports and exits 0, `--strict` is an accepted
 alias of the default, and a crash or usage error exits 2. The summary also lists the uncaptured boards
 (boards of the rendered apps with no capture); that count alone does not fail the run.
@@ -195,10 +195,11 @@ the board's size, and loses Android's status and navigation bars before the comp
 | `src/render-refs.mjs` | Renders the boards; the note rules' word and class lists |
 | `src/page-scripts.mjs` | Runs in the page: hides the notes, snapshots the layout, waits for it to settle |
 | `src/diff.mjs`, `src/compare.mjs`, `src/layout-diff.mjs` | Pairing, the pixel comparison and verdict, the worded findings |
+| `src/uiautomator.mjs`, `src/native-geometry.mjs` | A native capture's view hierarchy as a layout record; the geometry and colour verdict and its tolerances |
 | `src/report.mjs`, `src/png.mjs` | The HTML report; PNG helpers |
 | `src/names.mjs`, `src/insets.mjs` | The capture names; the phone profiles and their bars |
 | `src/vendor-fonts.mjs`, `third-party/` | React and the fonts the boards load, and their licences |
-| `android/` | The capture AVDs and the device state |
+| `android/` | The capture AVDs and the device state; `capture-server.mjs`, which writes a native capture's hierarchy and provenance |
 | `test/` | `pnpm --filter @hg/design-diff test:unit`: the verdict, the bars, the names, the findings |
 
 ## Native boards (customer, rider)
@@ -209,18 +210,62 @@ rasterisers, hinting and subpixel behaviour, so they never agree pixel for pixel
 pixels differ" is the wrong measurement for them, and no amount of good UI work would meet it. The
 pixel criterion stays with the web boards, where both sides are the same Chromium.
 
-What the harness does for a native capture today:
+What the harness does for a native capture:
 
 - **Provenance is required instead of a browser.** Beside the screenshot, a `.capture.json` must
-  record `device` (the device or emulator) and `appBuild` (the app version or commit). With neither
-  the pair is `NO PROVENANCE`: untrusted, not compared, and the run fails.
-- **With provenance, the pair is `NOT COMPARED`.** The pixel figure is kept in `results.json` as
-  `informationalMismatchPct` only. An honest "not measured yet" beats a native board that passes for
-  the wrong reason. Both verdicts fail the run by default, like every non-PASS verdict.
+  record `device` (the device or emulator) and `appBuild` (the app version or commit), and should
+  record `density` (device px per dp, 3 at 480 dpi). With neither `device` nor `appBuild` the pair is
+  `NO PROVENANCE`: untrusted, not compared, and the run fails.
+- **A view hierarchy is required.** Beside the screenshot, a `.hierarchy.xml` (`uiautomator dump`).
+  Without it the pair is `NO LAYOUT`: reported as its own state, and the run fails. Pixels are never
+  a fallback.
+- **With both, the pair is `PASS` or `FAIL` on geometry and colour** (`src/native-geometry.mjs`).
+  The pixel figure is kept in `results.json` as `informationalMismatchPct` and never sets a verdict:
+  no native board passes on pixels.
 
-The intended criterion is layout geometry: element boxes, positions and sizes, plus colours where the
-capture can supply them. It is not built. `src/layout-diff.mjs` already words such differences, but
-it is only run after the pixel comparison and never sets a verdict, and native captures write no
-layout snapshot (`snapshotLayout` runs inside a web page). Wiring it needs a view-hierarchy snapshot
-from Android, a tolerance for each of geometry and colour, and a verdict in `src/diff.mjs`. Tracked in
-[#844](https://github.com/shaiknoorullah/hg-mono/issues/844).
+**How a capture is measured.**
+
+1. The hierarchy becomes dp (`src/uiautomator.mjs`): bounds in px divided by `density`, with the
+   status and navigation bars cut as for the screenshot (`--insets` or `--profile`). The status bar's
+   own views (package `com.android.systemui`) are dropped.
+2. The capture and the board must be the same width in dp (1 dp slack). Another width is
+   `NOT COMPARED`, not rescaled: stretching 360 dp to 390 dp would hide the responsive differences
+   being measured. The scale factor is handled by dp, not by resizing.
+3. Only what the screen shows is measured: the board is the whole page, the capture one screen, so
+   board elements below the screen's last row are left out.
+4. Texts are matched by their words, as for web (`src/layout-diff.mjs`). A matched text must have the
+   same top and height, and the same left edge, centre or right edge (a view's box is wider than its
+   glyphs, so alignment is not assumed), within the tolerance. Widths of texts are not compared.
+5. A board box (one the board draws with a fill) is matched to the capture's view holding the same
+   words; its position and size are compared. A view the hierarchy does not list (React Native
+   flattens views that only lay out) is counted as unmeasured, not failed.
+6. Colour is read from pixels on both sides, the same way: a box's fill is the median of four points
+   just inside its edges, a text's ink is the pixel furthest from its background. (A hierarchy dump
+   carries no colours; reading both pictures also covers fills with transparency.)
+7. The board is `FAIL` when any measurement is outside the tolerance, when fewer than 80 % of the
+   board's visible texts are in the capture, or when nothing could be matched at all.
+
+**The tolerances** are the one constant `TOLERANCE` in `src/native-geometry.mjs`, and are written
+into each pair's `geometry` in `results.json`:
+
+| Measure | Tolerance | Why |
+|---|---|---|
+| Position and size | 2 dp | Native text snaps to whole device px (a third of a dp) and the board's CSS px are rounded to half; a dp is rounding, two is a visible slip. `layout-diff.mjs` already words a difference from 2 dp |
+| Box fill colour | CIE76 distance 4 | About twice the smallest visible difference (2.3), far above colour management's effect on a flat fill |
+| Text ink colour | CIE76 distance 10 | Thin glyphs reach the full ink colour under one rasteriser and nearly under another; a different colour entirely is well over 20 |
+| Texts present | 80 % | Board data is sample copy, the capture shows seeded data |
+
+These are judgements, not measurements from a device: tighten or loosen them in that one place once
+real captures show the spread.
+
+**Taking the captures.** A Maestro flow cannot run `adb`, so a design capture uses the subflow
+`tools/e2e/native/design-capture.yaml` (`SHOT: design--<area>--<Board>`), which takes the screenshot
+and asks `android/capture-server.mjs` (started by `tools/e2e/run.sh` for each flow) to write the
+`.hierarchy.xml` and `.capture.json` (device, app build, density) beside it. If the server is not
+running the flow still passes and the diff reports `NO LAYOUT`.
+
+**Not verified on a device.** The hierarchy parser and the comparison are tested against a
+hand-written dump in the AOSP `uiautomator` shape (`test/fixtures/native-home.hierarchy.xml`) and
+the capture server against a stand-in `adb`; neither has run against a real emulator or Maestro, as
+none was available when this was written. Run one flow on the design AVD and read the result before
+trusting a number. Tracked in [#844](https://github.com/shaiknoorullah/hg-mono/issues/844).

@@ -17,9 +17,13 @@ name: customer redesign, sign in (returning customer)
 - extendedWaitUntil:
     visible: "Sign in or create an account"
     timeout: 90000
-# design--<area>--<Board>: this screen must match that sign-in canvas board, pixel by pixel
+# design--<area>--<Board>: this screen must match that sign-in canvas board in layout geometry and colour
 # (tools/e2e/README.md, "Design captures"; compared on the design AVD, tools/design-diff).
-- takeScreenshot: design--sign-in--Main
+- runFlow:
+    file: ../../../design-capture.yaml
+    env:
+      SHOT: design--sign-in--Main
+      APP_ID: com.halalgoes.customer.dev
 
 # Send code validates on press: a short number is refused with the board's message.
 - tapOn:
@@ -48,7 +52,11 @@ name: customer redesign, sign in (returning customer)
 - hideKeyboard
 - tapOn: "Verify and continue"
 - assertVisible: ".*Enter all 6 digits of the code\\..*"
-- takeScreenshot: design--sign-in--Code-short
+- runFlow:
+    file: ../../../design-capture.yaml
+    env:
+      SHOT: design--sign-in--Code-short
+      APP_ID: com.halalgoes.customer.dev
 - tapOn:
     id: "Code-input-cell-0"
 - eraseText: 6

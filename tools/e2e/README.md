@@ -243,14 +243,16 @@ CORS list with 4175 and 4176.
 
 A capture that names a design board says "this screen must match that board". The
 [design-diff harness](../design-diff/README.md) renders the boards, pairs each capture with its
-board by that name, and judges it pixel by pixel; the flows themselves never fail on it.
+board by that name, and judges it (a web capture pixel by pixel, a native one by layout geometry); the flows themselves never fail on it.
 
 - **Playwright:** `await expectDesign(page, '<app>/<area>/<Board>')` (`web/design.ts`), for
   example `expectDesign(page, 'restaurant/sign-in/SignIn-Invalid')`. It saves a full-page
   screenshot and a layout snapshot to `$E2E_OUT/design-captures/<app>/<width>x<height>/`.
   `redesign-restaurant.sign-in.spec.ts` names a board for each sign-in state.
-- **Maestro:** `takeScreenshot: design--<area>--<Board>` in a flow of the app's folder, for
-  example `design--sign-in--Main` in `native/customer/redesign/lab/1-sign-in.yaml` (a device-lab flow). Capture on the
+- **Maestro:** `runFlow: ../../design-capture.yaml` with `SHOT: design--<area>--<Board>` (it takes the
+  screenshot and has the view hierarchy and device recorded beside it), for
+  example `design--sign-in--Main` in `native/customer/redesign/lab/1-sign-in.yaml` (a device-lab flow).
+  A native capture is judged on layout geometry and colour, not pixels. Capture on the
   design AVD in the state the board is drawn in ([phone captures](../design-diff/README.md#phone-captures)).
 
 Every redesign web spec declares the board of each screenshot it takes, and the board has to be
