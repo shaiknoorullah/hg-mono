@@ -8,9 +8,10 @@
  *
  * Page banners for the certificate, the account state and the connection already sit under
  * the status bar on every page (`status/Banners`), so this page does not draw a second set;
- * the sections carry the detail. Not built here yet: What's new (the contract has no release
- * notes), the document upload sheet for the other documents, and the address change (see
- * the pull request).
+ * the sections carry the detail. The documents other than the halal certificate are sent from
+ * the Documents section into the same panel (`?panel=upload-doc&doc=FOOD_SAFETY`). Not built
+ * here yet: What's new (the contract has no release notes) and the address change (see the
+ * pull request).
  */
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -23,7 +24,8 @@ import { serverNow } from '../data/serverClock';
 import { isoDateIn } from '../format/time';
 import { halalCertificateRow } from '../status/halal';
 import { usePagePanelOpen } from '../shell/layout';
-import { EditPanel, PasswordPanel, RenewHalalPanel, SupportPanel } from './panels';
+import { EditPanel, PasswordPanel, RenewHalalPanel, SupportPanel, UploadDocPanel } from './panels';
+import { DOC_META, isShownDocType, type ShownDocType } from '../onboarding/model';
 import { DeviceSection } from './DeviceSection';
 import { deviceSummary, useDevicePrefs, useNotifications } from './device';
 import { AccountSection, DocumentsSection, HalalSection, ProfileSection, SecuritySection, SectionSkeleton } from './sections';
@@ -45,8 +47,8 @@ function loadDocuments(): Promise<KycDocument[]> {
   return call(client.GET('/v1/restaurant/documents', {}));
 }
 
-type Panel = 'renew' | 'password' | 'support' | 'support-change' | `edit-${EditGroup}`;
-const PANELS: readonly Panel[] = ['renew', 'password', 'support', 'support-change', 'edit-names', 'edit-contact', 'edit-kitchen'];
+type Panel = 'renew' | 'upload-doc' | 'password' | 'support' | 'support-change' | `edit-${EditGroup}`;
+const PANELS: readonly Panel[] = ['renew', 'upload-doc', 'password', 'support', 'support-change', 'edit-names', 'edit-contact', 'edit-kitchen'];
 
 // ── Page ──────────────────────────────────────────────────────────────────────────────────
 
@@ -62,7 +64,10 @@ export function SettingsPage() {
   const raw = params['*']?.split('/')[0];
   const section: SectionKey = isSectionKey(raw) ? raw : 'halal';
   const panelParam = search.get('panel') as Panel | null;
-  const panel = panelParam && PANELS.includes(panelParam) ? panelParam : null;
+  const docParam = search.get('doc');
+  // The upload sheet is for the documents other than the halal certificate, which renews under its own panel.
+  const uploadType: ShownDocType | null = docParam && isShownDocType(docParam) && docParam !== 'HALAL_CERTIFICATE' ? docParam : null;
+  const panel = panelParam && PANELS.includes(panelParam) && (panelParam !== 'upload-doc' || uploadType) ? panelParam : null;
   usePagePanelOpen(panel !== null && profile.status !== 'loading');
 
   const roles = core.data?.principal.roles;
@@ -76,10 +81,12 @@ export function SettingsPage() {
   const cert = halalCertificateRow(docs.data);
   const halal = halalSectionView(p?.halal, cert, today, manage && !readOnly);
 
-  const open = (next: Panel | null) => {
+  const open = (next: Panel | null, doc?: ShownDocType) => {
     const q = new URLSearchParams(search);
     if (next) q.set('panel', next);
     else q.delete('panel');
+    if (next === 'upload-doc' && doc) q.set('doc', doc);
+    else q.delete('doc');
     setSearch(q, { replace: false });
   };
   const close = () => open(null);
@@ -149,7 +156,7 @@ export function SettingsPage() {
         ) : section === 'profile' ? (
           <ProfileSection profile={p} editable={manage && !readOnly} onEdit={(g) => open(`edit-${g}`)} onRequest={() => open('support-change')} />
         ) : section === 'documents' ? (
-          <DocumentsSection docs={docs} denied={docsDenied} />
+          <DocumentsSection docs={docs} denied={docsDenied} canUpload={manage && !readOnly} onUpload={(type) => open('upload-doc', type)} />
         ) : section === 'device' ? (
           <DeviceSection />
         ) : (
@@ -157,7 +164,19 @@ export function SettingsPage() {
         )}
       </div>
 
-      {panel === 'renew' ? <RenewHalalPanel onClose={close} /> : null}
+      {panel === 'renew' ? <RenewHalalPanel onClose={close} expiresOn={p?.halal?.expires_on ?? null} /> : null}
+      {panel === 'upload-doc' && uploadType ? (
+        <UploadDocPanel
+          key={uploadType}
+          docType={uploadType}
+          onClose={close}
+          onSent={() => {
+            close();
+            docs.refresh();
+            toast.show({ variant: 'success', title: `${DOC_META[uploadType].title} sent for review`, description: 'A reviewer checks it within 3 business days.' });
+          }}
+        />
+      ) : null}
       {panel === 'password' ? (
         <PasswordPanel
           onClose={close}

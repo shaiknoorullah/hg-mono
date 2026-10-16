@@ -250,6 +250,29 @@ export const RENEW = {
   sending: 'Sending your renewed certificate…',
   refusedTitle: 'We can’t send this from here yet',
   refusedBody: 'Call partner support and they will take the renewed certificate for you. Nothing you uploaded is lost.',
+  // The upload panel's cancel confirmation (settings board `Renew-Cancel`).
+  cancelTitle: 'Cancel this upload?',
+  cancelBody: 'The file stops uploading and nothing is sent to HalalGoes.',
+  cancelKeep: 'Keep uploading',
+  cancelGo: 'Cancel upload',
+  // The server turned a renewal away because uploads are not open yet (settings board `Renew-TooEarly`).
+  tooEarlyTitle: 'HalalGoes can’t take a renewal yet',
+  tooEarlyBody: (opens: string, expires: string) => `You can upload it from ${opens}, 60 days before your current certificate expires on ${expires}.`,
+  tooEarlyBodyPlain: 'You can upload it again closer to the date your current certificate expires. Your file and details are kept.',
+};
+
+/** The upload sheets for the documents other than the halal certificate (settings boards `Doc-*`). */
+export const DOC_SHEET = {
+  intro: (lc: string) => `Upload every page of your ${lc}, then enter the details printed on it. A HalalGoes reviewer checks it.`,
+  sentTitle: (title: string) => `${title} sent for review`,
+  sentBody: 'A reviewer checks it within 3 business days.',
+  sending: (lc: string) => `Sending your ${lc}…`,
+  failedTitle: (lc: string) => `Your ${lc} wasn’t sent`,
+  failedBody: 'We couldn’t reach HalalGoes, or something went wrong on our side. Your file and details are kept. Try again.',
+  refusedTitle: 'We can’t send this from here yet',
+  refusedBody: 'Call partner support and they will take it for you. Nothing you uploaded is lost.',
+  lockedTitle: 'You can’t send one right now',
+  lockedBody: (lc: string) => `A reviewer is checking the ${lc} you already sent. You can send another once that review is finished.`,
 };
 
 export const DONE = {

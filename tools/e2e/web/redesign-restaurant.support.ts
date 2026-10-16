@@ -133,3 +133,15 @@ export async function documentScrolls(page: Page): Promise<{ scrollHeight: numbe
     innerWidth: window.innerWidth,
   }));
 }
+
+/** A fixture's payload from the mock server (`GET /__mock/scenarios/<name>`). */
+export async function scenarioPayload<T = any>(page: Page, name: string): Promise<T> {
+  const res = await page.request.get(`${MOCK_API}/__mock/scenarios/${name}`);
+  return (await res.json()).data.payload;
+}
+
+/** The restaurant's calendar date ("YYYY-MM-DD", Toronto), `days` from today. */
+export function torontoDateIn(days: number): string {
+  const d = new Date(Date.now() + days * 86_400_000);
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+}

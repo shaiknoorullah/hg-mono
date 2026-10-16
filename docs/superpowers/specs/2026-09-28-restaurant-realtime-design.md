@@ -6,6 +6,12 @@ reviewed: 2026-10-16
 
 # Restaurant app — live updates and rider map
 
+> Update 2026-10-16: the settings upload sheets for the other documents (food safety, business
+> licence, owner ID) and the halal renewal panel mount the onboarding provider, so a document
+> decision (`document.review_state_changed`) re-reads the documents there as it does on the setup
+> pages; the listening and polling rules below are unchanged
+> ([#883](https://github.com/shaiknoorullah/hg-mono/issues/883)).
+
 > Update 2026-10-16: below 768 px the new-order strip renders as a single 44 px row — the orders
 > icon and "No orders waiting" when nothing is offered, and waiting orders stacked under the
 > heading rather than beside it. The listening and polling rules below are unchanged; only the

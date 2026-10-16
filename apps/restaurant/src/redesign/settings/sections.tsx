@@ -13,7 +13,7 @@ import { useServerResource, type ServerResource } from '../data/useServerResourc
 import { formatPhone } from '../format/phone';
 import { RightNow } from '../hours/RightNow';
 import { downloadDocument } from '../onboarding/upload';
-import { documentSummary, longDate } from '../onboarding/model';
+import { DOC_META, documentSummary, isShownDocType, longDate, type ShownDocType } from '../onboarding/model';
 import { supportFrom } from '../auth/api';
 import {
   DOC_LABEL,
@@ -248,7 +248,14 @@ export function ProfileSection({ profile, editable, onEdit, onRequest }: { profi
 
 // ── Documents ─────────────────────────────────────────────────────────────────────────────
 
-export function DocumentsSection({ docs, denied }: { docs: ServerResource<KycDocument[]>; denied: boolean }) {
+/** The label on a row's upload button: the board says what the upload is for (settings board `PartDocuments`). */
+export function uploadLabel(d: KycDocument): string {
+  if (d.state === 'REJECTED') return 'Upload a new version';
+  if (d.state === 'EXPIRED') return 'Upload renewed certificate';
+  return 'Upload new version';
+}
+
+export function DocumentsSection({ docs, denied, canUpload = false, onUpload }: { docs: ServerResource<KycDocument[]>; denied: boolean; canUpload?: boolean; onUpload?: (type: ShownDocType) => void }) {
   const [link, setLink] = useState<{ id: string; kind: 'gone' | 'failed' } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const open = async (id: string) => {
@@ -303,10 +310,16 @@ export function DocumentsSection({ docs, denied }: { docs: ServerResource<KycDoc
                 <p className="m-0 text-body-md text-fg-secondary">{documentSummary(d)}</p>
                 {d.state === 'REJECTED' && d.review_note ? <p className="m-0 text-body-md">Reviewer’s note: “{d.review_note}”</p> : null}
                 {d.state === 'EXPIRED' && d.valid_until ? <p className="m-0 text-body-md text-fg-secondary">Expired on {longDate(d.valid_until)}.</p> : null}
-                <div>
+                <div className="flex flex-wrap gap-2">
                   <Button variant="tertiary" size="md" loading={busy === d.id} onPress={() => void open(d.id)} aria-label={`View ${DOC_LABEL[d.doc_type] ?? 'document'}`}>
                     View
                   </Button>
+                  {/* The halal certificate is renewed under Halal certification; a document in review is locked. */}
+                  {canUpload && onUpload && isShownDocType(d.doc_type) && d.doc_type !== 'HALAL_CERTIFICATE' && d.state !== 'SUBMITTED' && d.state !== 'IN_REVIEW' ? (
+                    <Button variant="tertiary" size="md" onPress={() => onUpload(d.doc_type as ShownDocType)} aria-label={`${uploadLabel(d)}: ${DOC_META[d.doc_type as ShownDocType].lc}`}>
+                      {uploadLabel(d)}
+                    </Button>
+                  ) : null}
                 </div>
                 {link?.id === d.id ? (
                   <p role="alert" className="m-0 text-body-md text-fg-secondary" data-testid="file-link-error">

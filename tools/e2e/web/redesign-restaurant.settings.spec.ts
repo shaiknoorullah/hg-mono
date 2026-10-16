@@ -31,14 +31,14 @@ test.skip(MODE !== 'mock', 'written against the mock server; run with E2E_MODE=m
  *     `Edit-SavedTax`, `Edit-NamesReviewed`, `Edit-NamesSending`, `Edit-NamesFailed`, `Edit-NamesInvalid`,
  *     `Edit-NamesSent`, `Edit-Conflict`, `Edit-OtherCardInvalid`, `Tablet-SettingsEdit`,
  *     `Settings-HalalRevoked`, `Docs-History`;
- *   - 17 the app has no screen for yet, so there is nothing to capture
+ *   - 10 the app has no screen for yet, so there is nothing to capture
  *     ([#883](https://github.com/shaiknoorullah/hg-mono/issues/883)): What's new (`WhatsNew-*`, which
- *     also needs a release-notes operation the contract does not have), the upload sheets for the
- *     other documents (`Doc-*`), the cancel confirmation and the too-early state of the upload panel
- *     (`Renew-Cancel`, `Renew-TooEarly`) and the renewal-approved notice (`Renewal-Approved*`, blocked
- *     by [#879](https://github.com/shaiknoorullah/hg-mono/issues/879)). The eight This device boards
- *     (`Device-*`, `Settings-Device`) are built and captured by
- *     `redesign-restaurant.device.spec.ts`.
+ *     also needs a release-notes operation the contract does not have) and the renewal-approved notice
+ *     (`Renewal-Approved*`, blocked by [#879](https://github.com/shaiknoorullah/hg-mono/issues/879)).
+ *     Built, and captured by their own specs so this file stays as it is: the eight This device boards
+ *     (`Device-*`, `Settings-Device`) by `redesign-restaurant.device.spec.ts`, and the upload sheets for
+ *     the other documents (`Doc-*`), the cancel confirmation and the too-early state of the upload panel
+ *     (`Renew-Cancel`, `Renew-TooEarly`) by `redesign-restaurant.documents-upload.spec.ts`.
  *
  * Some compared boards draw more than the page does, and the difference is the measurement: the
  * documents boards for food safety draw a banner and an upload button; the support boards draw a
