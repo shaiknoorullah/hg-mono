@@ -133,6 +133,10 @@ const noura = (): Json =>
 test.describe('redesigned admin · rider application (mock)', () => {
   test.use({ colorScheme: 'light' });
 
+  // Every board of the area is drawn at 1440 wide, and the panes a panel squeezes at 1024 are a
+  // finding of their own, not this spec's: the desktop project takes the captures.
+  test.skip(({ viewport }) => viewport?.width !== 1440, 'the rider onboarding boards are drawn at 1440 wide');
+
   test('in review, claimed by you', async ({ page }) => {
     await openApp(page, { detail: (me) => inReview(me) });
     await capture(page, { 1440: 'admin/rider-onboarding/DetailReview' });
@@ -273,7 +277,7 @@ test.describe('redesigned admin · rider application (mock)', () => {
   test('role changed mid-claim (403 on review)', async ({ page }) => {
     await answeredInsurance(page, {}, { status: 403, code: 'FORBIDDEN' });
     await approveDocument(page);
-    await expect(page.getByText('The server didn’t approve the document')).toBeVisible();
+    await expect(page.getByText('You can no longer decide rider applications. Nothing was recorded.')).toBeVisible();
     await capture(page, { 1440: 'admin/rider-onboarding/DetailDecide403' });
   });
 

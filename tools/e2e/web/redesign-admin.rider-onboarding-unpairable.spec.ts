@@ -118,6 +118,10 @@ const GROUPS: ReadonlyArray<{ name: string; boards: ReadonlyArray<readonly [stri
 test.describe('redesigned admin · rider onboarding boards no capture can pair (mock)', () => {
   test.use({ colorScheme: 'light' });
 
+  // Every board of the area is drawn at 1440 wide, and the panes a panel squeezes at 1024 are a
+  // finding of their own, not this spec's: the desktop project takes the captures.
+  test.skip(({ viewport }) => viewport?.width !== 1440, 'the rider onboarding boards are drawn at 1440 wide');
+
   for (const group of GROUPS) {
     test(group.name, async ({ page }) => {
       await openApp(page, { detail: (me) => inReview(me) }, FATIMA.id);

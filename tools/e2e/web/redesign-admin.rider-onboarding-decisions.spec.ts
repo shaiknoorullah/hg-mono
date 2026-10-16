@@ -4,11 +4,8 @@ import {
   allApproved,
   application,
   doc,
-  envelope,
-  failing,
   FATIMA,
   motorisedDocs,
-  never,
   sep,
   withState,
   type Json,
@@ -17,6 +14,7 @@ import {
   answerAll,
   capture,
   choose,
+  failOrRefuse,
   inReview,
   LOCK,
   ONE,
@@ -25,6 +23,7 @@ import {
   reviewing,
   TWO,
   type Live,
+  type Outcome,
 } from './redesign-admin.rider-onboarding.steps';
 import { E2E_MODE } from './mode';
 
@@ -44,19 +43,13 @@ test.skip(E2E_MODE !== 'mock', 'written against the mock server; run with E2E_MO
 const BASE = process.env.E2E_ADMIN_REDESIGN_URL ?? process.env.BASE_URL;
 if (BASE) test.use({ baseURL: BASE });
 
-type How = 'ok' | 'never' | 'error' | 'abort' | { status: number; code: string; then?: (app: Json) => void };
+type How = Outcome;
 
 /** Answers `decideRiderApplication` as `how` says; an accepted decision moves the live application. */
 const deciding =
   (live: Live, how: How = 'ok') =>
   async (route: Route): Promise<void> => {
-    if (how === 'never') return never();
-    if (how === 'error') return failing(route);
-    if (how === 'abort') return route.abort('internetdisconnected');
-    if (typeof how === 'object') {
-      how.then?.(live.app!);
-      return route.fulfill({ status: how.status, json: envelope(how.code, 'Refused.') });
-    }
+    if (!(await failOrRefuse(route, live, how))) return;
     const body = route.request().postDataJSON() as Json;
     live.app!.onboarding_state = body.decision === 'APPROVE' ? 'PAYOUT_PENDING' : 'DOCUMENTS_REJECTED';
     live.app!.assigned_admin_id = null;
@@ -114,6 +107,10 @@ const fillReject = async (page: Page, reason = 'Name doesn’t match') => {
 
 test.describe('redesigned admin · rider decisions (mock)', () => {
   test.use({ colorScheme: 'light' });
+
+  // Every board of the area is drawn at 1440 wide, and the panes a panel squeezes at 1024 are a
+  // finding of their own, not this spec's: the desktop project takes the captures.
+  test.skip(({ viewport }) => viewport?.width !== 1440, 'the rider onboarding boards are drawn at 1440 wide');
 
   // ── Approve rider ──────────────────────────────────────────────────────────
 

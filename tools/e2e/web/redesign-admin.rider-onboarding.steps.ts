@@ -77,19 +77,27 @@ export interface Live {
   app?: Json;
 }
 
-export type ReviewHow = 'ok' | 'never' | 'error' | 'abort' | { status: number; code: string; then?: (app: Json) => void };
+/** How a call of a scene goes: accepted, never answered, a server error, a dropped connection or a refusal. */
+export type Outcome = 'ok' | 'never' | 'error' | 'abort' | { status: number; code: string; then?: (app: Json) => void };
+
+/** Answers `how` when it is a failure or a refusal and returns false; true when the call is to be accepted. */
+export async function failOrRefuse(route: Route, live: Live, how: Outcome): Promise<boolean> {
+  if (how === 'ok') return true;
+  if (how === 'never') await never();
+  else if (how === 'error') await failing(route);
+  else if (how === 'abort') await route.abort('internetdisconnected');
+  else {
+    how.then?.(live.app!);
+    await route.fulfill({ status: how.status, json: envelope(how.code, 'Refused.') });
+  }
+  return false;
+}
 
 /** Answers `reviewRiderDocument` as `how` says, and records an accepted review on the live application. */
 export const reviewing =
-  (live: Live, how: ReviewHow = 'ok') =>
+  (live: Live, how: Outcome = 'ok') =>
   async (route: Route): Promise<void> => {
-    if (how === 'never') return never();
-    if (how === 'error') return failing(route);
-    if (how === 'abort') return route.abort('internetdisconnected');
-    if (typeof how === 'object') {
-      how.then?.(live.app!);
-      return route.fulfill({ status: how.status, json: envelope(how.code, 'Refused.') });
-    }
+    if (!(await failOrRefuse(route, live, how))) return;
     const id = /rider-documents\/([^/]+)\/review/.exec(route.request().url())?.[1];
     const body = route.request().postDataJSON() as Json;
     const found = (live.app!.documents as Json[]).find((d) => d.id === id)!;

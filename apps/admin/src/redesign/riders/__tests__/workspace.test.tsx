@@ -267,6 +267,16 @@ describe('Rider workspace: documents', () => {
     expect(screen.getByText('This document was replaced or removed')).toBeTruthy();
   });
 
+  it('says the role changed when the server refuses a document approval (403)', async () => {
+    renderWorkspace(applicationInReview(), { reviewRiderDocument: { status: 403, body: fixture('error_forbidden') } });
+    fireEvent.click(await screen.findByRole('button', { name: /^Open Vehicle insurance, version 1/ }));
+    const card = await screen.findByTestId('DocumentCard');
+    for (const group of within(card).getAllByRole('radiogroup')) fireEvent.click(within(group).getByRole('radio', { name: 'Passes' }));
+    fireEvent.click(within(card).getByRole('button', { name: 'Approve document' }));
+    expect((await screen.findByRole('alert')).textContent).toContain('You can no longer decide rider applications');
+    expect(within(screen.getByTestId('DocumentCard')).getAllByRole('radio', { checked: true })).toHaveLength(5);
+  });
+
   it('ends review when the claim ends under a document approval (409 review lock lost)', async () => {
     const app = applicationInReview();
     renderWorkspace(app, { reviewRiderDocument: { status: 409, body: fixture('error_review_lock_lost') } });

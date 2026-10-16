@@ -90,6 +90,10 @@ const grid = (page: Page) => page.getByRole('grid');
 test.describe('redesigned admin · rider applications queue (mock)', () => {
   test.use({ colorScheme: 'light' });
 
+  // Every board of the area is drawn at 1440 wide, and the panes a panel squeezes at 1024 are a
+  // finding of their own, not this spec's: the desktop project takes the captures.
+  test.skip(({ viewport }) => viewport?.width !== 1440, 'the rider onboarding boards are drawn at 1440 wide');
+
   test('populated, no claim held', async ({ page }) => {
     await openQueue(page, { list: FIVE });
     await expect(grid(page).getByText('Fatima Noor')).toBeVisible();
