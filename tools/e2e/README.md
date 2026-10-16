@@ -270,6 +270,9 @@ in its `.capture.json` and reported as uncovered. Three helpers in `web/design.t
 
 - `expectDesign(page, board)` / `expectDesignFor(page, { 1440: board, 1024: tabletBoard })` capture
   for the board declared for the viewport width; a width with no entry takes no capture.
+  The restaurant console opens with its side navigation collapsed to icons; for the areas whose
+  boards draw it expanded (menu-hours, settings, payouts) `expectDesign` first presses the rail's
+  own expand button, unless a panel is open (the rail is then collapsed on the board and the app).
 - `declareUnpairable(page, board, reason)` for a **composite** board (several states drawn side by
   side, such as `admin/restaurant-verification/SignIn-Errors`). One screenshot cannot be compared
   with a composite, so the capture goes to `<app>/unpairable/` with the reason in its `.capture.json`
