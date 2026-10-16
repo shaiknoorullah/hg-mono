@@ -61,3 +61,9 @@ export { Wordmark, tokens } from '@hg/ui-native';
 // Order tracking (the waiting screen's reply-by bar): the proposed neutral progress bar, which is
 // driven by the server's deadline and never turns an urgent colour.
 export { ProgressBar } from '@hg/ui-native/proposed';
+
+// Browse and Search: the removable filter chip, the sort menu and the recent-search row.
+export { Chip } from '@hg/ui-native';
+export { Menu } from '@hg/ui-native/ds';
+export type { MenuItem } from '@hg/ui-native/ds';
+export { ListRow } from '@hg/ui-native/proposed';
