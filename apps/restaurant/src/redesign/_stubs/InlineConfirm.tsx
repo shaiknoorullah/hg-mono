@@ -65,7 +65,8 @@ export function InlineConfirm({ icon, title, body, cancel, actions, testId }: In
       className="flex flex-wrap items-center gap-4 rounded-md border-2 border-line-strong bg-surface-raised px-4 py-3 text-fg-primary shadow-sm"
     >
       {glyph ? <Icon name={glyph} size={28} className="text-fg-secondary" /> : null}
-      <div className="min-w-0 flex-1">
+      {/* A basis the text will not shrink below, so in a narrow panel the buttons wrap under it instead of crowding it. */}
+      <div className="min-w-0 flex-1 basis-56">
         <h2 id={`${id}-t`} className="text-[17px] font-bold">
           {title}
         </h2>
