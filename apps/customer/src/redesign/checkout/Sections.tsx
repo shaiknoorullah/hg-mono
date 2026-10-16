@@ -13,7 +13,6 @@ import { cents } from '@hg/api-client';
 import type { Cents } from '@hg/api-client';
 
 import {
-  Badge,
   Card,
   HalalBadge,
   Icon,
@@ -29,7 +28,6 @@ import {
   useTypeStyle,
 } from '../ds';
 import { presentHalal } from '../lib/halal';
-import { formatShortDate } from '../lib/time';
 import type { Cart } from '../ordering/cart';
 import { itemsText, safeCents } from '../ordering/lines';
 import type { ChangedRow, TipChoice } from './model';
@@ -58,10 +56,6 @@ export function RestaurantHeader({ cart, online, asOf, now }: { cart: Cart; onli
         {halal.kind === 'badge' ? (
           <View style={styles.wrap} testID="Checkout-halal">
             <HalalBadge state={halal.state} size="md" surface="card" restaurantId={r.id} certifyingBodyName={halal.certifyingBody} expiresOn={halal.expiresOn} testID="Checkout-halalBadge" />
-            {halal.state === 'EXPIRING_SOON' ? (
-              <Badge variant="neutral" size="md" label={`expires ${formatShortDate(halal.expiresOn)}`} icon={<Icon name="clock" size={14} color={theme.color.text.secondary} />} />
-            ) : null}
-            <Text style={[small, styles.shrink, { color: theme.color.text.secondary }]}>{halal.certifyingBody}</Text>
           </View>
         ) : halal.kind === 'unavailable' || halal.kind === 'stale' ? (
           <Text style={[small, { color: theme.color.text.secondary }]} testID="Checkout-halalLine">

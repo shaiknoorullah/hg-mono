@@ -13,6 +13,7 @@ import { setNowOverride } from '../../lib/now';
 import { resetCartMemory } from '../../ordering/cart';
 import { mockApi, payloadOf, type MockApi } from '../../test/mockApi';
 import { navSpy, renderRedesign, type NavSpy } from '../../test/render';
+import { MONEY_KEY, keysOf } from '../../test/requests';
 import { CheckoutScreen, timing } from '../CheckoutScreen';
 
 jest.mock('../../../payments/pay', () => ({ payWithSheet: jest.fn() }));
@@ -33,19 +34,6 @@ function show() {
   nav = navSpy({ name: 'checkout' });
   return renderRedesign(<CheckoutScreen />, { nav });
 }
-
-function keysOf(value: unknown, out: string[] = []): string[] {
-  if (Array.isArray(value)) value.forEach((v) => keysOf(v, out));
-  else if (value && typeof value === 'object') {
-    for (const [k, v] of Object.entries(value)) {
-      out.push(k);
-      keysOf(v, out);
-    }
-  }
-  return out;
-}
-
-const MONEY_KEY = /price|subtotal|total|amount|fee|discount|tax/i;
 
 async function ready() {
   await screen.findByTestId('Checkout-total');
