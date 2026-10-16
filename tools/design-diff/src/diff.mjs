@@ -26,7 +26,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSy
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BROWSER_APPS, browserMismatch, provenanceProblem } from './browser.mjs';
-import { DEFAULTS, compare } from './compare.mjs';
+import { CONVENTION, CONVENTION_NOTE, DEFAULTS, MISMATCH_FIELD, compare } from './compare.mjs';
 import { PROFILES, profileInsets } from './insets.mjs';
 import { compareLayouts } from './layout-diff.mjs';
 import { compareNative } from './native-geometry.mjs';
@@ -237,8 +237,8 @@ function main() {
       // (src/native-geometry.mjs). The pixel figure is kept for information and never sets a verdict.
       const hierarchyFile = c.file.replace(/\.png$/, '.hierarchy.xml');
       const refPng = readPng(path.join(o.refs, ref.file));
-      const info = compare(refPng, shot, { scale: ref.scale, ...thresholds }).mismatchPct ?? null;
-      const native = { ...base, informationalMismatchPct: info };
+      const info = compare(refPng, shot, { scale: ref.scale, ...thresholds })[MISMATCH_FIELD] ?? null;
+      const native = { ...base, informationalSharedHeightMismatchPct: info };
       if (!existsSync(hierarchyFile)) {
         const reason = 'the capture has no view-hierarchy snapshot (a .hierarchy.xml beside it, from `uiautomator dump`; android/capture-server.mjs writes it), so its geometry cannot be measured';
         pairs.push({ ...native, verdict: 'NO LAYOUT', reason });
@@ -270,13 +270,16 @@ function main() {
       pair.images = { diff: `pairs/${slug}/diff.png`, sideBySide: `pairs/${slug}/side-by-side.png`, preview: `pairs/${slug}/preview.png` };
     }
     pairs.push(pair);
-    console.log(`${pair.verdict.padEnd(12)} ${String(pair.mismatchPct ?? '').padStart(8)} %  ${c.id}  (${c.rel})`);
+    const short = pair.shortfall?.dp ? `  [${pair.shortfall.dp} dp short: ${pair.shortfall.pctOfBoardArea} % of the board not compared]` : '';
+    console.log(`${pair.verdict.padEnd(12)} ${String(pair[MISMATCH_FIELD] ?? '').padStart(8)} % of compared  ${c.id}  (${c.rel})${short}`);
   }
 
+  console.log(`\nmismatch convention: ${CONVENTION}. ${CONVENTION_NOTE}`);
   const apps = new Set(pairs.map((p) => p.app).filter(Boolean));
   const captured = new Set(captures.map((c) => c.id).filter(Boolean));
   const uncaptured = Object.keys(manifest.boards).filter((id) => apps.has(id.split('/')[0]) && !captured.has(id)).sort();
   const results = {
+    comparison: { convention: CONVENTION, mismatchField: MISMATCH_FIELD, note: CONVENTION_NOTE },
     refs: o.refs,
     source: manifest.source,
     thresholds,

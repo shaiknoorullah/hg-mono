@@ -31,7 +31,7 @@ test('verdict: PASS within 0.1 % and 4×4 px; a larger connected region or more 
 
   const speck = compare(board(), paint(board(), 60, 60, 3, 3));
   assert.equal(speck.verdict, 'PASS', '9 px in one 3×3 group is 0.09 %');
-  assert.equal(speck.mismatchPct, 0.09);
+  assert.equal(speck.sharedHeightMismatchPct, 0.09);
 
   const block = compare(board(), paint(board(), 60, 60, 3, 5));
   assert.equal(block.verdict, 'FAIL', 'a group 5 px tall is over the 4×4 limit');
@@ -46,12 +46,29 @@ test('verdict: PASS within 0.1 % and 4×4 px; a larger connected region or more 
   assert.equal(loose.verdict, 'PASS', 'thresholds are options');
 });
 
-test('sizes: a shorter capture counts its missing part, another width is not compared, scale gives dp', () => {
+test('sizes: a shorter capture is compared over its own height, the shortfall reported apart, another width is not compared', () => {
   const board = paint(canvas(60, 90, WHITE), 6, 6, 30, 9);
   const short = compare(board, paint(canvas(60, 60, WHITE), 6, 6, 30, 9), { scale: 3 });
-  assert.equal(short.verdict, 'FAIL');
-  assert.match(short.heightNotes[0], /10 dp shorter/);
+  assert.equal(short.sharedHeightMismatchPct, 0, 'the missing rows are not counted as different');
+  assert.equal(short.mismatchPct, undefined, 'the old name must not survive for a different scale');
+  assert.equal(short.convention, 'shared-height-v2');
+  assert.deepEqual(short.shortfall, { dp: 10, pctOfBoardArea: 33.33 });
+  assert.equal(short.comparedHeightDp, 20);
+  assert.equal(short.verdict, 'FAIL', 'nothing vouches for the part that was not drawn');
+  assert.match(short.heightNotes[0], /10 dp shorter.*33\.33 % of the board's area was not compared/);
+  assert.equal(short.images.app.height, 60);
   assert.equal(compare(board, canvas(54, 90, WHITE), { scale: 3 }).verdict, 'NOT COMPARED');
+});
+
+test('sizes: the same height, or a taller capture, has no shortfall and the same percentage as before', () => {
+  const board = () => paint(canvas(100, 100, WHITE), 10, 10, 30, 8);
+  const same = compare(board(), paint(board(), 60, 60, 3, 3));
+  assert.equal(same.sharedHeightMismatchPct, 0.09);
+  assert.equal(same.shortfall.dp, 0);
+  const taller = compare(board(), paint(canvas(100, 140, WHITE), 10, 10, 30, 8));
+  assert.equal(taller.sharedHeightMismatchPct, 0);
+  assert.equal(taller.shortfall.dp, 0);
+  assert.match(taller.heightNotes[0], /40 dp taller/);
 });
 
 test('phone bars: status and navigation bar heights from dumpsys, new and old forms', () => {
@@ -300,7 +317,7 @@ test('unpairable: never compared, carries the spec\'s reason, counted apart, doe
   const [p] = results().pairs;
   assert.equal(p.verdict, 'UNPAIRABLE');
   assert.equal(p.reason, 'a composite of three states');
-  assert.equal(p.mismatchPct, undefined);
+  assert.equal(p.sharedHeightMismatchPct, undefined);
   assert.match(out.stdout, /1 unpairable/);
   assert.match(out.stdout, /uncaptured boards: 0/, 'a board the spec declared unpairable is not missing');
   assert.equal(spawnSync(process.execPath, [path.join(import.meta.dirname, '../src/diff.mjs'), '--refs', path.join(caps, '../refs'), '--captures', caps, '--out', path.join(caps, '../o2')]).status, 0);
@@ -446,7 +463,7 @@ test('diff.mjs: a native pair is decided by geometry; identical pixels do not pa
   const pass = run();
   assert.equal(pass.status, 0, pass.stdout + pass.stderr);
   assert.equal(pass.results.verdict, 'PASS');
-  assert.equal(pass.results.informationalMismatchPct, 0, 'the pixels are kept for information');
+  assert.equal(pass.results.informationalSharedHeightMismatchPct, 0, 'the pixels are kept for information');
   assert.equal(pass.results.geometry.tolerance.positionDp, TOLERANCE.positionDp, 'the tolerance used is in the results');
 
   const moved = run({ xml: HOME_XML.replace('[48,180][648,252]', '[48,210][648,282]') });

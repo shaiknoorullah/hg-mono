@@ -15,6 +15,12 @@ import { fileURLToPath } from 'node:url';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const ORDER = { FAIL: 0, 'NO BOARD': 1, UNCOVERED: 1, 'DEFECTIVE REFERENCE': 1, 'NOT COMPARED': 2, UNPAIRABLE: 2, 'BROWSER MISMATCH': 3, 'NO PROVENANCE': 3, 'NO LAYOUT': 3, PASS: 4 };
+// The percentage's name says which scale it is on (src/compare.mjs). A results.json from before the
+// change has `mismatchPct`, which counted a short capture's missing rows as different; it is shown, but
+// marked, and the two are never put in one column without saying so.
+const pctOf = (p) => p.sharedHeightMismatchPct ?? p.mismatchPct;
+const isLegacy = (p) => p.sharedHeightMismatchPct === undefined && p.mismatchPct !== undefined;
+const shortText = (p) => (p.shortfall?.dp ? `${p.shortfall.dp} dp short, ${p.shortfall.pctOfBoardArea} % of the board not compared` : isLegacy(p) ? 'not measured (older scale)' : 'none');
 const KIND_ORDER = ['missing', 'extra', 'copy', 'type', 'colour', 'box', 'spacing'];
 
 function args(argv) {
@@ -41,7 +47,7 @@ function pairCard(p, dir) {
   const findings = [...(p.layout?.findings ?? [])].sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind));
   const metrics =
     p.verdict === 'PASS' || p.verdict === 'FAIL'
-      ? `<dl class="metrics"><div><dt>Differing pixels</dt><dd>${p.mismatchPct} %</dd></div><div><dt>Largest region</dt><dd>${p.largestRegion ? `${p.largestRegion.w}×${p.largestRegion.h} dp at ${p.largestRegion.x}, ${p.largestRegion.y}` : 'none'}</dd></div><div><dt>Regions over the limit</dt><dd>${p.regionsOverLimit}</dd></div><div><dt>Board</dt><dd>${esc(p.size)} dp, ×${p.scale}${p.theme ? `, ${p.theme}` : ''}</dd></div></dl>`
+      ? `<dl class="metrics"><div><dt>${isLegacy(p) ? 'Differing pixels, OLD scale (short capture padded, padding counted)' : 'Differing pixels, of the compared height'}</dt><dd>${pctOf(p)} %</dd></div><div><dt>Shortfall (not compared)</dt><dd>${esc(shortText(p))}</dd></div><div><dt>Largest region</dt><dd>${p.largestRegion ? `${p.largestRegion.w}×${p.largestRegion.h} dp at ${p.largestRegion.x}, ${p.largestRegion.y}` : 'none'}</dd></div><div><dt>Regions over the limit</dt><dd>${p.regionsOverLimit}</dd></div><div><dt>Board</dt><dd>${esc(p.size)} dp, ×${p.scale}${p.theme ? `, ${p.theme}` : ''}</dd></div></dl>`
       : `<p class="reason">${esc(p.reason)}</p>`;
   return `<article class="pair" id="${slug(p)}">
 <header><h3>${esc(p.id)}</h3><span class="verdict v-${p.verdict.replace(' ', '-').toLowerCase()}">${p.verdict}</span></header>
@@ -61,13 +67,16 @@ ${p.images ? `<figure><img loading="lazy" alt="Design, app and difference side b
 function main() {
   const o = args(process.argv.slice(2));
   const r = JSON.parse(readFileSync(path.join(o.results, 'results.json'), 'utf8'));
-  const pairs = [...r.pairs].sort((a, b) => ORDER[a.verdict] - ORDER[b.verdict] || (b.mismatchPct ?? 0) - (a.mismatchPct ?? 0) || a.id.localeCompare(b.id));
+  const pairs = [...r.pairs].sort((a, b) => ORDER[a.verdict] - ORDER[b.verdict] || (pctOf(b) ?? 0) - (pctOf(a) ?? 0) || a.id.localeCompare(b.id));
   const count = (v) => pairs.filter((p) => p.verdict === v).length;
   const t = r.thresholds;
   const paired = new Set(pairs.map((p) => p.id));
+  const scaleBanner = r.comparison
+    ? `<div class="caveat"><strong>Scale: ${esc(r.comparison.convention)}.</strong> ${esc(r.comparison.note)}</div>`
+    : `<div class="caveat"><strong>Older scale: these percentages are not comparable with <code>shared-height-v2</code> results.</strong> In this run a capture shorter than its board was padded and the padding counted as different, so a short page reads as mismatched pixels. Re-run the diff on the same captures to get the shared-height figures and the shortfall.</div>`;
   const caveats = Object.entries(r.caveatBoards ?? {});
   const rows = pairs
-    .map((p) => `<tr><td><a href="#${slug(p)}">${esc(p.id)}</a>${p.caveats?.length ? ' <span class="flag" title="the drawing is not the approved design in places">not approved as drawn</span>' : ''}</td><td><span class="verdict v-${p.verdict.replace(' ', '-').toLowerCase()}">${p.verdict}</span></td><td class="n">${p.mismatchPct ?? '–'}</td><td class="n">${p.largestRegion ? `${p.largestRegion.w}×${p.largestRegion.h}` : '–'}</td><td>${esc((p.layout?.findings ?? []).slice(0, 2).map((f) => f.text).join(' ') || p.reason || '')}</td></tr>`)
+    .map((p) => `<tr><td><a href="#${slug(p)}">${esc(p.id)}</a>${p.caveats?.length ? ' <span class="flag" title="the drawing is not the approved design in places">not approved as drawn</span>' : ''}</td><td><span class="verdict v-${p.verdict.replace(' ', '-').toLowerCase()}">${p.verdict}</span></td><td class="n">${pctOf(p) ?? '–'}${isLegacy(p) ? ' <span class="flag">old scale</span>' : ''}</td><td>${esc(p.verdict === 'PASS' || p.verdict === 'FAIL' ? shortText(p) : '–')}</td><td class="n">${p.largestRegion ? `${p.largestRegion.w}×${p.largestRegion.h}` : '–'}</td><td>${esc((p.layout?.findings ?? []).slice(0, 2).map((f) => f.text).join(' ') || p.reason || '')}</td></tr>`)
     .join('\n');
   const blobs = Object.values(r.areas ?? {}).filter((a) => a.missingBlobs?.length);
   const html = `<!doctype html>
@@ -92,8 +101,9 @@ figure{margin:16px 0 0}figure img{max-width:100%;height:auto;border:1px solid va
 </style></head><body><main>
 <h1>${esc(o.title)}</h1>
 <p class="sub">Captures of the apps against their Claude Design boards (canvases ${esc(r.source?.ref ?? '')}${r.source?.commit ? ` at ${esc(r.source.commit.slice(0, 10))}` : ''}). PASS: at most ${t.maxMismatchPct} % of pixels differ after anti-aliasing and no connected difference is larger than ${t.maxRegionPx}×${t.maxRegionPx} device px. Colour threshold ${t.threshold}.${r.crop ? ` Phone captures cut by ${r.crop.top} px at the top and ${r.crop.bottom} px at the bottom (${esc(r.crop.source)}).` : ''}</p>
+${scaleBanner}
 <div class="summary"><div><b>${pairs.length}</b>captures</div><div><b>${count('PASS')}</b>pass</div><div><b>${count('FAIL')}</b>fail</div><div><b>${count('NOT COMPARED')}</b>not compared</div><div><b>${count('NO BOARD')}</b>without a board</div><div><b>${count('UNCOVERED')}</b>uncovered</div><div><b>${count('UNPAIRABLE')}</b>unpairable</div><div><b>${count('DEFECTIVE REFERENCE')}</b>defective reference</div><div><b>${count('BROWSER MISMATCH')}</b>other browser</div><div><b>${count('NO PROVENANCE')}</b>no provenance</div></div>
-<h2>Every capture</h2><div class="tablewrap"><table><thead><tr><th>Board</th><th>Verdict</th><th>Differing %</th><th>Largest region (dp)</th><th>First differences</th></tr></thead><tbody>
+<h2>Every capture</h2><div class="tablewrap"><table><thead><tr><th>Board</th><th>Verdict</th><th>Differing % of compared height</th><th>Shortfall (not compared)</th><th>Largest region (dp)</th><th>First differences</th></tr></thead><tbody>
 ${rows}
 </tbody></table></div>
 ${caveats.length ? `<h2>Drawings that are not the approved design</h2><p class="sub">Boards whose notes say a part of the drawing is not approved as drawn (a design-system issue, a fix logged, not for approval). Match the app to the approved design there, not to the picture. ${caveats.filter(([id]) => paired.has(id)).length} of them have a capture in this run.</p><details><summary>All ${caveats.length} boards</summary><ul class="notes">${caveats.map(([id, b]) => `<li><b>${esc(id)}</b> ${esc(b.title)}<ul>${b.caveats.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></li>`).join('')}</ul></details>` : ''}
