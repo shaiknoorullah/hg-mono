@@ -1,7 +1,7 @@
 /**
  * WP4 — the status bar and page banners on a console page (wp4 spec §3, §7): the Orders
  * switch moves only when the server confirms, turning off and resuming confirm in the page,
- * Pause offers 15/30/60 minutes only (no "until closing" before #312), the open-state reason
+ * Pause offers 15/30/60 minutes and until closing, the open-state reason
  * is the server's verbatim, and the halal rules (no badge when missing / unverified, slate
  * expired, the absence reported).
  */

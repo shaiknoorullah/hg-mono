@@ -148,13 +148,13 @@ test.describe('Live orders: In progress list', () => {
     expect(codes).toEqual(['K7J1', 'K7M4', 'K7L8', 'K7G5']);
     await expect(list.getByText('Out for delivery', { exact: true })).toBeVisible();
 
-    // Status bar: open state from the server; no "Pause until closing" before #312.
+    // Status bar: open state from the server; the Pause menu offers three lengths, then "Pause until closing".
     const bar = page.getByRole('region', { name: 'Service status' });
     await expect(bar.getByTestId('open-state-badge')).toHaveText('Open');
     await expect(bar.getByRole('switch', { name: 'Orders' })).toBeChecked();
     await bar.getByRole('button', { name: 'Pause' }).click();
     const menu = page.getByRole('menu', { name: 'Pause new orders' });
-    await expect(menu.getByRole('menuitem')).toHaveText(['Pause for 15 minutes', 'Pause for 30 minutes', 'Pause for 1 hour']);
+    await expect(menu.getByRole('menuitem')).toHaveText(['Pause for 15 minutes', 'Pause for 30 minutes', 'Pause for 1 hour', 'Pause until closing']);
     await page.keyboard.press('Escape');
 
     await expectNoDocumentScroll(page);
