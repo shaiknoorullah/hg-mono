@@ -2,7 +2,7 @@
  * WP8 — Menu (manifest §2.4, §3 WP8 DONE; spec specs/wp8-menu.md). Every board state asserted by
  * role and name against contract fixtures (patched where the contract has no fixture yet, #676).
  */
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { installDomShims } from '@hg/ui-web/testing';
@@ -11,6 +11,17 @@ import { resetSignedOut } from '../data/client';
 import { resetServerClock } from '../data/serverClock';
 import { consoleRoutes, errorBody, fixture, installFakeApi, type Handler } from '../test/fakeApi';
 import { IDS, byName, category, item, richMenu } from './testMenu';
+
+/**
+ * The wall clock is pinned to 2:00 pm in Toronto, so "one hour from now" can never cross midnight
+ * and read "tomorrow" (#933). The clock still ticks forward with real time, and the interval timers
+ * are faked so a case can step a refresh interval by hand.
+ */
+const PINNED_NOW = '2026-10-15T18:00:00Z';
+
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'], now: new Date(PINNED_NOW), shouldAdvanceTime: true });
+});
 
 afterEach(() => {
   cleanup();
@@ -144,7 +155,6 @@ describe('menu list', () => {
   });
 
   it('refreshes every 60 s', async () => {
-    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'], shouldAdvanceTime: true });
     const api = installFakeApi(routes());
     await openMenu();
     const n = api.callsTo(MENU).length;
