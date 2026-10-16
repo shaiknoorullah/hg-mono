@@ -33,6 +33,9 @@ import { AddressStepScreen } from '../signin/AddressStepScreen';
 import { SignInScreen } from '../signin/SignInScreen';
 import { TermsScreen } from '../signin/TermsScreen';
 import { YourDetailsScreen } from '../signin/YourDetailsScreen';
+// Browse and Search.
+import { BrowseScreen } from '../discover/BrowseScreen';
+import { SearchScreen } from '../discover/SearchScreen';
 import { toLegacy } from './LegacyBridge';
 import type { Route, RouteName } from './routes';
 
@@ -41,6 +44,9 @@ type Registry = { [N in RouteName]?: ScreenFor<N> };
 
 /** Redesigned screens, by route. Each WP registers its own. */
 export const REDESIGNED: Registry = {
+  // Browse (All restaurants, with its filters sheet) and Search. Address search is not built.
+  browse: (r) => <BrowseScreen sort={r.sort} openNow={r.openNow} />,
+  search: () => <SearchScreen />,
   // WP10/WP11: Account (with its edit sheet and sign-out), Saved addresses, Notification settings
   // and the email-link page. App settings, What's new and the address form are not built yet and
   // still fall back to legacy or to Account.

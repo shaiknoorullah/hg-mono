@@ -7,9 +7,9 @@
  * offline, the as-of banner; the two rows ("Open now, closest first", "Quickest
  * delivery"); every restaurant as a compact card; the View cart bar above the bottom navigation.
  *
- * The card and row composites (RestaurantCardCompact, RestaurantRail) are proposed and not in the
- * design system yet, so they are composed here from Card, HalalBadge, Price, Badge and Icon and
- * not exported (owner: page sections may be composed in route files).
+ * The card composites (RestaurantCardCompact and the rail card) are proposed and not in the design
+ * system yet; they live in `RestaurantCards.tsx`, shared with Browse and Search, and the View cart bar
+ * in `CartBar.tsx`.
  *
  * The bar's title block and its "Change" text control are composed here (HomeBarTitle) because the
  * DS AppBarAction only takes an icon (ds-request). Focus goes to the address title (the page h1) on
@@ -22,7 +22,6 @@
 import * as React from 'react';
 import {
   AccessibilityInfo,
-  Image,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -31,7 +30,6 @@ import {
   View,
   findNodeHandle,
 } from 'react-native';
-import { cents, unwrap, type Schema } from '@hg/api-client';
 
 import {
   AppBar,
@@ -41,9 +39,7 @@ import {
   Card,
   EmptyState,
   ErrorState,
-  HalalBadge,
   Icon,
-  Price,
   Radio,
   RadioGroup,
   Sheet,
@@ -51,11 +47,9 @@ import {
   Toast,
   radius,
   space,
-  spokenPrice,
   useTheme,
   useTypeStyle,
 } from '../ds';
-import { api } from '../api/client';
 import { useConnectivity, getConnectivity } from '../lib/connectivity';
 import { presentHalal, type HalalPresentation } from '../lib/halal';
 import { getNow, useNow } from '../lib/now';
@@ -65,30 +59,22 @@ import { useNav } from '../navigation/context';
 import { ACTIVE_STATE_WORDS, IN_PROGRESS_WORDS, useActiveOrder, type ActiveOrderView } from '../tracking/useActiveOrder';
 import { chooseAddress, getChosenAddressId } from './deliveryAddress';
 import {
-  NO_ADDRESS_LINE,
   addressName,
   addressOptionDescription,
   addressOptionLabel,
   addressTitle,
-  cuisineLine,
-  etaDistance,
-  expiresLabel,
-  restaurantCardLabel,
-  unavailableLabel,
   type Address,
   type RestaurantCard,
 } from './format';
+import { CartBar } from './CartBar';
+import { CompactCard, RAIL_CARD_WIDTH, RailCard } from './RestaurantCards';
 import { cachedFeed, loadAddresses, loadRestaurants, rememberFeed, type HomeFeed } from './homeData';
-
-type Cart = Schema['Cart'];
 
 type HomeState =
   /** `address` is known once the addresses answered (undefined before). */
   | { kind: 'loading'; address?: Address | null }
   | { kind: 'error'; code: string | null; address?: Address | null }
   | { kind: 'ready'; feed: HomeFeed; asOf: number; refreshing: boolean };
-
-export const RAIL_CARD_WIDTH = 240;
 
 /** Moves screen-reader focus to a mounted element (no-op when it is not mounted). */
 function focusOn(ref: React.RefObject<View | Text | null>): void {
@@ -168,7 +154,6 @@ export function HomeScreen(): React.ReactElement {
     void load();
   }, [load]);
 
-  const cart = useQuery(() => unwrap(api.GET('/v1/cart')).then((b) => b.data as Cart), []);
   const activeOrder = useActiveOrder();
 
   const address = state.kind === 'ready' ? state.feed.address : state.address;
@@ -213,8 +198,6 @@ export function HomeScreen(): React.ReactElement {
   };
 
   const barTitle = address === undefined ? 'Deliver to' : address ? addressTitle(address) : 'Set an address';
-  const cartData = cart.query.kind === 'ready' ? cart.query.data : null;
-  const showCartBar = cartData != null && (cartData.item_count ?? 0) > 0;
 
   return (
     <View style={[styles.fill, { backgroundColor: theme.color.surface.base }]} testID="Home">
@@ -327,26 +310,7 @@ export function HomeScreen(): React.ReactElement {
         )}
       </ScrollView>
 
-      {showCartBar && cartData ? (
-        <View
-          style={[
-            styles.cartBar,
-            { paddingHorizontal: theme.density.gutter, backgroundColor: theme.color.surface.base, borderTopColor: theme.color.border.decorative },
-          ]}
-        >
-          <Button
-            variant="primary"
-            size="lg"
-            fullWidth
-            onPress={() => nav.push({ name: 'cart' })}
-            accessibilityLabel={`View cart, ${itemsText(cartData.item_count ?? 0)}, ${spokenPrice(cents(cartData.indicative_subtotal_cents))}`}
-            iconEnd={<Price cents={cents(cartData.indicative_subtotal_cents)} size="md" color={theme.color.text.onBrand} />}
-            testID="Home-cartBar"
-          >
-            {`View cart · ${itemsText(cartData.item_count ?? 0)} ·`}
-          </Button>
-        </View>
-      ) : null}
+      <CartBar testID="Home-cartBar" />
 
       <AddressSwitcher
         open={sheetOpen}
@@ -357,10 +321,6 @@ export function HomeScreen(): React.ReactElement {
       />
     </View>
   );
-}
-
-function itemsText(n: number): string {
-  return `${n} ${n === 1 ? 'item' : 'items'}`;
 }
 
 /* ============================================================== page parts */
@@ -659,228 +619,6 @@ function Rail({
           <RailCard key={r.id} restaurant={r} halal={halalFor(r)} now={now} address={address} onPress={() => onOpen(r.id)} />
         ))}
       </ScrollView>
-    </View>
-  );
-}
-
-/** The props both restaurant card shapes take (the rail card and the compact list card). */
-interface CardProps {
-  restaurant: RestaurantCard;
-  halal: HalalPresentation;
-  now: number;
-  address: Address | null;
-  onPress: () => void;
-}
-
-/** The text styles and availability lines both card shapes render from. */
-function useCardLines(r: RestaurantCard, now: number, address: Address | null) {
-  const theme = useTheme();
-  const name = useTypeStyle('heading.sm');
-  const small = useTypeStyle('body.sm');
-  const a = r.availability;
-  return {
-    theme,
-    name,
-    secondary: [small, { color: theme.color.text.secondary }],
-    cuisine: cuisineLine(r),
-    a,
-    blocked: unavailableLabel(a, now, address),
-    eta: etaDistance(a),
-  };
-}
-
-function RailCard({
-  restaurant: r,
-  halal,
-  now,
-  address,
-  onPress,
-}: CardProps): React.ReactElement {
-  const { theme, name, secondary, cuisine, a, blocked, eta } = useCardLines(r, now, address);
-  return (
-    <Card
-      variant="interactive"
-      padding={space['3']}
-      onPress={onPress}
-      accessibilityLabel={restaurantCardLabel(r, halal, now, address)}
-      media={<Thumb uri={r.hero_image_url} height={104} />}
-      style={{ width: RAIL_CARD_WIDTH }}
-      contentStyle={styles.stack}
-      testID={`Home-railCard-${r.id}`}
-    >
-      <Text numberOfLines={1} style={[name, { color: theme.color.text.primary }]}>
-        {r.name}
-      </Text>
-      {cuisine ? (
-        <Text numberOfLines={1} style={secondary}>
-          {cuisine}
-        </Text>
-      ) : null}
-      <CardHalal restaurant={r} halal={halal} showBody={false} testID={`Home-railCard-${r.id}`} />
-      {a.state === 'NO_ADDRESS' ? (
-        <Text style={secondary}>{NO_ADDRESS_LINE}</Text>
-      ) : blocked ? (
-        <Text style={secondary}>{blocked}</Text>
-      ) : (
-        <>
-          {eta ? (
-            <View style={styles.inline}>
-              <Icon name="clock" size={16} color={theme.color.text.secondary} />
-              <Text style={secondary}>{eta}</Text>
-            </View>
-          ) : null}
-          {a.indicative_delivery_fee_cents != null ? (
-            <View style={styles.inline}>
-              <Price cents={cents(a.indicative_delivery_fee_cents)} size="sm" color={theme.color.text.secondary} />
-              <Text style={secondary}>delivery (estimate)</Text>
-            </View>
-          ) : null}
-        </>
-      )}
-    </Card>
-  );
-}
-
-/* =============================================== RestaurantCardCompact (proposed) */
-
-function CompactCard({
-  restaurant: r,
-  halal,
-  now,
-  address,
-  onPress,
-}: CardProps): React.ReactElement {
-  const { theme, name, secondary, cuisine, a, blocked, eta } = useCardLines(r, now, address);
-  const testID = `Home-card-${r.id}`;
-  return (
-    <Card variant="interactive" onPress={onPress} accessibilityLabel={restaurantCardLabel(r, halal, now, address)} testID={testID}>
-      <View style={styles.compactRow}>
-        <Thumb uri={r.hero_image_url} width={72} height={72} rounded />
-        <View style={[styles.stack, styles.shrink]}>
-          <Text numberOfLines={2} style={[name, { color: theme.color.text.primary }]}>
-            {r.name}
-          </Text>
-          {cuisine ? (
-            <Text numberOfLines={1} style={secondary}>
-              {cuisine}
-            </Text>
-          ) : null}
-          <CardHalal restaurant={r} halal={halal} showBody testID={testID} />
-          {a.state === 'NO_ADDRESS' ? (
-            <Text style={secondary} testID={`${testID}-noAddress`}>
-              {NO_ADDRESS_LINE}
-            </Text>
-          ) : blocked ? (
-            <View style={styles.inline}>
-              <Badge
-                variant="neutral"
-                size="md"
-                label={blocked}
-                icon={<Icon name="clock" size={14} color={theme.color.text.secondary} />}
-                testID={`${testID}-availability`}
-              />
-            </View>
-          ) : (
-            <View style={styles.wrapRow}>
-              {eta ? <Text style={secondary}>{eta}</Text> : null}
-              {a.indicative_delivery_fee_cents != null ? (
-                <View style={styles.inline}>
-                  <Price cents={cents(a.indicative_delivery_fee_cents)} size="sm" color={theme.color.text.secondary} />
-                  <Text style={secondary}>delivery</Text>
-                </View>
-              ) : null}
-              {a.minimum_order_cents != null ? (
-                <View style={styles.inline}>
-                  <Text style={secondary}>Min.</Text>
-                  <Price cents={cents(a.minimum_order_cents)} size="sm" color={theme.color.text.secondary} />
-                </View>
-              ) : null}
-            </View>
-          )}
-        </View>
-      </View>
-    </Card>
-  );
-}
-
-/**
- * The halal row of a card, from `presentHalal` only: a badge (with "expires 20 Oct" beside an
- * expiring one, and the certifier on list cards), or a neutral line, or nothing.
- */
-function CardHalal({
-  restaurant,
-  halal,
-  showBody,
-  testID,
-}: {
-  restaurant: RestaurantCard;
-  halal: HalalPresentation;
-  showBody: boolean;
-  testID: string;
-}): React.ReactElement | null {
-  const theme = useTheme();
-  const small = useTypeStyle('body.sm');
-  const secondary = [small, { color: theme.color.text.secondary }];
-  switch (halal.kind) {
-    case 'badge': {
-      const expires = expiresLabel(halal);
-      return (
-        <View style={styles.stack}>
-          <View style={styles.wrapRow}>
-            <HalalBadge state={halal.state} size="sm" surface="card" restaurantId={restaurant.id} testID={`${testID}-halal`} />
-            {expires ? (
-              <Badge
-                variant="neutral"
-                size="sm"
-                label={expires}
-                icon={<Icon name="clock" size={12} color={theme.color.text.secondary} />}
-                testID={`${testID}-expires`}
-              />
-            ) : null}
-          </View>
-          {showBody ? (
-            <Text numberOfLines={2} style={secondary} testID={`${testID}-certifier`}>
-              {halal.certifyingBody}
-            </Text>
-          ) : null}
-        </View>
-      );
-    }
-    case 'expired':
-      // Never listed (the API returns 404), but if one arrives it is slate, never red.
-      return <HalalBadge state="EXPIRED" size="sm" surface="card" restaurantId={restaurant.id} testID={`${testID}-halal`} />;
-    case 'unavailable':
-    case 'stale':
-      return (
-        <>
-          {/* A missing state still mounts the badge so it reports HALAL_DISPLAY_STATE_MISSING; it draws nothing. */}
-          {!restaurant.halal?.display_state ? (
-            <HalalBadge state={undefined} size="sm" surface="card" restaurantId={restaurant.id} />
-          ) : null}
-          <Text style={secondary} testID={`${testID}-halalLine`}>
-            {halal.line}
-          </Text>
-        </>
-      );
-    case 'none':
-      return null;
-  }
-}
-
-/** The restaurant's own image, or a neutral "No image" frame (never a bundled photograph). */
-function Thumb({ uri, width, height, rounded }: { uri?: string | null; width?: number; height: number; rounded?: boolean }) {
-  const theme = useTheme();
-  const small = useTypeStyle('body.sm');
-  const frame = [
-    { width: width ?? '100%', height, backgroundColor: theme.color.surface.sunken } as const,
-    rounded ? { borderRadius: radius.md } : null,
-  ];
-  if (uri) {
-    return <Image source={{ uri }} style={[...frame, styles.image]} accessibilityIgnoresInvertColors accessible={false} />;
-  }
-  return (
-    <View style={[...frame, styles.noImage]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      <Text style={[small, { color: theme.color.text.secondary }]}>No image</Text>
     </View>
   );
 }
