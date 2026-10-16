@@ -217,6 +217,13 @@ jobs:
       - name: device-lab missions
         run: pnpm e2e:missions:check
 
+      # 4c. The customer app's design captures name boards that exist, and no board is left without a
+      #     capture or a stated reason. The canvases branch is not fetched here, so this checks the
+      #     flows against tools/e2e/native/customer-boards.mjs; run it locally with the branch fetched
+      #     for the full check.
+      - name: customer design captures
+        run: pnpm e2e:boards:check
+
       # 5. The mock actually boots and serves the contract. It runs in its own process
       #    group, so the cleanup step below stops all of it.
       - name: mock server smoke test
