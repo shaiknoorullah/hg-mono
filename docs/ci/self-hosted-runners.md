@@ -6,7 +6,7 @@ covers:
   - .github/workflows/claude.yml
   - .github/workflows/claude-code-review.yml
   - scripts/ci/**
-reviewed: 2026-10-13
+reviewed: 2026-10-16
 ---
 
 # CI on self-hosted runners
@@ -49,7 +49,7 @@ Jobs that hold a secret or a write token never run on our machines.
 
 | Workflow | On `HG_RUNS_ON` (read-only token, no secrets) | Always on GitHub's runners, and why |
 |---|---|---|
-| [`ci`](../../.github/workflows/ci.yml) | `changes`, `contract-kit`, `js`, `go`, `coverage`, `gate` | `coverage-comment`, `coverage-baseline`, `coverage-issues`: write tokens |
+| [`ci`](../../.github/workflows/ci.yml) | `changes`, `contract-kit`, `js`, `go`, `coverage`, `gate` | `coverage-comment`, `coverage-baseline`, `coverage-issues`, `main-failure`: write tokens |
 | [`docs`](../../.github/workflows/docs.yml) | `doc and PR checks` | `labels` and `weekly`: write tokens |
 | [`migrations`](../../.github/workflows/migrations.yml) | `schema` | |
 
