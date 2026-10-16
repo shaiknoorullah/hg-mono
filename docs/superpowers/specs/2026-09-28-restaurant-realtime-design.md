@@ -1,10 +1,15 @@
 ---
 covers:
   - apps/restaurant/src/**
-reviewed: 2026-10-11
+reviewed: 2026-10-16
 ---
 
 # Restaurant app — live updates and rider map
+
+> Update 2026-10-16: below 768 px the new-order strip renders as a single 44 px row — the orders
+> icon and "No orders waiting" when nothing is offered, and waiting orders stacked under the
+> heading rather than beside it. The listening and polling rules below are unchanged; only the
+> layout differs ([#954](https://github.com/shaiknoorullah/hg-mono/issues/954)).
 
 > Update 2026-10-11: the onboarding review screen now shows the admin's reason from `GET /v1/restaurant/onboarding/status` (`rejection.decision`, `reason_code`, `note`), and a `REJECT` offers no resubmission on screen ([#695](https://github.com/shaiknoorullah/hg-mono/issues/695)).
 
