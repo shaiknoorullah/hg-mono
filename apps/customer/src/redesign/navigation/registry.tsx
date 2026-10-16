@@ -17,6 +17,7 @@ import { ProfileScreen } from '../../screens/ProfileScreen';
 import { AddressesScreen } from '../../screens/AddressesScreen';
 import { AddressFormScreen } from '../../screens/AddressFormScreen';
 import { CartScreen as RedesignedCartScreen } from '../cart/CartScreen';
+import { CheckoutScreen as RedesignedCheckoutScreen } from '../checkout/CheckoutScreen';
 import { OrdersScreen as RedesignedOrdersScreen } from '../orders/OrdersScreen';
 import { ReceiptScreen } from '../orders/ReceiptScreen';
 import { TrackingScreen as RedesignedTrackingScreen } from '../tracking/TrackingScreen';
@@ -32,6 +33,9 @@ import { AddressStepScreen } from '../signin/AddressStepScreen';
 import { SignInScreen } from '../signin/SignInScreen';
 import { TermsScreen } from '../signin/TermsScreen';
 import { YourDetailsScreen } from '../signin/YourDetailsScreen';
+// Browse and Search.
+import { BrowseScreen } from '../discover/BrowseScreen';
+import { SearchScreen } from '../discover/SearchScreen';
 import { toLegacy } from './LegacyBridge';
 import type { Route, RouteName } from './routes';
 
@@ -40,6 +44,9 @@ type Registry = { [N in RouteName]?: ScreenFor<N> };
 
 /** Redesigned screens, by route. Each WP registers its own. */
 export const REDESIGNED: Registry = {
+  // Browse (All restaurants, with its filters sheet) and Search. Address search is not built.
+  browse: (r) => <BrowseScreen sort={r.sort} openNow={r.openNow} />,
+  search: () => <SearchScreen />,
   // WP10/WP11: Account (with its edit sheet and sign-out), Saved addresses, Notification settings
   // and the email-link page. App settings, What's new and the address form are not built yet and
   // still fall back to legacy or to Account.
@@ -52,6 +59,8 @@ export const REDESIGNED: Registry = {
   certificate: (r) => <CertificateScreen restaurantId={r.restaurantId} />,
   // WP5: the cart (the item sheet is owned by the restaurant page and the cart, not a route).
   cart: () => <RedesignedCartScreen />,
+  // Checkout: the last step of the order flow (price, pay, recover a declined payment).
+  checkout: () => <RedesignedCheckoutScreen />,
   // WP9: Orders history (T9) and Receipt (T10).
   orders: () => <RedesignedOrdersScreen />,
   receipt: (route) => <ReceiptScreen orderId={route.orderId} />,

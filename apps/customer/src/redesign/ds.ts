@@ -58,6 +58,16 @@ export type { ClientErrorReporter, TabSpec } from '@hg/ui-native';
 // the spacing scale those pages lay out with.
 export { Wordmark, tokens } from '@hg/ui-native';
 
+// Checkout (rows for address, handover and payment; the rider note and cancellation note fields):
+// both are in the proposed barrel, not the root.
+export { ListRow, Textarea } from '@hg/ui-native/proposed';
+
 // Order tracking (the waiting screen's reply-by bar): the proposed neutral progress bar, which is
 // driven by the server's deadline and never turns an urgent colour.
 export { ProgressBar } from '@hg/ui-native/proposed';
+
+// Browse and Search: the removable filter chip, the sort menu and the recent-search row. The row is
+// the same `ListRow` the checkout screens export above, so it is not re-exported here.
+export { Chip } from '@hg/ui-native';
+export { Menu } from '@hg/ui-native/ds';
+export type { MenuItem } from '@hg/ui-native/ds';
