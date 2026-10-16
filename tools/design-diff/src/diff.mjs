@@ -4,7 +4,7 @@
 //   node src/diff.mjs --refs <render-refs out> --captures <dir> --out <dir>
 //                     [--app customer] [--insets insets.json | --profile phone-390]
 //                     [--map pairs.json] [--threshold 0.1] [--max-mismatch 0.1]
-//                     [--max-region 4] [--max-shortfall 4] [--no-strict]
+//                     [--max-region 4] [--max-shortfall <device px>] [--no-strict]
 //
 // A capture is any design--<area>--<Board>.png under --captures. The board it is compared with is the one
 // its .capture.json declares (`board`); nothing is matched by similarity (README.md, "Pairing"). A capture
@@ -271,7 +271,7 @@ function main() {
       pair.images = { diff: `pairs/${slug}/diff.png`, sideBySide: `pairs/${slug}/side-by-side.png`, preview: `pairs/${slug}/preview.png` };
     }
     pairs.push(pair);
-    const short = pair.shortfall?.px ? `  [${pair.shortfall.dp} dp short: ${pair.shortfall.pctOfBoardArea} % of the board not compared; ${pair.shortfall.blocksPass ? `over ${pair.shortfall.limitPx} px, this alone fails it` : `within ${pair.shortfall.limitPx} px, does not block`}]` : '';
+    const short = pair.shortfall?.px ? `  [${pair.shortfall.dp} dp short: ${pair.shortfall.pctOfBoardArea} % of the board not compared; ${pair.shortfall.blocksPass ? `${pair.shortfall.px} px, over the ${pair.shortfall.limitPx} px allowed: this alone fails it` : `${pair.shortfall.px} px, within the ${pair.shortfall.limitPx} px allowed: does not block`}]` : '';
     console.log(`${pair.verdict.padEnd(12)} ${String(pair[MISMATCH_FIELD] ?? '').padStart(8)} % of compared  ${c.id}  (${c.rel})${short}`);
   }
 
