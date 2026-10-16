@@ -14,10 +14,11 @@
 // --profile, the stock heights). Writes <out>/results.json and, per pair, the diff image and the
 // side-by-side (design | app | diff) under <out>/pairs/. A web capture taken by another Chromium than
 // drew its board, or by an unrecorded one, is BROWSER MISMATCH and not compared (src/browser.mjs). A
-// native capture must record its device and app build (NO PROVENANCE) and is then not compared by pixels.
+// native capture must record its device and app build (NO PROVENANCE) and its view hierarchy (NO LAYOUT), and is then measured by
+// layout geometry and colour, never by pixels (src/native-geometry.mjs).
 // A board whose assets did not all load is DEFECTIVE REFERENCE and not compared: the missing picture
 // is the renderer's, not the app's. Checked after NO BOARD, before the capture is looked at.
-// Exits 1 when any pair is FAIL, NO BOARD, UNCOVERED, DEFECTIVE REFERENCE, NOT COMPARED, BROWSER MISMATCH or NO PROVENANCE (UNPAIRABLE
+// Exits 1 when any pair is FAIL, NO BOARD, UNCOVERED, DEFECTIVE REFERENCE, NOT COMPARED, BROWSER MISMATCH, NO PROVENANCE or NO LAYOUT (UNPAIRABLE
 // is a declared, reasoned exclusion and does not fail the run) (the default; --strict is an accepted alias); --no-strict reports and exits 0. A crash or
 // usage error exits 2.
 
@@ -28,6 +29,8 @@ import { BROWSER_APPS, browserMismatch, provenanceProblem } from './browser.mjs'
 import { DEFAULTS, compare } from './compare.mjs';
 import { PROFILES, profileInsets } from './insets.mjs';
 import { compareLayouts } from './layout-diff.mjs';
+import { compareNative } from './native-geometry.mjs';
+import { snapshotFromHierarchy } from './uiautomator.mjs';
 import { APPS, parseBoardId, parseCaptureFile } from './names.mjs';
 import { crop, readPng, shrink, sideBySide, writePng } from './png.mjs';
 
@@ -142,7 +145,7 @@ export function referenceIncomplete(ref) {
 /** Verdicts that do not fail a run: a pass, and a capture its spec declared cannot be compared, with the reason. */
 const NOT_FAILING = ['PASS', 'UNPAIRABLE'];
 
-/** 1 when the run must fail: any pair that is not PASS or UNPAIRABLE (FAIL, NO BOARD, UNCOVERED, DEFECTIVE REFERENCE, NOT COMPARED, BROWSER MISMATCH, NO PROVENANCE), unless strict is off. */
+/** 1 when the run must fail: any pair that is not PASS or UNPAIRABLE (FAIL, NO BOARD, UNCOVERED, DEFECTIVE REFERENCE, NOT COMPARED, BROWSER MISMATCH, NO PROVENANCE, NO LAYOUT), unless strict is off. */
 export function exitCodeFor(pairs, strict = true) {
   return strict && pairs.some((p) => !NOT_FAILING.includes(p.verdict)) ? 1 : 0;
 }
@@ -165,6 +168,16 @@ function readSidecar(captureFile) {
 /** Why a native capture is untrusted (no device or app build recorded), or null. Web captures: null. */
 export function captureProvenanceProblem(app, captureFile) {
   return BROWSER_APPS.includes(app) ? null : provenanceProblem(readSidecar(captureFile));
+}
+
+/**
+ * Device px per dp for a native capture: what its sidecar records (`density`, 3 at 480 dpi), else the
+ * screenshot's width over the board's, which assumes the screen is as wide as the board in dp (a
+ * screen of another width is then not told apart from a scaled one, so the source is recorded).
+ */
+export function nativeDensity(sidecar, screenshotWidthPx, ref) {
+  if (typeof sidecar?.density === 'number' && sidecar.density > 0) return { value: sidecar.density, source: 'sidecar' };
+  return { value: screenshotWidthPx / ref.w, source: 'screenshot width over board width (the capture recorded no density)' };
 }
 
 function main() {
@@ -216,17 +229,30 @@ function main() {
       continue;
     }
     let shot = readPng(c.file);
+    const full = shot.width;
     if (cut) shot = crop(shot, 0, cut.top, shot.width, shot.height - cut.top - cut.bottom);
-    const r = compare(readPng(path.join(o.refs, ref.file)), shot, { scale: ref.scale, ...thresholds });
     if (!BROWSER_APPS.includes(app)) {
       // A native screen and an HTML board never agree pixel for pixel (different text rasterisers), so
-      // a pixel verdict would be the wrong measurement. The geometry criterion is not built yet
-      // (README, "Native boards"): the figure is shown for information and the pair is not compared.
-      const info = r.mismatchPct ?? null;
-      pairs.push({ ...base, verdict: 'NOT COMPARED', reason: 'native board: measured by layout geometry, which is not implemented yet (README, "Native boards"); pixels are not a criterion for it', informationalMismatchPct: info });
-      console.log(`${'NOT COMPARED'.padEnd(12)} ${String(info ?? '').padStart(8)} %  ${c.id}  (${c.rel})  native: geometry criterion not implemented`);
+      // pixels are not a criterion for it: the pair is measured by layout geometry and colour
+      // (src/native-geometry.mjs). The pixel figure is kept for information and never sets a verdict.
+      const hierarchyFile = c.file.replace(/\.png$/, '.hierarchy.xml');
+      const refPng = readPng(path.join(o.refs, ref.file));
+      const info = compare(refPng, shot, { scale: ref.scale, ...thresholds }).mismatchPct ?? null;
+      const native = { ...base, informationalMismatchPct: info };
+      if (!existsSync(hierarchyFile)) {
+        const reason = 'the capture has no view-hierarchy snapshot (a .hierarchy.xml beside it, from `uiautomator dump`; android/capture-server.mjs writes it), so its geometry cannot be measured';
+        pairs.push({ ...native, verdict: 'NO LAYOUT', reason });
+        console.log(`${'NO LAYOUT'.padEnd(12)} ${String(info ?? '').padStart(8)} %  ${c.id}  (${c.rel})  ${reason}`);
+        continue;
+      }
+      const density = nativeDensity(readSidecar(c.file), full, ref);
+      const snapshot = snapshotFromHierarchy(readFileSync(hierarchyFile, 'utf8'), { density: density.value, cut });
+      const g = compareNative(JSON.parse(readFileSync(path.join(o.refs, ref.layout), 'utf8')), snapshot, { designPng: refPng, designScale: ref.scale, appPng: shot, appScale: density.value });
+      pairs.push({ ...native, verdict: g.verdict, reason: g.reason, geometry: { tolerance: g.tolerance, measured: g.measured, density }, layout: { matchedTexts: g.measured.texts ?? 0, findings: g.findings } });
+      console.log(`${g.verdict.padEnd(12)} ${String(info ?? '').padStart(8)} %  ${c.id}  (${c.rel})  geometry: ${g.measured.texts ?? 0}/${g.measured.boardTexts ?? 0} texts, ${g.measured.boxes ?? 0} boxes, worst ${g.measured.worstDp ?? 0} dp${g.reason ? `; ${g.reason}` : ''}`);
       continue;
     }
+    const r = compare(readPng(path.join(o.refs, ref.file)), shot, { scale: ref.scale, ...thresholds });
     const pair = { ...base, size: `${ref.w}×${ref.h}`, scale: ref.scale, theme: ref.theme, notes: ref.notes, caveats: ref.caveats, missingBlobs: ref.missingBlobs, boardErrors: ref.errors, ...r, images: undefined };
     const layoutFile = c.file.replace(/\.png$/, '.layout.json');
     if (existsSync(layoutFile) && ref.layout && existsSync(path.join(o.refs, ref.layout))) {
@@ -264,7 +290,7 @@ function main() {
   mkdirSync(o.out, { recursive: true });
   writeFileSync(path.join(o.out, 'results.json'), JSON.stringify(results, null, 1) + '\n');
   const count = (v) => pairs.filter((p) => p.verdict === v).length;
-  console.log(`\n${pairs.length} captures: ${count('PASS')} pass, ${count('FAIL')} fail, ${count('NOT COMPARED')} not compared, ${count('NO BOARD')} without a board, ${count('UNCOVERED')} uncovered (no board declared), ${count('UNPAIRABLE')} unpairable (declared not comparable), ${count('DEFECTIVE REFERENCE')} with a defective reference, ${count('BROWSER MISMATCH')} from another browser than their board, ${count('NO PROVENANCE')} native without provenance. ${path.join(o.out, 'results.json')}`);
+  console.log(`\n${pairs.length} captures: ${count('PASS')} pass, ${count('FAIL')} fail, ${count('NOT COMPARED')} not compared, ${count('NO BOARD')} without a board, ${count('UNCOVERED')} uncovered (no board declared), ${count('UNPAIRABLE')} unpairable (declared not comparable), ${count('DEFECTIVE REFERENCE')} with a defective reference, ${count('BROWSER MISMATCH')} from another browser than their board, ${count('NO PROVENANCE')} native without provenance, ${count('NO LAYOUT')} native without a view hierarchy. ${path.join(o.out, 'results.json')}`);
   console.log(`paired by declaration: ${results.pairing.declared}, by --map: ${results.pairing.map}, by native file name: ${results.pairing.name}`);
   console.log(`uncaptured boards: ${uncaptured.length}${uncaptured.length ? ` (${uncaptured.slice(0, 10).join(', ')}${uncaptured.length > 10 ? ', ...' : ''})` : ''}`);
   process.exitCode = exitCodeFor(pairs, o.strict);
