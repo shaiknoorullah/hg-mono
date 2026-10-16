@@ -96,14 +96,33 @@ browser, so this rule is for the web apps (restaurant, admin) only; see "Native 
 compares them (`src/compare.mjs`) and writes `<out>/results.json` and, per pair, `diff.png` and
 `side-by-side.png` (design, app, difference) under `<out>/pairs/`.
 
+**Height (the shared-height scale).** Boards are drawn at a fixed height; a real page is as tall as
+its content. Only the rows the capture and the board both have are compared, and the percentage is of
+that area. A taller capture is cut to the board's height (the part below was not compared and is noted).
+A shorter capture is not padded: its missing rows are not counted as different. They are reported as
+`shortfall` (`dp`, and `pctOfBoardArea`, the share of the board's area that was not compared), and a
+pair whose shortfall is over `--max-shortfall` cannot `PASS`, because nothing vouches for the part that
+was not drawn. The default is `ceil(scale)` device px, one dp of rounding (`results.json` `thresholds.maxShortfallPx` reads `"ceil(scale)"`, or the number you passed): it covers a shortfall that is only
+an artefact of converting dp to device px, and nothing larger. A wider allowance would change what `PASS`
+means, which is the owner's decision ([issue 877](https://github.com/shaiknoorullah/hg-mono/issues/877)), not
+a harness default. The shortfall is always reported, in dp and in device px (`shortfall.dp`, `.px`, the
+limit as `.limitPx`), within the limit or not; a `FAIL` whose compared-height percentage is low but whose
+shortfall is over the limit says so in its `heightNotes`, the console line and the report. This
+changes what the percentage means, so it has a new name: `sharedHeightMismatchPct` (the old
+`mismatchPct`, and `informationalMismatchPct`, are gone) and `results.json` carries
+`comparison.convention` (`shared-height-v2`), as does every pair; the console prints it, and the report
+shows it in a banner and labels a results file from before the change as the older scale. The two
+scales are not comparable: before, a page 332 dp short of a 768 dp board read 33.7 % and now reads
+5.1 % with a 30.2 % shortfall. Pairs of equal height produce the same number on both scales. Reversing
+this is a change to `src/compare.mjs` only. No app and no board changes with it.
+
 **Verdict.** After pixelmatch's anti-aliasing detection, a pair passes when at most 0.1 % of the
 board's pixels differ and no connected group of differing pixels is larger than 4 × 4 device px.
 Both limits, the 0.1 % and the 4 × 4 cap, are measured in device pixels, not density-independent pixels: on a
 390 × 844 board rendered at deviceScaleFactor 3 the 4 × 4 cap is about 1.3 × 1.3 dp.
-Anything else fails, with the regions in dp. `--max-mismatch`, `--max-region` and `--threshold`
+Anything else fails, with the regions in dp. `--max-mismatch`, `--max-region`, `--max-shortfall` and `--threshold`
 (pixelmatch's colour threshold, 0.1) change the bars. A capture of another width is listed as not
-compared; a taller one is cut to the board, a shorter one padded, and the padding counts as
-different. A board with any `failedAssets` is `DEFECTIVE REFERENCE`: the diff names the assets and does
+compared. Height is described next. A board with any `failedAssets` is `DEFECTIVE REFERENCE`: the diff names the assets and does
 not compare it, because the missing picture is the renderer's and would be charged to the app as a UI
 difference. The diff fails by default: it exits 1 when any pair is FAIL, NO BOARD (including a board whose
 reference recorded errors, and a declared board missing from the manifest), UNCOVERED, DEFECTIVE REFERENCE, NOT COMPARED, BROWSER MISMATCH, NO PROVENANCE or NO LAYOUT;
@@ -221,7 +240,7 @@ What the harness does for a native capture:
   Without it the pair is `NO LAYOUT`: reported as its own state, and the run fails. Pixels are never
   a fallback.
 - **With both, the pair is `PASS` or `FAIL` on geometry and colour** (`src/native-geometry.mjs`).
-  The pixel figure is kept in `results.json` as `informationalMismatchPct` and never sets a verdict:
+  The pixel figure is kept in `results.json` as `informationalSharedHeightMismatchPct` and never sets a verdict:
   no native board passes on pixels.
 
 **How a capture is measured.**

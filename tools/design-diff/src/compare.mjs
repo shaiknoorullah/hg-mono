@@ -6,12 +6,29 @@
 //   - no connected group of differing pixels is larger than `maxRegionPx` × `maxRegionPx` device
 //     px (default 4 × 4): a moved divider or a wrong radius fails even when the total is tiny.
 // Otherwise FAIL, with the regions. Thresholds are options; README.md, "Verdict".
+//
+// Height. The boards are drawn at a fixed height; a real page is as tall as its content. Only the
+// rows both images have are compared (the "shared height"), and the percentage is of that area.
+// A capture shorter than its board is not padded and its missing rows are not counted as different:
+// the shortfall is reported as its own measurement (`shortfall`), and a pair whose shortfall is over `maxShortfallPx`
+// (default: ceil(scale) device px, one dp of dp-to-px rounding; wider is the owner's call, issue 877) cannot PASS, because nothing vouches for the part that was not drawn;
+// a smaller one (rounding) is still reported but does not block. This is a different scale from the one
+// before it (padding counted as different), so the percentage has a new name, `sharedHeightMismatchPct`,
+// and every results.json carries `comparison.convention`. README.md, "Height".
 
 import pixelmatch from 'pixelmatch';
 import pngjs from 'pngjs';
 import { PAD, crop, outline } from './png.mjs';
 
 const { PNG } = pngjs;
+
+/** Names the scale a mismatch percentage is on. Bump it, and the field name, if the meaning changes again. */
+export const CONVENTION = 'shared-height-v2';
+export const MISMATCH_FIELD = 'sharedHeightMismatchPct';
+export const CONVENTION_NOTE =
+  'sharedHeightMismatchPct is the share of pixels that differ over the rows the capture and the board both have. ' +
+  'A capture shorter than its board is not padded: the missing rows are reported in `shortfall` and are not counted as different. ' +
+  'Results written before this change carry `mismatchPct` instead, which counted that shortfall as different; the two scales are not comparable.';
 
 export const DEFAULTS = {
   /** pixelmatch's colour threshold, 0..1: how different two pixels must be to count. */
@@ -20,6 +37,14 @@ export const DEFAULTS = {
   maxMismatchPct: 0.1,
   /** Largest connected group of differing pixels that still passes, in device px a side. */
   maxRegionPx: 4,
+  /**
+   * Largest shortfall (capture shorter than the board) that still passes, in device px. The string
+   * 'ceil(scale)' (never null, which would read as no limit) means the rounding error of one dp-to-px
+   * conversion, Math.ceil(scale) device px for that board; a number overrides it. It covers
+   * unit-conversion rounding only; a wider allowance changes what PASS means and is the owner's decision
+   * (https://github.com/shaiknoorullah/hg-mono/issues/877).
+   */
+  maxShortfallPx: 'ceil(scale)',
   /** Differences closer than this (dp) are listed as one area in the report. */
   clusterGapDp: 8,
   /** Areas listed per pair. */
@@ -28,8 +53,9 @@ export const DEFAULTS = {
 
 /**
  * Compares `cap` (already cropped to the app's content) with the board `ref`, both PNGs at the
- * board's scale. The capture must be as wide as the board; its height may differ (a taller one is
- * cut to the board, a shorter one padded, and the padding counts as different).
+ * board's scale. The capture must be as wide as the board; its height may differ. Only the rows both
+ * have are compared: a taller capture is cut to the board's height, and a shorter one is compared
+ * over its own height with the board cut to match, the remainder reported as `shortfall`.
  */
 export function compare(ref, cap, { scale = 1, ...options } = {}) {
   const o = { ...DEFAULTS, ...options };
@@ -40,28 +66,38 @@ export function compare(ref, cap, { scale = 1, ...options } = {}) {
     return { verdict: 'NOT COMPARED', reason: `the capture is ${dp(cap.width)} dp wide and the board ${dp(W)} dp` };
   }
   const heightNotes = [];
+  const shared = Math.min(H, cap.height);
+  const shortfallPx = H - shared;
+  const limitPx = o.maxShortfallPx === 'ceil(scale)' ? Math.ceil(scale) : o.maxShortfallPx;
+  const blocksPass = shortfallPx > limitPx;
+  const shortfall = { dp: dp(shortfallPx), px: shortfallPx, pctOfBoardArea: round(100 * shortfallPx / H, 2), limitPx, limitDp: dp(limitPx), blocksPass };
   if (cap.height > H) heightNotes.push(`The capture is ${dp(cap.height - H)} dp taller than the board; the part below the board was not compared.`);
-  if (cap.height < H) heightNotes.push(`The capture is ${dp(H - cap.height)} dp shorter than the board; the missing part counts as different.`);
-  const app = cap.height === H ? cap : crop(cap, 0, 0, W, H, PAD);
+  if (shortfallPx) heightNotes.push(`The capture is ${shortfall.dp} dp shorter than the board (${shortfallPx} device px); ${shortfall.pctOfBoardArea} % of the board's area was not compared (the percentage above covers the top ${dp(shared)} dp only). ${blocksPass ? `A shortfall over ${limitPx} device px (${dp(limitPx)} dp, the rounding of one dp-to-px conversion) fails the pair whatever the percentage, because nothing vouches for the part that was not drawn.` : `It is within the ${limitPx} device px (${dp(limitPx)} dp) allowed for unit-conversion rounding, so it does not block a pass.`}`);
+  const refShared = shared === H ? ref : crop(ref, 0, 0, W, shared, PAD);
+  const app = cap.height === shared ? cap : crop(cap, 0, 0, W, shared, PAD);
 
-  const mask = new PNG({ width: W, height: H });
-  const diffPx = pixelmatch(ref.data, app.data, mask.data, W, H, { threshold: o.threshold, includeAA: false, diffMask: true, diffColor: [255, 0, 0] });
-  const diff = new PNG({ width: W, height: H });
-  pixelmatch(ref.data, app.data, diff.data, W, H, { threshold: o.threshold, includeAA: false, alpha: 0.2, diffColor: [230, 0, 90], aaColor: [255, 190, 0] });
+  const mask = new PNG({ width: W, height: shared });
+  const diffPx = pixelmatch(refShared.data, app.data, mask.data, W, shared, { threshold: o.threshold, includeAA: false, diffMask: true, diffColor: [255, 0, 0] });
+  const diff = new PNG({ width: W, height: shared });
+  pixelmatch(refShared.data, app.data, diff.data, W, shared, { threshold: o.threshold, includeAA: false, alpha: 0.2, diffColor: [230, 0, 90], aaColor: [255, 190, 0] });
 
-  const on = new Uint8Array(W * H);
+  const on = new Uint8Array(W * shared);
   for (let i = 0; i < on.length; i++) on[i] = mask.data[i * 4 + 3] > 0 ? 1 : 0;
-  const { largest, overLimit } = regions(on, W, H, o.maxRegionPx);
-  const areas = clusters(on, W, H, Math.max(1, Math.round(o.clusterGapDp * scale))).slice(0, o.maxAreas);
+  const { largest, overLimit } = regions(on, W, shared, o.maxRegionPx);
+  const areas = clusters(on, W, shared, Math.max(1, Math.round(o.clusterGapDp * scale))).slice(0, o.maxAreas);
   for (const a of areas) outline(diff, a, [0, 110, 255, 255], Math.max(1, Math.round(scale)));
 
-  const mismatchPct = (diffPx / (W * H)) * 100;
-  const verdict = mismatchPct <= o.maxMismatchPct && overLimit === 0 ? 'PASS' : 'FAIL';
+  const mismatchPct = shared ? (diffPx / (W * shared)) * 100 : 0;
+  const verdict = mismatchPct <= o.maxMismatchPct && overLimit === 0 && !blocksPass ? 'PASS' : 'FAIL';
   const box = (r) => r && { x: dp(r.x), y: dp(r.y), w: dp(r.w), h: dp(r.h), px: r.px };
   return {
     verdict,
-    mismatchPct: Math.round(mismatchPct * 1000) / 1000,
+    [MISMATCH_FIELD]: round(mismatchPct, 3),
     mismatchedPx: diffPx,
+    comparedHeightDp: dp(shared),
+    boardHeightDp: dp(H),
+    shortfall,
+    convention: CONVENTION,
     largestRegion: box(largest),
     regionsOverLimit: overLimit,
     areas: areas.map(box),
@@ -69,6 +105,8 @@ export function compare(ref, cap, { scale = 1, ...options } = {}) {
     images: { app, diff },
   };
 }
+
+const round = (n, places) => Math.round(n * 10 ** places) / 10 ** places;
 
 /**
  * Connected groups of differing pixels (8-neighbour). Returns the largest by pixel count and how

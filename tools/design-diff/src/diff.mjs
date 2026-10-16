@@ -4,7 +4,7 @@
 //   node src/diff.mjs --refs <render-refs out> --captures <dir> --out <dir>
 //                     [--app customer] [--insets insets.json | --profile phone-390]
 //                     [--map pairs.json] [--threshold 0.1] [--max-mismatch 0.1]
-//                     [--max-region 4] [--no-strict]
+//                     [--max-region 4] [--max-shortfall <device px>] [--no-strict]
 //
 // A capture is any design--<area>--<Board>.png under --captures. The board it is compared with is the one
 // its .capture.json declares (`board`); nothing is matched by similarity (README.md, "Pairing"). A capture
@@ -26,7 +26,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSy
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BROWSER_APPS, browserMismatch, provenanceProblem } from './browser.mjs';
-import { DEFAULTS, compare } from './compare.mjs';
+import { CONVENTION, CONVENTION_NOTE, DEFAULTS, MISMATCH_FIELD, compare } from './compare.mjs';
 import { PROFILES, profileInsets } from './insets.mjs';
 import { compareLayouts } from './layout-diff.mjs';
 import { compareNative } from './native-geometry.mjs';
@@ -54,6 +54,7 @@ function args(argv) {
       case '--threshold': o.thresholds.threshold = num('--threshold', v()); break;
       case '--max-mismatch': o.thresholds.maxMismatchPct = num('--max-mismatch', v()); break;
       case '--max-region': o.thresholds.maxRegionPx = num('--max-region', v()); break;
+      case '--max-shortfall': o.thresholds.maxShortfallPx = num('--max-shortfall', v()); break;
       case '--strict': o.strict = true; break;
       case '--no-strict': o.strict = false; break;
       default: throw new Error(`unknown option ${argv[i]} (see the header of src/diff.mjs)`);
@@ -237,8 +238,8 @@ function main() {
       // (src/native-geometry.mjs). The pixel figure is kept for information and never sets a verdict.
       const hierarchyFile = c.file.replace(/\.png$/, '.hierarchy.xml');
       const refPng = readPng(path.join(o.refs, ref.file));
-      const info = compare(refPng, shot, { scale: ref.scale, ...thresholds }).mismatchPct ?? null;
-      const native = { ...base, informationalMismatchPct: info };
+      const info = compare(refPng, shot, { scale: ref.scale, ...thresholds })[MISMATCH_FIELD] ?? null;
+      const native = { ...base, informationalSharedHeightMismatchPct: info };
       if (!existsSync(hierarchyFile)) {
         const reason = 'the capture has no view-hierarchy snapshot (a .hierarchy.xml beside it, from `uiautomator dump`; android/capture-server.mjs writes it), so its geometry cannot be measured';
         pairs.push({ ...native, verdict: 'NO LAYOUT', reason });
@@ -270,13 +271,16 @@ function main() {
       pair.images = { diff: `pairs/${slug}/diff.png`, sideBySide: `pairs/${slug}/side-by-side.png`, preview: `pairs/${slug}/preview.png` };
     }
     pairs.push(pair);
-    console.log(`${pair.verdict.padEnd(12)} ${String(pair.mismatchPct ?? '').padStart(8)} %  ${c.id}  (${c.rel})`);
+    const short = pair.shortfall?.px ? `  [${pair.shortfall.dp} dp short: ${pair.shortfall.pctOfBoardArea} % of the board not compared; ${pair.shortfall.blocksPass ? `${pair.shortfall.px} px, over the ${pair.shortfall.limitPx} px allowed: this alone fails it` : `${pair.shortfall.px} px, within the ${pair.shortfall.limitPx} px allowed: does not block`}]` : '';
+    console.log(`${pair.verdict.padEnd(12)} ${String(pair[MISMATCH_FIELD] ?? '').padStart(8)} % of compared  ${c.id}  (${c.rel})${short}`);
   }
 
+  console.log(`\nmismatch convention: ${CONVENTION}. ${CONVENTION_NOTE}`);
   const apps = new Set(pairs.map((p) => p.app).filter(Boolean));
   const captured = new Set(captures.map((c) => c.id).filter(Boolean));
   const uncaptured = Object.keys(manifest.boards).filter((id) => apps.has(id.split('/')[0]) && !captured.has(id)).sort();
   const results = {
+    comparison: { convention: CONVENTION, mismatchField: MISMATCH_FIELD, note: CONVENTION_NOTE },
     refs: o.refs,
     source: manifest.source,
     thresholds,

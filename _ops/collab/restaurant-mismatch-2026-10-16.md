@@ -5,6 +5,8 @@ reviewed: 2026-10-16
 
 # What the restaurant design-diff mismatch is made of (16 Oct 2026)
 
+> **Older scale.** Every percentage below counts a short capture's missing rows as different (field `mismatchPct`). The harness now compares over the shared height and reports the shortfall apart (field `sharedHeightMismatchPct`, convention `shared-height-v2`; see [the design-diff README, Height](../../tools/design-diff/README.md)). The two scales are not comparable; pairs of equal height are unchanged.
+
 Analysis of existing output only: `design-diff-out/diff-20261016-0440/results.json` (design-diff run of the redesign canvases at `d117731f`), the board geometry in `design-diff-out/refs/restaurant/*/*.layout.json`, and the per-pair `diff.png` / `side-by-side.png`. No capture, no server, no change to `tools/design-diff`. Tracking: [#658](https://github.com/shaiknoorullah/hg-mono/issues/658); Card border: [#878](https://github.com/shaiknoorullah/hg-mono/issues/878); the unrenderable hours boards: [#853](https://github.com/shaiknoorullah/hg-mono/issues/853).
 
 ## Headline
