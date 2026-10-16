@@ -232,7 +232,7 @@ export function StatusBar() {
       </span>
 
       <Switch
-        className="min-w-[240px] max-w-[280px]"
+        className="min-w-0 max-w-[280px] md:min-w-[240px]"
         label="Orders"
         checked={view.orders.checked}
         stateLabel={view.orders.stateLabel}

@@ -3,6 +3,7 @@
 
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { chmodSync } from 'node:fs';
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -13,6 +14,8 @@ import { parseInsets } from '../src/insets.mjs';
 import { compareLayouts } from '../src/layout-diff.mjs';
 import { parseBoardId, parseCaptureFile } from '../src/names.mjs';
 import { canvas, writePng } from '../src/png.mjs';
+import { TOLERANCE, compareNative, deltaE } from '../src/native-geometry.mjs';
+import { parseHierarchy, snapshotFromHierarchy } from '../src/uiautomator.mjs';
 
 const WHITE = [255, 255, 255, 255];
 const INK = [30, 30, 30, 255];
@@ -94,7 +97,7 @@ test('layout findings: copy, type, colour, box and spacing in words', () => {
 test('the diff fails by default: any non-PASS verdict exits 1, --no-strict exits 0', () => {
   assert.equal(exitCodeFor([{ verdict: 'PASS' }]), 0);
   assert.equal(exitCodeFor([{ verdict: 'PASS' }, { verdict: 'UNPAIRABLE' }]), 0, 'a declared, reasoned exclusion is not a failure');
-  for (const verdict of ['FAIL', 'NO BOARD', 'UNCOVERED', 'DEFECTIVE REFERENCE', 'NOT COMPARED', 'BROWSER MISMATCH', 'NO PROVENANCE']) {
+  for (const verdict of ['FAIL', 'NO BOARD', 'UNCOVERED', 'DEFECTIVE REFERENCE', 'NOT COMPARED', 'BROWSER MISMATCH', 'NO PROVENANCE', 'NO LAYOUT']) {
     assert.equal(exitCodeFor([{ verdict: 'PASS' }, { verdict }]), 1, `${verdict} fails the run`);
     assert.equal(exitCodeFor([{ verdict }], false), 0, `${verdict} under --no-strict`);
   }
@@ -173,7 +176,7 @@ test('the browser pin: the committed build is used unless the env override names
   assert.equal(resolveBrowser({ env: { PLAYWRIGHT_BROWSERS_PATH: empty } }).label, 'playwright default');
 });
 
-test('native captures: no browser rule; no provenance is untrusted; with it the pair is not pixel-compared', () => {
+test('native captures: no browser rule; no provenance is untrusted; with it but no view hierarchy the pair is NO LAYOUT, never pixel-compared', () => {
   const dir = mkdtempSync(path.join(tmpdir(), 'dd-'));
   const refs = path.join(dir, 'refs');
   mkdirSync(refs);
@@ -196,8 +199,8 @@ test('native captures: no browser rule; no provenance is untrusted; with it the 
   }
   const ok = run({ device: 'Pixel_7_API_34 (emulator-5554)', appBuild: 'abc123' });
   assert.equal(ok.status, 1, ok.stdout);
-  assert.match(ok.stdout, /NOT COMPARED.*geometry criterion not implemented/);
-  assert.doesNotMatch(ok.stdout, /^PASS|BROWSER MISMATCH|NO PROVENANCE/m);
+  assert.match(ok.stdout, /NO LAYOUT.*no view-hierarchy snapshot/);
+  assert.doesNotMatch(ok.stdout, /^PASS|BROWSER MISMATCH|NO PROVENANCE/m, 'identical pixels are not a pass for a native board');
   assert.equal(run({ device: 'Pixel_7', appBuild: 'abc123' }, '--no-strict').status, 0);
 });
 
@@ -336,4 +339,168 @@ test('layout: a box drawn on one side only, or whose text is shared by several b
   assert.match(words, /Box holding “Save” \(100×40, bordered\) is drawn in the design and not in the app/);
   assert.match(words, /Box holding “Cancel” .* is drawn in the app and not in the design/);
   assert.match(words, /Boxes holding “Item”: the text names more than one box on a side, so they were not compared/);
+});
+
+// --- native boards: layout geometry and colour (src/uiautomator.mjs, src/native-geometry.mjs) ---
+
+const HOME_XML = readFileSync(path.join(import.meta.dirname, 'fixtures/native-home.hierarchy.xml'), 'utf8');
+const BARS = { top: 72, bottom: 144 };
+const GREEN = [14, 107, 76, 255];
+const NATIVE_FILL = [255, 250, 234, 255];
+
+/** The board (390 × 300 dp) the fixture hierarchy is a capture of: the same screen, as snapshotLayout would record it. */
+const homeBoard = (over = {}) => ({
+  w: 390, h: 300,
+  texts: [
+    { text: 'Deliver to', x: 16, y: 16, w: 80, h: 20 },
+    { text: 'Home · 1 Dundas St W', x: 16, y: 36, w: 200, h: 24 },
+    { text: 'Order & pay', x: 140, y: 94, w: 110, h: 20 },
+  ],
+  boxes: [{ key: 'Order & pay', x: 16, y: 80, w: 358, h: 48, bg: 'rgb(14, 107, 76)' }],
+  ...over,
+});
+
+/** A 390 × 300 dp picture at 3 px a dp with the button painted `fill`. */
+const homePicture = (fill = GREEN) => paint(canvas(1170, 900, NATIVE_FILL), 48, 240, 1074, 144, fill);
+
+test('uiautomator: the dump becomes dp, minus the bars; the system UI is not the app', () => {
+  assert.throws(() => parseHierarchy('<html>nope</html>'), /not a uiautomator dump/);
+  assert.throws(() => parseHierarchy('<hierarchy><node text="x" bounds="oops" /></hierarchy>'), /no bounds/);
+  const s = snapshotFromHierarchy(HOME_XML, { density: 3, cut: BARS });
+  assert.deepEqual([s.w, s.h], [390, 300]);
+  assert.equal(s.texts.some((t) => t.text === '9:41'), false, 'the clock is the status bar');
+  assert.deepEqual(s.texts.find((t) => t.text === 'Deliver to'), { text: 'Deliver to', x: 16, y: 16, w: 80, h: 20 });
+  assert.ok(s.texts.some((t) => t.text === 'Order & pay'), 'entities are unescaped');
+  const button = s.boxes.find((b) => b.key === 'Order & pay' && b.w === 358);
+  assert.deepEqual([button.x, button.y, button.w, button.h], [16, 80, 358, 48], 'a view is keyed by the words under it');
+  assert.throws(() => snapshotFromHierarchy(HOME_XML, { density: 0 }), /density/);
+});
+
+test('native geometry: the same screen passes; a slip past the tolerance, a wrong fill or a wrong width does not', () => {
+  const app = snapshotFromHierarchy(HOME_XML, { density: 3, cut: BARS });
+  const run = (design, picture = homePicture(), appSnap = app) => compareNative(design, appSnap, { designPng: homePicture(), designScale: 3, appPng: picture, appScale: 3 });
+
+  const same = run(homeBoard());
+  assert.equal(same.verdict, 'PASS', JSON.stringify(same.findings));
+  assert.deepEqual([same.measured.texts, same.measured.boxes, same.measured.fills], [3, 1, 1]);
+
+  const within = homeBoard();
+  within.texts[1] = { ...within.texts[1], y: 36 + TOLERANCE.positionDp };
+  assert.equal(run(within).verdict, 'PASS', 'exactly the tolerance still passes');
+
+  const slipped = homeBoard();
+  slipped.texts[1] = { ...slipped.texts[1], y: 36 + TOLERANCE.positionDp + 1 };
+  const slip = run(slipped);
+  assert.equal(slip.verdict, 'FAIL');
+  assert.match(slip.findings.map((f) => f.text).join(' '), /“Home · 1 Dundas St W” is 3 dp from its place/);
+
+  const resized = homeBoard({ boxes: [{ key: 'Order & pay', x: 16, y: 80, w: 358, h: 56, bg: 'rgb(14, 107, 76)' }] });
+  assert.match(run(resized).findings.map((f) => f.text).join(' '), /Box holding “Order & pay” is 358×48 dp; the board has 358×56/);
+
+  const off = run(homeBoard(), homePicture([14, 107, 150, 255]));
+  assert.equal(off.verdict, 'FAIL');
+  assert.match(off.findings[0].text, /fill #0E6B4C in the board, #0E6B96 in the app/);
+  assert.equal(run(homeBoard(), homePicture([16, 109, 78, 255])).verdict, 'PASS', 'a distance of 2 is rounding');
+
+  const narrow = run(homeBoard({ w: 360 }));
+  assert.equal(narrow.verdict, 'NOT COMPARED');
+  assert.match(narrow.reason, /390 dp wide and the board 360/);
+});
+
+test('native geometry: a board never passes on nothing measured or on mostly missing copy', () => {
+  const app = snapshotFromHierarchy(HOME_XML, { density: 3, cut: BARS });
+  const opts = { designPng: homePicture(), designScale: 3, appPng: homePicture(), appScale: 3 };
+  const stranger = compareNative(homeBoard({ texts: [{ text: 'Nothing like it', x: 0, y: 0, w: 50, h: 20 }], boxes: [] }), app, opts);
+  assert.equal(stranger.verdict, 'FAIL');
+  assert.match(stranger.reason, /nothing could be measured/);
+  const extra = homeBoard();
+  extra.texts.push({ text: 'Only in the board', x: 16, y: 150, w: 100, h: 20 });
+  const partial = compareNative(extra, app, opts);
+  assert.equal(partial.verdict, 'FAIL', '3 of 4 is 75 %');
+  assert.match(partial.reason, /3 of the board's 4 visible texts/);
+  const below = homeBoard();
+  below.texts.push({ text: 'Below the fold', x: 16, y: 900, w: 100, h: 20 });
+  assert.equal(compareNative(below, app, opts).verdict, 'PASS', 'what the screen does not reach is not measured');
+  assert.ok(deltaE([0, 0, 0], [255, 255, 255]) > 99 && deltaE([10, 10, 10], [10, 10, 10]) === 0);
+});
+
+test('diff.mjs: a native pair is decided by geometry; identical pixels do not pass it, and a hierarchy is what it needs', () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'dd-'));
+  const refs = path.join(dir, 'refs');
+  mkdirSync(refs);
+  writePng(path.join(refs, 'b.png'), homePicture());
+  writeFileSync(path.join(refs, 'b.layout.json'), JSON.stringify(homeBoard()));
+  const board = { file: 'b.png', layout: 'b.layout.json', w: 390, h: 300, scale: 3, errors: [], notes: [], caveats: [], browser: 'chrome-linux64/chrome' };
+  writeFileSync(path.join(refs, 'manifest.json'), JSON.stringify({ boards: { 'customer/home/Board': board }, areas: {} }));
+  const run = ({ xml = HOME_XML, fill = GREEN, sidecar = { device: 'Pixel_7', appBuild: 'abc123', density: 3 } } = {}) => {
+    const caps = mkdtempSync(path.join(dir, 'caps-'));
+    const app = path.join(caps, 'customer');
+    mkdirSync(app);
+    const shot = paint(canvas(1170, 1116, NATIVE_FILL), 48, 72 + 240, 1074, 144, fill);
+    writePng(path.join(app, 'design--home--Board.png'), shot);
+    writeFileSync(path.join(app, 'design--home--Board.capture.json'), JSON.stringify(sidecar));
+    if (xml) writeFileSync(path.join(app, 'design--home--Board.hierarchy.xml'), xml);
+    const r = spawnSync(process.execPath, [path.join(import.meta.dirname, '../src/diff.mjs'), '--refs', refs, '--captures', caps, '--out', path.join(dir, 'out'), '--profile', 'phone-390'], { encoding: 'utf8' });
+    return { ...r, results: JSON.parse(readFileSync(path.join(dir, 'out/results.json'), 'utf8')).pairs[0] };
+  };
+  const pass = run();
+  assert.equal(pass.status, 0, pass.stdout + pass.stderr);
+  assert.equal(pass.results.verdict, 'PASS');
+  assert.equal(pass.results.informationalMismatchPct, 0, 'the pixels are kept for information');
+  assert.equal(pass.results.geometry.tolerance.positionDp, TOLERANCE.positionDp, 'the tolerance used is in the results');
+
+  const moved = run({ xml: HOME_XML.replace('[48,180][648,252]', '[48,210][648,282]') });
+  assert.equal(moved.status, 1);
+  assert.equal(moved.results.verdict, 'FAIL');
+  assert.match(moved.results.layout.findings[0].text, /10 dp from its place/);
+
+  const wrongFill = run({ fill: [14, 107, 150, 255] });
+  assert.equal(wrongFill.results.verdict, 'FAIL');
+
+  const none = run({ xml: null });
+  assert.equal(none.results.verdict, 'NO LAYOUT');
+  assert.equal(none.status, 1);
+  assert.equal(run({ sidecar: { density: 3 } }).results.verdict, 'NO PROVENANCE');
+});
+
+test('capture server: writes the hierarchy and provenance beside the screenshot, and only for a capture name', async () => {
+  const { buildFromDumpsys, densityFromWm, serve } = await import('../android/capture-server.mjs');
+  assert.equal(densityFromWm('Physical density: 480'), 3);
+  assert.equal(densityFromWm('Physical density: 480\nOverride density: 420'), 2.625, 'an override is what the screen is drawn at');
+  assert.equal(densityFromWm('nothing'), null);
+  assert.equal(buildFromDumpsys('    versionCode=12 minSdk=24\n    versionName=1.4.0'), '1.4.0 (12)');
+  assert.equal(buildFromDumpsys('Unable to find package'), null);
+
+  // A stand-in adb that answers like a device, so the server's own logic runs. Not a real emulator.
+  const dir = mkdtempSync(path.join(tmpdir(), 'cs-'));
+  const bin = path.join(dir, 'bin');
+  mkdirSync(bin);
+  writeFileSync(path.join(bin, 'adb'), `#!/bin/sh
+case "$*" in
+  *"exec-out cat"*) cat "${path.join(import.meta.dirname, 'fixtures/native-home.hierarchy.xml')}" ;;
+  *"getprop ro.product.model"*) echo "Pixel_7" ;;
+  *get-serialno*) echo "emulator-5554" ;;
+  *"wm density"*) echo "Physical density: 480" ;;
+  *"dumpsys package"*) printf "versionCode=3\\nversionName=0.9.1\\n" ;;
+  *) : ;;
+esac
+`);
+  chmodSync(path.join(bin, 'adb'), 0o755);
+  const oldPath = process.env.PATH;
+  process.env.PATH = `${bin}${path.delimiter}${oldPath}`;
+  const out = path.join(dir, 'shots');
+  const server = serve({ dir: out, port: 0, serial: null, defaultAppId: 'com.halalgoes.customer.dev' });
+  await new Promise((r) => server.once('listening', r));
+  const url = `http://127.0.0.1:${server.address().port}/capture`;
+  const post = (name) => fetch(url, { method: 'POST', body: JSON.stringify({ name }) });
+  try {
+    assert.equal((await post('../escape')).status, 400, 'a name that is not a capture name writes nothing');
+    assert.equal((await post('design--home--Board')).status, 200);
+    const sidecar = JSON.parse(readFileSync(path.join(out, 'design--home--Board.capture.json'), 'utf8'));
+    assert.deepEqual([sidecar.device, sidecar.appBuild, sidecar.density], ['Pixel_7 (emulator-5554)', '0.9.1 (3)', 3]);
+    assert.match(readFileSync(path.join(out, 'design--home--Board.hierarchy.xml'), 'utf8'), /Deliver to/);
+  } finally {
+    server.close();
+    process.env.PATH = oldPath;
+  }
 });

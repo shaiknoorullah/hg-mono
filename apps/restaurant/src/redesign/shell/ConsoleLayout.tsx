@@ -9,19 +9,21 @@
  *                | panes: page body | shell panel (?panel=…)
  *
  * The page never scrolls (root = viewport height, overflow hidden); only panes scroll.
- * The rail is icons on tablet and whenever a panel is open; on desktop it remembers the
+ * Below 768 px (the phone board) there is no rail: the app bar carries an "Open navigation"
+ * button that opens the same links in a drawer, and a panel opens full screen in place of the
+ * page. The rail is icons on tablet and whenever a panel is open; on desktop it remembers the
  * viewer's choice (localStorage, fails soft).
  */
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type MouseEvent, type ReactNode } from 'react';
 import { Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Icon, Menu, SideNav, TopBar, type SideNavItem } from '../ds';
+import { Icon, IconButton, Menu, NavDrawer, SideNav, TopBar, type SideNavItem } from '../ds';
 import { useConsole } from '../data/console';
 import { NAV, activeNavKey } from './nav';
 import { BannerSlot, SHELL_PANELS, StatusBarSlot, StripSlot } from './slots';
 import { ConsoleLayoutContext } from './layout';
 import { SignOutConfirm } from './SignOutConfirm';
 import { useWaitingCount } from './waiting';
-import { useIsDesktop } from './viewport';
+import { useIsDesktop, useIsPhone } from './viewport';
 
 const RAIL_KEY = 'hg_restaurant_rail_expanded_v1';
 
@@ -52,6 +54,8 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const isDesktop = useIsDesktop();
+  const isPhone = useIsPhone();
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [railPref, setRailPref] = useState(readRailPref);
   const [pagePanelOpen, setPagePanelOpen] = useState(false);
   const [confirm, setConfirm] = useState<ReactNode | null>(null);
@@ -62,6 +66,11 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
   const shellPanel = panelKey ? SHELL_PANELS[panelKey] : undefined;
   const anyPanelOpen = pagePanelOpen || Boolean(shellPanel);
   const expanded = isDesktop && !anyPanelOpen && railPref;
+
+  // A drawer left open must not outlive a resize past 768 px.
+  useEffect(() => {
+    if (!isPhone) setDrawerOpen(false);
+  }, [isPhone]);
 
   const active = activeNavKey(location.pathname);
   const pageTitle = NAV.find((n) => n.key === active)?.label ?? 'Live orders';
@@ -77,7 +86,7 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
     setParams(next, { replace: true });
   }, [params, setParams]);
 
-  const items: SideNavItem[] = NAV.map((n) => ({
+  const buildItems = (labelsShown: boolean): SideNavItem[] => NAV.map((n) => ({
     key: n.key,
     label: n.label,
     href: n.to,
@@ -85,7 +94,7 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
     // item's name in the icon's place, never a blank tile (wp1 spec §3).
     icon: n.icon ? (
       <Icon name={n.icon} weight={n.key === active ? 'bold' : 'linear'} size={22} />
-    ) : expanded ? undefined : (
+    ) : labelsShown ? undefined : (
       <span aria-hidden="true" className="text-[11px] font-semibold leading-none">
         {n.label}
       </span>
@@ -93,6 +102,19 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
     badge: n.key === 'orders' && waiting > 0 ? waiting : undefined,
     badgeNoun: n.key === 'orders' ? 'new' : undefined,
   }));
+  const items = buildItems(expanded);
+
+  // Rail items are real links (middle-click, copy link), but a plain click stays in
+  // the app: a full page load would drop the go-live gesture and stop the order
+  // sound (WP3), and re-read everything.
+  const keepInApp = (e: MouseEvent<HTMLElement>) => {
+    const a = (e.target as HTMLElement).closest('a[href]');
+    const href = a?.getAttribute('href');
+    if (!a || !href?.startsWith('/') || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    setDrawerOpen(false);
+    navigate(href);
+  };
 
   const layoutApi = useMemo(() => ({ setPagePanelOpen, setConfirm }), []);
 
@@ -128,35 +150,24 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
           </a>
         </div>
 
-        <nav
-          aria-label="Main"
-          className="flex shrink-0"
-          onClick={(e) => {
-            // Rail items are real links (middle-click, copy link), but a plain click stays in
-            // the app: a full page load would drop the go-live gesture and stop the order
-            // sound (WP3), and re-read everything.
-            const a = (e.target as HTMLElement).closest('a[href]');
-            const href = a?.getAttribute('href');
-            if (!a || !href?.startsWith('/') || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-            e.preventDefault();
-            navigate(href);
-          }}
-        >
-          <SideNav
-            groups={[{ key: 'main', items }]}
-            activeKey={active}
-            collapsed={!expanded}
-            onToggleCollapsed={
-              isDesktop && !anyPanelOpen
-                ? (collapsed) => {
-                    setRailPref(!collapsed);
-                    writeRailPref(!collapsed);
-                  }
-                : undefined
-            }
-            testId="console-rail"
-          />
-        </nav>
+        {isPhone ? null : (
+          <nav aria-label="Main" className="flex shrink-0" onClick={keepInApp}>
+            <SideNav
+              groups={[{ key: 'main', items }]}
+              activeKey={active}
+              collapsed={!expanded}
+              onToggleCollapsed={
+                isDesktop && !anyPanelOpen
+                  ? (collapsed) => {
+                      setRailPref(!collapsed);
+                      writeRailPref(!collapsed);
+                    }
+                  : undefined
+              }
+              testId="console-rail"
+            />
+          </nav>
+        )}
 
         <div className="flex min-w-0 flex-1 flex-col">
           <header role="banner">
@@ -165,6 +176,7 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
               subtitle={subtitle}
               titleIsPageHeading={false}
               actions={
+                <>
                 <Menu
                   label="Account"
                   triggerLabel={ownerName ? `Account: ${ownerName}, owner` : 'Account'}
@@ -174,6 +186,16 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
                   items={accountItems}
                   testId="account-menu"
                 />
+                {isPhone ? (
+                  <IconButton
+                    icon={<Icon name="menu" size={22} />}
+                    accessibilityLabel={waiting > 0 ? `Open navigation, ${waiting} new ${waiting === 1 ? 'order' : 'orders'}` : 'Open navigation'}
+                    variant="plain"
+                    onPress={() => setDrawerOpen(true)}
+                    data-testid="open-navigation"
+                  />
+                ) : null}
+                </>
               }
             />
           </header>
@@ -191,12 +213,19 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
           </div>
 
           <div className="flex min-h-0 flex-1 gap-3 px-4 py-3">
-            <main id="main" tabIndex={-1} className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden outline-none">
+            <main id="main" tabIndex={-1} className={`relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden outline-none${shellPanel ? ' max-md:hidden' : ''}`}>
               <Outlet />
             </main>
             {shellPanel ? <shellPanel.Component onClose={closeShellPanel} params={params} /> : null}
           </div>
         </div>
+        {isPhone ? (
+          <NavDrawer id="console-nav-drawer" tone="light" hideTrigger open={drawerOpen} onClose={() => setDrawerOpen(false)} testId="console-nav-drawer">
+            <nav aria-label="Main" className="flex min-h-0 flex-1" onClick={keepInApp}>
+              <SideNav groups={[{ key: 'main', items: buildItems(true) }]} activeKey={active} collapsed={false} testId="console-drawer-nav" />
+            </nav>
+          </NavDrawer>
+        ) : null}
       </div>
     </ConsoleLayoutContext.Provider>
   );

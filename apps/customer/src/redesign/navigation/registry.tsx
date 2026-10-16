@@ -36,6 +36,8 @@ import { YourDetailsScreen } from '../signin/YourDetailsScreen';
 // Browse and Search.
 import { BrowseScreen } from '../discover/BrowseScreen';
 import { SearchScreen } from '../discover/SearchScreen';
+// Order outcome, cancel and Get help (issue #921).
+import { ReportProblemScreen } from '../help/ReportProblemScreen';
 import { toLegacy } from './LegacyBridge';
 import type { Route, RouteName } from './routes';
 
@@ -78,6 +80,13 @@ export const REDESIGNED: Registry = {
   yourDetails: (r) => <YourDetailsScreen fromCart={r.fromCart} />,
   addressStep: () => <AddressStepScreen />,
   terms: (r) => <TermsScreen signedOut={r.signedOut} />,
+
+  // Order outcome, cancel and Get help (issue #921, under the redesign tracker #656). The tracking
+  // entry above now also draws the cancel sheet, the Get help sheet (`sheet: 'getHelp'` opens it for
+  // any order state) and the outcome page of an order that has ended; only a delivered or completed
+  // order still falls back to the legacy tracking screen. `reportProblem` is the order-scoped
+  // report form that Get help opens.
+  reportProblem: (r) => <ReportProblemScreen orderId={r.orderId} reason={r.reason} />,
 };
 
 export function redesignedScreen(route: Route): React.ReactElement | null {

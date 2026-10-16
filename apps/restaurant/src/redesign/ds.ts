@@ -38,6 +38,9 @@ export type { HalalBadgeProps } from '@hg/ui-web/certification';
 export { Card, Price } from '@hg/ui-web/content';
 
 export { AppShell, SideNav, TopBar } from '@hg/ui-web/navigation';
+// The navigation drawer the phone board marks as a proposed component (#954). It is built from
+// the design system's own Sheet, IconButton and SideNav; the app adds no component of its own.
+export { NavDrawer } from '@hg/ui-web/proposed';
 export type { SideNavItem, SideNavGroup, SkipTarget } from '@hg/ui-web/navigation';
 
 export {

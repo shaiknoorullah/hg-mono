@@ -151,7 +151,7 @@ and `seed/` belong to the harness.
 
 | What | Where | Runs on |
 |---|---|---|
-| Web redesign specs | `web/redesign-<app>.<topic>.spec.ts` here (for example `redesign-admin.orders.spec.ts`) | the `VITE_HG_REDESIGN=1` build, desktop 1440x900 and tablet 1024x768 |
+| Web redesign specs | `web/redesign-<app>.<topic>.spec.ts` here (for example `redesign-admin.orders.spec.ts`) | the `VITE_HG_REDESIGN=1` build, desktop 1440x900 and tablet 1024x768 — and, where a design board draws a narrower width, phone 320 and 720 (`redesign-restaurant.frame-phone.spec.ts` drives the console frame at both) |
 | Native redesign flows | `native/<app>/redesign/*.yaml` here, in name order | the `EXPO_PUBLIC_HG_REDESIGN=1` APK |
 | Device-lab missions | `native/<app>/redesign/missions/<id>.yaml` here | the device lab only, never as flows |
 | Device-lab flows | `native/<app>/redesign/lab/*.yaml` here: flows that need devworld (`make dev-scenario`, `make dev-journey`), the emulator camera, or backend work that has not merged | the device lab only, through a mission; `run.sh` runs only the files directly in `redesign/` |
@@ -243,14 +243,16 @@ CORS list with 4175 and 4176.
 
 A capture that names a design board says "this screen must match that board". The
 [design-diff harness](../design-diff/README.md) renders the boards, pairs each capture with its
-board by that name, and judges it pixel by pixel; the flows themselves never fail on it.
+board by that name, and judges it (a web capture pixel by pixel, a native one by layout geometry); the flows themselves never fail on it.
 
 - **Playwright:** `await expectDesign(page, '<app>/<area>/<Board>')` (`web/design.ts`), for
   example `expectDesign(page, 'restaurant/sign-in/SignIn-Invalid')`. It saves a full-page
   screenshot and a layout snapshot to `$E2E_OUT/design-captures/<app>/<width>x<height>/`.
   `redesign-restaurant.sign-in.spec.ts` names a board for each sign-in state.
-- **Maestro:** `takeScreenshot: design--<area>--<Board>` in a flow of the app's folder, for
-  example `design--sign-in--Main` in `native/customer/redesign/lab/1-sign-in.yaml` (a device-lab flow). Capture on the
+- **Maestro:** `runFlow: ../../design-capture.yaml` with `SHOT: design--<area>--<Board>` (it takes the
+  screenshot and has the view hierarchy and device recorded beside it), for
+  example `design--sign-in--Main` in `native/customer/redesign/lab/1-sign-in.yaml` (a device-lab flow).
+  A native capture is judged on layout geometry and colour, not pixels. Capture on the
   design AVD in the state the board is drawn in ([phone captures](../design-diff/README.md#phone-captures)).
 
 Every redesign web spec declares the board of each screenshot it takes, and the board has to be
