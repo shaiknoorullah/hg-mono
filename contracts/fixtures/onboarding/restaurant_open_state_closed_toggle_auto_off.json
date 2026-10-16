@@ -17,6 +17,7 @@
     "open_state": "CLOSED_TOGGLE",
     "is_accepting_orders": false,
     "pause_until": null,
+    "pause_kind": null,
     "last_heartbeat_at": "2026-08-10T18:41:46.412Z",
     "missed_order_count": 2,
     "reason": "Ordering was turned off after two orders in a row went unanswered.",

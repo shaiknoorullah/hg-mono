@@ -216,6 +216,7 @@ type PresignedDownload struct {
 type RestaurantAvailability struct {
 	OpenState         string  `json:"open_state"`
 	IsAcceptingOrders bool    `json:"is_accepting_orders"`
+	PauseKind         *string `json:"pause_kind"`
 	PauseUntil        *string `json:"pause_until"`
 	LastHeartbeatAt   *string `json:"last_heartbeat_at"`
 	MissedOrderCount  int32   `json:"missed_order_count"`

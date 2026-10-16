@@ -170,6 +170,7 @@ def _restaurant_onboarding(reg, synth) -> None:
             "open_state": "PAUSED",
             "is_accepting_orders": True,
             "pause_until": "2026-08-11T06:00:00.000Z",
+            "pause_kind": "UNTIL_CLOSING",
             "reason": "Paused until closing at 2:00 am. New orders resume when you next open.",
             "resolvable_by": "RESTAURANT",
         }
@@ -198,7 +199,14 @@ def _restaurant_onboarding(reg, synth) -> None:
         av = synth.make("RestaurantAvailability", f"open-state-{state}")
         av["open_state"] = state
         if "is_accepting_orders" in av:
-            av["is_accepting_orders"] = state in ("OPEN", "CLOSED_HOURS", "CLOSED_HOLIDAY", "CLOSED_OFFLINE")
+            av["is_accepting_orders"] = state in ("OPEN", "CLOSED_HOURS", "CLOSED_HOLIDAY", "CLOSED_OFFLINE", "PAUSED")
+        # A pause has an end and a kind, together; nothing else carries either. A pause the
+        # owner timed by picking a length is DURATION (the until-closing one is its own fixture).
+        if state == "PAUSED":
+            av["pause_kind"] = "DURATION"
+        else:
+            av["pause_until"] = None
+            av["pause_kind"] = None
         reg.add(
             f"restaurant_open_state_{state.lower()}",
             "onboarding",

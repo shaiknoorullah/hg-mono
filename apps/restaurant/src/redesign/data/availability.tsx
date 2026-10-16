@@ -51,23 +51,6 @@ export function setAcceptingOrders(body: AvailabilityWrite): Promise<Availabilit
   return call(client.PATCH('/v1/restaurant/availability', { body }));
 }
 
-// The availability read does not say whether a pause was "until closing" or a timed one: both
-// are just a `pause_until`. So this console remembers, for the pause it set itself, which
-// closing time the server chose; a pause set elsewhere, or before a reload, reads as the time.
-let untilClosingAt: string | null = null;
-
-/** Pauses until closing: the server picks the time; this remembers it for the wording. */
-export async function pauseUntilClosing(): Promise<Availability> {
-  const next = await setAcceptingOrders({ is_accepting_orders: true, pause_until_closing: true });
-  untilClosingAt = next.pause_until ?? null;
-  return next;
-}
-
-/** True when this pause is the one this console set with "Pause until closing". */
-export function isPausedUntilClosing(pauseUntil: string | null | undefined): boolean {
-  return untilClosingAt !== null && pauseUntil === untilClosingAt;
-}
-
 /** "You're outside your opening hours": the server refused because there is no trading period to end. */
 export function isOutsideTradingHours(err: unknown): boolean {
   return typeof err === 'object' && err !== null && (err as { code?: unknown }).code === 'RESTAURANT_CLOSED';

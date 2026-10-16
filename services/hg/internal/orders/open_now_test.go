@@ -56,7 +56,7 @@ func TestIntegrationOrderRefusesClosedRestaurant(t *testing.T) {
 		{"closed today by an override", `
 			INSERT INTO restaurant_hours_override (restaurant_id, on_date, is_closed)
 			SELECT r.id, (now() AT TIME ZONE r.timezone)::date, true FROM restaurant r WHERE r.id = $1`, "CLOSED_HOURS"},
-		{"paused until later", `UPDATE restaurant SET pause_until = now() + interval '20 minutes' WHERE id = $1`, "PAUSED"},
+		{"paused until later", `UPDATE restaurant SET pause_until = now() + interval '20 minutes', pause_kind = 'DURATION' WHERE id = $1`, "PAUSED"},
 		{"not accepting orders", `UPDATE restaurant SET is_accepting_orders = false WHERE id = $1`, "PAUSED"},
 		{"order screen offline for 6 minutes", `UPDATE restaurant SET last_heartbeat_at = now() - interval '6 minutes' WHERE id = $1`, "PAUSED"},
 	}

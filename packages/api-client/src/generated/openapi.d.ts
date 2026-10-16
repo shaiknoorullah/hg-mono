@@ -2988,12 +2988,16 @@ export interface paths {
          *     late night that runs past midnight pauses until it ends the next morning, which is
          *     why the client never computes it. It replaces "rest of today", as the owner decided
          *     on 2026-10-01 ([round-2 decisions](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), "Restaurant", "For how long" options).
-         *     The response's `pause_until` is the closing time it chose. Rules:
+         *     The response's `pause_until` is the closing time it chose, and its `pause_kind` is
+         *     `UNTIL_CLOSING`; a pause set with `pause_until` is `DURATION`. The kind is stored with
+         *     the pause, so a reload or another device reads the same answer. Rules:
          *
          *     * `is_accepting_orders` must be true, as for any pause.
          *     * Send `pause_until` or `pause_until_closing`, never both: both is
          *       `422 VALIDATION_FAILED`.
          *     * Outside trading hours there is nothing to pause: `409 RESTAURANT_CLOSED`.
+         *     * A restaurant open around the clock for the whole coming week has no closing time
+         *       to pause until: `422 VALIDATION_FAILED`.
          *     * Later changes to the hours do not move a pause already set; pausing again does.
          */
         patch: operations["setRestaurantAcceptingOrders"];
@@ -7483,6 +7487,14 @@ export interface components {
              */
             missed_order_count?: number;
             open_state: components["schemas"]["RestaurantOpenState"];
+            /**
+             * @description Why the pause ends at `pause_until`, so a console can word it from this response
+             *     alone, after a reload or for a pause set on another device. Present exactly when
+             *     `pause_until` is: both are null when nothing is paused, and the database refuses
+             *     a row with one and not the other. Not part of `reason`, which is prose for people
+             *     and not something to parse.
+             */
+            pause_kind?: components["schemas"]["RestaurantPauseKind"] | null;
             /** Format: date-time */
             pause_until?: string | null;
             /** @description Plain language, safe to render directly. */
@@ -7682,6 +7694,17 @@ export interface components {
             subtotal_cents: components["schemas"]["Cents"];
             total_cents: components["schemas"]["Cents"];
         };
+        /**
+         * @description How a pause on new orders came to end when it does (`RestaurantAvailability.pause_kind`).
+         *     `UNTIL_CLOSING`: the owner asked to pause until the end of the current trading period
+         *     (`pause_until_closing: true`) and the server resolved the time. `DURATION`: the owner
+         *     chose the end (`pause_until`). There is no value for the toggle being off, which is
+         *     `CLOSED_TOGGLE` and not a pause, and none for an admin pause, because no operation
+         *     pauses a single restaurant (`setOrderingPause` is platform-wide, suspension is
+         *     `CLOSED_SUSPENDED`).
+         * @enum {string}
+         */
+        RestaurantPauseKind: "UNTIL_CLOSING" | "DURATION";
         RestaurantProfile: {
             account_state: components["schemas"]["RestaurantAccountState"];
             address: components["schemas"]["PublicAddress"];
@@ -8770,6 +8793,7 @@ export type SchemaRestaurantOnboardingState = components['schemas']['RestaurantO
 export type SchemaRestaurantOnboardingStatus = components['schemas']['RestaurantOnboardingStatus'];
 export type SchemaRestaurantOpenState = components['schemas']['RestaurantOpenState'];
 export type SchemaRestaurantOrderMoney = components['schemas']['RestaurantOrderMoney'];
+export type SchemaRestaurantPauseKind = components['schemas']['RestaurantPauseKind'];
 export type SchemaRestaurantProfile = components['schemas']['RestaurantProfile'];
 export type SchemaRestaurantProfileInput = components['schemas']['RestaurantProfileInput'];
 export type SchemaRestaurantRegistration = components['schemas']['RestaurantRegistration'];

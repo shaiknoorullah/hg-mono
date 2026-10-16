@@ -18,7 +18,7 @@ import { eventOfType, useRealtimeChannel } from '@hg/ui-web/live';
 import { Badge, Button, HalalBadge, Icon, InlineConfirm, Menu, Switch, reportHalalClientError, useToast } from '../ds';
 import type { BadgeVariant, IconName } from '../ds';
 import { useConsole } from '../data/console';
-import { isOutsideTradingHours, pauseUntilClosing, setAcceptingOrders, useAvailability, type Availability, type AvailabilityWrite } from '../data/availability';
+import { isOutsideTradingHours, setAcceptingOrders, useAvailability, type Availability, type AvailabilityWrite } from '../data/availability';
 import { useConnection, type ConnectionView } from '../data/connection';
 import { serverNow } from '../data/serverClock';
 import { formatTime } from '../format/time';
@@ -114,7 +114,7 @@ export function StatusBar() {
     async (body: AvailabilityWrite, kind: 'on' | 'off' | 'pause' | 'resume') => {
       setPending(kind);
       try {
-        const next: Availability = await (body.pause_until_closing ? pauseUntilClosing() : setAcceptingOrders(body));
+        const next: Availability = await setAcceptingOrders(body);
         mutate(() => next);
         return true;
       } catch (err) {

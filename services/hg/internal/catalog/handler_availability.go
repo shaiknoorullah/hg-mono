@@ -44,6 +44,7 @@ func toRestaurantAvailability(a availabilityRow, verdict openStateVerdict) Resta
 		s := httpx.Timestamp(*a.pauseUntil)
 		out.PauseUntil = &s
 	}
+	out.PauseKind = a.pauseKind
 	if a.lastHeartbeatAt != nil {
 		s := httpx.Timestamp(*a.lastHeartbeatAt)
 		out.LastHeartbeatAt = &s
@@ -73,6 +74,9 @@ func (h *Handler) GetRestaurantAvailability(w http.ResponseWriter, r *http.Reque
 type setAcceptingOrdersInput struct {
 	IsAcceptingOrders *bool   `json:"is_accepting_orders"`
 	PauseUntil        *string `json:"pause_until"`
+	// PauseUntilClosing asks the server to pause to the end of the current trading
+	// period, which only the server works out (a late night runs past midnight).
+	PauseUntilClosing bool `json:"pause_until_closing"`
 }
 
 // SetRestaurantAcceptingOrders implements setRestaurantAcceptingOrders (R-22).
@@ -97,7 +101,29 @@ func (h *Handler) SetRestaurantAcceptingOrders(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	if in.PauseUntilClosing && in.PauseUntil != nil {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, codeValidationFailed,
+			"Send pause_until or pause_until_closing, not both.",
+			[]httpx.FieldError{{Field: "pause_until_closing", Code: "conflict", Message: "not with pause_until"}})
+		return
+	}
+	if in.PauseUntilClosing && !*in.IsAcceptingOrders {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, codeValidationFailed,
+			"is_accepting_orders must be true to pause.",
+			[]httpx.FieldError{{Field: "pause_until_closing", Code: "invalid", Message: "needs is_accepting_orders true"}})
+		return
+	}
+
+	now := h.now()
 	var pause *time.Time
+	var kind *string
+	if in.PauseUntilClosing {
+		t, ok := h.closingTime(w, r, restaurantID, now)
+		if !ok {
+			return
+		}
+		pause, kind = &t, ptr(pauseKindUntilClosing)
+	}
 	if in.PauseUntil != nil {
 		t, err := time.Parse(time.RFC3339, *in.PauseUntil)
 		if err != nil {
@@ -106,11 +132,10 @@ func (h *Handler) SetRestaurantAcceptingOrders(w http.ResponseWriter, r *http.Re
 				[]httpx.FieldError{{Field: "pause_until", Code: "invalid", Message: "not a timestamp"}})
 			return
 		}
-		pause = &t
+		pause, kind = &t, ptr(pauseKindDuration)
 	}
 
-	now := h.now()
-	a, err := h.repo.setAcceptingOrders(r.Context(), restaurantID, *in.IsAcceptingOrders, pause,
+	a, err := h.repo.setAcceptingOrders(r.Context(), restaurantID, *in.IsAcceptingOrders, pause, kind,
 		httpx.PrincipalFrom(r.Context()).AccountID, now)
 	if h.mapErr(w, r, err) {
 		return
@@ -135,4 +160,39 @@ func (h *Handler) SendRestaurantHeartbeat(w http.ResponseWriter, r *http.Request
 		OpenState:  verdict.state,
 		ReceivedAt: httpx.Timestamp(received),
 	})
+}
+
+// RestaurantPauseKind members (contract RestaurantPauseKind, stored as
+// restaurant.pause_kind).
+const (
+	pauseKindUntilClosing = "UNTIL_CLOSING"
+	pauseKindDuration     = "DURATION"
+)
+
+func ptr[T any](v T) *T { return &v }
+
+// closingTime is the end of the trading period the restaurant is in at now,
+// worked out from its own hours, today's override and its time zone
+// (openhours.Evaluate). It answers the request itself and returns false when
+// there is nothing to pause until: outside trading hours is 409
+// RESTAURANT_CLOSED, and a restaurant open around the clock for the whole coming
+// week has no closing time, which is 422.
+func (h *Handler) closingTime(w http.ResponseWriter, r *http.Request, restaurantID string, now time.Time) (time.Time, bool) {
+	a, err := h.repo.getAvailability(r.Context(), restaurantID)
+	if h.mapErr(w, r, err) {
+		return time.Time{}, false
+	}
+	hv := evaluateHours(a.weekly, a.overrides, a.timezone, now)
+	if !hv.Within {
+		httpx.Fail(w, r, http.StatusConflict, codeRestaurantClosed,
+			"You're outside your opening hours, so there is nothing to pause.", nil)
+		return time.Time{}, false
+	}
+	if hv.ClosesAt == nil {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, codeValidationFailed,
+			"There is no closing time in the coming week to pause until.",
+			[]httpx.FieldError{{Field: "pause_until_closing", Code: "invalid", Message: "no closing time"}})
+		return time.Time{}, false
+	}
+	return *hv.ClosesAt, true
 }

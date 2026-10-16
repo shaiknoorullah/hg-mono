@@ -16,6 +16,7 @@
     "open_state": "PAUSED",
     "is_accepting_orders": true,
     "pause_until": "2026-08-11T06:00:00.000Z",
+    "pause_kind": "UNTIL_CLOSING",
     "last_heartbeat_at": "2026-08-10T18:32:11.412Z",
     "missed_order_count": 10,
     "reason": "Paused until closing at 2:00 am. New orders resume when you next open.",

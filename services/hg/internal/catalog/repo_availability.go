@@ -13,11 +13,14 @@ import (
 )
 
 // availabilityRow is the restaurant-facing trading state read straight from the
-// row (R-22). open_state is derived from these fields, never stored.
+// row (R-22). open_state is derived from these fields, never stored. pauseKind is
+// why the pause ends at pauseUntil (contract RestaurantPauseKind); the database
+// keeps the two together, both set or both nil.
 type availabilityRow struct {
 	accountState      string
 	isAcceptingOrders bool
 	pauseUntil        *time.Time
+	pauseKind         *string
 	lastHeartbeatAt   *time.Time
 	missedOrderCount  int32
 	timezone          string
@@ -29,11 +32,11 @@ type availabilityRow struct {
 
 // availabilityColumns read an availabilityRow from a `restaurant` aliased r, in
 // the order scanTargets expects.
-const availabilityColumns = `r.account_state::text, r.is_accepting_orders, r.pause_until,
+const availabilityColumns = `r.account_state::text, r.is_accepting_orders, r.pause_until, r.pause_kind::text,
 	r.last_heartbeat_at, r.missed_order_count, r.timezone,` + openhours.HoursColumns
 
 func (a *availabilityRow) scanTargets() []any {
-	return []any{&a.accountState, &a.isAcceptingOrders, &a.pauseUntil,
+	return []any{&a.accountState, &a.isAcceptingOrders, &a.pauseUntil, &a.pauseKind,
 		&a.lastHeartbeatAt, &a.missedOrderCount, &a.timezone, &a.weekly, &a.overrides}
 }
 
@@ -60,16 +63,18 @@ func (rp *Repo) getAvailability(ctx context.Context, restaurantID string) (avail
 
 // setAcceptingOrders flips the master switch and reads the row back after the
 // write (R-22): the response is the persisted row, so a no-op is impossible to
-// mistake for a success. pause_until is ignored when accepting is false.
+// mistake for a success. pause_until and pause_kind are ignored when accepting is
+// false, and are written together: the database refuses one without the other.
 //
 // The restaurant's tablets hear of it in the same transaction:
 // restaurant.status_changed on restaurant:{id}, with the open state the change
 // produces and the staff member who made it (contracts/websocket.md section
 // 4.4; https://github.com/shaiknoorullah/hg-mono/issues/247).
-func (rp *Repo) setAcceptingOrders(ctx context.Context, restaurantID string, accepting bool, pauseUntil *time.Time, changedBy string, now time.Time) (availabilityRow, error) {
+func (rp *Repo) setAcceptingOrders(ctx context.Context, restaurantID string, accepting bool, pauseUntil *time.Time, pauseKind *string, changedBy string, now time.Time) (availabilityRow, error) {
 	var pause *time.Time
+	var kind *string
 	if accepting {
-		pause = pauseUntil
+		pause, kind = pauseUntil, pauseKind
 	}
 	tx, err := rp.db.Begin(ctx)
 	if err != nil {
@@ -79,11 +84,12 @@ func (rp *Repo) setAcceptingOrders(ctx context.Context, restaurantID string, acc
 	const q = `
 		UPDATE restaurant r
 		   SET is_accepting_orders = $2,
-		       pause_until = $3
+		       pause_until = $3,
+		       pause_kind = $4::restaurant_pause_kind
 		 WHERE r.id = $1::uuid AND r.deleted_at IS NULL
 		 RETURNING ` + availabilityColumns
 	var a availabilityRow
-	err = tx.QueryRow(ctx, q, restaurantID, accepting, pause).Scan(a.scanTargets()...)
+	err = tx.QueryRow(ctx, q, restaurantID, accepting, pause, kind).Scan(a.scanTargets()...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return availabilityRow{}, errNotFound
 	}

@@ -156,6 +156,7 @@ MAPPED_IN_MIGRATION = {
     "AccountSubjectType":                 ("account_subject_type", "00044_account_state_actions.sql"),
     "AccountAction":                      ("account_action", "00044_account_state_actions.sql"),
     "HandoverCodeKind":                   ("handover_code_kind", "00072_handover_codes.sql"),
+    "RestaurantPauseKind":                ("restaurant_pause_kind", "00075_restaurant_pause_kind.sql"),
     "PayoutRunKind":                      ("payout_run_kind", "00030_payout_run.sql"),
     "PayoutRunState":                     ("payout_run_state", "00030_payout_run.sql"),
     "PayoutRunOutcome":                   ("payout_run_outcome", "00030_payout_run.sql"),

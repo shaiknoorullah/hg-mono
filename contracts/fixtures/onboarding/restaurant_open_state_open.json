@@ -15,7 +15,8 @@
   "payload": {
     "open_state": "OPEN",
     "is_accepting_orders": true,
-    "pause_until": "2026-08-10T18:32:11.412Z",
+    "pause_until": null,
+    "pause_kind": null,
     "last_heartbeat_at": "2026-08-10T18:32:11.412Z",
     "missed_order_count": 11,
     "reason": "Closed for a scheduled deep clean. Reopening at 14:00.",
