@@ -71,7 +71,7 @@ const ADMINS: readonly StaffRole[] = ['ADMIN', 'SUPER_ADMIN'];
  * `/staff/:staffId`) keep it open.
  */
 export const ADMIN_ROUTES: readonly AdminRoute[] = [
-  { id: 'certificateViewer', path: '/certificates/:certificateId/viewer', title: 'Certificate', roles: ALL, nav: 'certificates', detail: true, wp: 'WP-3' },
+  { id: 'certificateViewer', path: '/certificates/:certificateId/viewer', title: 'Certificate scan', roles: ALL, nav: 'certificates', detail: true, wp: 'WP-3' },
   { id: 'certificate', path: '/certificates/:certificateId', title: 'Halal verification', roles: ALL, nav: 'certificates', detail: true, wp: 'WP-3' },
   { id: 'certificates', path: '/certificates', title: 'Halal certificates', roles: ALL, nav: 'certificates', detail: false, wp: 'WP-3' },
   { id: 'menuItem', path: '/restaurants/:restaurantId/menu/items/:itemId', title: 'Menu item', roles: ADMINS, nav: 'menuReviews', detail: true, wp: 'WP-4', permission: 'menu review' },

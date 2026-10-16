@@ -89,6 +89,7 @@ export default function CertificateConsoleRoute() {
   const navigate = useNavigate();
   const toast = useToast();
   const queueHref = useHref('/restaurants');
+  const viewerHref = useHref(`/certificates/${certificateId}/viewer`);
   const restaurantBase = useHref('/restaurants');
 
   const fetcher = useCallback(async (): Promise<Loaded> => {
@@ -510,6 +511,13 @@ export default function CertificateConsoleRoute() {
         meta={url.status === 'ready' ? `Private link valid until ${formatTime(url.expiresAt)} · viewing is audited` : undefined}
         onRenewLink={url.reload}
         onRetry={url.reload}
+        actions={
+          viewer.canDecide && hasDocument ? (
+            <Button variant="tertiary" size="sm" href={viewerHref}>
+              Open full view
+            </Button>
+          ) : undefined
+        }
         messages={{ none: 'No certificate document has been uploaded.' }}
       />
     </div>
