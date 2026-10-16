@@ -7,6 +7,28 @@ import { settle, snapshotLayout } from '@hg/design-diff/page-scripts';
 import { OUT } from '../lib/paths.mjs';
 
 /**
+ * Areas of the restaurant console whose boards draw the side navigation expanded (labels beside the
+ * icons) whenever nothing is open beside the page. The app opens with the rail collapsed to icons,
+ * the same state the live orders boards draw (their `nav` setting defaults to "collapsed"), and keeps
+ * the owner's choice; a board drawn expanded is a different state of the same screen, so the capture
+ * puts the app in it by pressing the rail's own "Expand navigation" button, as the owner would. Where the
+ * board draws the rail collapsed, which is every board with a panel open, the app has already
+ * collapsed it and withdrawn the button, so nothing is pressed. See https://github.com/shaiknoorullah/hg-mono/issues/967.
+ */
+const AREAS_DRAWN_EXPANDED: Readonly<Record<string, readonly string[]>> = {
+  // Add an area here when its boards draw the rail expanded; counted from the rendered references,
+  // not assumed. Live orders is absent on purpose: 115 of its 122 boards at 1440 px draw the rail
+  // collapsed, and its board component's navigation property defaults to collapsed.
+  restaurant: ['menu-hours', 'settings', 'payouts'],
+};
+
+async function expandRailIfDrawnExpanded(page: Page, app: string, area: string): Promise<void> {
+  if (!AREAS_DRAWN_EXPANDED[app]?.includes(area)) return;
+  const toggle = page.getByTestId('console-rail-collapse');
+  if ((await toggle.count()) > 0 && (await toggle.getAttribute('aria-expanded')) === 'false') await toggle.click();
+}
+
+/**
  * "This state must match that design board." Saves what the page shows now for the design-diff
  * harness (tools/design-diff/README.md), which pairs it by name with the rendered board
  * `<app>/<area>/<Board>` (for example `restaurant/sign-in/SignIn-Invalid`) and gives the verdict:
@@ -26,6 +48,7 @@ import { OUT } from '../lib/paths.mjs';
  */
 export async function expectDesign(page: Page, board: string): Promise<void> {
   const { app, area, board: name } = parseBoardId(board);
+  await expandRailIfDrawnExpanded(page, app, area);
   const vp = page.viewportSize() ?? { width: 0, height: 0 };
   const root = process.env.E2E_DESIGN_DIR ? path.resolve(process.env.E2E_DESIGN_DIR) : path.join(OUT, 'design-captures');
   const dir = path.join(root, app, `${vp.width}x${vp.height}`);

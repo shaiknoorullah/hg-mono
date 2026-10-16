@@ -137,8 +137,9 @@ summary prints the same.
 
 Layout findings also say a box drawn on one side only, or whose text names several boxes (so it was not
 compared). A box with no text is not in the layout snapshot, so a difference confined to one (a border
-on a button with no label) is still missed; widening the snapshot, and putting layout findings into the
-verdicts, is [issue 844](https://github.com/shaiknoorullah/hg-mono/issues/844).
+on a button with no label) is still missed. Widening the snapshot so that a box with no text is
+measured too is not part of what [#844](https://github.com/shaiknoorullah/hg-mono/issues/844)
+delivered, and is still to do.
 
 ## Report
 
@@ -264,8 +265,21 @@ and asks `android/capture-server.mjs` (started by `tools/e2e/run.sh` for each fl
 `.hierarchy.xml` and `.capture.json` (device, app build, density) beside it. If the server is not
 running the flow still passes and the diff reports `NO LAYOUT`.
 
+**Which customer boards are captured.** Of the customer app's 568 boards, 19 are named by a flow
+(`grep -rn "SHOT: design--" tools/e2e/native/customer`); the other 549 are listed with a reason in
+`tools/e2e/native/customer-boards.mjs` (dark, 360 wide, enlarged text, keyboard, composite or specimen
+boards, screens and states no flow reaches, boards the app does not follow). `pnpm e2e:boards:check`
+keeps the two lists whole. A board whose screen the flows reach but whose content comes from dev-world
+data (restaurant names, prices, a different number of lines) is captured only where the layout at the top of the
+screen does not depend on that data; the rest read as unpairable rather than as a layout difference that is
+really a data difference. Text and layout from the dev world still differ from the boards' sample copy, so a capture
+of a restaurant page fails the "texts present" bar above until the dev world is seeded with the boards' sample restaurant.
+
 **Not verified on a device.** The hierarchy parser and the comparison are tested against a
 hand-written dump in the AOSP `uiautomator` shape (`test/fixtures/native-home.hierarchy.xml`) and
 the capture server against a stand-in `adb`; neither has run against a real emulator or Maestro, as
 none was available when this was written. Run one flow on the design AVD and read the result before
-trusting a number. Tracked in [#844](https://github.com/shaiknoorullah/hg-mono/issues/844).
+trusting a number: that run is [#966](https://github.com/shaiknoorullah/hg-mono/issues/966). Which
+emulator takes design captures at all is [#963](https://github.com/shaiknoorullah/hg-mono/issues/963)
+— the boards are 390 dp and the emulator the pull-request flows use is 411 dp, so a capture taken
+there is never compared.

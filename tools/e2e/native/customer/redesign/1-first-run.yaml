@@ -38,7 +38,11 @@ env:
     visible: "Tell us what to call you. Only your first name is needed to order."
     timeout: 30000
 - assertNotVisible: "Account"
-- takeScreenshot: redesign-wp1-10-your-details
+- runFlow:
+    file: ../../design-capture.yaml
+    env:
+      SHOT: design--sign-in--ProfileCapture
+      APP_ID: com.halalgoes.customer.dev
 # Empty the field first: until #774 the screen fills in the server's placeholder name.
 - tapOn:
     id: "Profile-first-field"
@@ -57,9 +61,20 @@ env:
     visible: "Where should we deliver?"
     timeout: 30000
 - assertVisible: "Add your address"
-- takeScreenshot: redesign-wp1-12-address-step
+- runFlow:
+    file: ../../design-capture.yaml
+    env:
+      SHOT: design--sign-in--SignedIn-address
+      APP_ID: com.halalgoes.customer.dev
 - tapOn: "Not now"
 - extendedWaitUntil:
     visible: "Account"
     timeout: 30000
-- takeScreenshot: redesign-wp1-13-home-not-now
+- extendedWaitUntil:
+    visible: "Set your delivery address"
+    timeout: 15000
+- runFlow:
+    file: ../../design-capture.yaml
+    env:
+      SHOT: design--discover-order--Home-no-address
+      APP_ID: com.halalgoes.customer.dev

@@ -18,13 +18,14 @@ export type RestaurantProfile = Schema['RestaurantProfile'];
 export type KycDocument = Schema['KycDocument'];
 export type AccountState = Schema['RestaurantAccountState'];
 
-export type SectionKey = 'halal' | 'account' | 'profile' | 'documents' | 'security';
+export type SectionKey = 'halal' | 'account' | 'profile' | 'documents' | 'device' | 'security';
 
 export const SECTIONS: readonly { key: SectionKey; title: string }[] = [
   { key: 'halal', title: 'Halal certification' },
   { key: 'account', title: 'Account' },
   { key: 'profile', title: 'Business profile' },
   { key: 'documents', title: 'Documents' },
+  { key: 'device', title: 'This device' },
   { key: 'security', title: 'Sign-in and security' },
 ];
 

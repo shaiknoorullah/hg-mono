@@ -47,12 +47,24 @@ env:
 - assertVisible: "Halal certified"
 - assertVisible: "View certification"
 - assertVisible: "Opening hours · today .*"
-- takeScreenshot: redesign-wp4-01-restaurant-open
+- runFlow:
+    file: ../../../design-capture.yaml
+    env:
+      SHOT: design--discover-order--Restaurant-open
+      APP_ID: com.halalgoes.customer.dev
 - tapOn: "View certification"
 - extendedWaitUntil:
     visible: "Halal certification"
     timeout: 15000
-- takeScreenshot: redesign-wp4-02-cert-sheet
+# The sheet's rows come from their own read; the board is drawn with them in.
+- extendedWaitUntil:
+    visible: "View certificate"
+    timeout: 15000
+- runFlow:
+    file: ../../../design-capture.yaml
+    env:
+      SHOT: design--discover-order--Restaurant-cert-sheet
+      APP_ID: com.halalgoes.customer.dev
 - tapOn: "View certificate"
 - extendedWaitUntil:
     visible: "Fit to screen"
@@ -60,12 +72,20 @@ env:
 - assertVisible: "100%"
 - assertVisible: "Certified by"
 - assertVisible: "We log who opens certificates.*"
-- takeScreenshot: redesign-wp4-03-certificate-open
+- runFlow:
+    file: ../../../design-capture.yaml
+    env:
+      SHOT: design--discover-order--Cert-open
+      APP_ID: com.halalgoes.customer.dev
 - tapOn: "Zoom in"
 - assertVisible: "150%"
 - tapOn: "Zoom in"
 - assertVisible: "200%"
-- takeScreenshot: redesign-wp4-04-certificate-zoomed
+- runFlow:
+    file: ../../../design-capture.yaml
+    env:
+      SHOT: design--discover-order--Cert-zoomed
+      APP_ID: com.halalgoes.customer.dev
 - tapOn: "Fit to screen"
 - assertVisible: "100%"
 - back
@@ -84,7 +104,11 @@ env:
           visible: "This link has expired"
           timeout: 30000
       - assertVisible: "Certificate links last five minutes.*"
-      - takeScreenshot: redesign-wp4-03b-certificate-link-expired
+      - runFlow:
+          file: ../../../design-capture.yaml
+          env:
+            SHOT: design--discover-order--Cert-link-expired
+            APP_ID: com.halalgoes.customer.dev
       - tapOn: "Open again"
       - extendedWaitUntil:
           visible: "Fit to screen"
@@ -98,7 +122,11 @@ env:
     visible: "Bamyan Kebab House"
     timeout: 30000
 - assertVisible: "expires .*"
-- takeScreenshot: redesign-wp4-05-restaurant-expiring
+- runFlow:
+    file: ../../../design-capture.yaml
+    env:
+      SHOT: design--discover-order--Restaurant-expiring
+      APP_ID: com.halalgoes.customer.dev
 
 # Paused: the banner with its way forward.
 - openLink: "hgcustomer://restaurant/b0000000-0000-4000-8000-000000000211"
@@ -107,7 +135,11 @@ env:
     timeout: 30000
 - assertVisible: "Not taking orders right now"
 - assertVisible: "Find an open restaurant"
-- takeScreenshot: redesign-wp4-06-restaurant-paused
+- runFlow:
+    file: ../../../design-capture.yaml
+    env:
+      SHOT: design--discover-order--Restaurant-paused
+      APP_ID: com.halalgoes.customer.dev
 
 # Expired: never listed, no halal reason given.
 - openLink: "hgcustomer://restaurant/b0000000-0000-4000-8000-000000000210"
@@ -115,5 +147,9 @@ env:
     visible: "This restaurant isn't available right now"
     timeout: 30000
 - assertNotVisible: "Halal certified"
-- takeScreenshot: redesign-wp4-07-restaurant-not-available
+- runFlow:
+    file: ../../../design-capture.yaml
+    env:
+      SHOT: design--discover-order--Restaurant-not-available
+      APP_ID: com.halalgoes.customer.dev
 - tapOn: "Back to Home"

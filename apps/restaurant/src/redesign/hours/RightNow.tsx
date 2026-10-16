@@ -5,8 +5,9 @@
  *
  * The switch holds its old position with a spinner until the server answers, then shows what
  * was read back; a failure leaves everything as it was and says so. Pause lengths each name
- * their end time and none is preselected. "Pause until closing" stays hidden until the API
- * can send the closing time (#312, plan Q7): the browser never computes it.
+ * their end time and none is preselected, except "Pause until closing": the server works out
+ * that time (a late night runs past midnight), so the menu cannot name it before the choice and
+ * the paused state names the time the server chose. The browser never computes it.
  *
  * Not built here yet: the sound prompt that turning New orders on with sound off opens
  * (`HoursSoundGate`, `HoursSoundOff`). It needs WP3's sound store, which is not on main.
@@ -16,7 +17,7 @@ import { useNavigate } from 'react-router-dom';
 import { channel, type RestaurantOpenState } from '@hg/api-client';
 import { eventOfType, useRealtimeChannel } from '@hg/ui-web/live';
 import { Badge, Button, InlineConfirm, Menu, Skeleton, Switch, useToast, type BadgeProps } from '../ds';
-import { setAcceptingOrders, type Availability } from '../data/availability';
+import { isOutsideTradingHours, isPausedUntilClosing, pauseUntilClosing, setAcceptingOrders, type Availability, type AvailabilityWrite } from '../data/availability';
 import type { ServerResource } from '../data/useServerResource';
 import { serverNow } from '../data/serverClock';
 import { useConsoleLayout } from '../shell/layout';
@@ -89,7 +90,7 @@ const WHY_STEPS = [
 ] as const;
 const WHY_STEP_OF: Partial<Record<NowState, number>> = { closed_holiday: 5, closed_hours: 6 };
 
-type Op = { kind: 'off' | 'on' | 'pause' | 'resume'; phase: 'busy' | 'done' | 'failed'; until?: string } | null;
+type Op = { kind: 'off' | 'on' | 'pause' | 'resume'; phase: 'busy' | 'done' | 'failed'; until?: string; outsideHours?: boolean } | null;
 
 const PAUSES = [15, 30, 60] as const;
 
@@ -186,16 +187,19 @@ export function RightNow({ availability, restaurantId, timezone, noHours, todayO
   const state = nowState(av, { noHours, now });
   const badge = BADGE[state];
   const pauseLabel = av.pause_until ? formatTime(av.pause_until, timezone) : '';
+  // "12:10 am tomorrow" when a pause runs past midnight; only for a pause until closing.
+  const closingLabel = av.pause_until ? pauseEndLabel(Date.parse(av.pause_until), now, timezone) : '';
+  const untilClosing = isPausedUntilClosing(av.pause_until);
   const busy = op?.phase === 'busy';
 
-  const patch = async (kind: NonNullable<Op>['kind'], body: { is_accepting_orders: boolean; pause_until?: string | null }) => {
+  const patch = async (kind: NonNullable<Op>['kind'], body: AvailabilityWrite) => {
     setOp({ kind, phase: 'busy' });
     try {
-      const next = await setAcceptingOrders(body);
+      const next = await (body.pause_until_closing ? pauseUntilClosing() : setAcceptingOrders(body));
       availability.mutate(() => next);
       setOp({ kind, phase: 'done' });
-    } catch {
-      setOp({ kind, phase: 'failed', until: pauseLabel });
+    } catch (err) {
+      setOp({ kind, phase: 'failed', until: pauseLabel, outsideHours: isOutsideTradingHours(err) });
       if (kind === 'off') {
         toast.show({
           variant: 'danger',
@@ -257,7 +261,7 @@ export function RightNow({ availability, restaurantId, timezone, noHours, todayO
       who = 'You can pause new orders for a short time, or switch them off.';
       break;
     case 'paused':
-      reason = `Paused until ${pauseLabel}.`;
+      reason = untilClosing ? `Paused until closing, ${closingLabel}.` : `Paused until ${pauseLabel}.`;
       who = 'This changes by itself. Resume now to take orders straight away.';
       break;
     case 'paused_stale':
@@ -343,7 +347,13 @@ export function RightNow({ availability, restaurantId, timezone, noHours, todayO
             label: `Pause for ${m} minutes (until ${pauseEndLabel(end, now, timezone)})`,
             onSelect: () => void patch('pause', { is_accepting_orders: true, pause_until: new Date(serverNow() + m * 60_000).toISOString() }),
           };
-        })}
+        }).concat([
+          {
+            key: 'close',
+            label: 'Pause until closing',
+            onSelect: () => void patch('pause', { is_accepting_orders: true, pause_until_closing: true }),
+          },
+        ])}
         testId="pause-menu"
       />,
     );
@@ -464,7 +474,9 @@ function opLine(op: Op): ReactNode {
     'on:busy': 'Turning on new orders… The switch moves when HalalGoes confirms.',
     'on:done': 'New orders are on again. Answer each order in the New orders strip within 3 minutes.',
     'on:failed': 'Couldn’t turn on new orders. You are still not accepting orders.',
-    'pause:failed': 'Couldn’t pause new orders. You are still taking orders.',
+    'pause:failed': op.outsideHours
+      ? 'You’re outside your opening hours, so there is no closing to pause until. You are not taking orders right now.'
+      : 'Couldn’t pause new orders. You are still taking orders.',
     'resume:failed': `Couldn’t resume. You are still paused until ${op.until ?? ''}.`,
   };
   const msg = text[`${op.kind}:${op.phase}`];

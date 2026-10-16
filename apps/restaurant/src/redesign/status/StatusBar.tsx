@@ -7,8 +7,8 @@
  *   back from the PATCH response, and shows loading while the call is in flight.
  * - Turning orders off and resuming a pause confirm in the page (InlineConfirm under the
  *   status bar, first focus on the least-change button). Turning on needs no confirm.
- * - "Pause until closing" is hidden until #312 lands (Q7): the server would need
- *   `pause_until_closing` and the closing time, and the browser never computes it.
+ * - "Pause until closing" sends `pause_until_closing`: the server works out the closing time
+ *   (a late night runs past midnight) and the browser never computes it.
  *
  * The ringing link ("Ringing · 2 waiting") belongs to the strip's work package (WP3).
  */
@@ -18,7 +18,7 @@ import { eventOfType, useRealtimeChannel } from '@hg/ui-web/live';
 import { Badge, Button, HalalBadge, Icon, InlineConfirm, Menu, Switch, reportHalalClientError, useToast } from '../ds';
 import type { BadgeVariant, IconName } from '../ds';
 import { useConsole } from '../data/console';
-import { setAcceptingOrders, useAvailability, type Availability } from '../data/availability';
+import { isOutsideTradingHours, pauseUntilClosing, setAcceptingOrders, useAvailability, type Availability, type AvailabilityWrite } from '../data/availability';
 import { useConnection, type ConnectionView } from '../data/connection';
 import { serverNow } from '../data/serverClock';
 import { formatTime } from '../format/time';
@@ -63,6 +63,8 @@ export function StatusBar() {
   const [params, setParams] = useSearchParams();
   const [pending, setPending] = useState<null | 'on' | 'off' | 'pause' | 'resume'>(null);
   const healthRef = useRef<HTMLButtonElement>(null);
+  // The last write was refused because the restaurant is outside its trading hours.
+  const outsideHours = useRef(false);
 
   const restaurantId = core.data?.restaurantId ?? null;
   const { mutate, refresh } = availability;
@@ -109,13 +111,14 @@ export function StatusBar() {
   };
 
   const write = useCallback(
-    async (body: { is_accepting_orders: boolean; pause_until?: string | null }, kind: 'on' | 'off' | 'pause' | 'resume') => {
+    async (body: AvailabilityWrite, kind: 'on' | 'off' | 'pause' | 'resume') => {
       setPending(kind);
       try {
-        const next: Availability = await setAcceptingOrders(body);
+        const next: Availability = await (body.pause_until_closing ? pauseUntilClosing() : setAcceptingOrders(body));
         mutate(() => next);
         return true;
-      } catch {
+      } catch (err) {
+        outsideHours.current = isOutsideTradingHours(err);
         return false;
       } finally {
         setPending(null);
@@ -160,6 +163,18 @@ export function StatusBar() {
     const ok = await write({ is_accepting_orders: true, pause_until: until }, 'pause');
     if (!ok) {
       toast.show({ variant: 'danger', title: 'Couldn’t pause new orders', description: 'New orders are still on. Check the connection and try again.' });
+    }
+  };
+
+  const pauseToClosing = async () => {
+    outsideHours.current = false;
+    const ok = await write({ is_accepting_orders: true, pause_until_closing: true }, 'pause');
+    if (!ok) {
+      toast.show(
+        outsideHours.current
+          ? { variant: 'warning', title: 'No closing to pause until', description: 'You’re outside your opening hours, so new orders are already stopped.' }
+          : { variant: 'danger', title: 'Couldn’t pause new orders', description: 'New orders are still on. Check the connection and try again.' },
+      );
     }
   };
 
@@ -253,7 +268,10 @@ export function StatusBar() {
           variant="tonal"
           align="end"
           disabled={view.pause === 'menu-disabled' || pending !== null}
-          items={PAUSE_CHOICES.map((c) => ({ key: c.key, label: c.label, onSelect: () => void pause(c.minutes) }))}
+          items={[
+            ...PAUSE_CHOICES.map((c) => ({ key: c.key, label: c.label, onSelect: () => void pause(c.minutes) })),
+            { key: 'close', label: 'Pause until closing', onSelect: () => void pauseToClosing() },
+          ]}
           testId="pause-menu"
         />
       )}

@@ -30,7 +30,8 @@ reviewed: 2026-10-16
 > strip (accept, decline with a reason, the order sound and the go-live gate) is redesigned in
 > `src/redesign/strip/`. The Live orders board (In progress list, order panel, Mark ready and the
 > pickup code), the service status bar and the halal banners are in `src/redesign/orders/` and
-> `src/redesign/status/`.
+> `src/redesign/status/`. Settings, including "This device" (the order sound, notifications and keeping the
+> screen on, saved in the browser), is in `src/redesign/settings/`.
 >
 > **2026-10-10 (WP9, Hours):** `/hours` is now the redesigned screen in the flag-on build
 > (`src/redesign/hours/`). It answers the [Settings and profile](#8-settings-and-profile) section's "single interval" finding: each day is Closed or up to
