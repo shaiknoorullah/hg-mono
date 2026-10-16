@@ -17,6 +17,7 @@
     "state": "AUTHORIZED",
     "state_since": "2026-08-10T18:40:41.412Z",
     "deadline_at": "2026-08-10T18:55:11.412Z",
+    "server_time": "2026-08-10T18:42:11.412Z",
     "quote_id": "5edd725c-a646-48e0-ae3e-21acc61518cf",
     "restaurant": {
       "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",

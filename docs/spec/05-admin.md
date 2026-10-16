@@ -2695,6 +2695,9 @@ documents lapse cannot go on shift, but is not punished.
     measurement used for restaurant or rider performance.
   - R5 The order detail response is generated from the same read model the customer app uses, so
     support and customer can never see contradictory states.
+    That includes `server_time`, the server's clock when the response was built: the order
+    detail is the customer's order plus admin fields, so it carries the customer view's
+    required `server_time` ([#925](https://github.com/shaiknoorullah/hg-mono/issues/925)).
   - R6 Reassigning a rider returns the order to dispatch with the previous rider excluded from the
     next offer round.
   - R7 A staff cancel tells the customer like any other cancel: it goes through the order state

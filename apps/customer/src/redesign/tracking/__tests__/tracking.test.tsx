@@ -26,6 +26,12 @@ const SERVER_ERROR: MockAnswer = { status: 500, code: 'INTERNAL_ERROR' };
 
 const order = (scenario: string, patch: Partial<Order> = {}): Order => ({ ...payloadOf<Order>(scenario), ...patch });
 const tracking = (scenario: string, patch: Partial<Tracking> = {}): Tracking => ({ ...payloadOf<Tracking>(scenario), ...patch });
+// The server's clock is what the page counts against, so a test moves it through `server_time`; the
+// phone's own clock is left wrong on purpose, ten minutes fast, to show it is not the one read.
+const WRONG_PHONE_CLOCK_MS = 10 * 60_000;
+const serverAt = (ms: number) => new Date(ms).toISOString();
+const phoneRunsFast = () => setNowOverride({ offsetMs: WRONG_PHONE_CLOCK_MS });
+
 const halal = (display_state: string, extra: Record<string, unknown> = {}) => ({
   display_state,
   certifying_body_name: 'Halal Monitoring Authority (HMA Canada)',
@@ -56,9 +62,10 @@ const textOf = (id: string) => {
 
 describe('waiting layout', () => {
   it('RESTAURANT_PENDING: one neutral bar with the absolute reply-by time, the total, and Cancel order while the server allows it', async () => {
-    const o = order('order_restaurant_pending');
-    setNowOverride({ at: Date.parse(o.deadline_at!) - 100_000 });
-    renderTracking({ getOrder: ok(o), getOrderTracking: ok(tracking('tracking_preparing', { state: 'RESTAURANT_PENDING' })) });
+    const base = order('order_restaurant_pending');
+    const o = { ...base, server_time: serverAt(Date.parse(base.deadline_at!) - 100_000) };
+    phoneRunsFast();
+    renderTracking({ getOrder: ok(o), getOrderTracking: ok(tracking('tracking_preparing', { state: 'RESTAURANT_PENDING', server_time: o.server_time })) });
     expect(await screen.findByTestId('Tracking-body')).toBeTruthy();
     expect(textOf('Tracking-h1')).toBe(`Waiting for ${o.restaurant.name} to accept`);
     expect(screen.getByText("Your card is authorised, not charged. If they don't accept in time, the hold is released.")).toBeTruthy();
@@ -70,21 +77,23 @@ describe('waiting layout', () => {
   });
 
   it('at zero it waits for the server: the line changes once and the bar has no time to show', async () => {
-    const o = order('order_restaurant_pending');
-    setNowOverride({ at: Date.parse(o.deadline_at!) + 5_000 });
-    renderTracking({ getOrder: ok(o), getOrderTracking: ok(tracking('tracking_preparing', { state: 'RESTAURANT_PENDING' })) });
+    const base = order('order_restaurant_pending');
+    const o = { ...base, server_time: serverAt(Date.parse(base.deadline_at!) + 5_000) };
+    setNowOverride({ offsetMs: -WRONG_PHONE_CLOCK_MS });
+    renderTracking({ getOrder: ok(o), getOrderTracking: ok(tracking('tracking_preparing', { state: 'RESTAURANT_PENDING', server_time: o.server_time })) });
     expect(await screen.findByText(/Checking with .*\. If they haven't accepted, the hold is released and you pay nothing\./)).toBeTruthy();
     expect(screen.queryByText(/replies by/)).toBeNull();
   });
 
   it('AUTHORIZED: says the hold is placed, then that sending is slow after 30 s', async () => {
-    const o = order('order_authorized');
-    setNowOverride({ at: Date.parse(o.state_since!) + 5_000 });
-    renderTracking({ getOrder: ok(o), getOrderTracking: ok(tracking('tracking_preparing', { state: 'AUTHORIZED' })) });
+    const base = order('order_authorized');
+    const o = { ...base, server_time: serverAt(Date.parse(base.state_since!) + 5_000) };
+    phoneRunsFast();
+    renderTracking({ getOrder: ok(o), getOrderTracking: ok(tracking('tracking_preparing', { state: 'AUTHORIZED', server_time: o.server_time })) });
     expect(await screen.findByText(/Hold placed on your/)).toBeTruthy();
     mock.restore();
-    setNowOverride({ at: Date.parse(o.state_since!) + 60_000 });
-    renderTracking({ getOrder: ok(o), getOrderTracking: ok(tracking('tracking_preparing', { state: 'AUTHORIZED' })) });
+    const later = { ...base, server_time: serverAt(Date.parse(base.state_since!) + 60_000) };
+    renderTracking({ getOrder: ok(later), getOrderTracking: ok(tracking('tracking_preparing', { state: 'AUTHORIZED', server_time: later.server_time })) });
     expect(await screen.findByText(/Still sending your order to/)).toBeTruthy();
   });
 
@@ -132,8 +141,9 @@ describe('live layout', () => {
   });
 
   it('a stale rider fix is said, not hidden', async () => {
-    const t = tracking('tracking_picked_up');
-    setNowOverride({ at: Date.parse(t.rider_location!.recorded_at!) + 120_000 });
+    const base = tracking('tracking_picked_up');
+    const t = { ...base, server_time: serverAt(Date.parse(base.rider_location!.recorded_at!) + 120_000) };
+    phoneRunsFast();
     renderTracking({ getOrder: 'order_picked_up', getOrderTracking: ok(t) });
     expect(await screen.findByTestId('Tracking-fixStale')).toBeTruthy();
   });

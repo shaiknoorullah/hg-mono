@@ -17,6 +17,10 @@ import (
 type orderTrackingDTO struct {
 	OrderID string `json:"order_id"`
 	State   string `json:"state"`
+	// ServerTime is the server's clock at the moment this response is built. Clients
+	// compute eta_at, the arrival window and the timeline against it, never against
+	// the device's clock (contract: OrderTracking.server_time; issue 925).
+	ServerTime string `json:"server_time"`
 	// The following fields are contract-nullable (type: [..., 'null']) and the
 	// reference fixtures always render them — present as null when absent, never
 	// omitted. omitempty would drop the key and diverge from the fixture shape.
@@ -174,6 +178,7 @@ func orderTrackingToDTO(ot *OrderTracking) orderTrackingDTO {
 	d := orderTrackingDTO{
 		OrderID:            ot.OrderID,
 		State:              ot.State,
+		ServerTime:         httpx.Timestamp(time.Now()),
 		DispatchState:      ot.DispatchState,
 		RestaurantLocation: geoPointDTO{Latitude: ot.RestaurantLocation.Latitude, Longitude: ot.RestaurantLocation.Longitude},
 		Timeline:           make([]orderTransitionDTO, 0, len(ot.Timeline)),

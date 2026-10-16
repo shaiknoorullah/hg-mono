@@ -6192,6 +6192,14 @@ export interface components {
             reject_reason?: components["schemas"]["RestaurantRejectReasonCode"] | null;
             restaurant: components["schemas"]["OrderRestaurantRef"];
             rider?: components["schemas"]["RiderPublicProfile"] | null;
+            /**
+             * @description The server's clock when this response was produced. Every deadline and countdown
+             *     on the order (`deadline_at`) is computed against `server_time`, never from a device
+             *     clock, so a phone whose clock is wrong still counts down correctly. Same rule as the
+             *     rider offer's `server_time`
+             *     ([#925](https://github.com/shaiknoorullah/hg-mono/issues/925)).
+             */
+            server_time: components["schemas"]["Timestamp"];
             special_instructions?: string | null;
             state: components["schemas"]["OrderState"];
             state_since?: components["schemas"]["Timestamp"];
@@ -6528,6 +6536,14 @@ export interface components {
              *     route to the restaurant is **not** exposed to the customer.
              */
             rider_location?: components["schemas"]["RiderLocation"] | null;
+            /**
+             * @description The server's clock when this response was produced. Every deadline and countdown
+             *     on the order's tracking (`eta_at`, `eta_window_minutes` and every `timeline[].at`) is
+             *     computed against `server_time`, never from a device clock, so a phone whose clock is
+             *     wrong still counts down correctly. Same rule as the rider offer's `server_time`
+             *     ([#925](https://github.com/shaiknoorullah/hg-mono/issues/925)).
+             */
+            server_time: components["schemas"]["Timestamp"];
             state: components["schemas"]["OrderState"];
             timeline?: components["schemas"]["OrderTransition"][];
         };

@@ -151,7 +151,7 @@ jobs:
       # A self-hosted runner keeps its own store and uploads nothing.
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: ${{ runner.environment == 'github-hosted' && 'pnpm' || '' }}
 
       - if: runner.environment == 'github-hosted'
@@ -269,7 +269,7 @@ jobs:
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: ${{ runner.environment == 'github-hosted' && 'pnpm' || '' }}
 
       - run: pnpm install --frozen-lockfile
@@ -356,7 +356,7 @@ jobs:
       # Node runs the coverage script below: built-ins only, nothing to install.
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 22
+          node-version-file: .nvmrc
 
       - name: vet
         run: make vet
@@ -487,7 +487,7 @@ jobs:
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: ${{ runner.environment == 'github-hosted' && steps.here.outputs.js == 'true' && 'pnpm' || '' }}
 
       - if: steps.here.outputs.go == 'true'
@@ -573,7 +573,7 @@ jobs:
           retention-days: 1
 
       # ---------------------------------------------------------------- push to main
-      # The `coverage-baseline` job commits it and opens the PR.
+      # The `coverage-baseline` job commits it to a branch and files an issue asking for the PR.
       - name: raise the baseline
         id: baseline
         if: github.event_name == 'push'
@@ -649,7 +649,8 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write # push the baseline branch
-      pull-requests: write # open the baseline PR
+      issues: write # file or update the issue that asks a person to open the pull request
+      pull-requests: read # is a pull request for the branch already open?
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -658,10 +659,14 @@ jobs:
         with:
           name: coverage-baseline
           path: coverage
-      - name: open the baseline PR
+      # This repository does not let GitHub Actions open pull requests (issue #944), so the job
+      # pushes the branch and files an issue naming it; a person opens the pull request. One open
+      # issue at a time, as in `main-failure` below: a later rise while it is open adds a comment.
+      - name: push the baseline branch and ask for a pull request
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
         run: |
           branch=ci/coverage-baseline
           git config user.name 'github-actions[bot]'
@@ -669,15 +674,27 @@ jobs:
           git switch -C "$branch"
           git add coverage/baseline.json
           git commit -m "ci: raise the coverage baseline" -m "Coverage rose on main; the ratchet baseline follows it up. Issue #118."
+          # A bot branch rebuilt from main on every rise, so the force is deliberate.
           git push --force origin "$branch"
-          if [ -z "$(gh pr list --repo "$REPO" --head "$branch" --state open --json number --jq '.[].number')" ]; then
-            body=$(printf '%s\n' \
-              '## What' 'Raise the coverage baseline to what main measures now.' '' \
-              '## Issue' 'Part of #118' '' \
-              '## Why now' 'Coverage rose on main; the ratchet only moves up.' '' \
-              '## Links' '- https://github.com/shaiknoorullah/hg-mono/blob/main/coverage/baseline.json')
-            gh pr create --repo "$REPO" --base main --head "$branch" \
-              --title "ci: raise the coverage baseline" --body "$body"
+          if [ -n "$(gh pr list --repo "$REPO" --head "$branch" --state open --json number --jq '.[].number')" ]; then
+            echo "a pull request for $branch is already open; the push updated it"
+            exit 0
+          fi
+          title="ci: open a pull request to raise the coverage baseline"
+          body=$(printf '%s\n' \
+            "Coverage rose on main, and the ratchet baseline should follow it up. The branch \`$branch\` holds that one-file change (\`coverage/baseline.json\`), measured at commit $SHA. GitHub Actions cannot open the pull request itself in this repository (issue #944), so please open it:" \
+            '' \
+            "- Compare and open: https://github.com/$REPO/compare/main...$branch?expand=1" \
+            "- Or: \`gh pr create --base main --head $branch --title 'ci: raise the coverage baseline'\`" \
+            '' \
+            "The pull request needs the sections its type requires; the description can be: What: raise the coverage baseline to what main measures now. Issue: part of #118. Why now: coverage rose on main; the ratchet only moves up." \
+            "Close this issue when the pull request is merged. Until then, further rises on main add a comment here and force-update the branch.")
+          number=$(gh issue list --repo "$REPO" --state open --search "\"$title\" in:title" \
+            --json number,title --jq "[.[] | select(.title == \"$title\")][0].number // empty")
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --repo "$REPO" --body "$body"
+          else
+            gh issue create --repo "$REPO" --title "$title" --body "$body" --label chore
           fi
 
   coverage-issues:

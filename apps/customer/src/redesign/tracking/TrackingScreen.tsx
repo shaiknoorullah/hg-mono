@@ -57,7 +57,7 @@ import {
 } from '../ds';
 import { useConnectivity } from '../lib/connectivity';
 import { orderShowsHalal, presentHalal } from '../lib/halal';
-import { useNow } from '../lib/now';
+import { useNow, useServerNow } from '../lib/now';
 import { formatTime } from '../lib/time';
 import { useNav } from '../navigation/context';
 import { cardName } from '../orders/format';
@@ -189,7 +189,10 @@ interface BodyProps {
 
 function TrackingBody({ data, asOf, failed, online, onRetry }: BodyProps): React.ReactElement {
   const theme = useTheme();
+  // `now` is the phone's clock, for what the phone itself timed (the halal cache). Everything compared
+  // with a time the server sent (the reply-by deadline, how long ago a fix was) uses `serverNow`.
   const now = useNow(5_000);
+  const serverNow = useServerNow(5_000);
   const { order, tracking, payment } = data;
   const waiting = isWaitingLayout(order.state);
   const restaurant = order.restaurant;
@@ -231,7 +234,7 @@ function TrackingBody({ data, asOf, failed, online, onRetry }: BodyProps): React
     <ScrollView contentContainerStyle={styles.page} testID="Tracking-body">
       {offlineBanner}
       {waiting ? (
-        <WaitingTop data={data} authorised={authorised} cardLabel={card} now={now} />
+        <WaitingTop data={data} authorised={authorised} cardLabel={card} now={serverNow} />
       ) : (
         <LiveTop
           headline={headline}
@@ -240,7 +243,7 @@ function TrackingBody({ data, asOf, failed, online, onRetry }: BodyProps): React
           data={data}
           meet={meet}
           riderFirst={rider?.first ?? null}
-          now={now}
+          now={serverNow}
         />
       )}
 
@@ -251,7 +254,7 @@ function TrackingBody({ data, asOf, failed, online, onRetry }: BodyProps): React
         estimatedAt={waiting ? null : (tracking?.eta_at ?? order.eta_at ?? null)}
         deadlineAt={order.state === 'PREPARING' ? order.deadline_at : null}
         connection="polling"
-        now={now}
+        now={serverNow}
         testID="Tracking-timeline"
       />
 

@@ -122,7 +122,7 @@ func doGET(t *testing.T, r *httpx.Router, path string) *httptest.ResponseRecorde
 var (
 	orderTrackingKeys = []string{
 		"order_id", "state", "dispatch_state", "eta_at", "eta_window_minutes",
-		"restaurant_location", "destination_location", "rider_location", "rider", "timeline",
+		"restaurant_location", "destination_location", "rider_location", "rider", "timeline", "server_time",
 		// The customer's delivery code for a met handover, null otherwise
 		// (https://github.com/shaiknoorullah/hg-mono/issues/310).
 		"delivery_code",

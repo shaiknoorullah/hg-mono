@@ -17,6 +17,7 @@
     "state": "FAILED",
     "state_since": "2026-08-10T18:40:41.412Z",
     "deadline_at": null,
+    "server_time": "2026-08-10T18:42:11.412Z",
     "quote_id": "5acdb23a-a6c0-4dc2-a2b6-2060e7a8ec52",
     "restaurant": {
       "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",

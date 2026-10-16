@@ -49,7 +49,7 @@ Jobs that hold a secret or a write token never run on our machines.
 
 | Workflow | On `HG_RUNS_ON` (read-only token, no secrets) | Always on GitHub's runners, and why |
 |---|---|---|
-| [`ci`](../../.github/workflows/ci.yml) | `changes`, `contract-kit`, `js`, `go`, `coverage`, `gate` | `coverage-comment`, `coverage-baseline`, `coverage-issues`, `main-failure`: write tokens |
+| [`ci`](../../.github/workflows/ci.yml) | `changes`, `contract-kit`, `js`, `go`, `coverage`, `gate` | `coverage-comment`, `coverage-baseline` (pushes a branch and files an issue; Actions may not open pull requests here), `coverage-issues`, `main-failure`: write tokens |
 | [`docs`](../../.github/workflows/docs.yml) | `doc and PR checks` | `labels` and `weekly`: write tokens |
 | [`migrations`](../../.github/workflows/migrations.yml) | `schema` | |
 
@@ -132,7 +132,7 @@ runner in Settings → Actions → Runners.
   testcontainers: in the `go` job, or in `coverage` for the weekly scan. Without Docker those
   jobs fail.
 - No `psql`, Go, Node or Python setup is needed: jobs install Go and Node into the runner's own
-  tool cache, use the machine's `python3` in a private venv, and run `psql` from the Postgres image.
+  tool cache (Node from the version in `.nvmrc`, the same file a developer's machine reads), use the machine's `python3` in a private venv, and run `psql` from the Postgres image.
 - **No KVM on the workstation** (`/dev/kvm` is missing), so it cannot boot an Android emulator.
   Jobs that need an emulator must not use `HG_RUNS_ON`: they stay on GitHub's runners or a runner
   that has KVM.

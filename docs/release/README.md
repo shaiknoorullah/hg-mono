@@ -4,7 +4,7 @@ covers:
   - scripts/release/**
   - apps/customer/app.config.js
   - apps/rider/app.config.js
-reviewed: 2026-10-09
+reviewed: 2026-10-16
 ---
 
 # Releasing the apps
@@ -72,6 +72,8 @@ Every app has its own [semantic version](https://semver.org): `MAJOR.MINOR.PATCH
 - Android needs each update's version code to be higher than the installed one. The code is
   worked out from the version, so a later version always installs over an earlier one:
   `1.0.0-rc.1` is 1000001, `1.0.0` is 1000099, `1.0.1` is 1000199.
+
+The build jobs install Node from the version in `.nvmrc`, so a release is built with the same Node as CI and a developer's machine.
 
 Version bumps, changelogs and release notes written for users come with
 [versioned releases (#97)](https://github.com/shaiknoorullah/hg-mono/issues/97) and

@@ -81,6 +81,20 @@ describe('payout history', () => {
   });
 });
 
+describe('payout history at phone width', () => {
+  it('stacks one row per payout, with the server’s amount, and a row opens its payout', async () => {
+    const every = fixture('restaurant_payout_history_every_state') as { id: string; state: string }[];
+    installFakeApi(routes({ 'GET /v1/restaurant/payouts': list(every) }));
+    await renderRedesign('/payouts/history', { phone: true });
+    const rows = await screen.findByRole('list', { name: 'Payouts, newest first' });
+    expect(screen.queryByRole('grid')).toBeNull();
+    expect(within(rows).getAllByRole('listitem')).toHaveLength(every.length);
+    expect((await within(rows).findAllByText(/1,842\.50/)).length).toBeGreaterThan(0);
+    fireEvent.click(within(rows).getAllByRole('button')[0]!);
+    expect(await screen.findByTestId('payout-detail')).toBeTruthy();
+  });
+});
+
 describe('one payout', () => {
   const every = () => fixture('restaurant_payout_history_every_state') as { id: string; state: string }[];
   const idOf = (state: string) => every().find((p) => p.state === state)!.id;

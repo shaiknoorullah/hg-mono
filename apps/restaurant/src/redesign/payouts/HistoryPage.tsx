@@ -11,10 +11,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { eventOfType, useRealtimeChannel } from '@hg/ui-web/live';
-import { Badge, Button, DataTable, DetailPanel, EmptyState, GlyphIcon, Price, Skeleton, type DataTableColumn } from '../ds';
+import { Badge, Button, DataTable, DetailPanel, EmptyState, GlyphIcon, Icon, Price, Skeleton, type DataTableColumn } from '../ds';
 import { useConsole } from '../data/console';
 import { errorStatus, useServerResource } from '../data/useServerResource';
-import { useIsDesktop } from '../shell/viewport';
+import { useIsDesktop, useIsPhone } from '../shell/viewport';
 import { usePagePanelOpen } from '../shell/layout';
 import { loadConnect, loadPayoutPage, openStripe } from './api';
 import { PayoutDetail, type LiveNotice } from './PayoutDetail';
@@ -36,6 +36,7 @@ const START: ListState = { status: 'loading', rows: [], cursor: null, hasMore: f
 export function HistoryPage() {
   const { core, timezone, profile } = useConsole();
   const desktop = useIsDesktop();
+  const phone = useIsPhone();
   const navigate = useNavigate();
   const [search, setSearch] = useSearchParams();
   const openId = search.get('payout');
@@ -208,7 +209,7 @@ export function HistoryPage() {
 
   return (
     <div className="flex min-h-0 flex-1 gap-4" data-testid="payouts-history" data-state={list.status}>
-      <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto pb-6">
+      <main className={`flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto pb-6${panelOpen || supportOpen ? ' max-lg:hidden' : ''}`}>
         {card ? (
           <div className="flex flex-wrap items-center gap-3 rounded-lg border border-line-decorative bg-surface-raised px-4 py-3" data-testid="account-strip">
             <span className="text-body-sm text-fg-secondary">Payout account</span>
@@ -229,36 +230,46 @@ export function HistoryPage() {
               Need your attention:
             </h2>
             {attention.map((r) => (
-              <Button key={r.id} variant="ghost" size="md" iconEnd="chevron-right" onPress={() => show(r.id)}>
+              <Button key={r.id} variant="ghost" size="md" iconEnd={<Icon name="back" size={20} className="rotate-180" />} onPress={() => show(r.id)}>
                 {`${periodShort(r.period_start, r.period_end, timezone)} (${r.state === 'FAILED' ? 'failed' : 'on hold'})`}
               </Button>
             ))}
           </section>
         ) : null}
 
-        <div className="flex min-h-0 flex-col rounded-lg border border-line-decorative bg-surface-raised">
-          <DataTable<PayoutRow>
-            caption="Payouts, newest first"
-            columns={columns}
-            rows={list.rows}
-            getRowId={(r) => r.id}
-            getRowLabel={(r) => `payout for ${periodLabel(r.period_start, r.period_end, timezone)}, ${stateView(r.state).label}`}
-            density="comfortable"
-            stickyHeader
-            loading={list.status === 'loading'}
-            error={list.status === 'error' ? { code: 'NETWORK', message: 'Couldn’t load your payouts. Your money isn’t affected.', onRetry: () => void loadFirst(false) } : null}
-            className="rounded-none border-0"
-            emptyState={
-              <EmptyState
-                variant="table"
-                headingLevel={3}
-                title="No payouts yet"
-                description="Each payout is the total of your settled orders for its period. Your first one appears here after your first settled order."
-                testId="payouts-empty"
-              />
-            }
-            testId="payouts-table"
-          />
+        <div className={`flex flex-col rounded-lg border border-line-decorative bg-surface-raised${phone ? ' shrink-0' : ' min-h-0'}`}>
+          {phone ? (
+            <PayoutRows
+              rows={list.rows}
+              status={list.status}
+              timezone={timezone}
+              onOpen={show}
+              onRetry={() => void loadFirst(false)}
+            />
+          ) : (
+            <DataTable<PayoutRow>
+              caption="Payouts, newest first"
+              columns={columns}
+              rows={list.rows}
+              getRowId={(r) => r.id}
+              getRowLabel={(r) => `payout for ${periodLabel(r.period_start, r.period_end, timezone)}, ${stateView(r.state).label}`}
+              density="comfortable"
+              stickyHeader
+              loading={list.status === 'loading'}
+              error={list.status === 'error' ? { code: 'NETWORK', message: 'Couldn’t load your payouts. Your money isn’t affected.', onRetry: () => void loadFirst(false) } : null}
+              className="rounded-none border-0"
+              emptyState={
+                <EmptyState
+                  variant="table"
+                  headingLevel={3}
+                  title="No payouts yet"
+                  description="Each payout is the total of your settled orders for its period. Your first one appears here after your first settled order."
+                  testId="payouts-empty"
+                />
+              }
+              testId="payouts-table"
+            />
+          )}
           {list.status === 'ready' && list.rows.length > 0 ? (
             <div className="flex flex-col items-center gap-2 border-t border-line-decorative px-4 py-4" data-testid="list-foot">
               {list.hasMore ? (
@@ -289,6 +300,7 @@ export function HistoryPage() {
           closeLabel="Close payout"
           onClose={() => show(null)}
           width="panel"
+          fullBelowLg
           busy={searching}
           testId="payout-panel"
         >
@@ -340,5 +352,89 @@ export function HistoryPage() {
         </DetailPanel>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * Below 768 px the history is one stacked row per payout (period, status, amount), each a button
+ * that opens the payout: the design board for payouts at phone width draws it so, in place of the table.
+ * Every figure is the server's: the amount is `amount_cents` passed to `Price`, nothing is added.
+ */
+function PayoutRows({
+  rows,
+  status,
+  timezone,
+  onOpen,
+  onRetry,
+}: {
+  rows: PayoutRow[];
+  status: 'loading' | 'ready' | 'error';
+  timezone: string;
+  onOpen: (id: string) => void;
+  onRetry: () => void;
+}) {
+  if (status === 'loading') {
+    return (
+      <div aria-busy="true" className="flex flex-col gap-3 p-4" data-testid="payouts-table" data-state="loading">
+        <span role="status" className="sr-only">
+          Loading your payouts
+        </span>
+        <Skeleton variant="rect" width="100%" height={20} />
+        <Skeleton variant="rect" width="100%" height={20} />
+        <Skeleton variant="rect" width="100%" height={20} />
+      </div>
+    );
+  }
+  if (status === 'error') {
+    return (
+      <div role="alert" className="flex flex-col items-start gap-2 p-4" data-testid="payouts-table" data-state="error">
+        <strong className="text-label-lg">Couldn’t load your payouts. Your money isn’t affected.</strong>
+        <Button variant="tertiary" size="md" onPress={onRetry}>
+          Try again
+        </Button>
+      </div>
+    );
+  }
+  if (rows.length === 0) {
+    return (
+      <div data-testid="payouts-table" data-state="empty">
+        <EmptyState
+          variant="table"
+          headingLevel={3}
+          title="No payouts yet"
+          description="Each payout is the total of your settled orders for its period. Your first one appears here after your first settled order."
+          testId="payouts-empty"
+        />
+      </div>
+    );
+  }
+  return (
+    <ul className="m-0 flex list-none flex-col p-0" aria-label="Payouts, newest first" data-testid="payouts-table" data-state="ready">
+      {rows.map((r) => {
+        const s = stateView(r.state);
+        const label = periodLabel(r.period_start, r.period_end, timezone);
+        const c = payoutCents(r.amount_cents);
+        return (
+          <li key={r.id} className="border-b border-line-decorative last:border-b-0">
+            <button
+              type="button"
+              className="hg-focus flex min-h-16 w-full items-center gap-3 px-4 py-2 text-start text-fg-primary"
+              aria-label={`Open payout for ${label}, ${s.label}`}
+              onClick={() => onOpen(r.id)}
+            >
+              <span className="flex min-w-0 flex-1 flex-col items-start gap-1">
+                <span className="text-label-lg">{label}</span>
+                <span className="flex flex-wrap items-center gap-2">
+                  <Badge label={s.label} variant={s.tone} icon={s.icon} size="sm" />
+                  {r.justChanged ? <Badge label="Just changed" appearance="outline" size="sm" /> : null}
+                </span>
+              </span>
+              {c === null ? <span className="text-fg-secondary">Not given</span> : <Price cents={c} />}
+              <Icon name="back" size={20} className="rotate-180" />
+            </button>
+          </li>
+        );
+      })}
+    </ul>
   );
 }

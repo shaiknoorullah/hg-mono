@@ -3,7 +3,7 @@ covers:
   - apps/restaurant/**
   - services/hg/internal/restaurant/**
   - services/hg/internal/catalog/**
-reviewed: 2026-10-13
+reviewed: 2026-10-16
 ---
 
 # HalalGoes — RESTAURANT domain specification
@@ -14,7 +14,8 @@ microservices, no serverless.
 **Restaurant surface**: web app only (Next.js today; surface-agnostic here). The Expo
 `apps/restaurant` mobile app is **not** in this spec — see "Global out of scope".
 **Devices**: desktop and landscape tablets from 1024×768 up, light theme only; no portrait or phone
-layouts ([devices at launch](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), [dark theme](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
+layouts, but below 1024 px a page still has to reflow to one column with no sideways scrolling down to
+320 px, the width of a 1280 px screen at 400% zoom (the payouts pages do; the console frame around them does not yet, [#954](https://github.com/shaiknoorullah/hg-mono/issues/954)) ([devices at launch](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), [dark theme](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
 **Market**: Canada. Currency CAD. Language en-CA (fr-CA deferred to V3).
 
 ---
