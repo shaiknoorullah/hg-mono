@@ -19,6 +19,7 @@ import { AddressFormScreen } from '../../screens/AddressFormScreen';
 import { CartScreen as RedesignedCartScreen } from '../cart/CartScreen';
 import { OrdersScreen as RedesignedOrdersScreen } from '../orders/OrdersScreen';
 import { ReceiptScreen } from '../orders/ReceiptScreen';
+import { TrackingScreen as RedesignedTrackingScreen } from '../tracking/TrackingScreen';
 import { HomeScreen } from '../discover/HomeScreen';
 import { HowWeCheckScreen } from '../discover/HowWeCheckScreen';
 import { CertificateScreen } from '../restaurant/CertificateScreen';
@@ -54,6 +55,10 @@ export const REDESIGNED: Registry = {
   // WP9: Orders history (T9) and Receipt (T10).
   orders: () => <RedesignedOrdersScreen />,
   receipt: (route) => <ReceiptScreen orderId={route.orderId} />,
+  // Order tracking (waiting and live layouts). The delivered and outcome states, the cancel and
+  // Get help sheets and payment recovery are not built yet; a state this screen does not draw hands
+  // over to the legacy tracking screen, and `sheet: 'getHelp'` opens the order page without a sheet.
+  tracking: (r) => <RedesignedTrackingScreen orderId={r.orderId} />,
   // WP2: Home, address switcher (a sheet owned by Home), How we check.
   home: () => <HomeScreen />,
   howWeCheck: () => <HowWeCheckScreen />,
