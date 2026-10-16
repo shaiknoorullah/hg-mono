@@ -368,6 +368,12 @@ jobs:
       - name: vet
         run: make vet
 
+      # Regenerates internal/contract/types.gen.go from contracts/openapi.yaml and fails on any
+      # difference: a stale file (the contract changed, nobody regenerated) or a hand edit.
+      # `go tool` fetches the generator's modules, which the setup-go cache above holds.
+      - name: contract types are not hand-edited
+        run: make generate-check
+
       # psql as in migrations.yml: from apt on GitHub's runners, else a wrapper that runs it
       # from the Postgres image (as the runner's user, the working tree mounted read-only).
       - name: psql client
