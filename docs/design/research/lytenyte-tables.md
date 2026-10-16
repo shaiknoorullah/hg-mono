@@ -2,7 +2,7 @@
 covers:
   - packages/ui-web/src/**
   - apps/admin/src/**
-reviewed: 2026-10-15
+reviewed: 2026-10-16
 ---
 
 # DataTable on LyteNyte Grid, and the cell component set — spec draft
