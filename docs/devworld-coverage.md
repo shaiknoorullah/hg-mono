@@ -4,7 +4,7 @@ covers:
   - services/hg/internal/devworld/**
   - services/hg/migrations/devworld/**
   - docs/playbooks/**
-reviewed: 2026-10-14
+reviewed: 2026-10-16
 ---
 
 # Dev world coverage map
@@ -108,7 +108,7 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [R-03](spec/03-restaurant.md#r-03--login-session-and-token-lifecycle) | Sign in, sessions, password reset | Any owner, e.g. `bismillah-grill`; the reset link is in the API log | Covered | — |
 | [R-04](spec/03-restaurant.md#r-04--onboarding-state-machine-and-progress-tracking) | Onboarding progress | One persona per step: `fresh`, `profile`, `docs-todo`, `docs-review`, `docs-rejected`, `payout`, `menu`, `bismillah-grill`. [Playbook](playbooks/restaurant/onboarding-personas.md) | Covered | — |
 | [R-05](spec/03-restaurant.md#r-05--business-profile-submission-onboarding-step-1) | Business profile | `profile` | Covered | — |
-| [R-06](spec/03-restaurant.md#r-06--operating-hours-holidays-and-temporary-closure) | Hours, holidays, temporary closure | Weekly hours: `bismillah-grill`, which also has two upcoming overrides (opens late in 3 days, closed all day in 7); pause: `paused` | Covered | — |
+| [R-06](spec/03-restaurant.md#r-06--operating-hours-holidays-and-temporary-closure) | Hours, holidays, temporary closure | Weekly hours: `bismillah-grill`, which also has two upcoming overrides (opens late in 3 days, closed all day in 7); pause: `paused` (seeded with `pause_kind` `DURATION`, which the database requires beside `pause_until`) | Covered | — |
 | [R-07](spec/03-restaurant.md#r-07--compliance-document-upload) | Upload documents | `docs-todo` | Covered | — |
 | [R-08](spec/03-restaurant.md#r-08--document-pack-submission-and-admin-verification-review) | Submit the pack; admin reviews it | `docs-review`, then `make dev-scenario s=docs-approve` or `s=docs-reject` | Covered | — |
 | [R-09](spec/03-restaurant.md#r-09--verification-status-tracking-real-time) | Follow the review as it happens | The personas show each state; a decision does not arrive live | Partial | [#376](https://github.com/shaiknoorullah/hg-mono/issues/376) |

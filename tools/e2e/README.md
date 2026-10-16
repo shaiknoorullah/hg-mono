@@ -213,7 +213,7 @@ in real mode the Hours journeys read the restaurant's hours and open state throu
 and put them back in a `finally` (the weekly hours and special dates with one `PUT`, the pause
 with a `PATCH` to accepting, unpaused), so the tablet pass and other specs see the world as it
 was. They sign in once per persona per worker (sign-in is rate-limited per account). The
-`paused@seed.hg` and `suspended@seed.hg` journeys use devworld personas and skip themselves in a
+`paused@seed.hg` and `suspended@seed.hg` journeys use devworld personas and skip themselves in a The settings capture for a pause until closing still reads the time, because the Settings Orders card does not use `pause_kind` yet ([#989](https://github.com/shaiknoorullah/hg-mono/issues/989)).
 world without them (the CI seed world); the suspended one opens the editor and saves nothing.
 In mock mode the spec answers the hours `PUT` and the availability `PATCH` with `page.route`,
 echoing what was sent, because the mock forgets every write.

@@ -20,6 +20,10 @@ CREATE TYPE restaurant_pause_kind AS ENUM ('UNTIL_CLOSING', 'DURATION');
 
 ALTER TABLE restaurant ADD COLUMN pause_kind restaurant_pause_kind;
 
+-- The application role writes restaurant by column (00045), so a new column is
+-- not writable by the API until the grants are made again.
+SELECT account_state_grant_app_columns();
+
 -- Every pause that exists before this migration was timed by the owner: until
 -- closing could not be asked of the server until now.
 UPDATE restaurant SET pause_kind = 'DURATION' WHERE pause_until IS NOT NULL;
