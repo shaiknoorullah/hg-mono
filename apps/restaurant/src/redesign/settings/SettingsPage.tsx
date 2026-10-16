@@ -4,12 +4,13 @@
  * section beside it, and a panel on the right while an edit, an upload or a password change is
  * open (the section list then keeps titles only).
  *
- *   Halal certification | Account | Business profile | Documents | Sign-in and security
+ *   Halal certification | Account | Business profile | Documents | This device | Sign-in and security
  *
  * Page banners for the certificate, the account state and the connection already sit under
  * the status bar on every page (`status/Banners`), so this page does not draw a second set;
- * the sections carry the detail. Not built here yet: This device, What's new, the document
- * upload sheet for the other documents, and the address change (see the pull request).
+ * the sections carry the detail. Not built here yet: What's new (the contract has no release
+ * notes), the document upload sheet for the other documents, and the address change (see
+ * the pull request).
  */
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -23,6 +24,8 @@ import { isoDateIn } from '../format/time';
 import { halalCertificateRow } from '../status/halal';
 import { usePagePanelOpen } from '../shell/layout';
 import { EditPanel, PasswordPanel, RenewHalalPanel, SupportPanel } from './panels';
+import { DeviceSection } from './DeviceSection';
+import { deviceSummary, useDevicePrefs, useNotifications } from './device';
 import { AccountSection, DocumentsSection, HalalSection, ProfileSection, SecuritySection, SectionSkeleton } from './sections';
 import {
   SECTIONS,
@@ -50,6 +53,8 @@ const PANELS: readonly Panel[] = ['renew', 'password', 'support', 'support-chang
 export function SettingsPage() {
   const { profile, core, timezone } = useConsole();
   const docs = useServerResource(loadDocuments);
+  const devicePrefs = useDevicePrefs();
+  const notifications = useNotifications();
   const params = useParams();
   const [search, setSearch] = useSearchParams();
   const navigate = useNavigate();
@@ -109,6 +114,7 @@ export function SettingsPage() {
     account: loading ? '' : accountView(p?.account_state, halalHidesListing(p?.halal)).label,
     profile: loading ? '' : p?.description?.trim() ? 'Complete' : 'Description missing',
     documents: docsDenied ? 'Owner and managers only' : documentsSummary(docs.data, docs.status === 'error'),
+    device: deviceSummary(devicePrefs, notifications.state),
     security: 'Sign-in details',
   };
 
@@ -144,6 +150,8 @@ export function SettingsPage() {
           <ProfileSection profile={p} editable={manage && !readOnly} onEdit={(g) => open(`edit-${g}`)} onRequest={() => open('support-change')} />
         ) : section === 'documents' ? (
           <DocumentsSection docs={docs} denied={docsDenied} />
+        ) : section === 'device' ? (
+          <DeviceSection />
         ) : (
           <SecuritySection onChange={() => open('password')} />
         )}

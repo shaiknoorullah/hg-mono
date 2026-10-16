@@ -159,7 +159,7 @@ describe('Hours: view', () => {
 });
 
 describe('Hours: Right now', () => {
-  it('pause: three lengths each naming its end time, none preselected, no "until closing"; sends pause_until and shows the time read back', async () => {
+  it('pause: three lengths each naming its end time, none preselected, and until closing; sends pause_until and shows the time read back', async () => {
     const { patches } = setup();
     await openHours();
     fireEvent.click(screen.getByRole('button', { name: 'Pause new orders' }));
@@ -169,8 +169,8 @@ describe('Hours: Right now', () => {
       'Pause for 15 minutes (until …)',
       'Pause for 30 minutes (until …)',
       'Pause for 60 minutes (until …)',
+      'Pause until closing',
     ]);
-    expect(within(menu).queryByText(/until closing/i)).toBeNull();
     expect(within(menu).queryAllByRole('menuitemradio')).toHaveLength(0);
     fireEvent.click(items[0]!);
     await waitFor(() => expect(patches).toHaveLength(1));
@@ -180,6 +180,38 @@ describe('Hours: Right now', () => {
     expect(mins).toBeLessThanOrEqual(15);
     expect(await screen.findByText(`Paused until ${formatTime(patches[0].pause_until, TZ)}.`)).toBeTruthy();
     expect(screen.getByTestId('right-now-badge').textContent).toBe('Paused');
+  });
+
+  it('pause until closing sends only pause_until_closing and reads the closing time back, with its overnight wording', async () => {
+    const closing = new Date(Date.now() + 5 * 3_600_000).toISOString();
+    const seen: any[] = [];
+    setup({
+      overrides: {
+        'PATCH /v1/restaurant/availability': async (req) => {
+          seen.push(await req.json());
+          return { body: openAvailability({ open_state: 'PAUSED', pause_until: closing, reason: 'Paused until closing.' }) };
+        },
+      },
+    });
+    await openHours();
+    fireEvent.click(screen.getByRole('button', { name: 'Pause new orders' }));
+    fireEvent.click(within(screen.getByRole('menu', { name: 'Pause new orders' })).getByRole('menuitem', { name: 'Pause until closing' }));
+    await waitFor(() => expect(seen).toHaveLength(1));
+    expect(seen[0]).toEqual({ is_accepting_orders: true, pause_until_closing: true });
+    expect((await screen.findByTestId('right-now-reason')).textContent).toMatch(/^Paused until closing, \d{1,2}:\d{2} [ap]m( tomorrow)?\.$/);
+  });
+
+  it('pause until closing outside trading hours says there is no closing and stays unpaused', async () => {
+    setup({
+      overrides: {
+        'PATCH /v1/restaurant/availability': () => ({ status: 409, body: { error: { code: 'RESTAURANT_CLOSED', message: 'closed', request_id: 'r1' } } }),
+      },
+    });
+    await openHours();
+    fireEvent.click(screen.getByRole('button', { name: 'Pause new orders' }));
+    fireEvent.click(within(screen.getByRole('menu', { name: 'Pause new orders' })).getByRole('menuitem', { name: 'Pause until closing' }));
+    expect(await screen.findByText(/outside your opening hours, so there is no closing/)).toBeTruthy();
+    expect(screen.getByTestId('right-now-badge').textContent).toBe('Open');
   });
 
   it('resume asks in the page first (Stay paused focused); a failed resume says you are still paused', async () => {

@@ -34,6 +34,7 @@ import { publishWaitingCount } from '../shell/waiting';
 import { DEFAULT_PREP_MINUTES, PREP_MAX, PREP_MIN, reasonLabel, type Outcome } from './copy';
 import { OfferAnnouncer, newOrdersMessage } from './announcements';
 import { chimeUrl } from './chime';
+import { useDevicePrefs } from '../data/devicePrefs';
 import { useHeartbeat } from '../data/heartbeat';
 
 export type OrderView = Schema['OrderRestaurantView'];
@@ -686,6 +687,7 @@ export function NewOrdersProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // ── sound and the go-live gate ────────────────────────────────────────────────────────
+  const prefs = useDevicePrefs();
   const [gate, setGate] = useState<GateState>('pending');
   const [armAttempted, setArmAttempted] = useState(false);
   const all = Object.values(offersRef.current).sort((a, b) => a.deadlineAt - b.deadlineAt);
@@ -700,18 +702,31 @@ export function NewOrdersProvider({ children }: { children: ReactNode }) {
     alertKey: liveKey || 'none',
     soundUrl: chimeUrl(),
     repeatMs: 4000,
+    // Sound off here mutes the chime only: the flash and the notification still announce the order.
+    volume: prefs.soundOff ? 0 : 1,
     notification,
   });
   const { arm, requestNotificationPermission } = alert;
-  const wakeLock = useRef<{ release: () => Promise<void> } | null>(null);
+  const wakeLock = useRef<{ release: () => Promise<void>; released?: boolean } | null>(null);
+  const keepAwake = !prefs.screenMayDim;
   const requestWakeLock = useCallback(async () => {
+    if (!keepAwake || (wakeLock.current && !wakeLock.current.released)) return;
     try {
-      const wl = (navigator as unknown as { wakeLock?: { request: (t: 'screen') => Promise<{ release: () => Promise<void> }> } }).wakeLock;
+      const wl = (navigator as unknown as { wakeLock?: { request: (t: 'screen') => Promise<{ release: () => Promise<void>; released?: boolean }> } }).wakeLock;
       if (wl) wakeLock.current = await wl.request('screen');
     } catch {
       /* not allowed here: the gate copy already asks to keep the screen on */
     }
-  }, []);
+  }, [keepAwake]);
+  // Letting the screen dim releases a lock already held; allowing it again takes one back.
+  useEffect(() => {
+    if (!keepAwake) {
+      void wakeLock.current?.release().catch(() => {});
+      wakeLock.current = null;
+    } else if (gate === 'passed') {
+      void requestWakeLock();
+    }
+  }, [keepAwake, gate, requestWakeLock]);
   useEffect(() => {
     if (gate !== 'passed') return;
     const onVisible = () => {

@@ -39,7 +39,36 @@ export function useAvailability(): ServerResource<Availability> {
   return ctx;
 }
 
-/** Sets `is_accepting_orders` (the Orders switch), and pauses when `pause_until` is given. */
-export function setAcceptingOrders(body: { is_accepting_orders: boolean; pause_until?: string | null }): Promise<Availability> {
+export interface AvailabilityWrite {
+  is_accepting_orders: boolean;
+  pause_until?: string | null;
+  /** Pause to the end of the current trading period; the server works the time out. Not with `pause_until`. */
+  pause_until_closing?: boolean;
+}
+
+/** Sets `is_accepting_orders` (the Orders switch), and pauses when `pause_until` or `pause_until_closing` is given. */
+export function setAcceptingOrders(body: AvailabilityWrite): Promise<Availability> {
   return call(client.PATCH('/v1/restaurant/availability', { body }));
+}
+
+// The availability read does not say whether a pause was "until closing" or a timed one: both
+// are just a `pause_until`. So this console remembers, for the pause it set itself, which
+// closing time the server chose; a pause set elsewhere, or before a reload, reads as the time.
+let untilClosingAt: string | null = null;
+
+/** Pauses until closing: the server picks the time; this remembers it for the wording. */
+export async function pauseUntilClosing(): Promise<Availability> {
+  const next = await setAcceptingOrders({ is_accepting_orders: true, pause_until_closing: true });
+  untilClosingAt = next.pause_until ?? null;
+  return next;
+}
+
+/** True when this pause is the one this console set with "Pause until closing". */
+export function isPausedUntilClosing(pauseUntil: string | null | undefined): boolean {
+  return untilClosingAt !== null && pauseUntil === untilClosingAt;
+}
+
+/** "You're outside your opening hours": the server refused because there is no trading period to end. */
+export function isOutsideTradingHours(err: unknown): boolean {
+  return typeof err === 'object' && err !== null && (err as { code?: unknown }).code === 'RESTAURANT_CLOSED';
 }
