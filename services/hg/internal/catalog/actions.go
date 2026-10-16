@@ -36,6 +36,7 @@ const (
 	codeValidationFailed     httpx.ErrorCode = "VALIDATION_FAILED"
 	codeUnknownField         httpx.ErrorCode = "UNKNOWN_FIELD"
 	codeRestaurantClosed     httpx.ErrorCode = "RESTAURANT_CLOSED"
+	codeNoClosingTime        httpx.ErrorCode = "NO_CLOSING_TIME"
 	codePriceOutOfRange      httpx.ErrorCode = "PRICE_OUT_OF_RANGE"
 	codeProhibitedIngredient httpx.ErrorCode = "PROHIBITED_INGREDIENT"
 	codeFieldNotWritable     httpx.ErrorCode = "FIELD_NOT_WRITABLE"

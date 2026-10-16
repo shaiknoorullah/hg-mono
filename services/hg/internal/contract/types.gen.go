@@ -995,6 +995,7 @@ const (
 	ErrorCodeMENUVERSIONPENDING             ErrorCode = "MENU_VERSION_PENDING"
 	ErrorCodeMETHODNOTALLOWED               ErrorCode = "METHOD_NOT_ALLOWED"
 	ErrorCodeMFAREQUIRED                    ErrorCode = "MFA_REQUIRED"
+	ErrorCodeNOCLOSINGTIME                  ErrorCode = "NO_CLOSING_TIME"
 	ErrorCodeNOLIVEMENUITEM                 ErrorCode = "NO_LIVE_MENU_ITEM"
 	ErrorCodeNONCANADIANNUMBER              ErrorCode = "NON_CANADIAN_NUMBER"
 	ErrorCodeNOTFOUND                       ErrorCode = "NOT_FOUND"
@@ -1249,6 +1250,8 @@ func (e ErrorCode) Valid() bool {
 	case ErrorCodeMETHODNOTALLOWED:
 		return true
 	case ErrorCodeMFAREQUIRED:
+		return true
+	case ErrorCodeNOCLOSINGTIME:
 		return true
 	case ErrorCodeNOLIVEMENUITEM:
 		return true

@@ -18,7 +18,7 @@ import { eventOfType, useRealtimeChannel } from '@hg/ui-web/live';
 import { Badge, Button, HalalBadge, Icon, InlineConfirm, Menu, Switch, reportHalalClientError, useToast } from '../ds';
 import type { BadgeVariant, IconName } from '../ds';
 import { useConsole } from '../data/console';
-import { isOutsideTradingHours, setAcceptingOrders, useAvailability, type Availability, type AvailabilityWrite } from '../data/availability';
+import { hasNoClosingTime, isOutsideTradingHours, setAcceptingOrders, useAvailability, type Availability, type AvailabilityWrite } from '../data/availability';
 import { useConnection, type ConnectionView } from '../data/connection';
 import { serverNow } from '../data/serverClock';
 import { formatTime } from '../format/time';
@@ -65,6 +65,7 @@ export function StatusBar() {
   const healthRef = useRef<HTMLButtonElement>(null);
   // The last write was refused because the restaurant is outside its trading hours.
   const outsideHours = useRef(false);
+  const noClosing = useRef(false);
 
   const restaurantId = core.data?.restaurantId ?? null;
   const { mutate, refresh } = availability;
@@ -119,6 +120,7 @@ export function StatusBar() {
         return true;
       } catch (err) {
         outsideHours.current = isOutsideTradingHours(err);
+        noClosing.current = hasNoClosingTime(err);
         return false;
       } finally {
         setPending(null);
@@ -168,12 +170,15 @@ export function StatusBar() {
 
   const pauseToClosing = async () => {
     outsideHours.current = false;
+    noClosing.current = false;
     const ok = await write({ is_accepting_orders: true, pause_until_closing: true }, 'pause');
     if (!ok) {
       toast.show(
         outsideHours.current
           ? { variant: 'warning', title: 'No closing to pause until', description: 'You’re outside your opening hours, so new orders are already stopped.' }
-          : { variant: 'danger', title: 'Couldn’t pause new orders', description: 'New orders are still on. Check the connection and try again.' },
+          : noClosing.current
+            ? { variant: 'warning', title: 'No closing to pause until', description: 'Your hours have no closing time. Choose a length instead.' }
+            : { variant: 'danger', title: 'Couldn’t pause new orders', description: 'New orders are still on. Check the connection and try again.' },
       );
     }
   };

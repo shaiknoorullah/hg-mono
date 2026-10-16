@@ -487,7 +487,7 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   6. `pause_until` accepts only the values 15, 30, 60 minutes or "until closing" (the restaurant's
      next closing time, past midnight included), which replaces "rest of today". The client sends
      `pause_until_closing: true` on `setRestaurantAcceptingOrders` and the server works out the
-     closing time; outside trading hours it is `409 RESTAURANT_CLOSED`
+     closing time; outside trading hours it is `409 RESTAURANT_CLOSED`, and for a restaurant with no closing in the coming week (open 24 hours) it is `409 NO_CLOSING_TIME`
      ([pausing on late nights](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), ["for how long" options](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
      The redesigned console offers it beside 15, 30 and 60 minutes, in the status bar and on Hours; it cannot
      name the closing time before the choice (the contract carries no next closing time), so the paused

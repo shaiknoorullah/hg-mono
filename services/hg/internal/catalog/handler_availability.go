@@ -176,7 +176,7 @@ func ptr[T any](v T) *T { return &v }
 // (openhours.Evaluate). It answers the request itself and returns false when
 // there is nothing to pause until: outside trading hours is 409
 // RESTAURANT_CLOSED, and a restaurant open around the clock for the whole coming
-// week has no closing time, which is 422.
+// week has no closing time, which is 409 NO_CLOSING_TIME.
 func (h *Handler) closingTime(w http.ResponseWriter, r *http.Request, restaurantID string, now time.Time) (time.Time, bool) {
 	a, err := h.repo.getAvailability(r.Context(), restaurantID)
 	if h.mapErr(w, r, err) {
@@ -189,9 +189,8 @@ func (h *Handler) closingTime(w http.ResponseWriter, r *http.Request, restaurant
 		return time.Time{}, false
 	}
 	if hv.ClosesAt == nil {
-		httpx.Fail(w, r, http.StatusUnprocessableEntity, codeValidationFailed,
-			"There is no closing time in the coming week to pause until.",
-			[]httpx.FieldError{{Field: "pause_until_closing", Code: "invalid", Message: "no closing time"}})
+		httpx.Fail(w, r, http.StatusConflict, codeNoClosingTime,
+			"Your hours have no closing time in the coming week, so there is nothing to pause until.", nil)
 		return time.Time{}, false
 	}
 	return *hv.ClosesAt, true

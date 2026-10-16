@@ -55,3 +55,8 @@ export function setAcceptingOrders(body: AvailabilityWrite): Promise<Availabilit
 export function isOutsideTradingHours(err: unknown): boolean {
   return typeof err === 'object' && err !== null && (err as { code?: unknown }).code === 'RESTAURANT_CLOSED';
 }
+
+/** The restaurant is open around the clock, so there is no closing to pause until. */
+export function hasNoClosingTime(err: unknown): boolean {
+  return typeof err === 'object' && err !== null && (err as { code?: unknown }).code === 'NO_CLOSING_TIME';
+}

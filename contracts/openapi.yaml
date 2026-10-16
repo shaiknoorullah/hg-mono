@@ -4017,7 +4017,8 @@ paths:
           `422 VALIDATION_FAILED`.
         * Outside trading hours there is nothing to pause: `409 RESTAURANT_CLOSED`.
         * A restaurant open around the clock for the whole coming week has no closing time
-          to pause until: `422 VALIDATION_FAILED`.
+          to pause until: `409 NO_CLOSING_TIME`. The request is well formed; the hours make
+          it impossible, as they do outside trading hours.
         * Later changes to the hours do not move a pause already set; pausing again does.
       x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER, RESTAURANT_STAFF]
       x-version: V0
@@ -4055,7 +4056,9 @@ paths:
                   data:
                     $ref: '#/components/schemas/RestaurantAvailability'
         '409':
-          description: '`RESTAURANT_CLOSED` when `pause_until_closing` is sent outside trading hours.'
+          description: |
+            `RESTAURANT_CLOSED` when `pause_until_closing` is sent outside trading hours;
+            `NO_CLOSING_TIME` when the restaurant has no closing in the coming week.
           content:
             application/json:
               schema:
@@ -8293,6 +8296,7 @@ components:
         # --- catalogue / cart -----------------------------------------------------
         - RESTAURANT_CLOSED
         - RESTAURANT_UNAVAILABLE
+        - NO_CLOSING_TIME
         - ITEM_UNAVAILABLE
         - CART_HAS_UNAVAILABLE_ITEMS
         - DIFFERENT_RESTAURANT
