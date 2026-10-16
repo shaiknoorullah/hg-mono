@@ -15,6 +15,7 @@
     "order_id": "b0def6df-be67-49a5-aaa1-e81420a22abd",
     "state": "READY_FOR_PICKUP",
     "dispatch_state": "ASSIGNED",
+    "server_time": "2026-08-10T18:42:11.412Z",
     "eta_at": "2026-08-10T18:55:11.412Z",
     "eta_window_minutes": 10,
     "restaurant_location": {

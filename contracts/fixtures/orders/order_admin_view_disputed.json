@@ -17,6 +17,7 @@
     "state": "DISPUTED",
     "state_since": "2026-08-10T18:40:41.412Z",
     "deadline_at": "2026-08-12T18:42:11.412Z",
+    "server_time": "2026-08-10T18:42:11.412Z",
     "quote_id": "f8dfea78-0bca-41ef-ab51-59115257cf62",
     "restaurant": {
       "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",

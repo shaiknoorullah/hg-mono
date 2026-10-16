@@ -410,6 +410,7 @@ func buildAdminOrderView(row *adminOrderRow, piiRevealed bool) adminOrderView {
 			Currency:         row.Currency,
 		},
 		PlacedAt:             httpx.Timestamp(row.PlacedAt),
+		ServerTime:           httpx.Timestamp(time.Now()),
 		StateSince:           stateSince,
 		DeadlineAt:           tsPtr(row.DeadlineAt),
 		CancelReason:         row.CancelReason,

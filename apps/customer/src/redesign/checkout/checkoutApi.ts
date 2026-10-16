@@ -16,6 +16,7 @@ import { unwrap } from '@hg/api-client';
 import type { Cents, Schema } from '@hg/api-client';
 
 import { api } from '../api/client';
+import { adoptServerTime } from '../lib/now';
 import type { Cart } from '../ordering/cart';
 
 export type Quote = Schema['Quote'];
@@ -73,12 +74,16 @@ export async function createCheckoutOrder(input: {
       },
     }),
   );
-  return body.data as unknown as OrderCreated;
+  const created = body.data as unknown as OrderCreated;
+  adoptServerTime(created.order.server_time);
+  return created;
 }
 
 export async function readOrder(orderId: string): Promise<Order> {
   const body = await unwrap(api.GET('/v1/orders/{orderId}', { params: { path: { orderId } } }));
-  return body.data as unknown as Order;
+  const order = body.data as unknown as Order;
+  adoptServerTime(order.server_time);
+  return order;
 }
 
 /** The order's payment state; re-issues the `client_secret` while the intent still needs an action. */
@@ -106,5 +111,7 @@ export async function cancelCheckoutOrder(input: {
       body: { reason_code: input.reason, ...(input.note ? { note: input.note } : {}) },
     }),
   );
-  return body.data as unknown as Order;
+  const order = body.data as unknown as Order;
+  adoptServerTime(order.server_time);
+  return order;
 }

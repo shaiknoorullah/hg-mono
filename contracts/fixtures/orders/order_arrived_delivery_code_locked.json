@@ -19,6 +19,7 @@
     "state": "ARRIVED",
     "state_since": "2026-08-10T18:40:41.412Z",
     "deadline_at": "2026-08-10T18:46:11.412Z",
+    "server_time": "2026-08-10T18:42:11.412Z",
     "quote_id": "47da7287-1f70-49f2-a1ac-3404c5de2c5d",
     "restaurant": {
       "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",

@@ -320,12 +320,17 @@ type orderCreatedDTO struct {
 	ClientSecret string               `json:"client_secret"`
 }
 
+// orderCustomerViewDTO is the contract's OrderCustomerView. ServerTime is the server's clock
+// when the response is built; clients compute every deadline and countdown against it, never
+// against the device's clock (the same rule as the rider offer's server_time,
+// https://github.com/shaiknoorullah/hg-mono/issues/925).
 type orderCustomerViewDTO struct {
 	ID                   string                 `json:"id"`
 	Code                 string                 `json:"code"`
 	State                string                 `json:"state"`
 	StateSince           string                 `json:"state_since"`
 	DeadlineAt           *string                `json:"deadline_at"`
+	ServerTime           string                 `json:"server_time"`
 	QuoteID              string                 `json:"quote_id"`
 	Restaurant           orderRestaurantRefDTO  `json:"restaurant"`
 	Lines                []orderLineDTO         `json:"lines"`

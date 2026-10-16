@@ -7044,8 +7044,15 @@ type OrderAdminView struct {
 	// RiderLocation The rider's live position. Unlike the customer-scoped OrderTracking (which hides
 	// this before PICKED_UP), admin sees it whenever a rider is assigned and has a
 	// fresh ping — admin oversight is not subject to the customer's pickup-only gate.
-	RiderLocation       *RiderLocation `json:"rider_location,omitempty"`
-	SpecialInstructions *string        `json:"special_instructions,omitempty"`
+	RiderLocation *RiderLocation `json:"rider_location,omitempty"`
+
+	// ServerTime The server's clock when this response was produced. Every deadline and countdown
+	// on the order (`deadline_at`) is computed against `server_time`, never from a device
+	// clock, so a phone whose clock is wrong still counts down correctly. Same rule as the
+	// rider offer's `server_time`
+	// ([#925](https://github.com/shaiknoorullah/hg-mono/issues/925)).
+	ServerTime          Timestamp `json:"server_time"`
+	SpecialInstructions *string   `json:"special_instructions,omitempty"`
 
 	// State P-14 — **the** order enum. Fourteen states, five terminal (`COMPLETED`, `CANCELLED`,
 	// `REJECTED`, `FAILED`, `RESOLVED`); `DISPUTED` is non-terminal. Rider assignment is a
@@ -7143,13 +7150,20 @@ type OrderCustomerView struct {
 	PickedUpAt *time.Time `json:"picked_up_at,omitempty"`
 
 	// PlacedAt RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
-	PlacedAt            Timestamp                   `json:"placed_at"`
-	QuoteId             *openapi_types.UUID         `json:"quote_id,omitempty"`
-	ReadyAt             *time.Time                  `json:"ready_at,omitempty"`
-	RejectReason        *RestaurantRejectReasonCode `json:"reject_reason,omitempty"`
-	Restaurant          OrderRestaurantRef          `json:"restaurant"`
-	Rider               *RiderPublicProfile         `json:"rider,omitempty"`
-	SpecialInstructions *string                     `json:"special_instructions,omitempty"`
+	PlacedAt     Timestamp                   `json:"placed_at"`
+	QuoteId      *openapi_types.UUID         `json:"quote_id,omitempty"`
+	ReadyAt      *time.Time                  `json:"ready_at,omitempty"`
+	RejectReason *RestaurantRejectReasonCode `json:"reject_reason,omitempty"`
+	Restaurant   OrderRestaurantRef          `json:"restaurant"`
+	Rider        *RiderPublicProfile         `json:"rider,omitempty"`
+
+	// ServerTime The server's clock when this response was produced. Every deadline and countdown
+	// on the order (`deadline_at`) is computed against `server_time`, never from a device
+	// clock, so a phone whose clock is wrong still counts down correctly. Same rule as the
+	// rider offer's `server_time`
+	// ([#925](https://github.com/shaiknoorullah/hg-mono/issues/925)).
+	ServerTime          Timestamp `json:"server_time"`
+	SpecialInstructions *string   `json:"special_instructions,omitempty"`
 
 	// State P-14 — **the** order enum. Fourteen states, five terminal (`COMPLETED`, `CANCELLED`,
 	// `REJECTED`, `FAILED`, `RESOLVED`); `DISPUTED` is non-terminal. Rider assignment is a
@@ -7611,6 +7625,13 @@ type OrderTracking struct {
 	// RiderLocation Present only while the order is `PICKED_UP` or `ARRIVED`. The rider's position en
 	// route to the restaurant is **not** exposed to the customer.
 	RiderLocation *RiderLocation `json:"rider_location,omitempty"`
+
+	// ServerTime The server's clock when this response was produced. Every deadline and countdown
+	// on the order's tracking (`eta_at`, `eta_window_minutes` and every `timeline[].at`) is
+	// computed against `server_time`, never from a device clock, so a phone whose clock is
+	// wrong still counts down correctly. Same rule as the rider offer's `server_time`
+	// ([#925](https://github.com/shaiknoorullah/hg-mono/issues/925)).
+	ServerTime Timestamp `json:"server_time"`
 
 	// State P-14 — **the** order enum. Fourteen states, five terminal (`COMPLETED`, `CANCELLED`,
 	// `REJECTED`, `FAILED`, `RESOLVED`); `DISPUTED` is non-terminal. Rider assignment is a

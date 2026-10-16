@@ -49,7 +49,7 @@ import {
 import { useNav } from '../navigation/context';
 import { useConnectivity } from '../lib/connectivity';
 import { presentHalal } from '../lib/halal';
-import { getNow, useNow } from '../lib/now';
+import { getNow, useNow, useServerNow } from '../lib/now';
 import { errorCodeOf } from '../lib/query';
 import { formatTime } from '../lib/time';
 import { addressName, opensPhrase } from '../restaurant/restaurant';
@@ -175,6 +175,8 @@ export function CheckoutScreen(): React.ReactElement {
   const heading = useTypeStyle('heading.sm');
   const { online } = useConnectivity();
   const now = useNow(15_000);
+  // The order's deadline is a server time: compare it with the server's clock, not the phone's.
+  const serverNow = useServerNow(15_000);
 
   const [load, setLoad] = React.useState<Load>({ kind: 'loading' });
   const [addresses, setAddresses] = React.useState<Address[]>([]);
@@ -548,7 +550,7 @@ export function CheckoutScreen(): React.ReactElement {
 
   // The deadline passing is the server's to enforce; the page just looks again when it has.
   React.useEffect(() => {
-    if (!order || deadlineAt === null || now < deadlineAt) return;
+    if (!order || deadlineAt === null || serverNow < deadlineAt) return;
     let stop = false;
     void readOrder(order.id)
       .then((o) => {
@@ -561,7 +563,7 @@ export function CheckoutScreen(): React.ReactElement {
       stop = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [now, order?.id]);
+  }, [serverNow, order?.id]);
 
   const retry = React.useCallback(async () => {
     if (phase.kind !== 'order') return;

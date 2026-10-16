@@ -1,6 +1,10 @@
 package orders
 
-import "github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
+import (
+	"time"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
+)
 
 // map.go turns the store's domain types into the contract wire DTOs. It is the
 // one place the customer projection is assembled, so a field that must never
@@ -157,7 +161,7 @@ func orderViewToDTO(v *OrderView) orderCustomerViewDTO {
 	}
 	d := orderCustomerViewDTO{
 		ID: v.ID, Code: v.Code, State: v.State, StateSince: httpx.Timestamp(v.StateSince),
-		DeadlineAt: tsPtr(v.DeadlineAt), QuoteID: v.QuoteID,
+		DeadlineAt: tsPtr(v.DeadlineAt), QuoteID: v.QuoteID, ServerTime: httpx.Timestamp(time.Now()),
 		Restaurant:           ref,
 		DeliveryInstructions: v.DeliveryInstructions, SpecialInstructions: v.SpecialInstructions,
 		DispatchState: v.DispatchState,

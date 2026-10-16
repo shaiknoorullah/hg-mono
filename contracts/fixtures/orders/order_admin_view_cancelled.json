@@ -17,6 +17,7 @@
     "state": "CANCELLED",
     "state_since": "2026-08-10T18:40:41.412Z",
     "deadline_at": null,
+    "server_time": "2026-08-10T18:42:11.412Z",
     "quote_id": "ea92f7ae-f29a-43c6-a4de-9ae21824ef4f",
     "restaurant": {
       "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",

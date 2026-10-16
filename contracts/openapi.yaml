@@ -11051,7 +11051,7 @@ components:
       # (see the composed schema that extends it). In JSON Schema an `additionalProperties`
       # assertion only sees the properties of *its own* branch, so leaving it here would make
       # every extended field an error and the composed schema unsatisfiable.
-      required: [id, code, state, restaurant, lines, money, placed_at]
+      required: [id, code, state, restaurant, lines, money, placed_at, server_time]
       description: |
         P-07. Projections are separate types per audience, never one struct with conditional
         blanking. The customer sees the rider's **public** profile and never the rider's
@@ -11069,6 +11069,14 @@ components:
         deadline_at:
           type: [string, 'null']
           format: date-time
+        server_time:
+          $ref: '#/components/schemas/Timestamp'
+          description: |
+            The server's clock when this response was produced. Every deadline and countdown
+            on the order (`deadline_at`) is computed against `server_time`, never from a device
+            clock, so a phone whose clock is wrong still counts down correctly. Same rule as the
+            rider offer's `server_time`
+            ([#925](https://github.com/shaiknoorullah/hg-mono/issues/925)).
         quote_id:
           type: string
           format: uuid
@@ -11309,13 +11317,21 @@ components:
     OrderTracking:
       type: object
       additionalProperties: false
-      required: [order_id, state, restaurant_location]
+      required: [order_id, state, restaurant_location, server_time]
       properties:
         order_id:
           type: string
           format: uuid
         state:
           $ref: '#/components/schemas/OrderState'
+        server_time:
+          $ref: '#/components/schemas/Timestamp'
+          description: |
+            The server's clock when this response was produced. Every deadline and countdown
+            on the order's tracking (`eta_at`, `eta_window_minutes` and every `timeline[].at`) is
+            computed against `server_time`, never from a device clock, so a phone whose clock is
+            wrong still counts down correctly. Same rule as the rider offer's `server_time`
+            ([#925](https://github.com/shaiknoorullah/hg-mono/issues/925)).
         dispatch_state:
           oneOf:
             - $ref: '#/components/schemas/DispatchState'
