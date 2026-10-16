@@ -17,7 +17,7 @@ import { useNavigate } from 'react-router-dom';
 import { channel, type RestaurantOpenState } from '@hg/api-client';
 import { eventOfType, useRealtimeChannel } from '@hg/ui-web/live';
 import { Badge, Button, InlineConfirm, Menu, Skeleton, Switch, useToast, type BadgeProps } from '../ds';
-import { hasNoClosingTime, isOutsideTradingHours, setAcceptingOrders, type Availability, type AvailabilityWrite } from '../data/availability';
+import { isOutsideTradingHours, setAcceptingOrders, type Availability, type AvailabilityWrite } from '../data/availability';
 import type { ServerResource } from '../data/useServerResource';
 import { serverNow } from '../data/serverClock';
 import { useConsoleLayout } from '../shell/layout';
@@ -90,7 +90,7 @@ const WHY_STEPS = [
 ] as const;
 const WHY_STEP_OF: Partial<Record<NowState, number>> = { closed_holiday: 5, closed_hours: 6 };
 
-type Op = { kind: 'off' | 'on' | 'pause' | 'resume'; phase: 'busy' | 'done' | 'failed'; until?: string; outsideHours?: boolean; noClosing?: boolean } | null;
+type Op = { kind: 'off' | 'on' | 'pause' | 'resume'; phase: 'busy' | 'done' | 'failed'; until?: string; outsideHours?: boolean } | null;
 
 const PAUSES = [15, 30, 60] as const;
 
@@ -200,7 +200,7 @@ export function RightNow({ availability, restaurantId, timezone, noHours, todayO
       availability.mutate(() => next);
       setOp({ kind, phase: 'done' });
     } catch (err) {
-      setOp({ kind, phase: 'failed', until: pauseLabel, outsideHours: isOutsideTradingHours(err), noClosing: hasNoClosingTime(err) });
+      setOp({ kind, phase: 'failed', until: pauseLabel, outsideHours: isOutsideTradingHours(err) });
       if (kind === 'off') {
         toast.show({
           variant: 'danger',
@@ -477,9 +477,7 @@ function opLine(op: Op): ReactNode {
     'on:failed': 'Couldn’t turn on new orders. You are still not accepting orders.',
     'pause:failed': op.outsideHours
       ? 'You’re outside your opening hours, so there is no closing to pause until. You are not taking orders right now.'
-      : op.noClosing
-        ? 'Your hours have no closing time, so there is nothing to pause until. Choose a length instead. You are still taking orders.'
-        : 'Couldn’t pause new orders. You are still taking orders.',
+      : 'Couldn’t pause new orders. You are still taking orders.',
     'resume:failed': `Couldn’t resume. You are still paused until ${op.until ?? ''}.`,
   };
   const msg = text[`${op.kind}:${op.phase}`];

@@ -229,7 +229,7 @@ describe('Hours: Right now', () => {
     expect(screen.getByTestId('right-now-badge').textContent).toBe('Open');
   });
 
-  it('pause until closing at a restaurant that never closes says so and stays unpaused', async () => {
+  it('pause until closing at a restaurant that never closes has no board of its own: the generic failure, still unpaused', async () => {
     setup({
       overrides: {
         'PATCH /v1/restaurant/availability': () => ({ status: 409, body: { error: { code: 'NO_CLOSING_TIME', message: 'never closes', request_id: 'r1' } } }),
@@ -238,7 +238,7 @@ describe('Hours: Right now', () => {
     await openHours();
     fireEvent.click(screen.getByRole('button', { name: 'Pause new orders' }));
     fireEvent.click(within(screen.getByRole('menu', { name: 'Pause new orders' })).getByRole('menuitem', { name: 'Pause until closing' }));
-    expect(await screen.findByText(/Your hours have no closing time/)).toBeTruthy();
+    expect(await screen.findByText(/Couldn’t pause new orders/)).toBeTruthy();
     expect(screen.getByTestId('right-now-badge').textContent).toBe('Open');
   });
 
