@@ -1,4 +1,6 @@
 import { defineConfig } from 'vitest/config';
+
+import { forkPool } from '../../vitest.shared';
 import react from '@vitejs/plugin-react';
 
 /**
@@ -13,6 +15,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   test: {
+    ...forkPool(),
     environment: 'jsdom',
     globals: false,
     include: ['smoke/**/*.test.{ts,tsx}', 'src/redesign/**/*.test.{ts,tsx}'],
