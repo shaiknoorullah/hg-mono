@@ -20,7 +20,7 @@ const ORDER = { FAIL: 0, 'NO BOARD': 1, UNCOVERED: 1, 'DEFECTIVE REFERENCE': 1, 
 // marked, and the two are never put in one column without saying so.
 const pctOf = (p) => p.sharedHeightMismatchPct ?? p.mismatchPct;
 const isLegacy = (p) => p.sharedHeightMismatchPct === undefined && p.mismatchPct !== undefined;
-const shortText = (p) => (p.shortfall?.dp ? `${p.shortfall.dp} dp short, ${p.shortfall.pctOfBoardArea} % of the board not compared` : isLegacy(p) ? 'not measured (older scale)' : 'none');
+const shortText = (p) => (p.shortfall?.px ? `${p.shortfall.dp} dp short, ${p.shortfall.pctOfBoardArea} % of the board not compared${p.shortfall.blocksPass ? ': this alone fails the pair' : ' (within the limit, does not block)'}` : isLegacy(p) ? 'not measured (older scale)' : 'none');
 const KIND_ORDER = ['missing', 'extra', 'copy', 'type', 'colour', 'box', 'spacing'];
 
 function args(argv) {

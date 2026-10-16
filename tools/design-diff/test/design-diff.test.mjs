@@ -52,12 +52,25 @@ test('sizes: a shorter capture is compared over its own height, the shortfall re
   assert.equal(short.sharedHeightMismatchPct, 0, 'the missing rows are not counted as different');
   assert.equal(short.mismatchPct, undefined, 'the old name must not survive for a different scale');
   assert.equal(short.convention, 'shared-height-v2');
-  assert.deepEqual(short.shortfall, { dp: 10, pctOfBoardArea: 33.33 });
+  assert.deepEqual(short.shortfall, { dp: 10, px: 30, pctOfBoardArea: 33.33, limitPx: 4, blocksPass: true });
   assert.equal(short.comparedHeightDp, 20);
   assert.equal(short.verdict, 'FAIL', 'nothing vouches for the part that was not drawn');
   assert.match(short.heightNotes[0], /10 dp shorter.*33\.33 % of the board's area was not compared/);
   assert.equal(short.images.app.height, 60);
   assert.equal(compare(board, canvas(54, 90, WHITE), { scale: 3 }).verdict, 'NOT COMPARED');
+});
+
+test('sizes: a shortfall of 4 device px or less is reported but does not block a pass; more does', () => {
+  const board = paint(canvas(60, 90, WHITE), 6, 6, 30, 9);
+  const within = compare(board, paint(canvas(60, 86, WHITE), 6, 6, 30, 9));
+  assert.equal(within.shortfall.px, 4);
+  assert.equal(within.shortfall.blocksPass, false);
+  assert.equal(within.verdict, 'PASS');
+  assert.match(within.heightNotes[0], /does not block a pass/);
+  const over = compare(board, paint(canvas(60, 85, WHITE), 6, 6, 30, 9));
+  assert.equal(over.verdict, 'FAIL');
+  assert.match(over.heightNotes[0], /fails the pair whatever the percentage/);
+  assert.equal(compare(board, paint(canvas(60, 85, WHITE), 6, 6, 30, 9), { maxShortfallPx: 5 }).verdict, 'PASS', 'configurable');
 });
 
 test('sizes: the same height, or a taller capture, has no shortfall and the same percentage as before', () => {

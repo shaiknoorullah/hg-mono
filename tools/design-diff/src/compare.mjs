@@ -10,8 +10,9 @@
 // Height. The boards are drawn at a fixed height; a real page is as tall as its content. Only the
 // rows both images have are compared (the "shared height"), and the percentage is of that area.
 // A capture shorter than its board is not padded and its missing rows are not counted as different:
-// the shortfall is reported as its own measurement (`shortfall`), and a pair with one cannot PASS,
-// because nothing vouches for the part that was not drawn. This is a different scale from the one
+// the shortfall is reported as its own measurement (`shortfall`), and a pair whose shortfall is over `maxShortfallPx`
+// (4 device px, the bound of the smallest difference region) cannot PASS, because nothing vouches for the part that was not drawn;
+// a smaller one (rounding) is still reported but does not block. This is a different scale from the one
 // before it (padding counted as different), so the percentage has a new name, `sharedHeightMismatchPct`,
 // and every results.json carries `comparison.convention`. README.md, "Height".
 
@@ -36,6 +37,8 @@ export const DEFAULTS = {
   maxMismatchPct: 0.1,
   /** Largest connected group of differing pixels that still passes, in device px a side. */
   maxRegionPx: 4,
+  /** Largest shortfall (capture shorter than the board) that still passes, in device px: the same bound as maxRegionPx, a difference this small is below what the harness reports. */
+  maxShortfallPx: 4,
   /** Differences closer than this (dp) are listed as one area in the report. */
   clusterGapDp: 8,
   /** Areas listed per pair. */
@@ -59,9 +62,10 @@ export function compare(ref, cap, { scale = 1, ...options } = {}) {
   const heightNotes = [];
   const shared = Math.min(H, cap.height);
   const shortfallPx = H - shared;
-  const shortfall = { dp: dp(shortfallPx), pctOfBoardArea: round(100 * shortfallPx / H, 2) };
+  const blocksPass = shortfallPx > o.maxShortfallPx;
+  const shortfall = { dp: dp(shortfallPx), px: shortfallPx, pctOfBoardArea: round(100 * shortfallPx / H, 2), limitPx: o.maxShortfallPx, blocksPass };
   if (cap.height > H) heightNotes.push(`The capture is ${dp(cap.height - H)} dp taller than the board; the part below the board was not compared.`);
-  if (shortfallPx) heightNotes.push(`The capture is ${shortfall.dp} dp shorter than the board; ${shortfall.pctOfBoardArea} % of the board's area was not compared (the percentage above covers the top ${dp(shared)} dp only).`);
+  if (shortfallPx) heightNotes.push(`The capture is ${shortfall.dp} dp shorter than the board; ${shortfall.pctOfBoardArea} % of the board's area was not compared (the percentage above covers the top ${dp(shared)} dp only). ${blocksPass ? `A shortfall over ${o.maxShortfallPx} device px fails the pair whatever the percentage, because nothing vouches for the part that was not drawn.` : `It is within the ${o.maxShortfallPx} device px allowed (the same bound as the smallest difference region), so it does not block a pass.`}`);
   const refShared = shared === H ? ref : crop(ref, 0, 0, W, shared, PAD);
   const app = cap.height === shared ? cap : crop(cap, 0, 0, W, shared, PAD);
 
@@ -77,7 +81,7 @@ export function compare(ref, cap, { scale = 1, ...options } = {}) {
   for (const a of areas) outline(diff, a, [0, 110, 255, 255], Math.max(1, Math.round(scale)));
 
   const mismatchPct = shared ? (diffPx / (W * shared)) * 100 : 0;
-  const verdict = mismatchPct <= o.maxMismatchPct && overLimit === 0 && shortfallPx === 0 ? 'PASS' : 'FAIL';
+  const verdict = mismatchPct <= o.maxMismatchPct && overLimit === 0 && !blocksPass ? 'PASS' : 'FAIL';
   const box = (r) => r && { x: dp(r.x), y: dp(r.y), w: dp(r.w), h: dp(r.h), px: r.px };
   return {
     verdict,
