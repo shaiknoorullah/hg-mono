@@ -18,6 +18,13 @@ import { cx } from '../feedback/internal.js';
  *    `RadioGroup`, `Tabs`, `BottomNav`, the `DataTable` grid, `Select`, chip rows — and a
  *    link list is not one of them. Tab order is the navigation.
  *
+ * **Not the console chrome.** The restaurant console's rail no longer uses this component: it
+ * uses the dark forest rail in `../ds/SideNav.tsx` (`tone="chrome"`), because every design board
+ * of the two consoles paints its rail and header bar on `surface-chrome`
+ * (https://github.com/shaiknoorullah/hg-mono/issues/977). That supersedes the glass decision
+ * below for the console chrome only; this file, and `@hg/ui-native`'s `BottomNav`, keep the
+ * glass treatment, and whether it survives elsewhere is a separate question.
+ *
  * Visual treatment, mirroring `@hg/ui-native`'s `BottomNav`: the rail is **glass** — a
  * translucent surface (`bg-surface-base/85`) with a real CSS `backdrop-blur`, not the old
  * fully opaque panel.

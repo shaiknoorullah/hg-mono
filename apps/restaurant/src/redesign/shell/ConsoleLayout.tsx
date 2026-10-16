@@ -16,7 +16,7 @@
  */
 import { useCallback, useEffect, useMemo, useState, type MouseEvent, type ReactNode } from 'react';
 import { Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Icon, IconButton, Menu, NavDrawer, SideNav, TopBar, type SideNavItem } from '../ds';
+import { Icon, IconButton, Menu, NavDrawer, AppBar, SideNav, type SideNavItem } from '../ds';
 import { useConsole } from '../data/console';
 import { NAV, activeNavKey } from './nav';
 import { BannerSlot, SHELL_PANELS, StatusBarSlot, StripSlot } from './slots';
@@ -151,11 +151,13 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
         </div>
 
         {isPhone ? null : (
-          <nav aria-label="Main" className="flex shrink-0" onClick={keepInApp}>
+          <div className="flex shrink-0" onClick={keepInApp}>
             <SideNav
               groups={[{ key: 'main', items }]}
               activeKey={active}
               collapsed={!expanded}
+              collapseLabel="Collapse navigation"
+              expandLabel="Expand navigation"
               onToggleCollapsed={
                 isDesktop && !anyPanelOpen
                   ? (collapsed) => {
@@ -166,12 +168,15 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
               }
               testId="console-rail"
             />
-          </nav>
+          </div>
         )}
 
         <div className="flex min-w-0 flex-1 flex-col">
           <header role="banner">
-            <TopBar
+            <AppBar
+              tone="chrome"
+              role="none"
+              testId="top-bar"
               title={pageTitle}
               subtitle={subtitle}
               titleIsPageHeading={false}
@@ -221,9 +226,9 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
         </div>
         {isPhone ? (
           <NavDrawer id="console-nav-drawer" tone="light" hideTrigger open={drawerOpen} onClose={() => setDrawerOpen(false)} testId="console-nav-drawer">
-            <nav aria-label="Main" className="flex min-h-0 flex-1" onClick={keepInApp}>
-              <SideNav groups={[{ key: 'main', items: buildItems(true) }]} activeKey={active} collapsed={false} testId="console-drawer-nav" />
-            </nav>
+            <div className="flex min-h-0 flex-1" onClick={keepInApp}>
+              <SideNav tone="light" groups={[{ key: 'main', items: buildItems(true) }]} activeKey={active} collapsed={false} testId="console-drawer-nav" />
+            </div>
           </NavDrawer>
         ) : null}
       </div>

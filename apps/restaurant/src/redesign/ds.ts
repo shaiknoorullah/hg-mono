@@ -2,9 +2,9 @@
  * The ONE import point for design-system components in the redesign (apps define no
  * components: AGENTS.md, redesign constitution).
  *
- * Today `@hg/ui-web/ds` and `@hg/ui-web/proposed` do not exist yet (DS web track, S0/W1–W7),
- * so this re-exports the matching components from the current `@hg/ui-web` tiers. When the DS
- * track lands a barrel entry, change the source here and nothing in the screens moves.
+ * The components come from `@hg/ui-web/ds` where the redesign has one (the console chrome:
+ * `SideNav` and `AppBar`), and from the older `@hg/ui-web` tiers where it does not yet. When a
+ * barrel entry lands, change the source here and nothing in the screens moves.
  *
  * Composites the DS has not shipped are temporary stubs under `./_stubs/`, each named after
  * its `ds-request(web):` issue; they are deleted when the DS export lands.
@@ -37,11 +37,16 @@ export type { HalalBadgeProps } from '@hg/ui-web/certification';
 
 export { Card, Price } from '@hg/ui-web/content';
 
-export { AppShell, SideNav, TopBar } from '@hg/ui-web/navigation';
+export { AppShell } from '@hg/ui-web/navigation';
+// The console chrome (rail and header bar) is the redesign's own, drawn on the dark forest
+// surface the boards use. The older light, translucent rail and bar in `@hg/ui-web/navigation`
+// stay for the legacy screens only (https://github.com/shaiknoorullah/hg-mono/issues/977).
+export { AppBar, SideNav } from '@hg/ui-web/ds';
+export type { SideNavItem, SideNavGroup } from '@hg/ui-web/ds';
 // The navigation drawer the phone board marks as a proposed component (#954). It is built from
 // the design system's own Sheet, IconButton and SideNav; the app adds no component of its own.
 export { NavDrawer } from '@hg/ui-web/proposed';
-export type { SideNavItem, SideNavGroup, SkipTarget } from '@hg/ui-web/navigation';
+export type { SkipTarget } from '@hg/ui-web/navigation';
 
 export {
   Banner,
