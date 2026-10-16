@@ -137,8 +137,9 @@ summary prints the same.
 
 Layout findings also say a box drawn on one side only, or whose text names several boxes (so it was not
 compared). A box with no text is not in the layout snapshot, so a difference confined to one (a border
-on a button with no label) is still missed; widening the snapshot, and putting layout findings into the
-verdicts, is [issue 844](https://github.com/shaiknoorullah/hg-mono/issues/844).
+on a button with no label) is still missed. Widening the snapshot so that a box with no text is
+measured too is not part of what [#844](https://github.com/shaiknoorullah/hg-mono/issues/844)
+delivered, and is still to do.
 
 ## Report
 
@@ -278,4 +279,6 @@ of a restaurant page fails the "texts present" bar above until the dev world is 
 hand-written dump in the AOSP `uiautomator` shape (`test/fixtures/native-home.hierarchy.xml`) and
 the capture server against a stand-in `adb`; neither has run against a real emulator or Maestro, as
 none was available when this was written. Run one flow on the design AVD and read the result before
-trusting a number. Tracked in [#844](https://github.com/shaiknoorullah/hg-mono/issues/844).
+trusting a number. The comparator itself landed with
+[#844](https://github.com/shaiknoorullah/hg-mono/issues/844); which emulator takes design captures
+is [#963](https://github.com/shaiknoorullah/hg-mono/issues/963).
