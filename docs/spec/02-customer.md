@@ -3,7 +3,7 @@ covers:
   - apps/customer/**
   - services/hg/internal/account/**
   - services/hg/internal/addresses/**
-reviewed: 2026-10-15
+reviewed: 2026-10-16
 ---
 
 # HalalGoes — CUSTOMER Domain Specification
@@ -647,39 +647,40 @@ The rules in this spec apply to both. With the flag on:
 - **SOW trace**: *"Order Placement: Place orders with selected items, delivery address, and payment method."*
 - **Behaviour**: The checkout screen shows: delivery address (the **selected** one, editable), the C-22 breakdown, delivery instructions (C-33), tip (C-36, V2), coupon (C-21, V2), and payment method (C-24). Pressing **Place order** calls `POST /orders` with `{cart_id, delivery_address_id, payment_method_id, pricing_signature, delivery_instructions, special_instructions, tip_cents, idempotency_key}`. The client then shows a **pending** state and waits for the server's terminal answer — it does **not** navigate to a success screen optimistically.
 - **Data**: `orders.*`, `order_food_items.*`, `payment_intents`, `carts` (deleted on success), `coupon_redemptions`.
-- **States**: `orders.status`, the customer-visible machine (the legacy `PLACED` and `DISPUTED` values are removed; `PENDING_PAYMENT` is internal-only):
+- **States**: `orders.status`, the customer-visible machine (the legacy `PLACED` and `DISPUTED` values are removed; `CREATED` is internal-only):
 
   | From | To | Trigger |
   |---|---|---|
-  | *(none)* | `PENDING_PAYMENT` | order row created inside the checkout transaction |
-  | `PENDING_PAYMENT` | `AWAITING_RESTAURANT` | payment authorised (C-25) |
-  | `PENDING_PAYMENT` | `PAYMENT_FAILED` | authorisation declined or timed out |
-  | `AWAITING_RESTAURANT` | `CONFIRMED` | restaurant accepts |
-  | `AWAITING_RESTAURANT` | `REJECTED` | restaurant rejects, or acceptance window expires |
+  | *(none)* | `CREATED` | order row created inside the checkout transaction |
+  | `CREATED` | `RESTAURANT_PENDING` | payment authorised (C-25), passing through `AUTHORIZED` |
+  | `CREATED` | `FAILED` | authorisation declined |
+  | `CREATED` | `CANCELLED` with `cancel_reason=PAYMENT_EXPIRED` | authorisation not completed before the deadline |
+  | `RESTAURANT_PENDING` | `CONFIRMED` | restaurant accepts |
+  | `RESTAURANT_PENDING` | `REJECTED` | restaurant rejects, or acceptance window expires |
   | `CONFIRMED` | `PREPARING` | restaurant marks preparing |
   | `PREPARING` | `READY_FOR_PICKUP` | restaurant marks ready |
-  | `CONFIRMED`\|`PREPARING`\|`READY_FOR_PICKUP` | `RIDER_ASSIGNED` | dispatch assigns a rider (may occur in parallel with prep) |
-  | `RIDER_ASSIGNED` | `PICKED_UP` | rider confirms collection |
+  | `CONFIRMED`\|`PREPARING`\|`READY_FOR_PICKUP` | *(unchanged; `dispatch_state` becomes `ASSIGNED`)* | dispatch assigns a rider (may occur in parallel with prep) |
+  | *(`dispatch_state` is `ASSIGNED`)* | `PICKED_UP` | rider confirms collection |
   | `PICKED_UP` | `ON_THE_WAY` | rider departs |
   | `ON_THE_WAY` | `DELIVERED` | rider marks delivered |
-  | `AWAITING_RESTAURANT` | `CANCELLED` | customer cancels (C-29) or staff cancel |
+  | `RESTAURANT_PENDING` | `CANCELLED` | customer cancels (C-29) or staff cancel |
   | `CONFIRMED`…`ON_THE_WAY` | `CANCELLED` | staff only, without needing a support case ([cancellation policy](../decisions/README.md#settled--client-decisions)) |
-  | `AWAITING_RESTAURANT`…`ON_THE_WAY` | `NO_RIDER_FOUND` → `CANCELLED` | dispatch exhausts the search |
+  | `RESTAURANT_PENDING`…`ON_THE_WAY` | `NO_RIDER_FOUND` → `CANCELLED` | dispatch exhausts the search |
 
-  Terminal: `DELIVERED`, `CANCELLED`, `REJECTED`, `PAYMENT_FAILED`. Every transition is validated against this table **in the database write path**, not only inside a workflow's in-memory copy, and every transition writes an `order_status_events(id, order_id, from_status, to_status, actor_type, actor_id, reason_code, created_at)` row.
+  Terminal: `DELIVERED`, `CANCELLED`, `REJECTED`, `FAILED`. Every transition is validated against this table **in the database write path**, not only inside a workflow's in-memory copy, and every transition writes an `order_status_events(id, order_id, from_status, to_status, actor_type, actor_id, reason_code, created_at)` row.
 - **Rules**:
   1. Order creation is a **single database transaction**: validate cart → re-price → validate coupon with row lock → insert `orders` + `order_food_items` (snapshotting name, unit price, variant, add-ons, special request) → insert `coupon_redemptions` → delete cart. Payment authorisation happens **after** commit, keyed by `orders.id`.
   2. `Idempotency-Key` is required. A replayed key returns the original order.
   3. Pre-flight validations, each with its own code and none of them client-side-only: `PROFILE_INCOMPLETE`, `CART_EMPTY`, `RESTAURANT_UNAVAILABLE` (C-14), `BELOW_MINIMUM_ORDER`, `ADDRESS_OUT_OF_RANGE`, `ITEM_UNAVAILABLE`, `PRICE_CHANGED`, `PRICING_STALE`, `PAYMENT_METHOD_INVALID`.
   4. **Restaurant acceptance window: 180 seconds** ([acceptance window](../decisions/README.md#settled--reconciliations)). On expiry the order auto-transitions to `REJECTED` with `reason_code='RESTAURANT_TIMEOUT'` and the payment authorisation is voided. (Today there is no restaurant timeout at all; the only bound is a 15-minute workflow timeout that kills the saga without running compensation or refunding.) While the window runs, the customer sees a neutral progress bar and "Restaurant replies by 7:42 pm", never a countdown ([reply window](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
   5. **Compensation is unconditional**: if the order fails after authorisation for any reason, the void/refund runs and its result is recorded; a failed compensation raises an operational alert and creates a `refund_requests` row in `UNDER_REVIEW` — it never silently continues. (Today a rejected order continues to rider assignment when compensation returns false.)
-  6. The success screen is reached only on a server response of `AWAITING_RESTAURANT` or later. On any error the customer stays on checkout with the specific reason.
+  6. The success screen is reached only on a server response of `RESTAURANT_PENDING` or later. On any error the customer stays on checkout with the specific reason.
   7. `orders.short_code` = 6-character Crockford base-32, unique per day, shown to the customer and used in support.
   8. When an unpaid order is cancelled, expires or fails payment, the app offers "Put these items back in your cart": it re-adds the lines through the cart operations, and the server prices them again ([cart after an unpaid order](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
   9. While staff have paused new orders platform-wide ([#244](https://github.com/shaiknoorullah/hg-mono/issues/244)), the app reads `ordering.paused` from `getPublicConfig` at launch and on every return to the foreground, says plainly that ordering is paused for now on home, the restaurant page, the cart and checkout, and offers no checkout; the cart shows the same when `blocking_reasons` contains `ORDERING_PAUSED`, and a `409 ORDERING_PAUSED` from `createQuote` or `createOrder` shows that message and that nothing was charged, never a generic error ([#388](https://github.com/shaiknoorullah/hg-mono/issues/388)).
 - **Acceptance criteria**:
   1. Given a valid cart and a working payment method, when Place order is pressed, then exactly one `orders` row exists, the cart row is deleted, and the app shows the pending screen only after the server responds.
-  2. Given the payment authorisation fails, when the response returns, then `orders.status='PAYMENT_FAILED'`, the customer remains on checkout with a retry affordance, and the app offers "Put these items back in your cart".
+  2. Given the payment authorisation fails, when the response returns, then `orders.status='FAILED'`, the customer remains on checkout with a retry affordance, and the app offers "Put these items back in your cart".
   3. Given the same `Idempotency-Key` submitted twice within 24 h, then exactly one order exists and the second response carries `meta.idempotent_replay=true`.
   4. Given a restaurant that does not respond, when 180 seconds elapse, then the order is `REJECTED` with `reason_code='RESTAURANT_TIMEOUT'`, the authorisation is voided, and the customer receives a notification.
   5. Given an attempted transition `DELIVERED → PREPARING`, when written by any path, then the write is rejected by the transition validator (asserted directly against the repository layer, not only the workflow).
@@ -721,7 +722,7 @@ The rules in this spec apply to both. With the flag on:
 
 ### C-25 — Payment execution and 3DS
 - **SOW trace**: *"Secure Payments: Integration with secure payment gateways for seamless and safe transactions."*
-- **Behaviour**: On order creation the server creates a provider PaymentIntent for `amount_to_pay_cents` with `capture_method=manual` (authorise now, capture later). If the provider requires 3-D Secure, the server returns `requires_action` with a client secret; the app presents the provider's challenge sheet and confirms. **Capture occurs when the restaurant accepts** (`AWAITING_RESTAURANT → CONFIRMED`). Authorisation is **voided** on rejection, timeout, no-rider, or customer cancellation before capture.
+- **Behaviour**: On order creation the server creates a provider PaymentIntent for `amount_to_pay_cents` with `capture_method=manual` (authorise now, capture later). If the provider requires 3-D Secure, the server returns `requires_action` with a client secret; the app presents the provider's challenge sheet and confirms. **Capture occurs when the restaurant accepts** (`RESTAURANT_PENDING → CONFIRMED`). Authorisation is **voided** on rejection, timeout, no-rider, or customer cancellation before capture.
 
   **V0 build (customer app):** the card is confirmed on web with the Stripe.js Payment Element in a sheet (`redirect: 'if_required'`; Stripe.js loads on the first payment) and on iOS and Android with the Stripe SDK's payment sheet, both keyed by `EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY`. A build without that key takes no card and says so at checkout, keeping the order for **Retry payment**; a decline, a failed challenge or a closed sheet also keeps the order, and a retry never places a second one. After a confirmed card the app reads `GET /v1/orders/{orderId}/payment` once, so the order moves on even where no webhook can reach the API ([card payments playbook](../playbooks/customer/card-payments.md)).
 - **Data**: `payments(id, order_id, user_id, payment_method_id, provider, provider_intent_id UNIQUE, amount_cents, currency, status, captured_at, voided_at, failure_code, created_at)`; `payment_events(id, payment_id, provider_event_id UNIQUE, type, payload jsonb, received_at)` for webhook idempotency; `refunds` (C-37).
@@ -739,9 +740,9 @@ The rules in this spec apply to both. With the flag on:
   4. On `FAILED`, `failure_code` is mapped to one of a fixed set of customer messages: `card_declined`, `insufficient_funds`, `expired_card`, `incorrect_cvc`, `processing_error`, `authentication_failed`. No raw provider text is shown.
   5. **The app may not display a success screen before the server confirms.** (Today `select-payment` navigates to `/payments/success` before the checkout request resolves, so the customer is told "Payment Successful!" even when it failed.) A test asserts the success route is unreachable without an `AUTHORIZED`/`CAPTURED` server state.
   6. All money movement is logged to `payment_events`; a reconciliation job compares provider balance transactions to local `payments` daily and reports drift.
-  7. Retry: a `FAILED` payment may be retried on the same order up to **3 times** within 15 minutes with a different or the same method; after that the order transitions to `PAYMENT_FAILED` terminally.
+  7. Retry: a `FAILED` payment may be retried on the same order up to **3 times** within 15 minutes with a different or the same method; after that the order transitions to `FAILED` terminally.
 - **Acceptance criteria**:
-  1. Given a card requiring 3DS, when the order is placed, then the app presents the provider challenge, and on success the order reaches `AWAITING_RESTAURANT` with `payments.status='AUTHORIZED'`.
+  1. Given a card requiring 3DS, when the order is placed, then the app presents the provider challenge, and on success the order reaches `RESTAURANT_PENDING` with `payments.status='AUTHORIZED'`.
   2. Given the restaurant rejects, when the rejection is processed, then `payments.status='VOIDED'` within 60 s and no capture ever occurred (asserted against the provider's test API).
   3. Given the same webhook delivered 3 times, when processed, then exactly one `payment_events` row exists and `payments.status` changed once.
   4. Given a declined card, when the response returns, then the app shows "Your card was declined" and the success route was never mounted.
@@ -819,20 +820,20 @@ The rules in this spec apply to both. With the flag on:
 
 ### C-29 — Order cancellation by the customer
 - **SOW trace**: not in SOW 9–17 explicitly, but *"Refund Requests: Request refunds for canceled or unsatisfactory orders"* (SOW 13) and *"Refund Requests: Submit refund requests for canceled, incorrect, or unsatisfactory orders"* (SOW 17) both presuppose customer cancellation. The current in-app FAQ instructs customers to use a cancel flow that does not exist.
-- **Behaviour**: A **Cancel order** action is available on the tracking screen while the order is in `AWAITING_RESTAURANT`, which is when the server's `can_cancel` is true. It requires selecting a reason from a fixed list and confirming in a modal that states the refund outcome in plain words before the customer commits. Once the restaurant accepts, the action is replaced by "Get help" (C-08/C-39), with reasons that fit before delivery: very late, wrong address, want to cancel ([problem before delivery](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)). The customer cannot self-cancel after acceptance; staff may cancel without a support case ([cancellation policy](../decisions/README.md#settled--client-decisions)).
+- **Behaviour**: A **Cancel order** action is available on the tracking screen while the order is in `RESTAURANT_PENDING`, which is when the server's `can_cancel` is true. It requires selecting a reason from a fixed list and confirming in a modal that states the refund outcome in plain words before the customer commits. Once the restaurant accepts, the action is replaced by "Get help" (C-08/C-39), with reasons that fit before delivery: very late, wrong address, want to cancel ([problem before delivery](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)). The customer cannot self-cancel after acceptance; staff may cancel without a support case ([cancellation policy](../decisions/README.md#settled--client-decisions)).
 - **Customer app**: the tracking screen offers **Cancel order** while the order is `CREATED`, `AUTHORIZED` or `RESTAURANT_PENDING`, sends `cancelOrder` with a reason and an `Idempotency-Key` after a confirmation, says "you were not charged" on success, and answers `409 CANCELLATION_WINDOW_CLOSED` with "the restaurant has already started your order" and the order code to give support ([#543](https://github.com/shaiknoorullah/hg-mono/issues/543)).
 - **Data**: `orders.status`, `orders.cancelled_at`, `orders.cancellation_reason_code`, `orders.cancelled_by ENUM(CUSTOMER,RESTAURANT,ADMIN,SYSTEM)`, `order_status_events`, `payments`, `refunds`.
-- **States**: `AWAITING_RESTAURANT → CANCELLED`, actor `CUSTOMER`. No other customer-triggered transition exists.
+- **States**: `RESTAURANT_PENDING → CANCELLED`, actor `CUSTOMER`. No other customer-triggered transition exists.
 - **Rules**:
   1. Reason codes (fixed): `ORDERED_BY_MISTAKE`, `TOO_LONG_WAIT`, `WRONG_ADDRESS`, `CHANGED_MIND`, `DUPLICATE_ORDER`, `OTHER` (requires 5–200 chars of free text).
   2. Refund outcome, stated in the confirmation modal and enforced by the server:
-     - Cancelled in `AWAITING_RESTAURANT` (not yet captured) ⇒ **authorisation voided, no charge**.
-  3. Cancellation is racy by nature: it is applied with a conditional update (`UPDATE orders SET status='CANCELLED' WHERE id=? AND status='AWAITING_RESTAURANT'`). Zero rows affected ⇒ `409 CANCELLATION_WINDOW_CLOSED` with the current status, and the UI refreshes.
+     - Cancelled in `RESTAURANT_PENDING` (not yet captured) ⇒ **authorisation voided, no charge**.
+  3. Cancellation is racy by nature: it is applied with a conditional update (`UPDATE orders SET status='CANCELLED' WHERE id=? AND status='RESTAURANT_PENDING'`). Zero rows affected ⇒ `409 CANCELLATION_WINDOW_CLOSED` with the current status, and the UI refreshes.
   4. Cancellation notifies the restaurant and (if assigned) the rider immediately over their channels.
   5. Abuse guard: **3 customer cancellations in a rolling 7 days** flags the account for review (`users.risk_flag`); a 4th still succeeds but creates an admin task. Cancellation is never silently blocked.
   6. The FAQ copy (C-06) must match this behaviour exactly; the CI check in C-06 rule 3 covers it.
 - **Acceptance criteria**:
-  1. Given an order in `AWAITING_RESTAURANT`, when the customer cancels, then `orders.status='CANCELLED'`, `cancelled_by='CUSTOMER'`, `payments.status='VOIDED'`, and no `refunds` row is created.
+  1. Given an order in `RESTAURANT_PENDING`, when the customer cancels, then `orders.status='CANCELLED'`, `cancelled_by='CUSTOMER'`, `payments.status='VOIDED'`, and no `refunds` row is created.
   2. Given an order in `CONFIRMED`, when the customer tries to cancel, then `409 CANCELLATION_WINDOW_CLOSED` and no `refunds` row is created.
   3. Given an order that transitions to `CONFIRMED` between the UI render and the tap, when cancel is submitted, then `409 CANCELLATION_WINDOW_CLOSED` and the screen updates to show "Get help" instead.
   4. Given an order in `CONFIRMED`, when the tracking screen renders, then no cancel affordance exists anywhere on it.
@@ -900,8 +901,8 @@ The rules in this spec apply to both. With the flag on:
 ### C-32 — Live order tracking
 - **SOW trace**: *"Live Order Tracking: Track orders in real-time with a map interface, showing the rider's location and estimated delivery time."*
 - **Behaviour**: One tracking screen per order, reachable from the resume banner (C-26), the post-checkout flow, and order history. It shows: a status stepper, a map, the ETA, the rider card (once assigned), the delivery address, delivery instructions, an order summary, and contextual actions (cancel → C-29 while eligible; call rider → C-34; get help → C-08). The order view and this screen also show the 4-digit delivery code, with a push when the rider arrives; the rider is never shown it (needs a new contract field; [delivery code](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
-  The stepper has **five** steps, mapped from `orders.status`: **Confirmed** (`AWAITING_RESTAURANT`, `CONFIRMED`) → **Preparing** (`PREPARING`) → **Ready / Rider assigned** (`READY_FOR_PICKUP`, `RIDER_ASSIGNED`) → **On the way** (`PICKED_UP`, `ON_THE_WAY`) → **Delivered** (`DELIVERED`). Terminal failures (`REJECTED`, `CANCELLED`, `NO_RIDER_FOUND`, `PAYMENT_FAILED`) replace the stepper with a full-screen outcome state.
-  The map shows the restaurant marker, the delivery marker, and the rider marker once `RIDER_ASSIGNED`; a route polyline is drawn from the rider to the current leg's destination.
+  The stepper has **five** steps, mapped from `orders.status`: **Confirmed** (`RESTAURANT_PENDING`, `CONFIRMED`) → **Preparing** (`PREPARING`) → **Ready / Rider assigned** (`READY_FOR_PICKUP`; `dispatch_state` `ASSIGNED`) → **On the way** (`PICKED_UP`, `ON_THE_WAY`) → **Delivered** (`DELIVERED`). Terminal failures (`REJECTED`, `CANCELLED`, `NO_RIDER_FOUND`, `FAILED`) replace the stepper with a full-screen outcome state.
+  The map shows the restaurant marker, the delivery marker, and the rider marker once `dispatch_state` is `ASSIGNED`; a route polyline is drawn from the rider to the current leg's destination.
   **V0 build (customer app):** while the order is `PICKED_UP` or `ARRIVED` the screen shows a live native Mapbox map (`@rnmapbox/maps`) with the restaurant pin, the drop-off pin and the rider marker, plus the ETA text. The rider's position arrives on the realtime channel `order:{orderId}` as `rider.location` ([websocket contract](../../contracts/websocket.md)); when the socket is not open the screen polls `GET /v1/orders/{orderId}/tracking` every 5 s instead (its `rider_location`), and the newest fix wins on either path. The marker glides between fixes, the camera fits the three points, and a fix older than 30 s adds "Rider location updated N seconds ago". The rider is not exposed before pickup (the contract), so until then the map shows the restaurant and the drop-off. No route polyline yet. The map exists only in a build with the Mapbox native SDK and `EXPO_PUBLIC_MAPBOX_TOKEN` ([how the SDK is built or left out](../release/README.md)); without either, the ETA text remains. If the first read fails the card says live tracking is unavailable and offers "Try again".
 - **Data**: `orders`, `order_status_events`, `riders` (via the slim projection in C-18 rule 3), Redis `rider:{id}:location`, socket topic `order:{orderId}`.
 - **States**: as C-23. The client subscribes to `order:{orderId}` and receives typed events: `order.status_changed`, `order.rider_assigned`, `order.rider_location`, `order.eta_updated`, `order.cancelled`.
@@ -956,11 +957,11 @@ The rules in this spec apply to both. With the flag on:
 
 ### C-34 — Contacting the rider
 - **SOW trace**: *"Rider Communication: Chat or call the rider for delivery updates or instructions."*
-- **Behaviour — the ambiguity resolved**: At V1 this is **masked voice calling only**, no chat. While the order is in `RIDER_ASSIGNED`…`ON_THE_WAY`, a Call rider button requests `POST /orders/:orderId/rider-call` which returns a **proxy number + PIN** valid for the remainder of the delivery; the app dials it. Neither party ever sees the other's real number. In-app text chat with the rider is **V3 and not specified here** — the current mock chat screens are deleted rather than wired up.
+- **Behaviour — the ambiguity resolved**: At V1 this is **masked voice calling only**, no chat. While the order is from `dispatch_state` `ASSIGNED` to `ON_THE_WAY`, a Call rider button requests `POST /orders/:orderId/rider-call` which returns a **proxy number + PIN** valid for the remainder of the delivery; the app dials it. Neither party ever sees the other's real number. In-app text chat with the rider is **V3 and not specified here** — the current mock chat screens are deleted rather than wired up.
 - **Data**: `rider_call_sessions(id, order_id, customer_user_id, rider_id, proxy_number_e164, pin, provider_session_id, expires_at, created_at)`; `riders.phone` never leaves the server.
 - **States**: session ∈ `{ACTIVE, EXPIRED}`. Created on first request, expires at `order.delivered_at + 30 min` or `order.cancelled_at`.
 - **Rules**:
-  1. The button exists only for statuses `RIDER_ASSIGNED, PICKED_UP, ON_THE_WAY`. Outside that window it returns `409 CALL_WINDOW_CLOSED`.
+  1. The button exists only for statuses `PICKED_UP, ON_THE_WAY`, or while `dispatch_state` is `ASSIGNED`. Outside that window it returns `409 CALL_WINDOW_CLOSED`.
   2. `Linking.openURL` is used to dial and **`Linking` must be imported** — the current crash is a regression test.
   3. Rate limit **5 call-session requests per order**; the same session is returned for repeats within its validity.
   4. The rider's real phone number must not appear in any customer-facing API response (asserted by a contract test against `GET /orders/:orderId/rider`).
@@ -979,7 +980,7 @@ The rules in this spec apply to both. With the flag on:
 
 ### C-35 — Contacting the restaurant
 - **SOW trace**: *"Restaurant Communication: Contact restaurants directly for special requests or clarifications (if supported by the app)."* — the SOW itself hedges with "if supported".
-- **Behaviour**: The restaurant's public phone number is shown on the order detail while the order is in `AWAITING_RESTAURANT`…`READY_FOR_PICKUP`, with a Call restaurant button dialling it directly (restaurants are businesses; their number is public, so no masking). No chat.
+- **Behaviour**: The restaurant's public phone number is shown on the order detail while the order is in `RESTAURANT_PENDING`…`READY_FOR_PICKUP`, with a Call restaurant button dialling it directly (restaurants are businesses; their number is public, so no masking). No chat.
 - **Data**: `restaurants.public_phone_e164` (new, distinct from any owner contact), `orders.status`.
 - **States**: none.
 - **Rules**:

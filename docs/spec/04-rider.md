@@ -2,7 +2,7 @@
 covers:
   - apps/rider/**
   - services/hg/internal/rider/**
-reviewed: 2026-10-15
+reviewed: 2026-10-16
 ---
 
 # HalalGoes — RIDER Domain Specification
@@ -572,7 +572,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
   - Accepting **always** changes availability to `ON_DELIVERY` in the same transaction (not a client-side toggle, not a separate call). The rider stops being dispatchable at the instant of accept.
   - Distinct 409 codes so the app can say the right thing: `OFFER_EXPIRED`, `OFFER_ALREADY_TAKEN`, `OFFER_WITHDRAWN`, `ORDER_CANCELLED`, `RIDER_NOT_AVAILABLE`.
   - Idempotent: a retry with the same `Idempotency-Key` returns the original 200 and does not create a second assignment.
-  - On success the server emits: `assignment.updated` to the rider, `order_update(RIDER_ASSIGNED)` to the customer and restaurant, `offer.withdrawn` to the losing riders, and a push to each.
+  - On success the server emits: `assignment.updated` to the rider, `dispatch.state_changed` (to `ASSIGNED`) to the customer and restaurant, `offer.withdrawn` to the losing riders, and a push to each.
   - Accept must succeed in < 500 ms p95; the transaction touches four rows and must not call any external service inline (routing, push and notifications are queued after commit via the transactional outbox).
   - `POST /offers/:id/accept` is the only path that assigns a rider. Ops manual assignment (D-15) uses the same service function with `actor=OPS`.
 - **Acceptance criteria**:
