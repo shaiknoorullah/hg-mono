@@ -91,7 +91,7 @@ anything. This seed is where the dev-world harness
 
 ## Run it on a laptop
 
-Needs Docker, Go, Node 22 with pnpm, `psql`, and for the Android flows an emulator (with KVM)
+Needs Docker, Go, Node 22 (the version in `.nvmrc`) with pnpm, `psql`, and for the Android flows an emulator (with KVM)
 plus Maestro. From the repository root:
 
 ```bash

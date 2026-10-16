@@ -132,7 +132,7 @@ runner in Settings → Actions → Runners.
   testcontainers: in the `go` job, or in `coverage` for the weekly scan. Without Docker those
   jobs fail.
 - No `psql`, Go, Node or Python setup is needed: jobs install Go and Node into the runner's own
-  tool cache, use the machine's `python3` in a private venv, and run `psql` from the Postgres image.
+  tool cache (Node from the version in `.nvmrc`, the same file a developer's machine reads), use the machine's `python3` in a private venv, and run `psql` from the Postgres image.
 - **No KVM on the workstation** (`/dev/kvm` is missing), so it cannot boot an Android emulator.
   Jobs that need an emulator must not use `HG_RUNS_ON`: they stay on GitHub's runners or a runner
   that has KVM.
