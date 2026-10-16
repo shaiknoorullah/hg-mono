@@ -16,6 +16,9 @@ import { OUT } from '../lib/paths.mjs';
  * collapsed it and withdrawn the button, so nothing is pressed. See https://github.com/shaiknoorullah/hg-mono/issues/967.
  */
 const AREAS_DRAWN_EXPANDED: Readonly<Record<string, readonly string[]>> = {
+  // Add an area here when its boards draw the rail expanded; counted from the rendered references,
+  // not assumed. Live orders is absent on purpose: 115 of its 122 boards at 1440 px draw the rail
+  // collapsed, and its board component's navigation property defaults to collapsed.
   restaurant: ['menu-hours', 'settings', 'payouts'],
 };
 
