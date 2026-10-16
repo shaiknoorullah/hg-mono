@@ -3821,16 +3821,16 @@ func (e RestaurantOpenState) Valid() bool {
 
 // Defines values for RestaurantPauseKind.
 const (
-	RestaurantPauseKindDURATION     RestaurantPauseKind = "DURATION"
-	RestaurantPauseKindUNTILCLOSING RestaurantPauseKind = "UNTIL_CLOSING"
+	DURATION     RestaurantPauseKind = "DURATION"
+	UNTILCLOSING RestaurantPauseKind = "UNTIL_CLOSING"
 )
 
 // Valid indicates whether the value is a known member of the RestaurantPauseKind enum.
 func (e RestaurantPauseKind) Valid() bool {
 	switch e {
-	case RestaurantPauseKindDURATION:
+	case DURATION:
 		return true
-	case RestaurantPauseKindUNTILCLOSING:
+	case UNTILCLOSING:
 		return true
 	default:
 		return false
