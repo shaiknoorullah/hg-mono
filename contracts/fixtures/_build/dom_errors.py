@@ -817,6 +817,16 @@ ROUND2_ERRORS = [
         ["setRestaurantAcceptingOrders"],
     ),
     (
+        "pause_until_closing_no_closing_time",
+        409,
+        "NO_CLOSING_TIME",
+        "Your hours have no closing time in the coming week, so there is nothing to pause until.",
+        None,
+        "`pause_until_closing: true` at a restaurant open around the clock. The request is "
+        "well formed but its hours have no end to pause until; nothing changes.",
+        ["setRestaurantAcceptingOrders"],
+    ),
+    (
         "pause_with_both_times",
         422,
         "VALIDATION_FAILED",

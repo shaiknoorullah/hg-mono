@@ -34,7 +34,7 @@ function clockAt(iso: string) {
 }
 
 function openAvailability(patch: Record<string, unknown> = {}) {
-  return { ...fixture('restaurant_open_state_open'), pause_until: null, missed_order_count: 0, reason: 'Open and accepting orders.', ...patch };
+  return { ...fixture('restaurant_open_state_open'), pause_until: null, pause_kind: null, missed_order_count: 0, reason: 'Open and accepting orders.', ...patch };
 }
 
 /** Hours GET/PUT over a store, so a PUT changes the next GET (the mock forgets writes). */
@@ -67,6 +67,7 @@ function setup(opts: { hours?: any; availability?: any; overrides?: Record<strin
           ...av,
           is_accepting_orders: body.is_accepting_orders,
           pause_until: body.is_accepting_orders ? (body.pause_until ?? null) : av.pause_until,
+          pause_kind: body.is_accepting_orders ? (body.pause_until ? 'DURATION' : null) : av.pause_kind,
           open_state: !body.is_accepting_orders ? 'CLOSED_TOGGLE' : pausing ? 'PAUSED' : 'OPEN',
           reason: !body.is_accepting_orders ? 'This restaurant has paused new orders.' : pausing ? 'Briefly paused.' : 'Open and accepting orders.',
         };
@@ -189,7 +190,7 @@ describe('Hours: Right now', () => {
       overrides: {
         'PATCH /v1/restaurant/availability': async (req) => {
           seen.push(await req.json());
-          return { body: openAvailability({ open_state: 'PAUSED', pause_until: closing, reason: 'Paused until closing.' }) };
+          return { body: openAvailability({ open_state: 'PAUSED', pause_until: closing, pause_kind: 'UNTIL_CLOSING', reason: 'Paused until closing.' }) };
         },
       },
     });
@@ -199,6 +200,20 @@ describe('Hours: Right now', () => {
     await waitFor(() => expect(seen).toHaveLength(1));
     expect(seen[0]).toEqual({ is_accepting_orders: true, pause_until_closing: true });
     expect((await screen.findByTestId('right-now-reason')).textContent).toMatch(/^Paused until closing, \d{1,2}:\d{2} [ap]m( tomorrow)?\.$/);
+  });
+
+  it('a pause until closing reads the same on a fresh load, set from another device, because the server says why', async () => {
+    const closing = new Date(Date.now() + 5 * 3_600_000).toISOString();
+    setup({ availability: openAvailability({ open_state: 'PAUSED', pause_until: closing, pause_kind: 'UNTIL_CLOSING' }) });
+    await openHours();
+    expect(screen.getByTestId('right-now-reason').textContent).toMatch(/^Paused until closing, \d{1,2}:\d{2} [ap]m( tomorrow)?\.$/);
+  });
+
+  it('a timed pause that ends when the restaurant closes is still worded as a time, not as until closing', async () => {
+    const closing = new Date(Date.now() + 5 * 3_600_000).toISOString();
+    setup({ availability: openAvailability({ open_state: 'PAUSED', pause_until: closing, pause_kind: 'DURATION' }) });
+    await openHours();
+    expect(screen.getByTestId('right-now-reason').textContent).toBe(`Paused until ${formatTime(closing, TZ)}.`);
   });
 
   it('pause until closing outside trading hours says there is no closing and stays unpaused', async () => {
@@ -211,6 +226,19 @@ describe('Hours: Right now', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Pause new orders' }));
     fireEvent.click(within(screen.getByRole('menu', { name: 'Pause new orders' })).getByRole('menuitem', { name: 'Pause until closing' }));
     expect(await screen.findByText(/outside your opening hours, so there is no closing/)).toBeTruthy();
+    expect(screen.getByTestId('right-now-badge').textContent).toBe('Open');
+  });
+
+  it('pause until closing at a restaurant that never closes has no board of its own: the generic failure, still unpaused', async () => {
+    setup({
+      overrides: {
+        'PATCH /v1/restaurant/availability': () => ({ status: 409, body: { error: { code: 'NO_CLOSING_TIME', message: 'never closes', request_id: 'r1' } } }),
+      },
+    });
+    await openHours();
+    fireEvent.click(screen.getByRole('button', { name: 'Pause new orders' }));
+    fireEvent.click(within(screen.getByRole('menu', { name: 'Pause new orders' })).getByRole('menuitem', { name: 'Pause until closing' }));
+    expect(await screen.findByText(/Couldn’t pause new orders/)).toBeTruthy();
     expect(screen.getByTestId('right-now-badge').textContent).toBe('Open');
   });
 

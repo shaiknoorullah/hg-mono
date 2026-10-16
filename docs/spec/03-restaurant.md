@@ -468,7 +468,7 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
                    crosses_midnight bool, sort_order)          -- up to 3 intervals per day
   restaurant_hours_override(id, restaurant_id, date, is_closed bool,
                             opens_at time NULL, closes_at time NULL, reason)
-  restaurant.pause_until timestamptz NULL, pause_reason
+  restaurant.pause_until timestamptz NULL, pause_kind NULL   -- UNTIL_CLOSING | DURATION; both set or both null (CHECK)
   ```
 
 - **States**: derived, not stored — `open_state ∈ {OPEN, CLOSED_HOURS, CLOSED_HOLIDAY, PAUSED, CLOSED_TOGGLE, CLOSED_SUSPENDED, CLOSED_OFFLINE}`, evaluated in that precedence order.
@@ -487,11 +487,17 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   6. `pause_until` accepts only the values 15, 30, 60 minutes or "until closing" (the restaurant's
      next closing time, past midnight included), which replaces "rest of today". The client sends
      `pause_until_closing: true` on `setRestaurantAcceptingOrders` and the server works out the
-     closing time; outside trading hours it is `409 RESTAURANT_CLOSED`
+     closing time; outside trading hours it is `409 RESTAURANT_CLOSED`, and for a restaurant with no closing in the coming week (open 24 hours) it is `409 NO_CLOSING_TIME`
      ([pausing on late nights](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), ["for how long" options](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
      The redesigned console offers it beside 15, 30 and 60 minutes, in the status bar and on Hours; it cannot
      name the closing time before the choice (the contract carries no next closing time), so the paused
      state names the time the server chose ([#968](https://github.com/shaiknoorullah/hg-mono/issues/968)).
+     The availability response says why the pause ends when it does, in `pause_kind` (`UNTIL_CLOSING` when
+     the owner asked for the closing time, `DURATION` when the owner picked a length), stored with the pause
+     and present exactly when `pause_until` is, so Hours words it "Paused until closing" after a reload and for
+     a pause set on another device ([#973](https://github.com/shaiknoorullah/hg-mono/issues/973)). There is
+     no value for the toggle being off (that is `CLOSED_TOGGLE`) or for an admin pause (no operation pauses
+     one restaurant). The Settings Orders card does not read it yet ([#989](https://github.com/shaiknoorullah/hg-mono/issues/989)).
      Pausing does **not** affect already-accepted orders.
   7. Editing hours while orders are in flight is allowed and has no effect on them.
   8. `is_open_now` is computed server-side in the restaurant's timezone with DST handled by the

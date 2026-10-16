@@ -1023,3 +1023,5 @@ These must be decided before the artboards, not worked around in the client.
   - explicit submit and withdraw of a version
 - **No map component in `@hg/ui-web`,** needed for the onboarding location picker and any rider map.
 - **LyteNyte Grid cell components (#141):** a status chip, counter, money, inline bar, sparkline, switch and thumbnail+name cell. Each needs its colours checked against [the no-green-solids lint rule (L-4)](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/design/01-foundations.md#9-token-pipeline-and-lint-rules) and the halal-state rules.
+
+> **2026-10-16 note:** the redesigned console now words a pause from the availability response's `pause_kind` rather than remembering which pause it set ([#973](https://github.com/shaiknoorullah/hg-mono/issues/973)); this research describes the old app and is unchanged.

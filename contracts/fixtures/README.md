@@ -72,7 +72,7 @@ falling through, so a typo is visible immediately.
 
 ## Scenarios by domain
 
-**751 scenarios** across 16 domains.
+**752 scenarios** across 16 domains.
 
 | Domain | Scenarios | What it covers |
 |---|---:|---|
@@ -81,7 +81,7 @@ falling through, so a typo is visible immediately.
 | [`catalogue`](#catalogue) | 57 | Discovery, restaurant detail, hours and menus. |
 | [`dispatch`](#dispatch) | 32 | Dispatch states, rider offers and assignments. |
 | [`documents`](#documents) | 27 | KYC uploads, review states and every rejection reason. |
-| [`errors`](#errors) | 152 | `{error}` envelopes for the codes an app actually branches on. |
+| [`errors`](#errors) | 153 | `{error}` envelopes for the codes an app actually branches on. |
 | [`geo`](#geo) | 11 | Address search through our API to Mapbox — suggestions, a picked place, a map pin, and the no-match and provider-down paths. |
 | [`halal`](#halal) | 37 | Badges, certificates, checks and issuing bodies — the platform's core promise. |
 | [`handoff`](#handoff) | 13 | The package-seal chain of custody (later version: seals are not used at launch) — every `PackageSeal` status, `HandoffEvent` type, and the bind/pickup-scan/delivery-scan/tamper-report results. |
@@ -335,7 +335,7 @@ KYC uploads, review states and every rejection reason. — 27 scenarios.
 
 ### errors
 
-`{error}` envelopes for the codes an app actually branches on. — 152 scenarios.
+`{error}` envelopes for the codes an app actually branches on. — 153 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
@@ -426,6 +426,7 @@ KYC uploads, review states and every rejection reason. — 27 scenarios.
 | `error_otp_incorrect_no_count` | `ErrorEnvelope` | 400 | `400` · `OTP_INCORRECT`. A wrong sign-in code with `details` absent. `services/hg` always sends the count; this pins the client's fallback copy when a count is missing. |
 | `error_otp_invalid_or_expired` | `ErrorEnvelope` | 400 | `400` · `OTP_INVALID_OR_EXPIRED`. The challenge expired or was used up. Different from `error_otp_incorrect`: the app clears the code and offers "Send a new code". |
 | `error_otp_rate_limited_with_retry` | `ErrorEnvelope` | 429 | `429` · `RATE_LIMITED`. `requestOtp` over the per-phone or per-device cap. `details.retry_after_seconds` (the contract's documented `RATE_LIMITED` shape) says how long the button stays disabled. Contract-only: `services/hg` sends the wait only as the `Retry-After` header today, with `details` absent; a fixture cannot carry a header, so read both. |
+| `error_pause_until_closing_no_closing_time` | `ErrorEnvelope` | 409 | `409` · `NO_CLOSING_TIME`. `pause_until_closing: true` at a restaurant open around the clock. The request is well formed but its hours have no end to pause until; nothing changes. |
 | `error_pause_until_closing_outside_hours` | `ErrorEnvelope` | 409 | `409` · `RESTAURANT_CLOSED`. `pause_until_closing: true` outside trading hours. There is no current trading period to pause until the end of; nothing changes. |
 | `error_pause_with_both_times` | `ErrorEnvelope` | 422 | `422` · `VALIDATION_FAILED`. `pause_until` and `pause_until_closing` together. The pause is unchanged. |
 | `error_payload_too_large` | `ErrorEnvelope` | 413 | `413` · `PAYLOAD_TOO_LARGE`. `createUpload` for a file over the purpose's cap; `details.max_bytes` is the cap. |
@@ -963,7 +964,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | Tag | Count | Meaning |
 |---|---:|---|
 | `admin` | 157 | Admin/support-facing surface. |
-| `error-envelope` | 152 | A `{error}` body with a real `ErrorCode`. |
+| `error-envelope` | 153 | A `{error}` body with a real `ErrorCode`. |
 | `rider` | 132 | Rider-facing surface. |
 | `error-path` | 129 | The unhappy branch a client must handle. |
 | `state-matrix` | 106 | One fixture per member of a closed enum. |
@@ -1171,7 +1172,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `setHalalIssuingBodyStatus` | `halal_issuing_body_accepted` | `halal_issuing_body_proposed`, `halal_issuing_body_rejected`, `halal_issuing_body_retired`, `halal_issuing_body_suspended` |
 | `setMenuItemAvailability` | `menu_item_marked_out_of_stock_until` | `error_item_blocked_by_admin`, `error_menu_locked`, `menu_item_marked_available`, `menu_item_marked_out_of_stock_indefinitely` |
 | `setOrderingPause` | `ordering_pause_open` | `ordering_pause_on` |
-| `setRestaurantAcceptingOrders` | `restaurant_open_state_open` | `error_pause_until_closing_outside_hours`, `error_pause_with_both_times`, `restaurant_open_state_closed_holiday`, `restaurant_open_state_closed_hours`, `restaurant_open_state_closed_offline`, `restaurant_open_state_closed_suspended`, `restaurant_open_state_closed_toggle`, `restaurant_open_state_closed_toggle_auto_off`, `restaurant_open_state_paused`, `restaurant_open_state_paused_until_closing` |
+| `setRestaurantAcceptingOrders` | `restaurant_open_state_open` | `error_pause_until_closing_no_closing_time`, `error_pause_until_closing_outside_hours`, `error_pause_with_both_times`, `restaurant_open_state_closed_holiday`, `restaurant_open_state_closed_hours`, `restaurant_open_state_closed_offline`, `restaurant_open_state_closed_suspended`, `restaurant_open_state_closed_toggle`, `restaurant_open_state_closed_toggle_auto_off`, `restaurant_open_state_paused`, `restaurant_open_state_paused_until_closing` |
 | `setRestaurantHours` | `restaurant_hours_standard` | `restaurant_hours_none`, `restaurant_hours_special_dates`, `restaurant_hours_split_past_midnight` |
 | `setRiderAvailability` | `rider_availability_online_idle` | `error_account_not_active`, `error_active_delivery_in_progress`, `error_cannot_go_online`, `error_cannot_go_online_account_not_active`, `error_cannot_go_online_all_reasons`, `error_cannot_go_online_background_location_permission`, `error_cannot_go_online_continuous_online_cap`, `error_cannot_go_online_document_expired`, `error_cannot_go_online_foreground_location_permission`, `error_cannot_go_online_notification_permission`, `error_cannot_go_online_onboarding_incomplete`, `error_cannot_go_online_payout_account_incomplete`, `error_onboarding_incomplete`, `error_payout_account_incomplete`, `rider_availability_go_offline_after_delivery`, `rider_availability_offline`, `rider_availability_on_delivery`, `rider_availability_online_stale` |
 | `submitOrderRating` | `order_rating_food_and_rider` | — |

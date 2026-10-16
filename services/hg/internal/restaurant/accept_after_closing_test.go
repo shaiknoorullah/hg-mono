@@ -31,7 +31,7 @@ func TestIntegration_AcceptOrder_AfterClosing(t *testing.T) {
 		`DELETE FROM restaurant_hours WHERE restaurant_id = $1`,
 		`INSERT INTO restaurant_hours_override (restaurant_id, on_date, is_closed)
 		 SELECT r.id, (now() AT TIME ZONE r.timezone)::date, true FROM restaurant r WHERE r.id = $1`,
-		`UPDATE restaurant SET is_accepting_orders = false, pause_until = now() + interval '1 hour',
+		`UPDATE restaurant SET is_accepting_orders = false, pause_until = now() + interval '1 hour', pause_kind = 'DURATION',
 		        last_heartbeat_at = now() - interval '10 minutes' WHERE id = $1`,
 	} {
 		if _, err := pool.Exec(ctx, q, f.restaurantID); err != nil {

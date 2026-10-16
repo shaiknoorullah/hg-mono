@@ -217,6 +217,7 @@ was. They sign in once per persona per worker (sign-in is rate-limited per accou
 world without them (the CI seed world); the suspended one opens the editor and saves nothing.
 In mock mode the spec answers the hours `PUT` and the availability `PATCH` with `page.route`,
 echoing what was sent, because the mock forgets every write.
+The settings capture for a pause until closing still reads the time, because the Settings Orders card does not use `pause_kind` yet ([#989](https://github.com/shaiknoorullah/hg-mono/issues/989)).
 
 **Run it locally:**
 

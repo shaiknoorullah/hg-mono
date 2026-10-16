@@ -995,6 +995,7 @@ const (
 	ErrorCodeMENUVERSIONPENDING             ErrorCode = "MENU_VERSION_PENDING"
 	ErrorCodeMETHODNOTALLOWED               ErrorCode = "METHOD_NOT_ALLOWED"
 	ErrorCodeMFAREQUIRED                    ErrorCode = "MFA_REQUIRED"
+	ErrorCodeNOCLOSINGTIME                  ErrorCode = "NO_CLOSING_TIME"
 	ErrorCodeNOLIVEMENUITEM                 ErrorCode = "NO_LIVE_MENU_ITEM"
 	ErrorCodeNONCANADIANNUMBER              ErrorCode = "NON_CANADIAN_NUMBER"
 	ErrorCodeNOTFOUND                       ErrorCode = "NOT_FOUND"
@@ -1249,6 +1250,8 @@ func (e ErrorCode) Valid() bool {
 	case ErrorCodeMETHODNOTALLOWED:
 		return true
 	case ErrorCodeMFAREQUIRED:
+		return true
+	case ErrorCodeNOCLOSINGTIME:
 		return true
 	case ErrorCodeNOLIVEMENUITEM:
 		return true
@@ -3810,6 +3813,24 @@ func (e RestaurantOpenState) Valid() bool {
 	case RestaurantOpenStateOPEN:
 		return true
 	case RestaurantOpenStatePAUSED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RestaurantPauseKind.
+const (
+	DURATION     RestaurantPauseKind = "DURATION"
+	UNTILCLOSING RestaurantPauseKind = "UNTIL_CLOSING"
+)
+
+// Valid indicates whether the value is a known member of the RestaurantPauseKind enum.
+func (e RestaurantPauseKind) Valid() bool {
+	switch e {
+	case DURATION:
+		return true
+	case UNTILCLOSING:
 		return true
 	default:
 		return false
@@ -9107,8 +9128,15 @@ type RestaurantAvailability struct {
 	// OpenState R-22. Evaluated in strict precedence. `CLOSED_OFFLINE` is the heartbeat gate: a
 	// restaurant whose order screen has not checked in for 5 minutes is offered nothing,
 	// but `is_accepting_orders` is not mutated, so service resumes the moment it reconnects.
-	OpenState  RestaurantOpenState `json:"open_state"`
-	PauseUntil *time.Time          `json:"pause_until,omitempty"`
+	OpenState RestaurantOpenState `json:"open_state"`
+
+	// PauseKind Why the pause ends at `pause_until`, so a console can word it from this response
+	// alone, after a reload or for a pause set on another device. Present exactly when
+	// `pause_until` is: both are null when nothing is paused, and the database refuses
+	// a row with one and not the other. Not part of `reason`, which is prose for people
+	// and not something to parse.
+	PauseKind  *RestaurantPauseKind `json:"pause_kind,omitempty"`
+	PauseUntil *time.Time           `json:"pause_until,omitempty"`
 
 	// Reason Plain language, safe to render directly.
 	Reason       string                              `json:"reason"`
@@ -9400,6 +9428,15 @@ type RestaurantOrderMoney struct {
 	// Examples: 4696
 	TotalCents Cents `json:"total_cents"`
 }
+
+// RestaurantPauseKind How a pause on new orders came to end when it does (`RestaurantAvailability.pause_kind`).
+// `UNTIL_CLOSING`: the owner asked to pause until the end of the current trading period
+// (`pause_until_closing: true`) and the server resolved the time. `DURATION`: the owner
+// chose the end (`pause_until`). There is no value for the toggle being off, which is
+// `CLOSED_TOGGLE` and not a pause, and none for an admin pause, because no operation
+// pauses a single restaurant (`setOrderingPause` is platform-wide, suspension is
+// `CLOSED_SUSPENDED`).
+type RestaurantPauseKind string
 
 // RestaurantProfile defines model for RestaurantProfile.
 type RestaurantProfile struct {

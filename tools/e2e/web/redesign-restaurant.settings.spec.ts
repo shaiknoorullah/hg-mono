@@ -44,7 +44,7 @@ test.skip(MODE !== 'mock', 'written against the mock server; run with E2E_MODE=m
  * documents boards for food safety draw a banner and an upload button; the support boards draw a
  * block of details to quote; the renewal boards draw the current certificate beside the renewal
  * (the contract returns one row per document type, [#879](https://github.com/shaiknoorullah/hg-mono/issues/879));
- * the paused-until-closing board says "until closing" where the response carries only a time.
+ * the paused-until-closing board says "until closing" where the Settings card still shows only the time.
  *
  * Board ids are written out in full on purpose: tools/e2e/web/check-boards.mjs validates only
  * literal ids.
@@ -293,8 +293,8 @@ test.describe('redesigned restaurant settings · account (mock)', () => {
     await capture(page, 'restaurant/settings/Settings-Paused');
   });
 
-  // The response to a pause until closing carries only the time it chose, so the card reads "Paused
-  // until 7:36 am", not "until closing": the label is the one thing this board draws that the app cannot.
+  // The response now says the pause is until closing (`pause_kind`), but the Settings card does not read it
+  // yet, so it reads "Paused until 7:36 am", not "until closing": the one label this board draws that the card lacks.
   test('orders right now: paused until closing', async ({ page }) => {
     await open(page, '/settings/account', { ...live, availability: 'restaurant_open_state_paused_until_closing', patchAvailability: pausedFor(180) });
     await expect(acct(page).getByText('Paused', { exact: true })).toBeVisible();

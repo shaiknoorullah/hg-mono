@@ -20,7 +20,7 @@ afterEach(() => {
 });
 
 const REASON = 'Taking orders until 11:00 pm';
-const open = (patch: Record<string, unknown> = {}) => ({ ...fixture('restaurant_open_state_open'), reason: REASON, pause_until: null, missed_order_count: 0, ...patch });
+const open = (patch: Record<string, unknown> = {}) => ({ ...fixture('restaurant_open_state_open'), reason: REASON, pause_until: null, pause_kind: null, missed_order_count: 0, ...patch });
 
 function profileWith(halal: unknown) {
   const p = fixture('restaurant_profile');
@@ -115,7 +115,7 @@ describe('open state, switch and pause', () => {
 
   it('Pause until closing sends pause_until_closing alone, never a time the browser worked out', async () => {
     const until = new Date(Date.now() + 3 * 3_600_000).toISOString();
-    const { api, region } = await bar({ 'PATCH /v1/restaurant/availability': { body: open({ open_state: 'PAUSED', pause_until: until, reason: 'Until closing' }) } });
+    const { api, region } = await bar({ 'PATCH /v1/restaurant/availability': { body: open({ open_state: 'PAUSED', pause_until: until, pause_kind: 'UNTIL_CLOSING', reason: 'Until closing' }) } });
     fireEvent.click(within(region).getByRole('button', { name: 'Pause' }));
     fireEvent.click(within(screen.getByRole('menu', { name: 'Pause new orders' })).getByRole('menuitem', { name: 'Pause until closing' }));
     await waitFor(() => expect(api.callsTo('PATCH /v1/restaurant/availability')).toHaveLength(1));

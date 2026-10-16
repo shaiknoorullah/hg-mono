@@ -55,7 +55,7 @@ BEGIN
   INSERT INTO restaurant (
     id, slug, legal_name, display_name, email,
     line1, city, province, postal_code, location, timezone,
-    onboarding_state, account_state, is_accepting_orders, pause_until, last_heartbeat_at,
+    onboarding_state, account_state, is_accepting_orders, pause_until, pause_kind, last_heartbeat_at,
     approved_at, approved_by
   ) VALUES (
     p_id, p_slug, p_legal, p_display, p_email,
@@ -66,6 +66,7 @@ BEGIN
     CASE WHEN p_address THEN ST_SetSRID(ST_MakePoint(-79.3310, 43.6815), 4326)::geography END,
     'America/Toronto',
     p_onboarding, p_account, p_accepting, p_pause,
+    CASE WHEN p_pause IS NOT NULL THEN 'DURATION'::restaurant_pause_kind END,
     CASE WHEN p_accepting THEN now() END,
     CASE WHEN p_onboarding = 'ACTIVE' THEN now() END,
     CASE WHEN p_onboarding = 'ACTIVE' THEN 'a0000000-0000-4000-8000-000000000001'::uuid END

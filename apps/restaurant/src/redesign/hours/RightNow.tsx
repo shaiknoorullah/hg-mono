@@ -17,7 +17,7 @@ import { useNavigate } from 'react-router-dom';
 import { channel, type RestaurantOpenState } from '@hg/api-client';
 import { eventOfType, useRealtimeChannel } from '@hg/ui-web/live';
 import { Badge, Button, InlineConfirm, Menu, Skeleton, Switch, useToast, type BadgeProps } from '../ds';
-import { isOutsideTradingHours, isPausedUntilClosing, pauseUntilClosing, setAcceptingOrders, type Availability, type AvailabilityWrite } from '../data/availability';
+import { isOutsideTradingHours, setAcceptingOrders, type Availability, type AvailabilityWrite } from '../data/availability';
 import type { ServerResource } from '../data/useServerResource';
 import { serverNow } from '../data/serverClock';
 import { useConsoleLayout } from '../shell/layout';
@@ -189,13 +189,14 @@ export function RightNow({ availability, restaurantId, timezone, noHours, todayO
   const pauseLabel = av.pause_until ? formatTime(av.pause_until, timezone) : '';
   // "12:10 am tomorrow" when a pause runs past midnight; only for a pause until closing.
   const closingLabel = av.pause_until ? pauseEndLabel(Date.parse(av.pause_until), now, timezone) : '';
-  const untilClosing = isPausedUntilClosing(av.pause_until);
+  // The server says why the pause ends then, so this reads the same after a reload or from another device.
+  const untilClosing = av.pause_kind === 'UNTIL_CLOSING';
   const busy = op?.phase === 'busy';
 
   const patch = async (kind: NonNullable<Op>['kind'], body: AvailabilityWrite) => {
     setOp({ kind, phase: 'busy' });
     try {
-      const next = await (body.pause_until_closing ? pauseUntilClosing() : setAcceptingOrders(body));
+      const next = await setAcceptingOrders(body);
       availability.mutate(() => next);
       setOp({ kind, phase: 'done' });
     } catch (err) {

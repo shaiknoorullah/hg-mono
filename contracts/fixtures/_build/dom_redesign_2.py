@@ -1330,6 +1330,7 @@ def _restaurant_availability(reg) -> None:
             "open_state": "CLOSED_TOGGLE",
             "is_accepting_orders": False,
             "pause_until": None,
+            "pause_kind": None,
             "last_heartbeat_at": ts(-25),
             "missed_order_count": 2,
             "reason": "Ordering was turned off after two orders in a row went unanswered.",

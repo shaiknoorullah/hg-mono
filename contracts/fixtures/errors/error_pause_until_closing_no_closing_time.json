@@ -1,0 +1,20 @@
+{
+  "scenario": "error_pause_until_closing_no_closing_time",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `NO_CLOSING_TIME`. `pause_until_closing: true` at a restaurant open around the clock. The request is well formed but its hours have no end to pause until; nothing changes.",
+  "operations": [
+    "setRestaurantAcceptingOrders"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "NO_CLOSING_TIME",
+      "message": "Your hours have no closing time in the coming week, so there is nothing to pause until.",
+      "request_id": "MQCPFQZKECJ7BM4YSPJEBDEKE6"
+    }
+  }
+}
