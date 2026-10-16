@@ -61,6 +61,11 @@ export interface NewOrderStripProps {
   now: () => number;
   /** Desktop shows key hints and a "Decline…" text button; tablet a close IconButton. */
   isDesktop: boolean;
+  /**
+   * Below 768 px the phone board draws the strip as one 44 px row (orders icon + one line of
+   * text). It is drawn only for "nothing waiting"; waiting orders stack under the heading.
+   */
+  isPhone?: boolean;
   /** Strip tint pulse (1 Hz) while ringing; reduced motion keeps it steady. */
   flash?: boolean;
   /**
@@ -82,7 +87,7 @@ function GlyphIcon({ name, size, className }: { name: GlyphName; size: number; c
   return g ? <Icon name={g} size={size} className={className} /> : null;
 }
 
-export function NewOrderStrip({ status, rule, tiles, empty, compact, now, isDesktop, flash, advanceFocusFrom, testId }: NewOrderStripProps) {
+export function NewOrderStrip({ status, rule, tiles, empty, compact, now, isDesktop, isPhone = false, flash, advanceFocusFrom, testId }: NewOrderStripProps) {
   const rootRef = useRef<HTMLElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const tileRefs = useRef(new Map<string, HTMLDivElement>());
@@ -243,6 +248,26 @@ export function NewOrderStrip({ status, rule, tiles, empty, compact, now, isDesk
     );
   }
 
+  if (isPhone && !compact && (status === 'loading' || status === 'empty' || tiles.length === 0)) {
+    const line = status === 'loading' ? 'Loading new orders…' : (empty?.title ?? 'No orders waiting');
+    return (
+      <section
+        ref={rootRef}
+        aria-label={label}
+        data-testid={testId}
+        data-phone-row=""
+        className="flex min-h-11 items-center gap-2 border-b border-line-decorative bg-surface-raised px-4"
+      >
+        <span aria-hidden="true" className="shrink-0 text-fg-secondary">
+          <Icon name="orders" size={20} />
+        </span>
+        <h2 ref={headingRef} tabIndex={-1} role={status === 'loading' ? 'status' : undefined} className="hg-focus min-w-0 truncate text-[15px] font-semibold leading-5 outline-none">
+          {line}
+        </h2>
+      </section>
+    );
+  }
+
   return (
     <section
       ref={rootRef}
@@ -283,9 +308,9 @@ export function NewOrderStrip({ status, rule, tiles, empty, compact, now, isDesk
           }
         }, 0);
       }}
-      className={`mt-2.5 flex h-[186px] items-stretch gap-4 px-4 py-2.5 ${surface}`}
+      className={`mt-2.5 flex px-4 py-2.5 ${isPhone ? 'flex-col gap-2' : 'h-[186px] items-stretch gap-4'} ${surface}`}
     >
-      <div className={`flex shrink-0 flex-col justify-center gap-1.5 ${isDesktop ? 'w-[168px]' : 'w-[120px]'}`}>
+      <div className={`flex shrink-0 flex-col justify-center gap-1.5 ${isPhone ? 'w-auto' : isDesktop ? 'w-[168px]' : 'w-[120px]'}`}>
         <h2 ref={headingRef} tabIndex={-1} className="hg-focus text-[17px] font-bold leading-[22px] outline-none">
           New orders
         </h2>
@@ -367,7 +392,7 @@ export function NewOrderStrip({ status, rule, tiles, empty, compact, now, isDesk
           {visible.map((tile) => (
             <div
               key={tile.id}
-              className={`flex min-w-0 ${isDesktop ? 'min-w-[280px]' : 'min-w-[240px]'} max-w-[420px] flex-1`}
+              className={`flex min-w-0 ${isPhone ? '' : isDesktop ? 'min-w-[280px]' : 'min-w-[240px]'} max-w-[420px] flex-1`}
             >
               <OfferTile
                 {...tile}

@@ -1,10 +1,19 @@
 ---
 covers:
   - apps/restaurant/src/**
-reviewed: 2026-10-11
+reviewed: 2026-10-16
 ---
 
 # What the old restaurant web app teaches the redesign
+
+> **2026-10-16:** the redesigned console frame now reflows below 768 px
+> (`apps/restaurant/src/redesign/shell/ConsoleLayout.tsx`): the icon rail is replaced by an
+> "Open navigation" button opening the six links in a drawer, the orders strip becomes the one-row
+> version the phone boards draw, and detail panels open full screen. The old app's lesson that a
+> table becomes a list of cards on a phone (below) still holds. The service status bar is **not**
+> drawn at phone width on any board, so it was left alone beyond dropping the Orders switch's
+> 240 px minimum, which was what pushed the page sideways
+> ([#954](https://github.com/shaiknoorullah/hg-mono/issues/954)).
 
 > **2026-10-10:** the Menu route is the first legacy screen the redesign replaces (WP8,
 > `apps/restaurant/src/redesign/menu/`): categories pane, items grid with a Review column that

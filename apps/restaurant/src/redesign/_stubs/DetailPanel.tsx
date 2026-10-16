@@ -96,7 +96,7 @@ export function DetailPanel({
           if (!closeDisabled) onClose();
         }
       }}
-      className={`flex min-h-0 flex-col overflow-hidden rounded-lg border border-line-decorative bg-surface-raised text-fg-primary ${WIDTH[width]}${fullBelowLg ? ' max-lg:w-auto max-lg:min-w-0 max-lg:flex-1' : ''}`}
+      className={`flex min-h-0 flex-col overflow-hidden rounded-lg border border-line-decorative bg-surface-raised text-fg-primary ${WIDTH[width]} max-md:w-auto max-md:min-w-0 max-md:flex-1 ${fullBelowLg ? ' max-lg:w-auto max-lg:min-w-0 max-lg:flex-1' : ''}`}
     >
       <div className="flex items-start gap-2 border-b border-line-decorative px-4 py-3">
         <div className="min-w-0 flex-1">

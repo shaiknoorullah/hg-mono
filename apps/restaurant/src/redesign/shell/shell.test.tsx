@@ -284,3 +284,57 @@ describe('formatters', () => {
     expect(spokenDuration(18_000)).toBe('18 seconds');
   });
 });
+
+describe('console frame below 768 px (the phone board)', () => {
+  it('has no rail: the app bar has an Open navigation button that opens the same six links in a drawer', async () => {
+    installFakeApi(consoleRoutes());
+    await renderRedesign('/orders/history', { phone: true });
+    await screen.findByTestId('open-navigation');
+    expect(screen.queryByTestId('console-rail')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /^Open navigation/ }));
+    const drawer = await screen.findByTestId('console-drawer-nav');
+    const links = within(drawer).getAllByRole('link');
+    expect(links.map((l) => l.textContent?.replace(/\s+/g, ' ').trim())).toEqual(['Live orders', 'History', 'Menu', 'Hours', 'Payouts', 'Settings']);
+    expect(within(drawer).getByRole('link', { name: /History/ }).getAttribute('aria-current')).toBe('page');
+  });
+
+  it('closes the drawer and goes to the page when a link is chosen', async () => {
+    installFakeApi(consoleRoutes());
+    await renderRedesign('/orders/history', { phone: true });
+    fireEvent.click(await screen.findByRole('button', { name: /^Open navigation/ }));
+    const drawer = await screen.findByTestId('console-drawer-nav');
+    fireEvent.click(within(drawer).getByRole('link', { name: /Hours/ }));
+    await waitFor(() => expect(screen.queryByTestId('console-drawer-nav')).toBeNull());
+    await waitFor(() => expect(screen.getByTestId('top-bar').textContent).toContain('Hours'));
+  });
+
+  it('keeps the rail and has no menu button at tablet and desktop widths', async () => {
+    installFakeApi(consoleRoutes());
+    await renderRedesign('/orders/history');
+    await screen.findByTestId('console-rail');
+    expect(screen.queryByTestId('open-navigation')).toBeNull();
+  });
+
+  it('draws the orders strip as one row when nothing is waiting', async () => {
+    installFakeApi(consoleRoutes());
+    await renderRedesign('/orders/history', { phone: true });
+    const strip = await screen.findByTestId('new-order-strip');
+    expect(strip.hasAttribute('data-phone-row')).toBe(true);
+  });
+
+  it('keeps the two-column strip at tablet and desktop widths', async () => {
+    installFakeApi(consoleRoutes());
+    await renderRedesign('/orders/history');
+    const strip = await screen.findByTestId('new-order-strip');
+    expect(strip.hasAttribute('data-phone-row')).toBe(false);
+  });
+});
+
+describe('panels below 768 px', () => {
+  it('open full screen in place of the page', async () => {
+    installFakeApi(consoleRoutes());
+    await renderRedesign('/orders/history?panel=health', { phone: true });
+    await screen.findByRole('complementary', { name: /Screen health/i });
+    expect(document.getElementById('main')!.className).toContain('max-md:hidden');
+  });
+});
