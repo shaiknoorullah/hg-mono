@@ -2064,7 +2064,7 @@ documents lapse cannot go on shift, but is not punished.
 
   | Order status | Outcome |
   |---|---|
-  | `RIDER_ASSIGNED` (not yet picked up) | Unassign, return to dispatch, re-offer; rider paid nothing for it |
+  | `dispatch_state` `ASSIGNED` (not yet picked up) | Unassign, return to dispatch, re-offer; rider paid nothing for it |
   | `PICKED_UP` / `IN_TRANSIT`, reason ∈ {`LOW_PERFORMANCE`, `DOCUMENT_EXPIRED`, `REPEATED_CANCELLATIONS`} | Allowed to complete this delivery; rider removed from pool afterwards; rider paid in full |
   | `PICKED_UP` / `IN_TRANSIT`, reason ∈ {`SAFETY_RISK`, `ACCIDENT_OR_INJURY`, `THEFT_OR_ROBBERY`, `FRAUD_SUSPECTED`, `ABUSIVE_CONDUCT`} | Order enters `RECOVERY`: dispatch attempts a re-pickup from the rider's location if safe; if not recoverable within 15 minutes → cancel + full refund; rider paid a pro-rata amount per D-21 |
 
@@ -2124,7 +2124,7 @@ documents lapse cannot go on shift, but is not punished.
 
 > **DECISION REQUIRED — D-21 · Rider pay on interrupted deliveries**: What is a rider paid when their
 > delivery is aborted mid-route by a platform decision (accident, theft, safety suspension)?
-> · **Proposed default**: Full delivery fee if `PICKED_UP` or beyond; 50% if `RIDER_ASSIGNED` and
+> · **Proposed default**: Full delivery fee if `PICKED_UP` or beyond; 50% if `dispatch_state` is `ASSIGNED` and
 > they had travelled to the restaurant; nothing if unassigned before travel. · **Why**: The rider
 > bore the cost and the interruption was not their commercial risk.
 
