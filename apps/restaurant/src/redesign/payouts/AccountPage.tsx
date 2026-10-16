@@ -109,7 +109,7 @@ export function AccountPage() {
 
   return (
     <div className="flex min-h-0 flex-1 gap-4" data-testid="payouts-account" data-mode={loaded ? mode : status.status}>
-      <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto pb-6">
+      <main className={`flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto pb-6${panel ? ' max-lg:hidden' : ''}`}>
         {restricted ? (
           <InlineAlert tone="neutral" title={restricted === 'banned' ? 'No payouts while this account is banned' : 'No payouts while your account is suspended'} testId="banner-restricted">
             <span>
@@ -202,8 +202,8 @@ export function AccountPage() {
           </InlineAlert>
         ) : null}
 
-        <div className={`grid gap-4 ${panel ? 'grid-cols-1' : 'grid-cols-2'}`}>
-          <section aria-labelledby="acct-h" className="rounded-lg border border-line-decorative bg-surface-raised p-6" aria-busy={status.status === 'loading'}>
+        <div className={`grid grid-cols-1 gap-4${panel ? '' : ' md:grid-cols-2'}`}>
+          <section aria-labelledby="acct-h" className="rounded-lg border border-line-decorative bg-surface-raised p-4 md:p-6" aria-busy={status.status === 'loading'}>
             <h2 id="acct-h" className="m-0 mb-3 text-heading-md">
               Payout account
             </h2>
@@ -238,7 +238,7 @@ export function AccountPage() {
             )}
           </section>
 
-          <section aria-labelledby="req-h" className="rounded-lg border border-line-decorative bg-surface-raised p-6" aria-busy={status.status === 'loading'}>
+          <section aria-labelledby="req-h" className="rounded-lg border border-line-decorative bg-surface-raised p-4 md:p-6" aria-busy={status.status === 'loading'}>
             <h2 id="req-h" className="m-0 mb-3 text-heading-md">
               What Stripe needs from you
             </h2>
@@ -286,6 +286,7 @@ export function AccountPage() {
           closeLabel="Close Stripe’s list"
           onClose={() => openPanel(null)}
           width="task"
+          fullBelowLg
           testId="stripe-list-panel"
           footer={mode === 'on' || mode === 'checking' ? undefined : <div className="flex flex-col gap-2">{finishButton}</div>}
         >
