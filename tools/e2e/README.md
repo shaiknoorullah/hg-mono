@@ -263,7 +263,12 @@ in its `.capture.json` and reported as uncovered. Three helpers in `web/design.t
 - `declareUnpairable(page, board, reason)` for a **composite** board (several states drawn side by
   side, such as `admin/restaurant-verification/SignIn-Errors`). One screenshot cannot be compared
   with a composite, so the capture goes to `<app>/unpairable/` with the reason in its `.capture.json`
-  and is listed as not comparable, never as a 20-odd percent difference.
+  and is listed as not comparable, never as a 20-odd percent difference. It is also how a board
+  that no screen of the app can be paired with is declared, with its reason: a component or a
+  specimen drawn alone, or a state that needs a contract operation, a contract field or an owner
+  decision the app does not have yet (`redesign-admin.rider-onboarding-unpairable.spec.ts` lists
+  the rider onboarding area's, each with its reason). The capture then shows what the app draws
+  in that state's place.
 - `stepper(app, prefix, boards)` takes the declarations of a step-by-step spec by step name.
 
 `node tools/e2e/web/check-boards.mjs` checks that every declared board exists on the canvases branch.

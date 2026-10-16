@@ -343,7 +343,9 @@ export default function RiderApplicationRoute() {
           onApprove={() => void onApproveDocument(selected)}
           onReject={() => setPanel({ kind: 'doc-reject', docId: selected.id })}
           rejectButtonRef={docRejectRef}
-          problem={reviewProblem && reviewProblem.docId === selected.id ? reviewProblem : null}
+          // A replaced document is gone from the list after the reload, so its notice belongs to
+          // the document the page moved on to, not to the one that was removed.
+          problem={reviewProblem && (reviewProblem.docId === selected.id || !docs.some((d) => d.id === reviewProblem.docId)) ? reviewProblem : null}
           headingRef={cardHeadingRef}
         />
       );
