@@ -5,7 +5,7 @@ import { Route } from 'react-router-dom';
 import { mockApi, renderRedesign, resetSession } from '../../testing';
 import DisputesRoute from '../DisputesRoute';
 import OrdersRoute from '../OrdersRoute';
-import { disputed, freezeClock, page, summaries } from './support';
+import { disputed, freezeClock, FROZEN_NOW, page, summaries } from './support';
 
 beforeEach(() => freezeClock());
 afterEach(() => {
@@ -105,6 +105,50 @@ describe('Orders', () => {
     expect(await screen.findByText(/More orders didn’t load. The 14 above are unchanged./)).toBeTruthy();
     expect(bodyRows(grid)).toHaveLength(14);
     expect(api.callsTo('listOrdersAdmin').length).toBeGreaterThan(1);
+  });
+});
+
+describe('Orders: Refresh', () => {
+  it('says when the list was read, and marks only the order whose state moved, with what it was', async () => {
+    const first = summaries();
+    const moved = first.find((r) => r.state === 'PREPARING')!;
+    let reads = 0;
+    mockApi({
+      listOrdersAdmin: () => {
+        reads += 1;
+        return page(reads === 1 ? first : first.map((r) => (r.id === moved.id ? { ...r, state: 'READY_FOR_PICKUP' as const } : r)));
+      },
+    });
+    renderOrders();
+    const grid = await screen.findByRole('grid');
+    expect(screen.getByText('List as of 2:42 pm')).toBeTruthy();
+    expect(within(grid).queryByText('Updated')).toBeNull();
+
+    // Three minutes later the list is read again, without blanking the rows already on screen.
+    vi.setSystemTime(new Date(Date.parse(FROZEN_NOW) + 3 * 60_000));
+    fireEvent.click(screen.getByRole('button', { name: /Refresh/ }));
+    expect(await screen.findByText('List as of 2:45 pm. 1 order changed.')).toBeTruthy();
+    expect(within(grid).getAllByText('Updated')).toHaveLength(1);
+    expect(within(grid).getByText('Was Preparing at 2:42 pm')).toBeTruthy();
+    expect(bodyRows(screen.getByRole('grid'))).toHaveLength(first.length);
+  });
+
+  it('marks nothing when no state moved, and a failed refresh is an error with Try again', async () => {
+    let reads = 0;
+    mockApi({
+      listOrdersAdmin: () => {
+        reads += 1;
+        return reads === 2 ? { status: 500, body: { error: { code: 'INTERNAL_ERROR', message: 'x', request_id: '01JTESTREQUEST0000000000000' } } } : page(summaries());
+      },
+    });
+    renderOrders();
+    await screen.findByRole('grid');
+    fireEvent.click(screen.getByRole('button', { name: /Refresh/ }));
+    expect(await screen.findByText('Orders didn’t load')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /Try again/ }));
+    await waitFor(() => expect(screen.getByRole('grid')).toBeTruthy());
+    expect(screen.queryByText('Updated')).toBeNull();
+    expect(screen.getByText(/^List as of /)).toBeTruthy();
   });
 });
 

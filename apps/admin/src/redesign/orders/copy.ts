@@ -21,6 +21,11 @@ export const ORDERS = {
   clear: 'Clear filters',
   tryAgain: 'Try again',
   refresh: 'Refresh',
+  /** `ORD/OrdersRefreshed`: when the list was last read, and how many orders moved since the read before. */
+  asOf: (at: string) => `List as of ${at}`,
+  asOfChanged: (at: string, changed: number) => `List as of ${at}. ${changed} ${changed === 1 ? 'order' : 'orders'} changed.`,
+  updated: 'Updated',
+  wasState: (label: string, at: string) => `Was ${label} at ${at}`,
   moreFilters: 'More filters',
   fewerFilters: 'Fewer filters',
   codeLabel: 'Order code',

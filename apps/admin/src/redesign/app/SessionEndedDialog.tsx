@@ -14,7 +14,7 @@
  * password, or a code that is not six digits, marks the field and sends nothing. The dead token
  * was dropped when the session ended (`markSessionEnded`), so `login` goes out with no bearer.
  */
-import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { Button, InlineAlert, Input, Modal } from '../ds';
@@ -78,7 +78,21 @@ function errorCode(error: unknown): string | undefined {
   return (error as { error?: { code?: string } } | undefined)?.error?.code;
 }
 
-function SignInAgainForm({ onSignedIn }: { onSignedIn: (sameAccount: boolean) => void }) {
+export interface SignInAgainFormProps {
+  onSignedIn: (sameAccount: boolean) => void;
+  /** The submit button's words. Default `Continue`. */
+  submitLabel?: string;
+  /**
+   * Another action drawn beside the submit button (Live alerts' `Sign out`). When it is given the
+   * two share a row, submit last; without it the submit button fills the width.
+   */
+  secondary?: ReactNode;
+  /** A line under the code field, drawn only once the server has asked for a code. */
+  codeNote?: string;
+}
+
+/** Work email, password and (when the server asks) a code: the form both sign-in-again dialogs share. */
+export function SignInAgainForm({ onSignedIn, submitLabel = 'Continue', secondary, codeNote }: SignInAgainFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
@@ -220,9 +234,19 @@ function SignInAgainForm({ onSignedIn }: { onSignedIn: (sameAccount: boolean) =>
           errorText={codeError}
         />
       ) : null}
-      <Button type="submit" fullWidth loading={sending}>
-        Continue
-      </Button>
+      {codeAsked && codeNote ? <p className="m-0 text-body-sm text-fg-secondary">{codeNote}</p> : null}
+      {secondary ? (
+        <div className="flex justify-end gap-3 border-t border-line-decorative pt-3">
+          {secondary}
+          <Button type="submit" loading={sending}>
+            {submitLabel}
+          </Button>
+        </div>
+      ) : (
+        <Button type="submit" fullWidth loading={sending}>
+          {submitLabel}
+        </Button>
+      )}
     </form>
   );
 }

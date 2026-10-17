@@ -41,6 +41,8 @@ import { useQueueDepth, type QueueCounts } from '../realtime/queueDepth';
 import { onCallContact, RUNBOOK_URL, telHref } from '../system/onCall';
 import { AlertDetail } from './AlertDetail';
 import { ALERTS } from './copy';
+import { FailurePanel, type PanelKind } from './FailurePanel';
+import { ReauthDialog } from './ReauthDialog';
 import {
   GROUP_LABEL,
   KIND_OPTIONS,
@@ -55,7 +57,7 @@ import {
 } from './model';
 import { useAlerts } from './store';
 
-type Connection = 'connecting' | 'live' | 'reconnecting' | 'offline' | 'failed';
+type Connection = 'connecting' | 'live' | 'reconnecting' | 'offline' | 'failed' | 'signed-out';
 
 const REFUSED_LIMIT = 5;
 
@@ -119,15 +121,27 @@ export default function AlertsRoute() {
 
   // --- the connection, in one word -------------------------------------------------------
   const retry = controls.retry();
+  const failure = alerts.failure;
   const connection: Connection = !online
     ? 'offline'
-    : alerts.connection === 'open'
+    : failure?.kind === 'reauth'
+      ? 'signed-out'
+      : alerts.connection === 'open'
       ? 'live'
       : alerts.connection === 'offline' || retry.attempt >= REFUSED_LIMIT
         ? 'failed'
         : alerts.connection === 'reconnecting'
           ? 'reconnecting'
           : 'connecting';
+  // Why alerts are not arriving, when a cause has a screen of its own (`./FailurePanel`).
+  const panel: PanelKind | null =
+    failure?.kind === 'forbidden'
+      ? 'forbidden'
+      : failure?.kind === 'invalid-channel'
+        ? 'invalid-channel'
+        : connection === 'failed' && retry.cause === 'ticket'
+          ? 'ticket'
+          : null;
   const now = useNow(1000, connection === 'reconnecting');
   const waitSeconds = retry.nextAt === null ? null : Math.max(0, Math.ceil((retry.nextAt - now) / 1000));
   const lostAt = alerts.lostAt ? formatTimeWithSeconds(alerts.lostAt) : null;
@@ -278,9 +292,16 @@ export default function AlertsRoute() {
     );
 
   // --- status line -----------------------------------------------------------------------
-  let statusBadge: { variant: 'outline' | 'neutral' | 'warning'; icon: 'bell' | 'clock' | 'warning'; label: string };
+  let statusBadge: { variant: 'outline' | 'neutral' | 'warning'; icon: 'bell' | 'clock' | 'warning' | 'close' | 'lock'; label: string };
   let statusText: string;
-  if (connection === 'offline') {
+  if (connection === 'signed-out') {
+    // The board says only the badge: the dialog and the kept list say the rest.
+    statusBadge = { variant: 'outline', icon: 'lock', label: ALERTS.failure.signedOut };
+    statusText = '';
+  } else if (panel) {
+    statusBadge = { variant: 'outline', icon: 'close', label: ALERTS.failure.notConnected };
+    statusText = '';
+  } else if (connection === 'offline') {
     statusBadge = { variant: 'neutral', icon: 'warning', label: ALERTS.status.offline.badge };
     statusText = ALERTS.status.offline.text(formatTimeWithSeconds(alerts.lostAt ?? new Date()));
   } else if (connection === 'reconnecting' || connection === 'failed') {
@@ -308,8 +329,15 @@ export default function AlertsRoute() {
 
   // --- the grid's slot: loading, error, rows ---------------------------------------------
   const loading = connection === 'connecting' || replayPending;
-  const failedSlot =
-    connection === 'failed' ? (
+  const failedSlot = panel ? (
+    <FailurePanel
+      kind={panel}
+      onAction={() => {
+        if (panel === 'invalid-channel') window.location.reload();
+        else controls.reconnectNow();
+      }}
+    />
+  ) : connection === 'failed' ? (
       <div role="alert" className="flex flex-col items-start gap-3 p-4">
         <h2 className="m-0 flex items-center gap-2 text-heading-sm text-fg-primary">
           <Icon name="warning" size="xl" />
@@ -377,7 +405,7 @@ export default function AlertsRoute() {
           <Badge variant={statusBadge.variant} icon={statusBadge.icon}>
             {statusBadge.label}
           </Badge>
-          <span>{statusText}</span>
+          {statusText ? <span>{statusText}</span> : null}
         </span>
       </FilterBar>
 
@@ -423,6 +451,8 @@ export default function AlertsRoute() {
       {role === 'SUPPORT_AGENT' ? <p className="m-0 text-body-sm text-fg-secondary">{ALERTS.support.note}</p> : null}
     </div>
   );
+  // The console's own session-ended dialog wins when a call has already marked the session ended.
+  const reauth = failure?.kind === 'reauth' && session.ended === null ? <ReauthDialog at={failure.at} /> : null;
 
   return (
     <section aria-label="Live alerts page" className="flex min-h-0 flex-1 flex-col gap-3 p-3">
@@ -447,6 +477,7 @@ export default function AlertsRoute() {
       ) : (
         list
       )}
+      {reauth}
     </section>
   );
 }

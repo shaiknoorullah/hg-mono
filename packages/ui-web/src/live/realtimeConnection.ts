@@ -23,6 +23,7 @@ import {
   reconnectDelayMs,
   type InboundFrame,
   type RealtimeEnvelope,
+  type SubscribeErrorData,
 } from '@hg/api-client';
 
 /** What a connection is doing right now. Anything but `open` means "poll REST instead". */
@@ -47,6 +48,28 @@ export interface ReplayResult {
   truncated: boolean;
 }
 
+/**
+ * A `subscribe_error` frame (websocket.md section 4.1): the server refused ONE channel. Its codes are
+ * their own closed set, lower case, and not `ErrorCode`.
+ */
+export interface SubscribeErrorInfo {
+  channel: string;
+  code: SubscribeErrorData['code'];
+  message: string;
+}
+
+/**
+ * The server wants the person to sign in again over REST: a `reauth_required` frame, or the socket
+ * closed `4401` (`session_revoked`, `reauth_timeout` or an invalid ticket). Retrying cannot help.
+ */
+export interface ReauthInfo {
+  /** When this client learned of it (epoch ms). */
+  at: number;
+  /** The frame's `deadline` (`reauth_required` only); `null` for a `4401` close. */
+  deadline: string | null;
+  via: 'frame' | 'close';
+}
+
 /** Options for `RealtimeConnection.subscribe`. */
 export interface SubscribeOptions {
   /**
@@ -58,6 +81,8 @@ export interface SubscribeOptions {
   backfill?: number;
   /** Called when a replay on this channel finishes. Only channels with a `backfill` report it. */
   onReplay?: (result: ReplayResult) => void;
+  /** Called when the server refuses this channel with `subscribe_error`. */
+  onSubscribeError?: (error: SubscribeErrorInfo) => void;
 }
 
 /** How the connection is retrying, for "Trying again in 8 seconds" and "refused 5 times". */
@@ -66,6 +91,12 @@ export interface RetryInfo {
   attempt: number;
   /** When the next attempt starts (epoch ms), or `null` when none is scheduled. */
   nextAt: number | null;
+  /**
+   * What the last failed attempt got stuck on: `ticket` when `POST /v1/realtime/ticket` failed (no
+   * socket was dialled), `socket` when a ticket was minted but the socket did not stay open.
+   * `null` when nothing has failed.
+   */
+  cause: 'ticket' | 'socket' | null;
 }
 
 /** Receives every signal for one channel. */
@@ -96,6 +127,12 @@ export interface RealtimeConnectionOptions {
   getAccessToken?: () => string | null;
   /** Called on every status change. */
   onStatus?: (status: RealtimeStatus) => void;
+  /**
+   * Called when the server asks for a new sign-in (`reauth_required`, or close `4401`). The
+   * connection stops retrying first: a retry would be refused the same way. `reconnectNow()` dials
+   * again once the person has signed in.
+   */
+  onReauthRequired?: (info: ReauthInfo) => void;
   /** Injected for tests. Defaults to the global `WebSocket`. */
   createSocket?: (url: string) => SocketLike;
   /** Injected for tests. */
@@ -131,6 +168,7 @@ export class RealtimeConnection {
   readonly #lastSeq = new Map<string, number>();
   readonly #backfill = new Map<string, number>();
   readonly #replayHandlers = new Map<string, Set<(result: ReplayResult) => void>>();
+  readonly #subscribeErrorHandlers = new Map<string, Set<(error: SubscribeErrorInfo) => void>>();
   readonly #backfilled = new Set<string>();
   readonly #seen = new SeenEventIds();
   #socket: SocketLike | null = null;
@@ -138,6 +176,7 @@ export class RealtimeConnection {
   #attempt = 0;
   #retryTimer: ReturnType<typeof setTimeout> | undefined;
   #nextAt: number | null = null;
+  #cause: 'ticket' | 'socket' | null = null;
   #reauthTimer: ReturnType<typeof setInterval> | undefined;
   #stopped = true;
   /** Bumped on every dial so a late callback from an old socket is ignored. */
@@ -154,7 +193,7 @@ export class RealtimeConnection {
 
   /** Consecutive failed attempts and when the next one starts. */
   get retry(): RetryInfo {
-    return { attempt: this.#attempt, nextAt: this.#nextAt };
+    return { attempt: this.#attempt, nextAt: this.#nextAt, cause: this.#cause };
   }
 
   /** Skips the wait and dials now ("Reconnect now"). A no-op while open or stopped. */
@@ -202,6 +241,12 @@ export class RealtimeConnection {
     if (options.backfill && options.backfill > (this.#backfill.get(channel) ?? 0)) {
       this.#backfill.set(channel, options.backfill);
     }
+    const onSubscribeError = options.onSubscribeError;
+    if (onSubscribeError) {
+      const errors = this.#subscribeErrorHandlers.get(channel) ?? new Set();
+      errors.add(onSubscribeError);
+      this.#subscribeErrorHandlers.set(channel, errors);
+    }
     const onReplay = options.onReplay;
     if (onReplay) {
       const replays = this.#replayHandlers.get(channel) ?? new Set();
@@ -211,6 +256,7 @@ export class RealtimeConnection {
     set.add(handler);
     return () => {
       if (onReplay) this.#replayHandlers.get(channel)?.delete(onReplay);
+      if (onSubscribeError) this.#subscribeErrorHandlers.get(channel)?.delete(onSubscribeError);
       const current = this.#handlers.get(channel);
       if (!current) return;
       current.delete(handler);
@@ -220,6 +266,7 @@ export class RealtimeConnection {
         this.#backfill.delete(channel);
         this.#backfilled.delete(channel);
         this.#replayHandlers.delete(channel);
+        this.#subscribeErrorHandlers.delete(channel);
         this.#send({ type: 'unsubscribe', channel });
       }
     };
@@ -242,7 +289,10 @@ export class RealtimeConnection {
     try {
       ticket = await this.#opts.mintTicket();
     } catch {
-      if (generation === this.#generation) this.#scheduleRetry();
+      if (generation === this.#generation) {
+        this.#cause = 'ticket';
+        this.#scheduleRetry();
+      }
       return;
     }
     if (generation !== this.#generation || this.#stopped) return;
@@ -259,6 +309,7 @@ export class RealtimeConnection {
         ? this.#opts.createSocket(url.toString())
         : (new WebSocket(url.toString()) as unknown as SocketLike);
     } catch {
+      this.#cause = 'socket';
       this.#scheduleRetry();
       return;
     }
@@ -268,6 +319,7 @@ export class RealtimeConnection {
       if (generation !== this.#generation) return;
       this.#attempt = 0;
       this.#nextAt = null;
+      this.#cause = null;
       this.#setStatus('open');
       // Subscriptions belong to a connection: re-establish every channel, then resume it.
       for (const channel of this.#handlers.keys()) {
@@ -293,12 +345,39 @@ export class RealtimeConnection {
       clearInterval(this.#reauthTimer);
       this.#socket = null;
       if (this.#stopped) return;
+      if (ev.code === REALTIME_CLOSE.UNAUTHENTICATED) {
+        this.#endForReauth(null, 'close');
+        return;
+      }
       if (FATAL_CLOSE.has(ev.code)) {
         this.#setStatus('offline');
         return;
       }
+      this.#cause = 'socket';
       this.#scheduleRetry();
     };
+  }
+
+  /**
+   * The server wants a new sign-in. Nothing here retries (a new ticket is minted with the same dead
+   * session), the socket is closed, and the owner is told once.
+   */
+  #endForReauth(deadline: string | null, via: 'frame' | 'close') {
+    if (this.#stopped) return;
+    this.#generation++;
+    clearTimeout(this.#retryTimer);
+    clearInterval(this.#reauthTimer);
+    this.#nextAt = null;
+    this.#attempt = 0;
+    this.#cause = null;
+    const socket = this.#socket;
+    this.#socket = null;
+    if (socket) {
+      socket.onclose = null;
+      socket.close(REALTIME_CLOSE.NORMAL, 'reauth_required');
+    }
+    this.#setStatus('offline');
+    this.#opts.onReauthRequired?.({ at: Date.now(), deadline, via });
   }
 
   #scheduleRetry() {
@@ -332,6 +411,22 @@ export class RealtimeConnection {
       if (backfill && !this.#backfilled.has(channel)) {
         this.#backfilled.add(channel);
         this.#send({ type: 'resume', channel, after_seq: Math.max(cursor_seq - backfill, 0) });
+      }
+      return;
+    }
+    if (envelope.type === 'reauth_required') {
+      const deadline = (envelope.data as { deadline?: string } | null)?.deadline ?? null;
+      this.#endForReauth(deadline, 'frame');
+      return;
+    }
+    if (envelope.type === 'subscribe_error') {
+      const { channel, code, message } = envelope.data as SubscribeErrorData;
+      for (const onError of [...(this.#subscribeErrorHandlers.get(channel) ?? [])]) {
+        try {
+          onError({ channel, code, message });
+        } catch {
+          /* one listener's bug must not starve the others */
+        }
       }
       return;
     }

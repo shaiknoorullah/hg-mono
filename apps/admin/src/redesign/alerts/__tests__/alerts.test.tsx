@@ -1,18 +1,35 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, fireEvent, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { Route } from 'react-router-dom';
+
+import type { RetryInfo } from '@hg/ui-web/live';
 
 import { alertBanner } from '../banner';
 import AlertsRoute from '../AlertsRoute';
-import { applyAlertEvent, applyReplay, dismissAlertBanner, getAlerts, resetAlerts, setAlertsConnection } from '../store';
-import { renderRedesign, resetSession } from '../../testing';
+import { applyAlertEvent, applyReplay, dismissAlertBanner, getAlerts, resetAlerts, setAlertsConnection, setAlertsFailure } from '../store';
+import { mockApi, principalFor, renderRedesign, resetSession } from '../../testing';
 import { highAlert, opsEvents } from './support';
+
+// The connection's retry state and "reconnect now" are the provider's; these tests set them directly.
+const controls = vi.hoisted(() => ({
+  retry: { attempt: 0, nextAt: null, cause: null } as RetryInfo,
+  reconnectNow: vi.fn(),
+}));
+vi.mock('@hg/ui-web/live', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@hg/ui-web/live')>()),
+  useRealtimeControls: () => ({ retry: () => controls.retry, reconnectNow: controls.reconnectNow }),
+}));
 
 // The suites run beside other packages' tests before a push; a cold first render can be slow.
 vi.setConfig({ testTimeout: 20_000 });
 
-beforeEach(() => resetAlerts());
+beforeEach(() => {
+  resetAlerts();
+  controls.retry = { attempt: 0, nextAt: null, cause: null };
+  controls.reconnectNow.mockClear();
+});
 afterEach(() => {
+  vi.unstubAllGlobals();
   cleanup();
   resetSession();
   resetAlerts();
@@ -161,5 +178,105 @@ describe('the high-severity banner', () => {
     act(() => dismissAlertBanner(99));
     act(() => applyAlertEvent(highAlert(4)));
     expect(alertBanner(getAlerts(), 'ADMIN')?.action?.to).toBe('/alerts/4');
+  });
+});
+
+describe('Live alerts: why alerts are not arriving, one screen for each cause that needs one', () => {
+  it('a ticket that could not be minted says live alerts did not start, and Try again asks for a new connection', () => {
+    renderAlerts();
+    controls.retry = { attempt: 5, nextAt: null, cause: 'ticket' };
+    act(() => setAlertsConnection('reconnecting'));
+    expect(screen.getByRole('heading', { name: 'Live alerts didn’t start' })).toBeTruthy();
+    expect(screen.getByText('Not connected')).toBeTruthy();
+    // The generic "refused 5 times" panel is for a socket that was refused, which this was not.
+    expect(screen.queryByText('Live alerts can’t connect')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(controls.reconnectNow).toHaveBeenCalledTimes(1);
+  });
+
+  it('a ticket that fails fewer than five times is still just reconnecting', () => {
+    renderAlerts();
+    controls.retry = { attempt: 2, nextAt: Date.now() + 4000, cause: 'ticket' };
+    act(() => setAlertsConnection('reconnecting'));
+    expect(screen.queryByRole('heading', { name: 'Live alerts didn’t start' })).toBeNull();
+  });
+
+  it('a subscribe refused as forbidden says the account cannot have alerts, and offers no retry that cannot work', () => {
+    renderAlerts();
+    act(() => {
+      setAlertsConnection('open');
+      setAlertsFailure({ kind: 'forbidden' });
+    });
+    expect(screen.getByRole('heading', { name: 'This account can’t receive live alerts' })).toBeTruthy();
+    expect(screen.getByText('Not connected')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Try again|Reload the page/ })).toBeNull();
+    expect(screen.queryByText('No recent alerts')).toBeNull();
+  });
+
+  it('a subscribe refused as invalid_channel is a fault on our side: the only action is to reload the page', () => {
+    const reload = vi.fn();
+    vi.stubGlobal('location', { ...window.location, reload });
+    try {
+      renderAlerts();
+      act(() => {
+        setAlertsConnection('open');
+        setAlertsFailure({ kind: 'invalid-channel' });
+      });
+      expect(screen.getByRole('heading', { name: 'Live alerts couldn’t start' })).toBeTruthy();
+      expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: 'Reload the page' }));
+      expect(reload).toHaveBeenCalledTimes(1);
+      expect(controls.reconnectNow).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('a refusal ends when a replay shows the subscribe worked', () => {
+    renderAlerts();
+    act(() => {
+      setAlertsConnection('open');
+      setAlertsFailure({ kind: 'forbidden' });
+    });
+    act(() => applyReplay({ fromSeq: 1, truncated: false }));
+    expect(getAlerts().failure).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'This account can’t receive live alerts' })).toBeNull();
+  });
+
+  it('a session that ended asks to sign in again, not to retry, and keeps the alerts already here underneath', () => {
+    renderAlerts();
+    feed();
+    act(() => {
+      setAlertsConnection('offline');
+      setAlertsFailure({ kind: 'reauth', at: new Date('2026-08-10T19:05:00Z') });
+    });
+    expect(screen.getByRole('dialog', { name: 'Sign in again to keep receiving alerts' })).toBeTruthy();
+    expect(screen.getByText('Signed out')).toBeTruthy();
+    expect(screen.queryByText('Live alerts can’t connect')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Sign in and resume alerts' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Sign out' })).toBeTruthy();
+    // The list is still there.
+    expect(within(screen.getByRole('grid')).getAllByRole('row').length).toBeGreaterThan(1);
+  });
+
+  it('signing in again restarts the connection with a fresh ticket, and the dialog goes away', async () => {
+    const api = mockApi();
+    api.set({
+      login: { status: 200, body: { data: { access_token: 'fresh-token', refresh_token: null, expires_in: 900, is_new_account: false, principal: principalFor('ADMIN') } } },
+    });
+    renderAlerts();
+    feed();
+    act(() => {
+      setAlertsConnection('offline');
+      setAlertsFailure({ kind: 'reauth', at: new Date('2026-08-10T19:05:00Z') });
+    });
+    const dialog = screen.getByRole('dialog', { name: 'Sign in again to keep receiving alerts' });
+    fireEvent.change(within(dialog).getByLabelText(/Work email/), { target: { value: 'aminah@halalgoes.ca' } });
+    fireEvent.change(within(dialog).getByLabelText(/Password/), { target: { value: 'correct horse battery' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Sign in and resume alerts' }));
+    await waitFor(() => expect(controls.reconnectNow).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(getAlerts().failure).toBeNull();
   });
 });

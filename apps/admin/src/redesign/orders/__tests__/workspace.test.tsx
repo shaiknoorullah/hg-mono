@@ -174,6 +174,25 @@ describe('cancelling', () => {
   });
 });
 
+describe('the list pane', () => {
+  it('folds to a strip from its own header and comes back from the strip, so the order can take the width', async () => {
+    const o = order('order_admin_view_preparing');
+    open(o, 'ADMIN', { listOrdersAdmin: 'order_admin_list_every_state' });
+    await screen.findByRole('heading', { name: o.code });
+    const list = document.getElementById('orders-list')!;
+    // The header names the list, and the control that folds it says which list it folds.
+    expect(within(list).getByRole('heading', { name: 'Orders' })).toBeTruthy();
+    fireEvent.click(within(list).getByRole('button', { name: 'Collapse the orders list' }));
+    expect(list.getAttribute('data-collapsed')).toBe('true');
+    expect(within(list).queryByRole('grid')).toBeNull();
+    // The order is still there, and so is the way back.
+    expect(screen.getByRole('heading', { name: o.code })).toBeTruthy();
+    fireEvent.click(within(list).getByRole('button', { name: 'Show the orders list' }));
+    expect(list.getAttribute('data-collapsed')).toBeNull();
+    expect(await within(list).findByRole('grid')).toBeTruthy();
+  });
+});
+
 describe('the other states of the page', () => {
   it('says no order has this id on a 404, and shows an error with Try again on a failure', async () => {
     mockApi({ getOrderAdmin: { status: 404, body: err('NOT_FOUND') } });
