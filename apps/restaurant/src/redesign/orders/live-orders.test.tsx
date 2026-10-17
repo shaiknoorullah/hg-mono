@@ -140,6 +140,10 @@ describe('In progress list', () => {
     const api = installFakeApi(boardRoutes(b));
     await renderRedesign('/orders', { live: true });
     await waitFor(() => expect(codeButton('K7L8')).toBeTruthy());
+    // The rows are on screen, but the page attaches its visibility listener in an effect that runs
+    // just after that render. Wait for the screen to settle so the event below has a listener to
+    // reach; fired in the same tick as the first render it reaches none, and no refresh starts.
+    await act(async () => {});
     api.set('GET /v1/restaurant/orders', { status: 503, body: errorBody('SERVICE_UNAVAILABLE') });
     act(() => {
       document.dispatchEvent(new Event('visibilitychange'));
