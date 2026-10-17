@@ -12483,13 +12483,35 @@ components:
     RestaurantAvailability:
       type: object
       additionalProperties: false
-      required: [open_state, is_accepting_orders, reason]
+      required: [open_state, is_accepting_orders, reason, within_hours, next_closing_at]
       properties:
         open_state:
           $ref: '#/components/schemas/RestaurantOpenState'
         is_accepting_orders:
           type: boolean
           description: 'The stored toggle, read back from the database after any write.'
+        within_hours:
+          type: boolean
+          description: |
+            Whether the restaurant's own opening hours, in its time zone and with today's date
+            override applied, include this moment. It is evaluated on its own and does not follow
+            `open_state`: a restaurant that is paused, switched off or offline can be inside its
+            hours or outside them, because those states take precedence over the hours. Read this
+            rather than inferring the hours from `open_state`.
+        next_closing_at:
+          type: [string, 'null']
+          format: date-time
+          description: |
+            When the current run of opening hours ends, which is the time `pause_until_closing`
+            would pause until, so a console can word and enable "Pause until closing" before the
+            owner taps it. It runs past midnight when the hours do.
+
+            Null when `within_hours` is false (there is no current run of hours), and also
+            when `within_hours` is true but no closing falls within the coming week. Read
+            `within_hours` to tell the two apart. Null never means the restaurant never closes:
+            a run of hours longer than the server looks ahead (8 days) reads null too, and
+            no copy has been decided for that case.
+            It does not depend on `open_state`; a paused restaurant inside its hours has one.
         pause_until:
           type: [string, 'null']
           format: date-time

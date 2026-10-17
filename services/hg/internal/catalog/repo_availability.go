@@ -43,7 +43,19 @@ func (a *availabilityRow) scanTargets() []any {
 // openState is the restaurant's open state at now, with its hours evaluated in
 // its own timezone (openhours.Evaluate).
 func (a availabilityRow) openState(now time.Time) openStateVerdict {
-	hv := evaluateHours(a.weekly, a.overrides, a.timezone, now)
+	return a.openStateAt(a.hours(now), now)
+}
+
+// hours places now in the restaurant's own hours (openhours.Evaluate). It is
+// the one place the availability row's hours are evaluated: the open state, the
+// closing time a pause runs to and the response's next_closing_at all read it.
+func (a availabilityRow) hours(now time.Time) hoursVerdict {
+	return evaluateHours(a.weekly, a.overrides, a.timezone, now)
+}
+
+// openStateAt derives the open state from an hours verdict already evaluated at
+// now, for a caller that also needs the verdict itself.
+func (a availabilityRow) openStateAt(hv hoursVerdict, now time.Time) openStateVerdict {
 	return deriveOpenState(a, now, hv.Within, hv.Holiday)
 }
 

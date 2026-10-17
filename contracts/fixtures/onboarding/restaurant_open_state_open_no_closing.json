@@ -1,0 +1,26 @@
+{
+  "scenario": "restaurant_open_state_open_no_closing",
+  "domain": "onboarding",
+  "schema": "RestaurantAvailability",
+  "describes": "`OPEN` and inside the hours, with no closing inside the coming week (a run of hours longer than the server looks ahead): `next_closing_at` is null and `within_hours` is true. Not the same as being outside the hours.",
+  "operations": [
+    "getRestaurantAvailability"
+  ],
+  "status": 200,
+  "tags": [
+    "restaurant",
+    "state-matrix"
+  ],
+  "payload": {
+    "open_state": "OPEN",
+    "is_accepting_orders": true,
+    "within_hours": true,
+    "next_closing_at": null,
+    "pause_until": null,
+    "pause_kind": null,
+    "last_heartbeat_at": "2026-08-10T18:32:11.412Z",
+    "missed_order_count": 6,
+    "reason": "Open and accepting orders.",
+    "resolvable_by": "RESTAURANT"
+  }
+}

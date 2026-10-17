@@ -70,7 +70,7 @@ These are the rules the existing names already follow; new fixtures follow them 
 | `halal_issuing_bod` | 8 | An issuing-body status or list. | `halal_issuing_body_suspended` |
 | `restaurant_detail_` | 9 | A `HalalDisplayState` or availability edge on the customer restaurant page. | `restaurant_detail_expiring_soon` |
 | `restaurant_availability_` | 5 | The customer availability answer. | `restaurant_availability_paused` |
-| `restaurant_open_state_` | 9 | A `RestaurantOpenState`, lower case. | `restaurant_open_state_closed_suspended` |
+| `restaurant_open_state_` | 11 | A `RestaurantOpenState`, lower case. | `restaurant_open_state_closed_suspended` |
 | `restaurant_profile_account_` | 7 | A `RestaurantAccountState`, lower case. | `restaurant_profile_account_suspended` |
 | `restaurant_profile_halal_` | 5 | A `HalalDisplayState`, lower case, or `missing` (no `halal` object). | `restaurant_profile_halal_missing` |
 | `restaurant_onboarding_` | 12 | A `RestaurantOnboardingState`, lower case. | `restaurant_onboarding_documents_review` |

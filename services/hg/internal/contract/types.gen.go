@@ -9125,6 +9125,18 @@ type RestaurantAvailability struct {
 	// MissedOrderCount Two consecutive expired offers force the toggle off; any accepted order resets it.
 	MissedOrderCount *int32 `json:"missed_order_count,omitempty"`
 
+	// NextClosingAt When the current run of opening hours ends, which is the time `pause_until_closing`
+	// would pause until, so a console can word and enable "Pause until closing" before the
+	// owner taps it. It runs past midnight when the hours do.
+	//
+	// Null when `within_hours` is false (there is no current run of hours), and also
+	// when `within_hours` is true but no closing falls within the coming week. Read
+	// `within_hours` to tell the two apart. Null never means the restaurant never closes:
+	// a run of hours longer than the server looks ahead (8 days) reads null too, and
+	// no copy has been decided for that case.
+	// It does not depend on `open_state`; a paused restaurant inside its hours has one.
+	NextClosingAt *time.Time `json:"next_closing_at"`
+
 	// OpenState R-22. Evaluated in strict precedence. `CLOSED_OFFLINE` is the heartbeat gate: a
 	// restaurant whose order screen has not checked in for 5 minutes is offered nothing,
 	// but `is_accepting_orders` is not mutated, so service resumes the moment it reconnects.
@@ -9141,6 +9153,13 @@ type RestaurantAvailability struct {
 	// Reason Plain language, safe to render directly.
 	Reason       string                              `json:"reason"`
 	ResolvableBy *RestaurantAvailabilityResolvableBy `json:"resolvable_by,omitempty"`
+
+	// WithinHours Whether the restaurant's own opening hours, in its time zone and with today's date
+	// override applied, include this moment. It is evaluated on its own and does not follow
+	// `open_state`: a restaurant that is paused, switched off or offline can be inside its
+	// hours or outside them, because those states take precedence over the hours. Read this
+	// rather than inferring the hours from `open_state`.
+	WithinHours bool `json:"within_hours"`
 }
 
 // RestaurantAvailabilityResolvableBy defines model for RestaurantAvailability.ResolvableBy.

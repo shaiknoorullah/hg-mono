@@ -7487,6 +7487,20 @@ export interface components {
              * @description Two consecutive expired offers force the toggle off; any accepted order resets it.
              */
             missed_order_count?: number;
+            /**
+             * Format: date-time
+             * @description When the current run of opening hours ends, which is the time `pause_until_closing`
+             *     would pause until, so a console can word and enable "Pause until closing" before the
+             *     owner taps it. It runs past midnight when the hours do.
+             *
+             *     Null when `within_hours` is false (there is no current run of hours), and also
+             *     when `within_hours` is true but no closing falls within the coming week. Read
+             *     `within_hours` to tell the two apart. Null never means the restaurant never closes:
+             *     a run of hours longer than the server looks ahead (8 days) reads null too, and
+             *     no copy has been decided for that case.
+             *     It does not depend on `open_state`; a paused restaurant inside its hours has one.
+             */
+            next_closing_at: string | null;
             open_state: components["schemas"]["RestaurantOpenState"];
             /**
              * @description Why the pause ends at `pause_until`, so a console can word it from this response
@@ -7502,6 +7516,14 @@ export interface components {
             reason: string;
             /** @enum {string} */
             resolvable_by?: "RESTAURANT" | "ADMIN" | "TIME";
+            /**
+             * @description Whether the restaurant's own opening hours, in its time zone and with today's date
+             *     override applied, include this moment. It is evaluated on its own and does not follow
+             *     `open_state`: a restaurant that is paused, switched off or offline can be inside its
+             *     hours or outside them, because those states take precedence over the hours. Read this
+             *     rather than inferring the hours from `open_state`.
+             */
+            within_hours: boolean;
         };
         /**
          * @description C-14. One server-computed object rendered verbatim by the client, which never

@@ -3,7 +3,7 @@ covers:
   - apps/restaurant/**
   - services/hg/internal/restaurant/**
   - services/hg/internal/catalog/**
-reviewed: 2026-10-16
+reviewed: 2026-10-17
 ---
 
 # HalalGoes — RESTAURANT domain specification
@@ -487,11 +487,17 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   6. `pause_until` accepts only the values 15, 30, 60 minutes or "until closing" (the restaurant's
      next closing time, past midnight included), which replaces "rest of today". The client sends
      `pause_until_closing: true` on `setRestaurantAcceptingOrders` and the server works out the
-     closing time; outside trading hours it is `409 RESTAURANT_CLOSED`, and for a restaurant with no closing in the coming week (open 24 hours) it is `409 NO_CLOSING_TIME`
+     closing time; outside trading hours it is `409 RESTAURANT_CLOSED`, and for a restaurant inside its hours with no closing in the coming week it is `409 NO_CLOSING_TIME`
      ([pausing on late nights](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), ["for how long" options](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
-     The redesigned console offers it beside 15, 30 and 60 minutes, in the status bar and on Hours; it cannot
-     name the closing time before the choice (the contract carries no next closing time), so the paused
-     state names the time the server chose ([#968](https://github.com/shaiknoorullah/hg-mono/issues/968)).
+     The redesigned console offers it beside 15, 30 and 60 minutes, in the status bar and on Hours. The
+     availability response carries `next_closing_at` (when the current run of hours ends, past midnight
+     included) and `within_hours` (whether the hours include now), both from the hours and not from the
+     open state, because a paused, switched-off or offline restaurant can be on either side of its hours.
+     `next_closing_at` is null both outside the hours and inside them with no closing in the coming week
+     (which is not the same as never closing); `within_hours` tells the two apart. Hours names the closing time on the item
+     ([#992](https://github.com/shaiknoorullah/hg-mono/issues/992)); the status bar's board draws none, so it does not.
+     No board words the inside-hours, no-closing case, so it keeps the plain label and the `409` above until the
+     owner decides. The paused state names the time the server chose ([#968](https://github.com/shaiknoorullah/hg-mono/issues/968)).
      The availability response says why the pause ends when it does, in `pause_kind` (`UNTIL_CLOSING` when
      the owner asked for the closing time, `DURATION` when the owner picked a length), stored with the pause
      and present exactly when `pause_until` is, so Hours words it "Paused until closing" after a reload and for

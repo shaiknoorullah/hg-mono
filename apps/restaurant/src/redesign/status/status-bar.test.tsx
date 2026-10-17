@@ -117,7 +117,7 @@ describe('open state, switch and pause', () => {
     const until = new Date(Date.now() + 3 * 3_600_000).toISOString();
     const { api, region } = await bar({ 'PATCH /v1/restaurant/availability': { body: open({ open_state: 'PAUSED', pause_until: until, pause_kind: 'UNTIL_CLOSING', reason: 'Until closing' }) } });
     fireEvent.click(within(region).getByRole('button', { name: 'Pause' }));
-    fireEvent.click(within(screen.getByRole('menu', { name: 'Pause new orders' })).getByRole('menuitem', { name: 'Pause until closing' }));
+    fireEvent.click(within(screen.getByRole('menu', { name: 'Pause new orders' })).getByRole('menuitem', { name: /^Pause until closing/ }));
     await waitFor(() => expect(api.callsTo('PATCH /v1/restaurant/availability')).toHaveLength(1));
     expect(await api.callsTo('PATCH /v1/restaurant/availability')[0]!.json()).toEqual({ is_accepting_orders: true, pause_until_closing: true });
     expect(await within(region).findByRole('button', { name: 'Resume now' })).toBeTruthy();
@@ -128,7 +128,7 @@ describe('open state, switch and pause', () => {
       'PATCH /v1/restaurant/availability': { status: 409, body: { error: { code: 'RESTAURANT_CLOSED', message: 'closed', request_id: 'r1' } } },
     });
     fireEvent.click(within(region).getByRole('button', { name: 'Pause' }));
-    fireEvent.click(within(screen.getByRole('menu', { name: 'Pause new orders' })).getByRole('menuitem', { name: 'Pause until closing' }));
+    fireEvent.click(within(screen.getByRole('menu', { name: 'Pause new orders' })).getByRole('menuitem', { name: /^Pause until closing/ }));
     expect(await screen.findByText('No closing to pause until')).toBeTruthy();
     expect(api.callsTo('PATCH /v1/restaurant/availability')).toHaveLength(1);
     expect(within(region).queryByRole('button', { name: 'Resume now' })).toBeNull();

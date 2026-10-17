@@ -1,0 +1,26 @@
+{
+  "scenario": "restaurant_open_state_paused_outside_hours",
+  "domain": "onboarding",
+  "schema": "RestaurantAvailability",
+  "describes": "`PAUSED` by a timed pause that outlasts the closing time, so the restaurant is outside its hours: `next_closing_at` is null and `within_hours` is false. The pause outranks the hours in the open state, which is why the state alone cannot say this.",
+  "operations": [
+    "getRestaurantAvailability"
+  ],
+  "status": 200,
+  "tags": [
+    "restaurant",
+    "state-matrix"
+  ],
+  "payload": {
+    "open_state": "PAUSED",
+    "is_accepting_orders": true,
+    "within_hours": false,
+    "next_closing_at": null,
+    "pause_until": "2026-08-11T03:00:00.000Z",
+    "pause_kind": "DURATION",
+    "last_heartbeat_at": "2026-08-10T18:32:11.412Z",
+    "missed_order_count": 6,
+    "reason": "Paused. New orders resume when you next open.",
+    "resolvable_by": "RESTAURANT"
+  }
+}

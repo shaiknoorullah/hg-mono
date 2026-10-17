@@ -100,6 +100,13 @@ function pauseEndLabel(endMs: number, now: number, tz: string): string {
   return isoDateIn(endMs, tz) !== isoDateIn(now, tz) ? `${label} tomorrow` : label;
 }
 
+/** Whole local days from now to then, so "tomorrow" means the next local date and not 24 hours. */
+function localDayGap(endMs: number, now: number, tz: string): number {
+  const from = Date.parse(`${isoDateIn(now, tz)}T00:00:00Z`);
+  const to = Date.parse(`${isoDateIn(endMs, tz)}T00:00:00Z`);
+  return Math.round((to - from) / 86_400_000);
+}
+
 export interface RightNowProps {
   availability: ServerResource<Availability>;
   /** For `restaurant.status_changed` on `restaurant:{id}`. */
@@ -332,6 +339,18 @@ export function RightNow({ availability, restaurantId, timezone, noHours, todayO
   const status = opLine(op);
 
   const actions: ReactNode[] = [];
+  // A run of hours can cross more than one midnight, and the server looks eight days ahead, so the
+  // closing time is not always today or tomorrow. The board words only those two, so anything
+  // further out takes the plain label rather than a wrong "tomorrow"; that is the same label the
+  // no-closing-time case already uses, so no new wording is invented. What a closing further out
+  // should actually say is a copy decision, open at
+  // https://github.com/shaiknoorullah/hg-mono/issues/1001 along with the running pause's
+  // reason line, which has the same gap and no label to fall back to.
+  const closingAtMs = av.next_closing_at ? Date.parse(av.next_closing_at) : null;
+  const untilClosingLabel =
+    closingAtMs !== null && localDayGap(closingAtMs, now, timezone) <= 1
+      ? `Pause until closing (${pauseEndLabel(closingAtMs, now, timezone)})`
+      : 'Pause until closing';
   if (state === 'open') {
     actions.push(
       <Menu
@@ -351,7 +370,11 @@ export function RightNow({ availability, restaurantId, timezone, noHours, todayO
         }).concat([
           {
             key: 'close',
-            label: 'Pause until closing',
+            // The closing time comes from the server, which works it out from the hours
+            // (it may be past midnight). No closing in the coming week has no wording yet,
+            // so the label stays plain, as before this field existed
+            // (https://github.com/shaiknoorullah/hg-mono/issues/992).
+            label: untilClosingLabel,
             onSelect: () => void patch('pause', { is_accepting_orders: true, pause_until_closing: true }),
           },
         ])}

@@ -166,11 +166,11 @@ describe('Hours: Right now', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Pause new orders' }));
     const menu = screen.getByRole('menu', { name: 'Pause new orders' });
     const items = within(menu).getAllByRole('menuitem');
-    expect(items.map((i) => i.textContent?.replace(/\(until .*\)/, '(until …)'))).toEqual([
+    expect(items.map((i) => i.textContent?.replace(/\(until .*\)/, '(until …)').replace(/\(\d{1,2}:\d{2} [ap]m( tomorrow)?\)$/, '(closing time)'))).toEqual([
       'Pause for 15 minutes (until …)',
       'Pause for 30 minutes (until …)',
       'Pause for 60 minutes (until …)',
-      'Pause until closing',
+      'Pause until closing (closing time)',
     ]);
     expect(within(menu).queryAllByRole('menuitemradio')).toHaveLength(0);
     fireEvent.click(items[0]!);
@@ -181,6 +181,42 @@ describe('Hours: Right now', () => {
     expect(mins).toBeLessThanOrEqual(15);
     expect(await screen.findByText(`Paused until ${formatTime(patches[0].pause_until, TZ)}.`)).toBeTruthy();
     expect(screen.getByTestId('right-now-badge').textContent).toBe('Paused');
+  });
+
+  const untilClosingItem = async (availability: ReturnType<typeof openAvailability>) => {
+    setup({ availability });
+    await openHours();
+    fireEvent.click(screen.getByRole('button', { name: 'Pause new orders' }));
+    return within(screen.getByRole('menu', { name: 'Pause new orders' })).getByRole('menuitem', { name: /^Pause until closing/ }).textContent;
+  };
+
+  it('Pause until closing names the closing time the server sent, and says tomorrow only for the next local day', async () => {
+    // Pinned, because the wording depends on the local date and not on an elapsed number of
+    // hours: the old version of this test added 30 hours, which lands on the next local day
+    // or the one after it depending on the time of day it ran.
+    clockAt(MONDAY_NOON);
+    const tonight = await untilClosingItem(openAvailability({ next_closing_at: '2026-10-13T02:00:00Z' })); // Monday 10:00 pm in Toronto
+    expect(tonight).toBe('Pause until closing (10:00 pm)');
+    cleanup();
+    const overnight = await untilClosingItem(openAvailability({ next_closing_at: '2026-10-13T06:00:00Z' })); // Tuesday 2:00 am in Toronto
+    expect(overnight).toBe('Pause until closing (2:00 am tomorrow)');
+  });
+
+  it('a run of hours crossing more than one midnight takes the plain label, not a wrong "tomorrow"', async () => {
+    // The server looks eight days ahead, so the closing time is not always today or tomorrow.
+    // The board words only those two, and "tomorrow" for a Wednesday closing would be false
+    // (https://github.com/shaiknoorullah/hg-mono/issues/1000).
+    clockAt(MONDAY_NOON);
+    const beyond = await untilClosingItem(openAvailability({ next_closing_at: '2026-10-14T06:00:00Z' })); // Wednesday 2:00 am in Toronto
+    expect(beyond).toBe('Pause until closing');
+  });
+
+  it('a restaurant with no closing in the coming week gets the plain label, which no board words yet; the time comes from the response alone', async () => {
+    const withClosing = await untilClosingItem(openAvailability());
+    expect(withClosing).toMatch(/\(\d{1,2}:\d{2} [ap]m( tomorrow)?\)$/);
+    cleanup();
+    const noClosing = await untilClosingItem(fixture('restaurant_open_state_open_no_closing'));
+    expect(noClosing).toBe('Pause until closing');
   });
 
   it('pause until closing sends only pause_until_closing and reads the closing time back, with its overnight wording', async () => {
@@ -196,7 +232,7 @@ describe('Hours: Right now', () => {
     });
     await openHours();
     fireEvent.click(screen.getByRole('button', { name: 'Pause new orders' }));
-    fireEvent.click(within(screen.getByRole('menu', { name: 'Pause new orders' })).getByRole('menuitem', { name: 'Pause until closing' }));
+    fireEvent.click(within(screen.getByRole('menu', { name: 'Pause new orders' })).getByRole('menuitem', { name: /^Pause until closing/ }));
     await waitFor(() => expect(seen).toHaveLength(1));
     expect(seen[0]).toEqual({ is_accepting_orders: true, pause_until_closing: true });
     expect((await screen.findByTestId('right-now-reason')).textContent).toMatch(/^Paused until closing, \d{1,2}:\d{2} [ap]m( tomorrow)?\.$/);
@@ -224,7 +260,7 @@ describe('Hours: Right now', () => {
     });
     await openHours();
     fireEvent.click(screen.getByRole('button', { name: 'Pause new orders' }));
-    fireEvent.click(within(screen.getByRole('menu', { name: 'Pause new orders' })).getByRole('menuitem', { name: 'Pause until closing' }));
+    fireEvent.click(within(screen.getByRole('menu', { name: 'Pause new orders' })).getByRole('menuitem', { name: /^Pause until closing/ }));
     expect(await screen.findByText(/outside your opening hours, so there is no closing/)).toBeTruthy();
     expect(screen.getByTestId('right-now-badge').textContent).toBe('Open');
   });
@@ -237,7 +273,7 @@ describe('Hours: Right now', () => {
     });
     await openHours();
     fireEvent.click(screen.getByRole('button', { name: 'Pause new orders' }));
-    fireEvent.click(within(screen.getByRole('menu', { name: 'Pause new orders' })).getByRole('menuitem', { name: 'Pause until closing' }));
+    fireEvent.click(within(screen.getByRole('menu', { name: 'Pause new orders' })).getByRole('menuitem', { name: /^Pause until closing/ }));
     expect(await screen.findByText(/Couldn’t pause new orders/)).toBeTruthy();
     expect(screen.getByTestId('right-now-badge').textContent).toBe('Open');
   });

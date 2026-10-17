@@ -15,6 +15,8 @@
   "payload": {
     "open_state": "CLOSED_HOLIDAY",
     "is_accepting_orders": true,
+    "within_hours": false,
+    "next_closing_at": null,
     "pause_until": null,
     "pause_kind": null,
     "last_heartbeat_at": "2026-08-10T18:32:11.412Z",
