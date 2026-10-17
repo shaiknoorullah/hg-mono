@@ -190,12 +190,25 @@ describe('Hours: Right now', () => {
     return within(screen.getByRole('menu', { name: 'Pause new orders' })).getByRole('menuitem', { name: /^Pause until closing/ }).textContent;
   };
 
-  it('Pause until closing names the closing time the server sent, and says tomorrow when it is not today', async () => {
-    const soon = await untilClosingItem(openAvailability({ next_closing_at: new Date(Date.now() + 60_000).toISOString() }));
-    expect(soon).toMatch(/^Pause until closing \(\d{1,2}:\d{2} [ap]m( tomorrow)?\)$/);
+  it('Pause until closing names the closing time the server sent, and says tomorrow only for the next local day', async () => {
+    // Pinned, because the wording depends on the local date and not on an elapsed number of
+    // hours: the old version of this test added 30 hours, which lands on the next local day
+    // or the one after it depending on the time of day it ran.
+    clockAt(MONDAY_NOON);
+    const tonight = await untilClosingItem(openAvailability({ next_closing_at: '2026-10-13T02:00:00Z' })); // Monday 10:00 pm in Toronto
+    expect(tonight).toBe('Pause until closing (10:00 pm)');
     cleanup();
-    const later = await untilClosingItem(openAvailability({ next_closing_at: new Date(Date.now() + 30 * 3_600_000).toISOString() }));
-    expect(later).toMatch(/^Pause until closing \(\d{1,2}:\d{2} [ap]m tomorrow\)$/);
+    const overnight = await untilClosingItem(openAvailability({ next_closing_at: '2026-10-13T06:00:00Z' })); // Tuesday 2:00 am in Toronto
+    expect(overnight).toBe('Pause until closing (2:00 am tomorrow)');
+  });
+
+  it('a run of hours crossing more than one midnight takes the plain label, not a wrong "tomorrow"', async () => {
+    // The server looks eight days ahead, so the closing time is not always today or tomorrow.
+    // The board words only those two, and "tomorrow" for a Wednesday closing would be false
+    // (https://github.com/shaiknoorullah/hg-mono/issues/1000).
+    clockAt(MONDAY_NOON);
+    const beyond = await untilClosingItem(openAvailability({ next_closing_at: '2026-10-14T06:00:00Z' })); // Wednesday 2:00 am in Toronto
+    expect(beyond).toBe('Pause until closing');
   });
 
   it('a restaurant with no closing in the coming week gets the plain label, which no board words yet; the time comes from the response alone', async () => {
