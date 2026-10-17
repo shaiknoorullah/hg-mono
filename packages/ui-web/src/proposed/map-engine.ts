@@ -9,6 +9,11 @@
  *
  * Attribution: the map is created with Mapbox's attribution control on, bottom-right, and
  * neither component draws anything over the bottom 40px strip it lives in.
+ *
+ * `flatStyle` is the tile-free map: a one-layer local style coloured from the sunken-surface
+ * token, no token, no tile request, no telemetry. It is what mock mode and the design captures
+ * use, so a picture never depends on Mapbox being reachable, and it is what the boards draw
+ * (a plain sunken field with the pins on it).
  */
 
 import { useEffect, useRef, useState, type RefObject } from 'react';
@@ -63,6 +68,8 @@ export interface UseMapboxMapOptions {
   /** Where the map opens; read once per creation. */
   center: LatLng | null;
   zoom?: number;
+  /** A local, tile-free style coloured from the sunken-surface token. Needs no token. */
+  flatStyle?: boolean;
 }
 
 /** What `useMapboxMap` returns. */
@@ -75,19 +82,31 @@ export interface MapboxMapHandle {
   retry: () => void;
 }
 
+/** A one-layer style: the sunken-surface colour as it resolves where the map sits. */
+function flatMapStyle(host: HTMLElement) {
+  const resolved = getComputedStyle(host).getPropertyValue('--hg-surface-sunken').trim();
+  return {
+    version: 8 as const,
+    name: 'hg-flat',
+    sources: {},
+    layers: [{ id: 'hg-flat-background', type: 'background' as const, paint: { 'background-color': resolved || '#F6EFDD' } }],
+  };
+}
+
 /** Creates one Mapbox GL map in `containerRef` and keeps it sized; removes it on unmount. */
-export function useMapboxMap({ accessToken, loadMapbox, enabled, center, zoom = 14 }: UseMapboxMapOptions): MapboxMapHandle {
+export function useMapboxMap({ accessToken, loadMapbox, enabled, center, zoom = 14, flatStyle = false }: UseMapboxMapOptions): MapboxMapHandle {
   const token = accessToken?.trim() ?? '';
+  const usable = token !== '' || flatStyle;
   const containerRef = useRef<HTMLDivElement | null>(null);
   const map = useRef<MapboxMap | null>(null);
   const gl = useRef<typeof MapboxDefault | null>(null);
   const centerRef = useRef(center);
   centerRef.current = center;
-  const [phase, setPhase] = useState<MapPhase>(token ? 'loading' : 'off');
+  const [phase, setPhase] = useState<MapPhase>(usable ? 'loading' : 'off');
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    if (!token) {
+    if (!usable) {
       setPhase('off');
       return;
     }
@@ -100,15 +119,16 @@ export function useMapboxMap({ accessToken, loadMapbox, enabled, center, zoom = 
         const host = containerRef.current;
         if (!live || !host) return;
         gl.current = engine;
-        engine.accessToken = token;
+        if (token) engine.accessToken = token;
         const start = centerRef.current;
         const dark = globalThis.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
         const created = new engine.Map({
           container: host,
-          style: dark ? 'mapbox://styles/mapbox/navigation-night-v1' : 'mapbox://styles/mapbox/navigation-day-v1',
+          style: flatStyle ? flatMapStyle(host) : dark ? 'mapbox://styles/mapbox/navigation-night-v1' : 'mapbox://styles/mapbox/navigation-day-v1',
           center: start ? [start.longitude, start.latitude] : undefined,
           zoom,
-          attributionControl: true,
+          attributionControl: !flatStyle,
+          ...(flatStyle ? { testMode: true } : {}),
         });
         map.current = created;
         if (typeof ResizeObserver !== 'undefined') {
@@ -129,7 +149,7 @@ export function useMapboxMap({ accessToken, loadMapbox, enabled, center, zoom = 
     };
     // `zoom` and `center` are read at creation only; moving them must not rebuild the map.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, enabled, attempt, loadMapbox]);
+  }, [token, usable, flatStyle, enabled, attempt, loadMapbox]);
 
   return { phase, containerRef, map, gl, retry: () => setAttempt((n) => n + 1) };
 }
