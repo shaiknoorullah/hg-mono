@@ -342,8 +342,10 @@ export function RightNow({ availability, restaurantId, timezone, noHours, todayO
   // A run of hours can cross more than one midnight, and the server looks eight days ahead, so the
   // closing time is not always today or tomorrow. The board words only those two, so anything
   // further out takes the plain label rather than a wrong "tomorrow"; that is the same label the
-  // no-closing-time case already uses, so no new wording is invented
-  // (https://github.com/shaiknoorullah/hg-mono/issues/1000).
+  // no-closing-time case already uses, so no new wording is invented. What a closing further out
+  // should actually say is a copy decision, open at
+  // https://github.com/shaiknoorullah/hg-mono/issues/1001 along with the running pause's
+  // reason line, which has the same gap and no label to fall back to.
   const closingAtMs = av.next_closing_at ? Date.parse(av.next_closing_at) : null;
   const untilClosingLabel =
     closingAtMs !== null && localDayGap(closingAtMs, now, timezone) <= 1
