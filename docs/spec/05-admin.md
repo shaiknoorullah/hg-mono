@@ -2,7 +2,7 @@
 covers:
   - apps/admin/**
   - services/hg/internal/admin/**
-reviewed: 2026-10-16
+reviewed: 2026-10-17
 ---
 
 # HalalGoes — ADMIN / SUPER ADMIN / SUPPORT AGENT Specification
@@ -2656,7 +2656,12 @@ documents lapse cannot go on shift, but is not punished.
   precise for support and admin per the
   [per-role projection rules](../../contracts/websocket.md#5-per-role-projection-rules)), gliding
   between fixes and saying `last updated 42s ago` once a fix is older than 30 s; state and dispatch events refetch the
-  order. While the socket is down it polls `getOrderAdmin` every 5 s. The **live operations map**
+  order. While the socket is down it polls `getOrderAdmin` every 5 s. In the redesigned console the
+  order workspace opens this map as a pane in place of More detail (`LiveMapPane`): the same
+  `LiveMap`, a status strip, a text equivalent that is the accessible content (the map itself is
+  `aria-hidden`), and a "Your connection" chip. A position that stops arriving, or a connection that
+  pauses, freezes the pin where it was and labels it "last known" or "as of"; nothing is moved or
+  estimated. The destination is not drawn until the address is revealed. The **live operations map**
   (`#/live`) shows every active order (`RESTAURANT_PENDING` to `ARRIVED`, up to 40) with its
   restaurant, destination and rider, live on each order's channel plus `admin:ops` (a dispatch
   failure raises a banner). It re-reads the list every 30 s to find new orders, because no admin-wide

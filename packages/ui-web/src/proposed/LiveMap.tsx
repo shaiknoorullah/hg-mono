@@ -32,7 +32,7 @@ import { MapPinMarker } from '../lib/ui/map-pin.js';
 import { cn } from '../lib/utils.js';
 import { COARSE_RADIUS_M, fixAgeSeconds, isStale, type RiderFix } from '../live/riderFix.js';
 import { EmptyState } from './EmptyState.js';
-import { interpolate, metresToPixels, reducedMotion, useMapboxMap, type MapboxModule } from './map-engine.js';
+import { interpolate, metresToPixels, reducedMotion, useMapboxMap, type MapboxModule, type MapPhase } from './map-engine.js';
 import { StatePanel } from './state-panel.js';
 
 /** A fixed place on the map. */
@@ -50,6 +50,8 @@ export interface LiveMapPlace {
 export interface LiveMapRider {
   id: string;
   label: string;
+  /** The words on the rider's pin when they differ from `label` ("Bilal S., as of 6:53:10 pm"). */
+  pinLabel?: string;
   fix: RiderFix | null;
   /** Extra words for the text equivalent ("bicycle"). */
   description?: string;
@@ -78,6 +80,20 @@ export interface LiveMapProps {
   /** Heading of the text equivalent. */
   entityListTitle?: string;
   recenterLabel?: string;
+  /** The tile-free map (see `map-engine`): needs no token and requests nothing. */
+  flatStyle?: boolean;
+  /**
+   * Id of text equivalent the caller draws itself (the order pane's side card). The map then
+   * draws no list of its own and points `aria-describedby` at that element.
+   */
+  textEquivalentId?: string;
+  /** Words on the loading tile. */
+  loadingLabel?: string;
+  /** The failed-load panel's heading and body, when the caller's surface says it differently. */
+  errorTitle?: string;
+  errorBody?: ReactNode;
+  /** Called whenever the map's life changes (`loading`, `ready`, `error`), so a pane can say it in words. */
+  onPhaseChange?: (phase: MapPhase) => void;
   className?: string;
   /** Injected for tests. */
   now?: () => number;
@@ -172,6 +188,12 @@ export function LiveMap({
   showEntityList = false,
   entityListTitle = 'Text equivalent',
   recenterLabel = 'Recenter the map',
+  flatStyle = false,
+  textEquivalentId,
+  loadingLabel = 'Loading the map…',
+  errorTitle = 'The map didn’t load',
+  errorBody = 'Nothing was changed. The places and riders are listed in words below the map.',
+  onPhaseChange,
   className,
   now = Date.now,
   testId = 'LiveMap',
@@ -181,8 +203,13 @@ export function LiveMap({
   const drawn = useMemo(() => riders.filter((r) => r.fix), [riders]);
   const hasAnything = places.length > 0 || drawn.length > 0;
   const firstPoint = places[0] ?? (drawn[0]?.fix ? { latitude: drawn[0].fix.latitude, longitude: drawn[0].fix.longitude } : null);
-  const engine = useMapboxMap({ accessToken, loadMapbox, enabled: hasAnything, center: firstPoint, zoom: 13 });
+  const engine = useMapboxMap({ accessToken, loadMapbox, enabled: hasAnything, center: firstPoint, zoom: 13, flatStyle });
   const ready = engine.phase === 'ready';
+  const phaseRef = useRef(onPhaseChange);
+  phaseRef.current = onPhaseChange;
+  useEffect(() => {
+    phaseRef.current?.(engine.phase);
+  }, [engine.phase]);
 
   const [, setTick] = useState(0);
   const [zoom, setZoom] = useState(13);
@@ -361,13 +388,19 @@ export function LiveMap({
   }
 
   return (
-    <div data-testid={testId} data-live-map={engine.phase} style={style} className="flex min-w-0 flex-col gap-2">
+    <div
+      data-testid={testId}
+      data-live-map={engine.phase}
+      role="region"
+      aria-label={ariaLabel}
+      aria-describedby={textEquivalentId ?? listId}
+      style={style}
+      className="flex min-w-0 flex-col gap-2"
+    >
       <div className={frameClass} style={{ height, minHeight: '200px' }}>
         <div
           ref={engine.containerRef}
-          role="region"
-          aria-label={ariaLabel}
-          aria-describedby={listId}
+          aria-hidden="true"
           className="absolute inset-0"
         />
         {[...hosts].map(([id, host]) => {
@@ -393,7 +426,7 @@ export function LiveMap({
           return createPortal(
             <MapPinMarker
               kind="rider"
-              label={rider.label}
+              label={rider.pinLabel ?? rider.label}
               stale={stale}
               trailing={
                 stale ? (
@@ -409,7 +442,7 @@ export function LiveMap({
         })}
         {engine.phase === 'loading' ? (
           <div role="status" className="absolute inset-0 z-[1] flex animate-pulse items-center justify-center bg-skeleton-base text-body-md text-fg-primary motion-reduce:animate-none">
-            Loading the map…
+            {loadingLabel}
           </div>
         ) : null}
         {engine.phase === 'error' ? (
@@ -418,8 +451,8 @@ export function LiveMap({
               role="alert"
               icon="warning"
               tone="warning"
-              title="The map didn’t load"
-              body="Nothing was changed. The places and riders are listed in words below the map."
+              title={errorTitle}
+              body={errorBody}
               action={
                 <Button variant="primary" iconStart="refresh" onPress={engine.retry}>
                   Try again
@@ -430,14 +463,18 @@ export function LiveMap({
         ) : null}
         {overlay}
         {ready ? (
-          <div role="group" aria-label="Map controls" className="absolute end-3 bottom-10 z-[2] flex flex-col gap-1 rounded-md bg-surface-raised p-1 shadow-e2">
+          <div
+            role="group"
+            aria-label="Map controls"
+            className={cn('absolute end-3 z-[2] flex flex-col', flatStyle ? 'bottom-3 gap-2' : 'bottom-10 gap-1 rounded-md bg-surface-raised p-1 shadow-e2')}
+          >
             <IconButton icon="plus" accessibilityLabel="Zoom in" variant="tonal" size="md" onPress={() => engine.map.current?.zoomIn()} />
             <IconButton icon="minus" accessibilityLabel="Zoom out" variant="tonal" size="md" onPress={() => engine.map.current?.zoomOut()} />
             <IconButton icon="map" accessibilityLabel={recenterLabel} variant="tonal" size="md" onPress={recenter} />
           </div>
         ) : null}
       </div>
-      {showEntityList || engine.phase === 'error' ? (
+      {textEquivalentId ? null : showEntityList || engine.phase === 'error' ? (
         <div className="rounded-lg border border-line-decorative bg-surface-raised">{list}</div>
       ) : (
         <div className="sr-only">{list}</div>

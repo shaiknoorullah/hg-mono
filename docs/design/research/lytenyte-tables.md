@@ -2,7 +2,7 @@
 covers:
   - packages/ui-web/src/**
   - apps/admin/src/**
-reviewed: 2026-10-16
+reviewed: 2026-10-17
 ---
 
 # DataTable on LyteNyte Grid, and the cell component set — spec draft
@@ -10,6 +10,9 @@ reviewed: 2026-10-16
 > **2026-10-05:** `packages/ui-web/src/live/` (the realtime socket and `LiveMap`) and the admin's
 > live operations map are outside this draft's scope; the operations map lists its orders as plain
 > text beneath the map rather than in a grid.
+>
+> **2026-10-17:** the order workspace's live map pane (`LiveMap` through the admin's design-system
+> adapter) is outside this draft's scope too; it has a text equivalent rather than a grid.
 >
 > **2026-10-15:** the redesigned admin Orders and Disputes lists draw their rows through the
 > admin `DataGrid` stand-in (`apps/admin/src/redesign/ds-stubs/DataGrid.stub.tsx`), not the

@@ -60,12 +60,17 @@ export function DeadlineCell({
   deadlineAt,
   since,
   note,
+  size = 'sm',
+  label,
 }: {
   state: OrderState;
   deadlineAt: string | null | undefined;
   since?: string | null;
   /** Replaces the verb, e.g. "settles, held: a refund failed". */
   note?: string;
+  size?: 'sm' | 'md';
+  /** Words under the time ("to deliver"), as the live map's strip draws it. */
+  label?: string;
 }) {
   const now = useNow(Boolean(deadlineAt));
   if (!deadlineAt) return <span className="sr-only">No deadline, final state</span>;
@@ -89,7 +94,8 @@ export function DeadlineCell({
         urgentThreshold={shape.urgentThreshold}
         criticalThreshold={shape.criticalThreshold}
         variant="text"
-        size="sm"
+        size={size}
+        {...(label ? { label } : {})}
       />
       {verb ? <span className="text-body-sm text-fg-secondary">{verb}</span> : null}
     </span>

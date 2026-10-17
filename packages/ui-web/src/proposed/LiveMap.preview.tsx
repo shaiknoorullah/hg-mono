@@ -91,3 +91,42 @@ export function Empty() {
     </div>
   );
 }
+
+/** The tile-free map the order pane draws in mock mode: one sunken field, the pins on it, no token. */
+export function TileFree() {
+  return (
+    <div style={box}>
+      <LiveMap
+        accessToken=""
+        flatStyle
+        loadMapbox={loadFakeMapbox}
+        places={places}
+        riders={[rider(8)]}
+        ariaLabel="Map of order HG-6RN4KP"
+        recenterLabel="Recenter on the order"
+        height="360px"
+        showEntityList
+      />
+    </div>
+  );
+}
+
+/** `LiveMapReconnecting`: the connection paused, so the picture is held and says since when. */
+export function Reconnecting() {
+  const held = rider(17);
+  return (
+    <div style={box}>
+      <LiveMap
+        accessToken="pk.preview"
+        loadMapbox={loadFakeMapbox}
+        places={places}
+        riders={[{ ...held, pinLabel: 'Ahmed K., as of 6:53:10 pm' }]}
+        ariaLabel="Map of order HG-1CV7HS"
+        height="360px"
+        showEntityList
+      >
+        Live updates paused. Reading the order every 5 seconds.
+      </LiveMap>
+    </div>
+  );
+}
