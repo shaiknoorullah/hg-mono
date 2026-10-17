@@ -28,7 +28,9 @@ DISPATCH_STATES = {
     "COMPLETED": "Handover recorded. Terminal, happy.",
     "UNASSIGNED": "The assigned rider dropped it or was removed; dispatch will re-search. "
     "The old rider is force-unsubscribed from `order:{id}` within 2 seconds.",
-    "NO_RIDER_FOUND": "Every wave exhausted. Terminal — the order fails and is refunded.",
+    "NO_RIDER_FOUND": "Every wave exhausted. Dispatch never cancels the order: it stays "
+    "`READY_FOR_PICKUP` and its pickup deadline escalates the search, then cancels it "
+    "(`CANCELLED`, refunded in full) once the escalation cap is reached.",
 }
 
 ASSIGNMENT_STATES = {
@@ -69,7 +71,7 @@ def _dispatch(reg, synth) -> None:
             "AT_CUSTOMER": "ARRIVED",
             "COMPLETED": "DELIVERED",
             "UNASSIGNED": "PREPARING",
-            "NO_RIDER_FOUND": "FAILED",
+            "NO_RIDER_FOUND": "READY_FOR_PICKUP",
         }[state]
         has_rider = state in ("ASSIGNED", "AT_RESTAURANT", "CARRYING", "AT_CUSTOMER", "COMPLETED")
         order = customer_order(

@@ -2,7 +2,7 @@
   "scenario": "dispatch_no_rider_found",
   "domain": "dispatch",
   "schema": "OrderCustomerView",
-  "describes": "`dispatch_state = NO_RIDER_FOUND` on an order in `FAILED`. Every wave exhausted. Terminal — the order fails and is refunded.",
+  "describes": "`dispatch_state = NO_RIDER_FOUND` on an order in `READY_FOR_PICKUP`. Every wave exhausted. Dispatch never cancels the order: it stays `READY_FOR_PICKUP` and its pickup deadline escalates the search, then cancels it (`CANCELLED`, refunded in full) once the escalation cap is reached.",
   "operations": [
     "getOrder",
     "getActiveOrder"
@@ -13,12 +13,12 @@
   ],
   "payload": {
     "id": "72f217de-ffb1-4e40-ab92-1d3ac81aa4a2",
-    "code": "HG-FAED-6X",
-    "state": "FAILED",
+    "code": "HG-REUP-16X",
+    "state": "READY_FOR_PICKUP",
     "state_since": "2026-08-10T18:40:41.412Z",
-    "deadline_at": null,
+    "deadline_at": "2026-08-10T18:48:11.412Z",
     "server_time": "2026-08-10T18:42:11.412Z",
-    "quote_id": "5acdb23a-a6c0-4dc2-a2b6-2060e7a8ec52",
+    "quote_id": "aca44780-1d6b-4931-ad9a-ddd1958dd13c",
     "restaurant": {
       "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
       "name": "Karachi Kitchen",
@@ -133,9 +133,9 @@
     "special_instructions": "Please leave it on the mat, not the shoe rack.",
     "rider": null,
     "dispatch_state": "NO_RIDER_FOUND",
-    "cancel_reason": "NO_RIDER_FOUND",
+    "cancel_reason": null,
     "reject_reason": null,
-    "eta_at": null,
+    "eta_at": "2026-08-10T18:55:11.412Z",
     "delivery_code": null,
     "can_cancel": false,
     "placed_at": "2026-08-10T18:10:11.412Z",
