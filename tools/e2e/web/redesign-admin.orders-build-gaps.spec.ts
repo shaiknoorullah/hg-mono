@@ -1,8 +1,7 @@
 import { expect, test, type Page, type Route, type WebSocketRoute } from '@playwright/test';
 
-import { expectDesignFor, type BoardFor } from './design';
 import { E2E_MODE } from './mode';
-import { routeLogin, signIn } from './redesign-admin.support';
+import { captureBoard, signInAndOpen } from './redesign-admin.support';
 
 test.skip(E2E_MODE !== 'mock', 'written against the mock server; run with E2E_MODE=mock');
 
@@ -45,23 +44,13 @@ async function orderIdOf(page: Page, scenario: string): Promise<string> {
   return ((await response.json()) as { data: { id: string } }).data.id;
 }
 
-/** Signs in with the fixtures' clock, then opens `hash`. */
+/**
+ * Signs in with the fixtures' clock, then opens `hash`. The clock is installed before the first
+ * navigation, which is the only part that differs from the shared `signInAndOpen`.
+ */
 async function open(page: Page, hash: string) {
-  await routeLogin(page, 'ADMIN');
   await page.clock.install({ time: FROZEN_CLOCK });
-  await page.goto('/');
-  await signIn(page);
-  await expect(page.locator('#app-bar-heading')).toBeVisible();
-  await page.evaluate((h) => {
-    window.location.hash = h;
-  }, hash);
-}
-
-async function capture(page: Page, board: BoardFor) {
-  await page.waitForLoadState('networkidle');
-  // A build older than the screen draws "Not built yet"; that is not the board's state.
-  await expect(page.getByText('Not built yet')).toHaveCount(0);
-  await expectDesignFor(page, board);
+  await signInAndOpen(page, 'ADMIN', hash);
 }
 
 test.beforeEach(({}, testInfo) => {
@@ -90,7 +79,7 @@ test.describe('redesigned admin · orders, the states the app did not draw (mock
     await page.clock.setSystemTime(new Date(FROZEN_CLOCK.getTime() + 3 * 60_000));
     await page.getByRole('button', { name: 'Refresh' }).click();
     await expect(page.getByText(/1 order changed\./)).toBeVisible();
-    await capture(page, { 1440: `${OR}OrdersRefreshed` });
+    await captureBoard(page, { 1440: `${OR}OrdersRefreshed` });
   });
 
   test('order workspace, the list folded and the order widened', async ({ page }) => {
@@ -102,7 +91,7 @@ test.describe('redesigned admin · orders, the states the app did not draw (mock
     await expect(page.locator('#order-heading')).toBeVisible();
     await page.getByRole('button', { name: /^Collapse the .* list$/ }).click();
     await expect(page.getByRole('button', { name: /^Show the .* list$/ })).toBeVisible();
-    await capture(page, { 1440: `${OR}OrderDetailListCollapsed` });
+    await captureBoard(page, { 1440: `${OR}OrderDetailListCollapsed` });
   });
 });
 
@@ -139,7 +128,7 @@ test.describe('redesigned admin · live alerts, when they stop arriving (mock)',
       await page.waitForTimeout(150);
     }
     await expect(page.getByRole('heading', { name: 'Live alerts didn’t start' })).toBeVisible();
-    await capture(page, { 1440: `${OR}LiveAlertsTicketFailed` });
+    await captureBoard(page, { 1440: `${OR}LiveAlertsTicketFailed` });
   });
 
   test('live alerts, the channel is refused as forbidden', async ({ page }) => {
@@ -147,7 +136,7 @@ test.describe('redesigned admin · live alerts, when they stop arriving (mock)',
       onSubscribe: (ws, channel) => ws.send(control('subscribe_error', { channel, code: 'forbidden', message: 'Not allowed.' })),
     });
     await expect(page.getByRole('heading', { name: 'This account can’t receive live alerts' })).toBeVisible();
-    await capture(page, { 1440: `${OR}LiveAlertsForbidden` });
+    await captureBoard(page, { 1440: `${OR}LiveAlertsForbidden` });
   });
 
   test('live alerts, the channel is refused as invalid', async ({ page }) => {
@@ -155,7 +144,7 @@ test.describe('redesigned admin · live alerts, when they stop arriving (mock)',
       onSubscribe: (ws, channel) => ws.send(control('subscribe_error', { channel, code: 'invalid_channel', message: 'No such channel.' })),
     });
     await expect(page.getByRole('heading', { name: 'Live alerts couldn’t start' })).toBeVisible();
-    await capture(page, { 1440: `${OR}LiveAlertsInvalidChannel` });
+    await captureBoard(page, { 1440: `${OR}LiveAlertsInvalidChannel` });
   });
 
   test('live alerts, the session ended', async ({ page }) => {
@@ -163,6 +152,6 @@ test.describe('redesigned admin · live alerts, when they stop arriving (mock)',
       onSubscribe: (ws) => ws.send(control('reauth_required', { deadline: new Date(FROZEN_CLOCK.getTime() + 60_000).toISOString() })),
     });
     await expect(page.getByRole('dialog', { name: 'Sign in again to keep receiving alerts' })).toBeVisible();
-    await capture(page, { 1440: `${OR}LiveAlertsSessionEnded` });
+    await captureBoard(page, { 1440: `${OR}LiveAlertsSessionEnded` });
   });
 });
