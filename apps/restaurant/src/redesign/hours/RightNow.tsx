@@ -351,7 +351,11 @@ export function RightNow({ availability, restaurantId, timezone, noHours, todayO
         }).concat([
           {
             key: 'close',
-            label: 'Pause until closing',
+            // The closing time comes from the server, which works it out from the hours
+            // (it may be past midnight). No closing in the coming week has no wording yet,
+            // so the label stays plain, as before this field existed
+            // (https://github.com/shaiknoorullah/hg-mono/issues/992).
+            label: av.next_closing_at ? `Pause until closing (${pauseEndLabel(Date.parse(av.next_closing_at), now, timezone)})` : 'Pause until closing',
             onSelect: () => void patch('pause', { is_accepting_orders: true, pause_until_closing: true }),
           },
         ])}

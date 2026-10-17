@@ -72,7 +72,7 @@ falling through, so a typo is visible immediately.
 
 ## Scenarios by domain
 
-**752 scenarios** across 16 domains.
+**754 scenarios** across 16 domains.
 
 | Domain | Scenarios | What it covers |
 |---|---:|---|
@@ -85,7 +85,7 @@ falling through, so a typo is visible immediately.
 | [`geo`](#geo) | 11 | Address search through our API to Mapbox — suggestions, a picked place, a map pin, and the no-match and provider-down paths. |
 | [`halal`](#halal) | 37 | Badges, certificates, checks and issuing bodies — the platform's core promise. |
 | [`handoff`](#handoff) | 13 | The package-seal chain of custody (later version: seals are not used at launch) — every `PackageSeal` status, `HandoffEvent` type, and the bind/pickup-scan/delivery-scan/tamper-report results. |
-| [`onboarding`](#onboarding) | 50 | Restaurant and rider onboarding, profiles, vehicles and trading state. |
+| [`onboarding`](#onboarding) | 52 | Restaurant and rider onboarding, profiles, vehicles and trading state. |
 | [`orders`](#orders) | 86 | The 14 `OrderState` values, per-audience projections, tracking and receipts. |
 | [`payments`](#payments) | 12 | The 8 `PaymentState` values, saved cards and setup intents. |
 | [`platform`](#platform) | 57 | Auth, config, addresses, notifications, Connect and health. |
@@ -577,7 +577,7 @@ The package-seal chain of custody (later version: seals are not used at launch) 
 
 ### onboarding
 
-Restaurant and rider onboarding, profiles, vehicles and trading state. — 50 scenarios.
+Restaurant and rider onboarding, profiles, vehicles and trading state. — 52 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
@@ -601,7 +601,9 @@ Restaurant and rider onboarding, profiles, vehicles and trading state. — 50 sc
 | `restaurant_open_state_closed_toggle` | `RestaurantAvailability` | 200 | `open_state = CLOSED_TOGGLE`. `is_accepting_orders: false` — the explicit switch. R-22 evaluates these in strict precedence. |
 | `restaurant_open_state_closed_toggle_auto_off` | `RestaurantAvailability` | 200 | Ordering turned off by the platform after two offers in a row expired (`missed_order_count: 2`). The restaurant turns it back on itself. Contract-only: `services/hg` counts missed offers but does not turn ordering off by itself yet. |
 | `restaurant_open_state_open` | `RestaurantAvailability` | 200 | `open_state = OPEN`. Trading. R-22 evaluates these in strict precedence. |
+| `restaurant_open_state_open_no_closing` | `RestaurantAvailability` | 200 | `OPEN` and inside the hours, with no closing inside the coming week (a run of hours longer than the server looks ahead): `next_closing_at` is null and `within_hours` is true. Not the same as being outside the hours. |
 | `restaurant_open_state_paused` | `RestaurantAvailability` | 200 | `open_state = PAUSED`. Owner pressed pause; `is_accepting_orders` is untouched underneath. R-22 evaluates these in strict precedence. |
+| `restaurant_open_state_paused_outside_hours` | `RestaurantAvailability` | 200 | `PAUSED` by a timed pause that outlasts the closing time, so the restaurant is outside its hours: `next_closing_at` is null and `within_hours` is false. The pause outranks the hours in the open state, which is why the state alone cannot say this. |
 | `restaurant_open_state_paused_until_closing` | `RestaurantAvailability` | 200 | `setRestaurantAcceptingOrders` with `pause_until_closing: true` on a late night that runs past midnight. `pause_until` is the closing time the server chose: 2:00 am the next morning, not midnight. |
 | `restaurant_profile` | `RestaurantProfile` | 200 | A submitted restaurant profile: Ontario address, CRA-form GST/HST number, America/Toronto. Server-controlled fields (`is_approved`, `account_state`, `commission_rate_bps`, anything `_cents`) do not exist on this DTO at all. |
 | `restaurant_profile_account_banned` | `RestaurantProfile` | 200 | `getRestaurantProfile` with `account_state: BANNED`. Banned. Its own staff cannot sign in, so only admins acting on its behalf see this profile. |
@@ -967,9 +969,9 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `error-envelope` | 153 | A `{error}` body with a real `ErrorCode`. |
 | `rider` | 132 | Rider-facing surface. |
 | `error-path` | 129 | The unhappy branch a client must handle. |
-| `state-matrix` | 106 | One fixture per member of a closed enum. |
+| `state-matrix` | 108 | One fixture per member of a closed enum. |
+| `restaurant` | 92 | Restaurant-facing surface. |
 | `edge` | 90 | A shape that breaks naive layouts — empty, overflowing, at a boundary. |
-| `restaurant` | 90 | Restaurant-facing surface. |
 | `money` | 74 | Exercises the money path specifically. |
 | `platform` | 57 | Cross-cutting platform surface. |
 | `halal` | 48 | Touches the halal claim surface. |
@@ -1109,7 +1111,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `getRefund` | `refund_settled` | `refund_approved`, `refund_authorised`, `refund_cancelled`, `refund_declined`, `refund_failed`, `refund_full_never_delivered`, `refund_pending_approval`, `refund_requested`, `refund_second_report_on_order`, `refund_submitted`, `refund_succeeded`, `refund_wrong_address_before_delivery` |
 | `getRestaurant` | `restaurant_detail_certified` | `restaurant_detail_closed`, `restaurant_detail_expired`, `restaurant_detail_expiring_soon`, `restaurant_detail_no_address`, `restaurant_detail_no_menu`, `restaurant_detail_out_of_range`, `restaurant_detail_paused`, `restaurant_detail_unverified` |
 | `getRestaurantApplication` | `restaurant_application_pending_review` | `restaurant_application_approved`, `restaurant_application_changes_requested`, `restaurant_application_claimed_by_other`, `restaurant_application_no_certificate`, `restaurant_application_withdrawn` |
-| `getRestaurantAvailability` | `restaurant_open_state_open` | `restaurant_open_state_closed_holiday`, `restaurant_open_state_closed_hours`, `restaurant_open_state_closed_offline`, `restaurant_open_state_closed_suspended`, `restaurant_open_state_closed_toggle`, `restaurant_open_state_closed_toggle_auto_off`, `restaurant_open_state_paused`, `restaurant_open_state_paused_until_closing` |
+| `getRestaurantAvailability` | `restaurant_open_state_open` | `restaurant_open_state_closed_holiday`, `restaurant_open_state_closed_hours`, `restaurant_open_state_closed_offline`, `restaurant_open_state_closed_suspended`, `restaurant_open_state_closed_toggle`, `restaurant_open_state_closed_toggle_auto_off`, `restaurant_open_state_open_no_closing`, `restaurant_open_state_paused`, `restaurant_open_state_paused_outside_hours`, `restaurant_open_state_paused_until_closing` |
 | `getRestaurantCertification` | `certification_panel_certified` | `certification_panel_expired`, `certification_panel_expiring_soon`, `certification_panel_not_viewable`, `certification_panel_partial`, `certification_panel_unverified` |
 | `getRestaurantHours` | `restaurant_hours_standard` | `restaurant_hours_none`, `restaurant_hours_special_dates`, `restaurant_hours_split_past_midnight` |
 | `getRestaurantMenu` | `menu_full` | `menu_empty`, `menu_single_item`, `menu_with_hidden_and_blocked_items` |

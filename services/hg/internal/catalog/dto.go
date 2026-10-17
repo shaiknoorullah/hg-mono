@@ -214,14 +214,18 @@ type PresignedDownload struct {
 // RestaurantAvailability is the contract's RestaurantAvailability schema (R-22) —
 // the restaurant-facing open-state verdict.
 type RestaurantAvailability struct {
-	OpenState         string  `json:"open_state"`
-	IsAcceptingOrders bool    `json:"is_accepting_orders"`
-	PauseKind         *string `json:"pause_kind"`
-	PauseUntil        *string `json:"pause_until"`
-	LastHeartbeatAt   *string `json:"last_heartbeat_at"`
-	MissedOrderCount  int32   `json:"missed_order_count"`
-	Reason            string  `json:"reason"`
-	ResolvableBy      string  `json:"resolvable_by,omitempty"`
+	OpenState         string `json:"open_state"`
+	IsAcceptingOrders bool   `json:"is_accepting_orders"`
+	// WithinHours and NextClosingAt come from the hours verdict, not the open
+	// state. NextClosingAt is sent as null, not omitted, when there is none.
+	WithinHours      bool    `json:"within_hours"`
+	NextClosingAt    *string `json:"next_closing_at"`
+	PauseKind        *string `json:"pause_kind"`
+	PauseUntil       *string `json:"pause_until"`
+	LastHeartbeatAt  *string `json:"last_heartbeat_at"`
+	MissedOrderCount int32   `json:"missed_order_count"`
+	Reason           string  `json:"reason"`
+	ResolvableBy     string  `json:"resolvable_by,omitempty"`
 }
 
 // RestaurantHeartbeat is the contract's RestaurantHeartbeat schema.

@@ -32,13 +32,22 @@ func (h *Handler) resolveRestaurant(w http.ResponseWriter, r *http.Request) (str
 
 // toRestaurantAvailability builds the restaurant-facing availability DTO from a
 // row and the derived open-state verdict.
-func toRestaurantAvailability(a availabilityRow, verdict openStateVerdict) RestaurantAvailability {
+//
+// hv is the hours verdict the open state was derived from. within_hours and
+// next_closing_at come from it and never from the open state: a paused or
+// switched-off restaurant is still inside its hours, and still has a closing.
+func toRestaurantAvailability(a availabilityRow, verdict openStateVerdict, hv hoursVerdict) RestaurantAvailability {
 	out := RestaurantAvailability{
+		WithinHours:       hv.Within,
 		OpenState:         verdict.state,
 		IsAcceptingOrders: a.isAcceptingOrders,
 		MissedOrderCount:  a.missedOrderCount,
 		Reason:            verdict.reason,
 		ResolvableBy:      verdict.resolvableBy,
+	}
+	if hv.ClosesAt != nil {
+		s := httpx.Timestamp(*hv.ClosesAt)
+		out.NextClosingAt = &s
 	}
 	if a.pauseUntil != nil {
 		s := httpx.Timestamp(*a.pauseUntil)
@@ -64,8 +73,9 @@ func (h *Handler) GetRestaurantAvailability(w http.ResponseWriter, r *http.Reque
 	}
 	// Hours and holidays are evaluated in the restaurant's timezone, as the
 	// order path does (https://github.com/shaiknoorullah/hg-mono/issues/648).
-	verdict := a.openState(h.now())
-	httpx.Respond(w, r, http.StatusOK, toRestaurantAvailability(a, verdict))
+	now := h.now()
+	hv := a.hours(now)
+	httpx.Respond(w, r, http.StatusOK, toRestaurantAvailability(a, a.openStateAt(hv, now), hv))
 }
 
 // setAcceptingOrdersInput is the request body for setRestaurantAcceptingOrders.
@@ -140,8 +150,8 @@ func (h *Handler) SetRestaurantAcceptingOrders(w http.ResponseWriter, r *http.Re
 	if h.mapErr(w, r, err) {
 		return
 	}
-	verdict := a.openState(now)
-	httpx.Respond(w, r, http.StatusOK, toRestaurantAvailability(a, verdict))
+	hv := a.hours(now)
+	httpx.Respond(w, r, http.StatusOK, toRestaurantAvailability(a, a.openStateAt(hv, now), hv))
 }
 
 // SendRestaurantHeartbeat implements sendRestaurantHeartbeat (R-22): stamps the
@@ -182,7 +192,7 @@ func (h *Handler) closingTime(w http.ResponseWriter, r *http.Request, restaurant
 	if h.mapErr(w, r, err) {
 		return time.Time{}, false
 	}
-	hv := evaluateHours(a.weekly, a.overrides, a.timezone, now)
+	hv := a.hours(now)
 	if !hv.Within {
 		httpx.Fail(w, r, http.StatusConflict, codeRestaurantClosed,
 			"You're outside your opening hours, so there is nothing to pause.", nil)

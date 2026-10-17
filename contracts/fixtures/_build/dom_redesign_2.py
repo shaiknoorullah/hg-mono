@@ -1329,6 +1329,9 @@ def _restaurant_availability(reg) -> None:
         {
             "open_state": "CLOSED_TOGGLE",
             "is_accepting_orders": False,
+            # Switched off, but inside the hours: the toggle outranks them.
+            "within_hours": True,
+            "next_closing_at": ts(3 * 3600),
             "pause_until": None,
             "pause_kind": None,
             "last_heartbeat_at": ts(-25),

@@ -11,6 +11,9 @@ from world import certification_panel, public_address, slug
 
 # state -> (current_step, progress_percent, note). `current_step` is its own closed enum
 # on RestaurantOnboardingStatus — it is NOT a NextRoute.
+# 10:00 pm Toronto on 10 August 2026, the evening of the fixtures' shared heartbeat.
+CLOSING_TONIGHT = "2026-08-11T02:00:00.000Z"
+
 RESTAURANT_ONBOARDING = {
     "REGISTERED": ("PROFILE", 0, "Account created, email not yet verified. Nothing else is reachable."),
     "EMAIL_VERIFIED": ("PROFILE", 10, "Email confirmed; the profile form is next."),
@@ -171,6 +174,9 @@ def _restaurant_onboarding(reg, synth) -> None:
             "is_accepting_orders": True,
             "pause_until": "2026-08-11T06:00:00.000Z",
             "pause_kind": "UNTIL_CLOSING",
+            # Inside the hours, closing at the same 2:00 am the pause runs to.
+            "within_hours": True,
+            "next_closing_at": "2026-08-11T06:00:00.000Z",
             "reason": "Paused until closing at 2:00 am. New orders resume when you next open.",
             "resolvable_by": "RESTAURANT",
         }
@@ -207,6 +213,12 @@ def _restaurant_onboarding(reg, synth) -> None:
         else:
             av["pause_until"] = None
             av["pause_kind"] = None
+        # within_hours is the hours alone and does not follow the state: the toggle, the
+        # heartbeat, a suspension and a pause all outrank the hours, so those can sit on
+        # either side of them. These are inside (closing 10:00 pm Toronto); the hours-closed
+        # states are outside.
+        av["within_hours"] = state not in ("CLOSED_HOURS", "CLOSED_HOLIDAY")
+        av["next_closing_at"] = CLOSING_TONIGHT if av["within_hours"] else None
         reg.add(
             f"restaurant_open_state_{state.lower()}",
             "onboarding",
@@ -216,6 +228,56 @@ def _restaurant_onboarding(reg, synth) -> None:
             operations=["getRestaurantAvailability", "setRestaurantAcceptingOrders"],
             tags=["restaurant", "state-matrix"],
         )
+
+    # The two cases a bare next_closing_at == null would blur (issue 992): both read null,
+    # and only within_hours says which. Neither has a board, so neither has copy.
+    open_no_closing = synth.make("RestaurantAvailability", "open-state-OPEN-no-closing")
+    open_no_closing.update(
+        {
+            "open_state": "OPEN",
+            "is_accepting_orders": True,
+            "pause_until": None,
+            "pause_kind": None,
+            "within_hours": True,
+            "next_closing_at": None,
+            "reason": "Open and accepting orders.",
+        }
+    )
+    reg.add(
+        "restaurant_open_state_open_no_closing",
+        "onboarding",
+        "RestaurantAvailability",
+        "`OPEN` and inside the hours, with no closing inside the coming week (a run of hours "
+        "longer than the server looks ahead): `next_closing_at` is null and `within_hours` is "
+        "true. Not the same as being outside the hours.",
+        open_no_closing,
+        operations=["getRestaurantAvailability"],
+        tags=["restaurant", "state-matrix"],
+    )
+    paused_outside = synth.make("RestaurantAvailability", "open-state-PAUSED-outside-hours")
+    paused_outside.update(
+        {
+            "open_state": "PAUSED",
+            "is_accepting_orders": True,
+            "pause_until": "2026-08-11T03:00:00.000Z",
+            "pause_kind": "DURATION",
+            "within_hours": False,
+            "next_closing_at": None,
+            "reason": "Paused. New orders resume when you next open.",
+            "resolvable_by": "RESTAURANT",
+        }
+    )
+    reg.add(
+        "restaurant_open_state_paused_outside_hours",
+        "onboarding",
+        "RestaurantAvailability",
+        "`PAUSED` by a timed pause that outlasts the closing time, so the restaurant is outside "
+        "its hours: `next_closing_at` is null and `within_hours` is false. The pause outranks "
+        "the hours in the open state, which is why the state alone cannot say this.",
+        paused_outside,
+        operations=["getRestaurantAvailability"],
+        tags=["restaurant", "state-matrix"],
+    )
 
     reg.add(
         "restaurant_heartbeat",

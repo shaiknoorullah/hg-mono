@@ -166,11 +166,11 @@ describe('Hours: Right now', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Pause new orders' }));
     const menu = screen.getByRole('menu', { name: 'Pause new orders' });
     const items = within(menu).getAllByRole('menuitem');
-    expect(items.map((i) => i.textContent?.replace(/\(until .*\)/, '(until …)'))).toEqual([
+    expect(items.map((i) => i.textContent?.replace(/\(until .*\)/, '(until …)').replace(/\(\d{1,2}:\d{2} [ap]m( tomorrow)?\)$/, '(closing time)'))).toEqual([
       'Pause for 15 minutes (until …)',
       'Pause for 30 minutes (until …)',
       'Pause for 60 minutes (until …)',
-      'Pause until closing',
+      'Pause until closing (closing time)',
     ]);
     expect(within(menu).queryAllByRole('menuitemradio')).toHaveLength(0);
     fireEvent.click(items[0]!);
@@ -181,6 +181,29 @@ describe('Hours: Right now', () => {
     expect(mins).toBeLessThanOrEqual(15);
     expect(await screen.findByText(`Paused until ${formatTime(patches[0].pause_until, TZ)}.`)).toBeTruthy();
     expect(screen.getByTestId('right-now-badge').textContent).toBe('Paused');
+  });
+
+  const untilClosingItem = async (availability: ReturnType<typeof openAvailability>) => {
+    setup({ availability });
+    await openHours();
+    fireEvent.click(screen.getByRole('button', { name: 'Pause new orders' }));
+    return within(screen.getByRole('menu', { name: 'Pause new orders' })).getByRole('menuitem', { name: /^Pause until closing/ }).textContent;
+  };
+
+  it('Pause until closing names the closing time the server sent, and says tomorrow when it is not today', async () => {
+    const soon = await untilClosingItem(openAvailability({ next_closing_at: new Date(Date.now() + 60_000).toISOString() }));
+    expect(soon).toMatch(/^Pause until closing \(\d{1,2}:\d{2} [ap]m( tomorrow)?\)$/);
+    cleanup();
+    const later = await untilClosingItem(openAvailability({ next_closing_at: new Date(Date.now() + 30 * 3_600_000).toISOString() }));
+    expect(later).toMatch(/^Pause until closing \(\d{1,2}:\d{2} [ap]m tomorrow\)$/);
+  });
+
+  it('a restaurant with no closing in the coming week gets the plain label, which no board words yet; the time comes from the response alone', async () => {
+    const withClosing = await untilClosingItem(openAvailability());
+    expect(withClosing).toMatch(/\(\d{1,2}:\d{2} [ap]m( tomorrow)?\)$/);
+    cleanup();
+    const noClosing = await untilClosingItem(fixture('restaurant_open_state_open_no_closing'));
+    expect(noClosing).toBe('Pause until closing');
   });
 
   it('pause until closing sends only pause_until_closing and reads the closing time back, with its overnight wording', async () => {
@@ -196,7 +219,7 @@ describe('Hours: Right now', () => {
     });
     await openHours();
     fireEvent.click(screen.getByRole('button', { name: 'Pause new orders' }));
-    fireEvent.click(within(screen.getByRole('menu', { name: 'Pause new orders' })).getByRole('menuitem', { name: 'Pause until closing' }));
+    fireEvent.click(within(screen.getByRole('menu', { name: 'Pause new orders' })).getByRole('menuitem', { name: /^Pause until closing/ }));
     await waitFor(() => expect(seen).toHaveLength(1));
     expect(seen[0]).toEqual({ is_accepting_orders: true, pause_until_closing: true });
     expect((await screen.findByTestId('right-now-reason')).textContent).toMatch(/^Paused until closing, \d{1,2}:\d{2} [ap]m( tomorrow)?\.$/);
@@ -224,7 +247,7 @@ describe('Hours: Right now', () => {
     });
     await openHours();
     fireEvent.click(screen.getByRole('button', { name: 'Pause new orders' }));
-    fireEvent.click(within(screen.getByRole('menu', { name: 'Pause new orders' })).getByRole('menuitem', { name: 'Pause until closing' }));
+    fireEvent.click(within(screen.getByRole('menu', { name: 'Pause new orders' })).getByRole('menuitem', { name: /^Pause until closing/ }));
     expect(await screen.findByText(/outside your opening hours, so there is no closing/)).toBeTruthy();
     expect(screen.getByTestId('right-now-badge').textContent).toBe('Open');
   });
@@ -237,7 +260,7 @@ describe('Hours: Right now', () => {
     });
     await openHours();
     fireEvent.click(screen.getByRole('button', { name: 'Pause new orders' }));
-    fireEvent.click(within(screen.getByRole('menu', { name: 'Pause new orders' })).getByRole('menuitem', { name: 'Pause until closing' }));
+    fireEvent.click(within(screen.getByRole('menu', { name: 'Pause new orders' })).getByRole('menuitem', { name: /^Pause until closing/ }));
     expect(await screen.findByText(/Couldn’t pause new orders/)).toBeTruthy();
     expect(screen.getByTestId('right-now-badge').textContent).toBe('Open');
   });
