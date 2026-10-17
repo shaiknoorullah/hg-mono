@@ -12,7 +12,7 @@
  * can fold to a 48px strip with a "Show {label}" button. No dependency: react-resizable-panels
  * is not installed, so this is pointer events and CSS.
  */
-import { Fragment, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react';
+import { Fragment, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react';
 
 import { IconButton } from './adapters/IconButton.adapter';
 import { cx } from './internal/cx';
@@ -23,6 +23,8 @@ export interface SplitPane {
   id: string;
   /** Names the pane: "Resize {label}", "Show {label}". */
   label: string;
+  /** The folded strip's button name, when "Show {label}" is not what the board says. */
+  showLabel?: string;
   content: ReactNode;
   /** Takes the remaining width. Exactly one pane should be fill (default: the last). */
   fill?: boolean;
@@ -56,6 +58,20 @@ export function SplitPanes({ panes, onResize, className, testId = 'SplitPanes' }
     Object.fromEntries(panes.map((p) => [p.id, p.defaultSize ?? 360])),
   );
   const drag = useRef<{ id: string; startX: number; startSize: number; sign: 1 | -1 } | null>(null);
+
+  // Folding or unfolding moves the control the person just used out of the page: keep focus with
+  // them. Folded: the strip's Show button. Unfolded: the first control inside the pane (the fold button).
+  const wasFolded = useRef<Record<string, boolean>>(Object.fromEntries(panes.map((p) => [p.id, Boolean(p.collapsible && p.collapsed)])));
+  useEffect(() => {
+    for (const pane of panes) {
+      const folded = Boolean(pane.collapsible && pane.collapsed);
+      if (wasFolded.current[pane.id] === folded) continue;
+      wasFolded.current[pane.id] = folded;
+      const root = document.getElementById(pane.id);
+      const target = folded ? root?.querySelector<HTMLElement>('[data-pane-strip] button') : root?.querySelector<HTMLElement>('[data-pane-content] button');
+      target?.focus();
+    }
+  });
 
   const limits = (pane: SplitPane) => ({ min: pane.minSize ?? 240, max: pane.maxSize ?? 720 });
   const setSize = (pane: SplitPane, next: number) => {
@@ -129,11 +145,11 @@ export function SplitPanes({ panes, onResize, className, testId = 'SplitPanes' }
               style={folded ? { width: STRIP } : isFill ? undefined : { width: sizes[pane.id] ?? 360 }}
             >
               {folded ? (
-                <div className="flex h-full flex-col items-center border-e border-line-decorative bg-surface-subtle pt-2">
-                  <IconButton icon="chevron-right" accessibilityLabel={`Show ${pane.label}`} aria-expanded={false} aria-controls={`${pane.id}-content`} onPress={() => pane.onCollapsedChange?.(false)} />
+                <div data-pane-strip className="flex h-full flex-col items-center border-e border-line-decorative bg-surface-subtle pt-2">
+                  <IconButton icon="chevron-right" accessibilityLabel={pane.showLabel ?? `Show ${pane.label}`} aria-expanded={false} aria-controls={`${pane.id}-content`} onPress={() => pane.onCollapsedChange?.(false)} />
                 </div>
               ) : null}
-              <div id={`${pane.id}-content`} hidden={folded} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              <div id={`${pane.id}-content`} data-pane-content hidden={folded} className="flex min-h-0 flex-1 flex-col overflow-hidden">
                 {pane.content}
               </div>
             </div>

@@ -7,7 +7,7 @@ import { useHref, useNavigate } from 'react-router-dom';
 
 import { unwrap } from '../../../lib/load';
 import { api } from '../../data/api';
-import { DataGrid, ErrorState, Skeleton, type DataGridColumn } from '../../ds';
+import { DataGrid, ErrorState, IconButton, Skeleton, type DataGridColumn } from '../../ds';
 import { StateBadge } from '../cells';
 import { ORDER_STATE } from '../labels';
 import { asContract, NO_FILTERS, ordersQuery, RUNNING_STATES, type OrderSummary } from '../model';
@@ -20,7 +20,16 @@ export function listSourceOf(raw: string | null): ListSource {
 
 const TITLE: Record<ListSource, string> = { all: 'Orders', running: 'Orders still running', disputes: 'Disputed orders' };
 
-export function ListPane({ from, selectedId }: { from: ListSource; selectedId: string }) {
+/** The pane's heading (`ORD/OrderDetail`'s list header): short, because the pane is narrow. */
+const HEADING: Record<ListSource, string> = { all: 'Orders', running: 'Still running', disputes: 'Open disputes' };
+
+/** The names of the two controls that fold the pane to its strip and bring it back. */
+export const listFoldLabels = (from: ListSource) => ({
+  collapse: `Collapse the ${HEADING[from].toLowerCase()} list`,
+  show: `Show the ${HEADING[from].toLowerCase()} list`,
+});
+
+export function ListPane({ from, selectedId, onCollapse }: { from: ListSource; selectedId: string; onCollapse: () => void }) {
   const navigate = useNavigate();
   const base = useHref('/orders');
   const [rows, setRows] = useState<OrderSummary[]>([]);
@@ -63,8 +72,18 @@ export function ListPane({ from, selectedId }: { from: ListSource; selectedId: s
     },
   ];
 
+  const count = rows.length;
   return (
     <div className="flex h-full min-h-0 flex-col">
+      <div className="flex items-center gap-2 border-b border-line-decorative px-3 py-2">
+        <h2 className="m-0 flex-1 text-heading-sm text-fg-primary">{HEADING[from]}</h2>
+        {status === 'ready' ? (
+          <span className="text-body-sm text-fg-secondary" aria-label={`${count} ${count === 1 ? 'order' : 'orders'} in this list`}>
+            {count}
+          </span>
+        ) : null}
+        <IconButton icon="back" accessibilityLabel={listFoldLabels(from).collapse} onPress={onCollapse} />
+      </div>
       {status === 'error' ? (
         <ErrorState title="The list didn’t load" description="The order is unaffected. Nothing was changed." onRetry={run} />
       ) : (
