@@ -1215,30 +1215,35 @@ def _realtime(reg) -> None:
         "realtime_order_timeout_no_rider",
         "realtime",
         "RealtimeEvent[]",
-        "Three dispatch waves, nobody accepts, the order fails and is fully refunded. Ends "
-        "with `admin.dispatch_failure` on `admin:ops`.",
+        "Three dispatch waves, nobody accepts. Dispatch never cancels an order: the search "
+        "ends `NO_RIDER_FOUND` (with `admin.dispatch_failure` on `admin:ops`) and the order "
+        "stays `READY_FOR_PICKUP` until its pickup deadline runs out its escalations, when the "
+        "system cancels it (`READY_FOR_PICKUP` to `CANCELLED`, reason `NO_RIDER_FOUND`) and "
+        "refunds the customer in full. The real wait for that last step is about 45 minutes; "
+        "the script compresses it to 15 seconds.",
         [
             happy[0], happy[1], happy[2], happy[3], happy[4], happy[5], happy[6], happy[7],
             _event(9, order_channel, "dispatch.state_changed", 13000, {"order_id": order_id, "from": "PENDING", "to": "SEARCHING", "at": ts(13)}),
             _event(10, rider_channel, "dispatch.offer_withdrawn", 34000, {
                 "order_id": order_id, "offer_id": uuid_for("offer:script"), "reason": "expired",
             }),
-            _event(11, order_channel, "dispatch.state_changed", 60000, {"order_id": order_id, "from": "SEARCHING", "to": "NO_RIDER_FOUND", "at": ts(60)}),
-            state_changed(12, "PREPARING", "FAILED", 60100, "SYSTEM", reason="NO_RIDER_FOUND"),
-            _event(13, order_channel, "order.cancelled", 60200, {
+            state_changed(11, "PREPARING", "READY_FOR_PICKUP", 40000, "RESTAURANT", deadline=ts(15 * MINUTE + 40)),
+            _event(12, order_channel, "dispatch.state_changed", 60000, {"order_id": order_id, "from": "SEARCHING", "to": "NO_RIDER_FOUND", "at": ts(60)}),
+            _event(13, "admin:ops", "admin.dispatch_failure", 60100, {
+                "order_id": order_id, "waves": 3, "riders_offered": 8, "radius_m": 10000,
+            }),
+            state_changed(14, "READY_FOR_PICKUP", "CANCELLED", 75000, "SYSTEM", reason="NO_RIDER_FOUND"),
+            _event(15, order_channel, "order.cancelled", 75100, {
                 "order_id": order_id, "reason_code": "NO_RIDER_FOUND", "by": "SYSTEM",
                 "refund": {"kind": "FULL", "amount_cents": 6706, "state": "AUTHORISED"},
             }),
-            _event(14, order_channel, "refund.created", 60300, {
+            _event(16, order_channel, "refund.created", 75200, {
                 "order_id": order_id, "refund_id": uuid_for("refund:script"), "amount_cents": 6706,
                 "currency": "CAD", "reason_code": "NO_RIDER_FOUND", "state": "AUTHORISED",
             }),
-            _event(15, order_channel, "refund.settled", 90000, {
+            _event(17, order_channel, "refund.settled", 90000, {
                 "order_id": order_id, "refund_id": uuid_for("refund:script"), "amount_cents": 6706,
                 "currency": "CAD", "settled_at": ts(90),
-            }),
-            _event(16, "admin:ops", "admin.dispatch_failure", 60400, {
-                "order_id": order_id, "waves": 3, "riders_offered": 8, "radius_m": 10000,
             }),
         ],
         tags=["realtime", "script", "error-path"],

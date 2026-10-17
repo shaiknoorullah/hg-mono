@@ -91,7 +91,7 @@ describe('an order that cannot be refunded', () => {
   it.each([
     ['order_admin_view_rejected', { state: 'CANCELED' as const }, 'rejected'],
     ['order_admin_view_cancelled', { state: 'CANCELED' as const }, 'cancelled'],
-    ['order_admin_view_failed_no_rider', { state: 'FAILED' as const }, 'payment-failed'],
+    ['order_admin_view_failed', {}, 'payment-failed'],
     ['order_admin_view_preparing', { state: 'REQUIRES_CAPTURE' as const, amount_captured_cents: cents(0) }, 'nothing-captured'],
   ])('%s has nothing to refund', (name, payment, key) => {
     const can = refundability(order(name, payment));
