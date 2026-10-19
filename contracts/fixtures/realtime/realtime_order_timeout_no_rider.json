@@ -2,7 +2,7 @@
   "scenario": "realtime_order_timeout_no_rider",
   "domain": "realtime",
   "schema": "RealtimeEvent[]",
-  "describes": "Three dispatch waves, nobody accepts, the order fails and is fully refunded. Ends with `admin.dispatch_failure` on `admin:ops`.",
+  "describes": "Three dispatch waves, nobody accepts. Dispatch never cancels an order: the search ends `NO_RIDER_FOUND` (with `admin.dispatch_failure` on `admin:ops`) and the order stays `READY_FOR_PICKUP` until its pickup deadline runs out its escalations, when the system cancels it (`READY_FOR_PICKUP` to `CANCELLED`, reason `NO_RIDER_FOUND`) and refunds the customer in full. The real wait for that last step is about 45 minutes; the script compresses it to 15 seconds.",
   "operations": [],
   "status": 200,
   "tags": [
@@ -217,6 +217,25 @@
       "id": "EH2EWFAER6P0J6Z15HPD19PX3Z",
       "seq": 11,
       "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "order.state_changed",
+      "v": 1,
+      "ts": "2026-08-10T18:42:51.412Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "from": "PREPARING",
+        "to": "READY_FOR_PICKUP",
+        "at": "2026-08-10T18:42:51.412Z",
+        "reason": null,
+        "actor_kind": "RESTAURANT",
+        "deadline_at": "2026-08-10T18:57:51.412Z",
+        "eta_at": null
+      },
+      "_delay_ms": 40000
+    },
+    {
+      "id": "5ENM4FTYQ1SK31437Q1TT8R7F3",
+      "seq": 12,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
       "type": "dispatch.state_changed",
       "v": 1,
       "ts": "2026-08-10T18:43:11.412Z",
@@ -229,31 +248,46 @@
       "_delay_ms": 60000
     },
     {
-      "id": "5ENM4FTYQ1SK31437Q1TT8R7F3",
-      "seq": 12,
-      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
-      "type": "order.state_changed",
+      "id": "8C27H3GS1C0PQZN8K9SZY6BH72",
+      "seq": 13,
+      "channel": "admin:ops",
+      "type": "admin.dispatch_failure",
       "v": 1,
       "ts": "2026-08-10T18:43:11.512Z",
       "data": {
         "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
-        "from": "PREPARING",
-        "to": "FAILED",
-        "at": "2026-08-10T18:43:11.512Z",
+        "waves": 3,
+        "riders_offered": 8,
+        "radius_m": 10000
+      },
+      "_delay_ms": 60100
+    },
+    {
+      "id": "YBMY828S5WRZ05DF7NXRBGBZPT",
+      "seq": 14,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "order.state_changed",
+      "v": 1,
+      "ts": "2026-08-10T18:43:26.412Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "from": "READY_FOR_PICKUP",
+        "to": "CANCELLED",
+        "at": "2026-08-10T18:43:26.412Z",
         "reason": "NO_RIDER_FOUND",
         "actor_kind": "SYSTEM",
         "deadline_at": null,
         "eta_at": null
       },
-      "_delay_ms": 60100
+      "_delay_ms": 75000
     },
     {
-      "id": "Y1MJ10AG6ZHYPC7W0233DZN50Y",
-      "seq": 13,
+      "id": "S0X44QAH1BPEE15CAMZG3PVZBX",
+      "seq": 15,
       "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
       "type": "order.cancelled",
       "v": 1,
-      "ts": "2026-08-10T18:43:11.612Z",
+      "ts": "2026-08-10T18:43:26.512Z",
       "data": {
         "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
         "reason_code": "NO_RIDER_FOUND",
@@ -264,15 +298,15 @@
           "state": "AUTHORISED"
         }
       },
-      "_delay_ms": 60200
+      "_delay_ms": 75100
     },
     {
-      "id": "YBMY828S5WRZ05DF7NXRBGBZPT",
-      "seq": 14,
+      "id": "XM3391QF4XBR1EW0THKQ6X95P8",
+      "seq": 16,
       "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
       "type": "refund.created",
       "v": 1,
-      "ts": "2026-08-10T18:43:11.712Z",
+      "ts": "2026-08-10T18:43:26.612Z",
       "data": {
         "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
         "refund_id": "fbb2ea5e-bfc7-40fd-a9eb-09546b02cda0",
@@ -281,11 +315,11 @@
         "reason_code": "NO_RIDER_FOUND",
         "state": "AUTHORISED"
       },
-      "_delay_ms": 60300
+      "_delay_ms": 75200
     },
     {
-      "id": "S0X44QAH1BPEE15CAMZG3PVZBX",
-      "seq": 15,
+      "id": "MC2NS3WCVMNN5NNAN6F4TVSKG6",
+      "seq": 17,
       "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
       "type": "refund.settled",
       "v": 1,
@@ -298,21 +332,6 @@
         "settled_at": "2026-08-10T18:43:41.412Z"
       },
       "_delay_ms": 90000
-    },
-    {
-      "id": "WTQKD6P6PS92CPNP65BAGF7CYK",
-      "seq": 16,
-      "channel": "admin:ops",
-      "type": "admin.dispatch_failure",
-      "v": 1,
-      "ts": "2026-08-10T18:43:11.812Z",
-      "data": {
-        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
-        "waves": 3,
-        "riders_offered": 8,
-        "radius_m": 10000
-      },
-      "_delay_ms": 60400
     }
   ]
 }

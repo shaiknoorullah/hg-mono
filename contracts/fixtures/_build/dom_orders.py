@@ -99,12 +99,16 @@ ORDER_STATES: dict[str, tuple[str | None, bool, bool, str]] = {
         "Terminal. The restaurant rejected it — `reject_reason: ITEM_UNAVAILABLE`. The "
         "authorisation is voided; no money ever moved.",
     ),
+    # The only way into FAILED is a PaymentIntent that permanently failed before the restaurant
+    # saw the order (docs/spec/01-platform.md, order state machine, the CREATED to FAILED row).
+    # A no-rider order ends CANCELLED, never FAILED: see `customer_cancelled_no_rider`.
     "FAILED": (
-        "NO_RIDER_FOUND",
+        None,
         False,
         False,
-        "Terminal. Dispatch exhausted every wave and found no rider "
-        "(`cancel_reason: NO_RIDER_FOUND`). Fully refunded.",
+        "Terminal. The payment permanently failed before the "
+        "restaurant saw the order. Nothing was authorised or charged, so there is nothing to "
+        "refund. There is no `cancel_reason`: the order was never cancelled.",
     ),
     "DISPUTED": (
         "COMPLETED",
@@ -141,8 +145,8 @@ def _timestamps(state: str) -> dict[str, Any]:
     if state in ("CANCELLED", "REJECTED", "FAILED"):
         base.update(
             {
-                "accepted_at": None if state != "FAILED" else ts(-29 * MINUTE),
-                "ready_at": None if state != "FAILED" else ts(-14 * MINUTE),
+                "accepted_at": None,
+                "ready_at": None,
                 "picked_up_at": None,
                 "delivered_at": None,
                 "completed_at": None,
@@ -207,7 +211,7 @@ def _timeline(state: str) -> list[dict]:
     elif state == "REJECTED":
         chosen = sequence[:3] + [("REJECTED", "RESTAURANT", -30 * MINUTE)]
     elif state == "FAILED":
-        chosen = sequence[:5] + [("FAILED", "SYSTEM", -6 * MINUTE)]
+        chosen = sequence[:1] + [("FAILED", "SYSTEM", -31 * MINUTE)]
     elif state == "DISPUTED":
         chosen = sequence + [("DISPUTED", "CUSTOMER", -40)]
     else:  # RESOLVED
@@ -224,7 +228,7 @@ def _timeline(state: str) -> list[dict]:
                 "reason": {
                     "CANCELLED": "Customer cancelled before the restaurant accepted",
                     "REJECTED": "Restaurant rejected: ITEM_UNAVAILABLE",
-                    "FAILED": "No rider accepted after 3 dispatch waves",
+                    "FAILED": "The payment permanently failed",
                     "DISPUTED": "Customer reported a missing item",
                     "RESOLVED": "Partial refund issued and case closed",
                 }.get(to_state),
@@ -258,7 +262,6 @@ def customer_order(state: str, *, tip_cents: int = 700, label: str | None = None
         "dispatch_state": dispatch_state,
         "cancel_reason": {
             "CANCELLED": "CUSTOMER_CANCELLED",
-            "FAILED": "NO_RIDER_FOUND",
         }.get(state),
         "reject_reason": "ITEM_UNAVAILABLE" if state == "REJECTED" else None,
         "eta_at": _eta(state),
@@ -321,6 +324,20 @@ def _order_payment(order_state: str, priced: dict, **over: Any) -> dict:
         "authorized_at": None if payment_state == "REQUIRES_ACTION" else ts(-31 * MINUTE),
         "captured_at": ts(-29 * MINUTE) if payment_state == "SUCCEEDED" else None,
     }
+    if order_state == "FAILED":
+        # A permanently failed PaymentIntent: the card was declined, so nothing was authorised.
+        out.update(
+            {
+                "state": "FAILED",
+                "amount_authorized_cents": 0,
+                "amount_captured_cents": 0,
+                "failure_code": "card_declined",
+                "decline_code": "insufficient_funds",
+                "client_secret": None,
+                "authorized_at": None,
+                "captured_at": None,
+            }
+        )
     out.update(over)
     return out
 
@@ -738,7 +755,8 @@ def order_admin_view(synth, state: str, *, base_over: dict | None = None, **over
     # null, so nobody at HalalGoes can read a code out to a rider (security review on
     # #183, https://github.com/shaiknoorullah/hg-mono/issues/183).
     base["delivery_code"] = None
-    ledger = [
+    # A payment that failed posted nothing: no postings, so no ledger entries to decompose.
+    ledger = [] if state == "FAILED" else [
         {
             **synth.make("LedgerEntry", f"ledger-{state}-{i}"),
             "account": acct,
@@ -758,7 +776,8 @@ def order_admin_view(synth, state: str, *, base_over: dict | None = None, **over
     out = {
         **base,
         "timeline": _timeline(state),
-        "dispatch_history": [
+        # The search starts when the restaurant accepts; an order whose payment failed never got there.
+        "dispatch_history": [] if state == "FAILED" else [
             {"state": "PENDING", "wave": None, "radius_m": None, "rider_account_id": None, "offer_outcome": None, "at": ts(-29 * MINUTE)},
             {"state": "SEARCHING", "wave": 1, "radius_m": 3000, "rider_account_id": None, "offer_outcome": None, "at": ts(-28 * MINUTE)},
             {"state": "OFFERED", "wave": 1, "radius_m": 3000, "rider_account_id": uuid_for("account:rider:bilal"), "offer_outcome": "EXPIRED", "at": ts(-27 * MINUTE)},
@@ -834,26 +853,6 @@ def _admin_orders(reg, synth) -> None:
         "split is computed at authorisation and stored). The money timeline shows the "
         "payment, the request, the agent sending it up, and a chargeback with one evidence note.",
         disputed,
-        operations=["getOrderAdmin"],
-        tags=["admin", "error-path"],
-    )
-
-    reg.add(
-        "order_admin_view_failed_no_rider",
-        "orders",
-        "OrderAdminView",
-        "Three dispatch waves, eight riders offered, nobody accepted. The order failed and "
-        "was fully refunded — the case `admin.dispatch_failure` fires on.",
-        admin_order(
-            "FAILED",
-            dispatch_history=[
-                {"state": "PENDING", "wave": None, "radius_m": None, "rider_account_id": None, "offer_outcome": None, "at": ts(-14 * MINUTE)},
-                {"state": "SEARCHING", "wave": 1, "radius_m": 3000, "rider_account_id": None, "offer_outcome": None, "at": ts(-13 * MINUTE)},
-                {"state": "SEARCHING", "wave": 2, "radius_m": 6000, "rider_account_id": None, "offer_outcome": None, "at": ts(-12 * MINUTE)},
-                {"state": "SEARCHING", "wave": 3, "radius_m": 10000, "rider_account_id": None, "offer_outcome": None, "at": ts(-11 * MINUTE)},
-                {"state": "NO_RIDER_FOUND", "wave": 3, "radius_m": 10000, "rider_account_id": None, "offer_outcome": None, "at": ts(-6 * MINUTE)},
-            ],
-        ),
         operations=["getOrderAdmin"],
         tags=["admin", "error-path"],
     )
