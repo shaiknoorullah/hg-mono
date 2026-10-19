@@ -2,7 +2,7 @@
 covers:
   - .github/workflows/e2e.yml
   - tools/e2e/**
-reviewed: 2026-10-17
+reviewed: 2026-10-19
 ---
 
 # End-to-end flows
@@ -29,7 +29,7 @@ The full list of journeys still to cover is the harness plan in
 |---|---|
 | **Run workflow** on the Actions tab (`workflow_dispatch`) | Every flow, or only the web flows (input `flows`), on the branch picked |
 | **Nightly**, 05:30 UTC | Every flow, on `main`. Skipped when `main` has not changed since the last nightly run, passed or failed: a failure is retried by hand or by the next change |
-| A pull request with the **`e2e` label** | The web flows only, on every push while the label is on. No APK build and no emulator: those cost the most minutes ([below](#what-it-costs)). Without the label no job starts, so it costs nothing |
+| A pull request with the **`e2e` label** | The web flows only, on every push while the label is on. No APK build and no emulator: those take the longest ([below](#what-it-costs)). Without the label no job starts |
 | A pull request with the **`e2e-full` label** | Every flow, emulator included, on every push while the label is on. The by-hand run for a pull request: a workflow can only be started from the Actions tab once it is on `main`. Remove the label when done |
 
 A run on a pull request reads no secret. No run needs one: the API runs with `HG_ENV=local`, so it
@@ -257,8 +257,10 @@ board by that name, and judges it (a web capture pixel by pixel, a native one by
   design AVD in the state the board is drawn in ([phone captures](../design-diff/README.md#phone-captures)).
   `<area>` is the canvas folder and `<Board>` the file name without `.dc.html`, spelled exactly (case included);
   the app is the folder the screenshots are in, so a customer capture is the board `customer/<area>/<Board>`.
-  Capture in the device-lab flows (`lab/`, and `1-first-run.yaml` that the sign-in mission also runs), not the flows
-  `run.sh` runs in CI: that emulator is 411 dp wide, and a native capture of another width than its board is not compared.
+  Capture in the device-lab flows (`lab/`, and `1-first-run.yaml` that the sign-in mission also runs) until a CI run has
+  shown the width below. The CI emulator is a Pixel 6 profile, 411 dp wide, and a native capture of another width than
+  its board is not compared; [`android/design-size.sh`](android/design-size.sh) sets it to 443 dpi (390 dp) before
+  `run.sh`, and the `design-size:` line in the `flows` job's log is the measured width. Trust it only once that line reads 390.
   The customer boards that no flow captures, each with its reason, are in
   [`native/customer-boards.mjs`](native/customer-boards.mjs); `pnpm e2e:boards:check` fails on a capture named for a
   board that does not exist, and (with `origin/claude/redesign-canvases` fetched) on a board that is neither captured nor
@@ -297,11 +299,12 @@ pnpm --filter @hg/design-diff report --results ../../e2e-out/design-diff
 
 ## What it costs
 
-The repository is private, so every minute counts against the account's monthly Actions
-allowance (2,000 minutes on GitHub Free, 3,000 on Pro; Linux minutes count once). Estimates until
-the first runs measure them; every job has a timeout:
+The repository is public, so minutes on GitHub-hosted Linux runners are free and no label or
+nightly run spends an allowance (`gh repo view --json isPrivate` says `false`). What a run still
+costs is time, and a pull request waits on it. Estimates until the first runs measure them; every
+job has a timeout:
 
-| Run | Jobs | Minutes, about |
+| Run | Jobs | Minutes of run time, about |
 |---|---|---|
 | Nightly, apps changed | plan 1, two APK builds 2 × 15, flows 30 | 60 |
 | Nightly, apps unchanged (the APKs come from the cache) | plan 1, APKs 2 × 1, flows 30 | 35 |
@@ -311,10 +314,12 @@ the first runs measure them; every job has a timeout:
 | Run workflow, `flows: web` | plan 1, flows 15 | 16 |
 | Each redesign build, once an app has redesign specs or flows | web: about 1 more per app in `flows`; Android: one more APK build, 15 (1 from the cache), and its flows | +1 to +30 |
 
-A month of nightly runs on a busy `main` is about 1,000 to 1,800 minutes, most of a Free
-allowance. To spend less: run the nightly on fewer days (the `cron` line in the workflow), or
-label only the PRs that change an app's flows. iOS runs would cost ten times as much per minute
-on macOS runners and are not part of this workflow
+A month of nightly runs on a busy `main` is about 1,000 to 1,800 minutes of run time, which costs
+nothing here. To spend less time, label only the pull requests that change an app's flows, or run
+the nightly on fewer days (the `cron` line in the workflow). If the repository ever goes private
+again, the free allowance is 2,000 minutes a month on GitHub Free and 3,000 on Pro, and this
+section's arithmetic matters again. iOS runs need macOS runners, which are slower to get and
+run, and are not part of this workflow
 ([#77](https://github.com/shaiknoorullah/hg-mono/issues/77)).
 
 ## What these flows cannot do yet
