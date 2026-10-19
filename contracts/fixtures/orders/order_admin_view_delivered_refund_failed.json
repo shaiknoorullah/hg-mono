@@ -1,0 +1,463 @@
+{
+  "scenario": "order_admin_view_delivered_refund_failed",
+  "domain": "orders",
+  "schema": "OrderAdminView",
+  "describes": "A delivered order, still `DELIVERED`, with one refund settled and a second one the provider refused. A failed refund holds settlement: the order is not allowed to reach `COMPLETED`, so its settlement deadline stays armed and re-arms on every attempt until a new refund succeeds.",
+  "operations": [
+    "getOrderAdmin"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "order-state-matrix"
+  ],
+  "payload": {
+    "id": "667b2675-680b-4325-a593-040cbf33951b",
+    "code": "HG-Y3EM-BS",
+    "state": "DELIVERED",
+    "state_since": "2026-08-10T18:40:11.412Z",
+    "deadline_at": "2026-08-10T18:43:21.412Z",
+    "server_time": "2026-08-10T18:42:11.412Z",
+    "quote_id": "a97b9ca9-1b9f-42ed-a2e7-73c1461bfce6",
+    "restaurant": {
+      "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "name": "Karachi Kitchen",
+      "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+      "halal": {
+        "display_state": "CERTIFIED",
+        "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+        "expires_on": "2027-03-09"
+      }
+    },
+    "lines": [
+      {
+        "line_no": 1,
+        "menu_item_id": "e3723319-f51b-42f0-a693-8c9eb954bb0f",
+        "name": "Chicken Biryani",
+        "variant_name": null,
+        "variants": [],
+        "addons": [],
+        "quantity": 1,
+        "special_request": null,
+        "unit_price_cents": 1695,
+        "line_total_cents": 1695,
+        "currency": "CAD"
+      },
+      {
+        "line_no": 2,
+        "menu_item_id": "260778de-cee3-4a79-ad10-f79f5e9ab98e",
+        "name": "Beef Nihari",
+        "variant_name": "Full",
+        "variants": [
+          {
+            "variant_group_id": "e85bf673-4e6a-48a3-a171-fa397e45e9dc",
+            "group_name": "Portion",
+            "variant_id": "e2b1737f-75fc-43ed-af76-4bcfbb941301",
+            "variant_name": "Full",
+            "pricing_mode": "ABSOLUTE",
+            "price_cents": 3695,
+            "delta_cents": null
+          }
+        ],
+        "addons": [],
+        "quantity": 1,
+        "special_request": "Extra gravy on the side",
+        "unit_price_cents": 3695,
+        "line_total_cents": 3695,
+        "currency": "CAD"
+      },
+      {
+        "line_no": 3,
+        "menu_item_id": "456616ee-e1fc-4a94-aa83-3b1c726ff23d",
+        "name": "Chicken Karahi (Half)",
+        "variant_name": null,
+        "variants": [],
+        "addons": [
+          {
+            "addon_id": "8e05bcf1-8b4f-4578-ac6d-92f90d1cdf6f",
+            "addon_name": "Garlic naan",
+            "addon_quantity": 2,
+            "addon_price_cents": 349
+          }
+        ],
+        "quantity": 1,
+        "special_request": null,
+        "unit_price_cents": 2597,
+        "line_total_cents": 2597,
+        "currency": "CAD"
+      }
+    ],
+    "money": {
+      "subtotal_cents": 7987,
+      "discount_cents": 0,
+      "delivery_fee_cents": 449,
+      "service_fee_cents": 399,
+      "tax_lines": [
+        {
+          "jurisdiction_code": "CA-ON",
+          "tax_kind": "HST",
+          "statutory_label": "HST (13%)",
+          "rate": "0.13",
+          "base_cents": 8835,
+          "amount_cents": 1149,
+          "rebate_applied": false,
+          "remittable_by": "RESTAURANT"
+        }
+      ],
+      "tax_total_cents": 1149,
+      "tip_cents": 700,
+      "total_cents": 10684,
+      "currency": "CAD"
+    },
+    "delivery_address": {
+      "id": "926a8c05-3beb-4be0-af96-caf04f7299df",
+      "label": "Home",
+      "line1": "88 Harbour Street",
+      "line2": null,
+      "unit": "Unit 4211",
+      "buzzer": "4211",
+      "city": "Toronto",
+      "province": "ON",
+      "postal_code": "M5J 0C3",
+      "country": "CA",
+      "latitude": 43.6412,
+      "longitude": -79.381,
+      "timezone": "America/Toronto",
+      "delivery_notes": "Buzz the unit, then leave it at the door. Please don't knock.",
+      "is_default": true
+    },
+    "delivery_instructions": [
+      "LEAVE_AT_DOOR",
+      "DO_NOT_RING_BELL"
+    ],
+    "special_instructions": "Please leave it on the mat, not the shoe rack.",
+    "rider": {
+      "first_name": "Bilal",
+      "last_initial": "S",
+      "photo_url": "https://cdn.halalgoes.ca/img/avatar/rider-bilal.webp",
+      "vehicle_type": "SCOOTER",
+      "rating_avg": 4.9
+    },
+    "dispatch_state": "COMPLETED",
+    "cancel_reason": null,
+    "reject_reason": null,
+    "eta_at": "2026-08-10T18:55:11.412Z",
+    "delivery_code": null,
+    "can_cancel": false,
+    "placed_at": "2026-08-10T18:10:11.412Z",
+    "accepted_at": "2026-08-10T18:13:11.412Z",
+    "ready_at": "2026-08-10T18:28:11.412Z",
+    "picked_up_at": "2026-08-10T18:31:11.412Z",
+    "delivered_at": "2026-08-10T18:40:11.412Z",
+    "completed_at": null,
+    "timeline": [
+      {
+        "from_state": null,
+        "to_state": "CREATED",
+        "actor_kind": "CUSTOMER",
+        "reason": null,
+        "at": "2026-08-10T18:10:11.412Z"
+      },
+      {
+        "from_state": "CREATED",
+        "to_state": "AUTHORIZED",
+        "actor_kind": "SYSTEM",
+        "reason": null,
+        "at": "2026-08-10T18:10:15.412Z"
+      },
+      {
+        "from_state": "AUTHORIZED",
+        "to_state": "RESTAURANT_PENDING",
+        "actor_kind": "SYSTEM",
+        "reason": null,
+        "at": "2026-08-10T18:11:11.412Z"
+      },
+      {
+        "from_state": "RESTAURANT_PENDING",
+        "to_state": "PREPARING",
+        "actor_kind": "RESTAURANT",
+        "reason": null,
+        "at": "2026-08-10T18:13:11.412Z"
+      },
+      {
+        "from_state": "PREPARING",
+        "to_state": "READY_FOR_PICKUP",
+        "actor_kind": "RESTAURANT",
+        "reason": null,
+        "at": "2026-08-10T18:28:11.412Z"
+      },
+      {
+        "from_state": "READY_FOR_PICKUP",
+        "to_state": "PICKED_UP",
+        "actor_kind": "RIDER",
+        "reason": null,
+        "at": "2026-08-10T18:31:11.412Z"
+      },
+      {
+        "from_state": "PICKED_UP",
+        "to_state": "ARRIVED",
+        "actor_kind": "RIDER",
+        "reason": null,
+        "at": "2026-08-10T18:39:11.412Z"
+      },
+      {
+        "from_state": "ARRIVED",
+        "to_state": "DELIVERED",
+        "actor_kind": "RIDER",
+        "reason": null,
+        "at": "2026-08-10T18:40:11.412Z"
+      }
+    ],
+    "dispatch_history": [
+      {
+        "state": "PENDING",
+        "wave": null,
+        "radius_m": null,
+        "rider_account_id": null,
+        "offer_outcome": null,
+        "at": "2026-08-10T18:13:11.412Z"
+      },
+      {
+        "state": "SEARCHING",
+        "wave": 1,
+        "radius_m": 3000,
+        "rider_account_id": null,
+        "offer_outcome": null,
+        "at": "2026-08-10T18:13:31.412Z"
+      },
+      {
+        "state": "OFFERED",
+        "wave": 1,
+        "radius_m": 3000,
+        "rider_account_id": "bb344e16-80c9-43e7-a3b2-c6bc1d3ef231",
+        "offer_outcome": "EXPIRED",
+        "at": "2026-08-10T18:13:41.412Z"
+      },
+      {
+        "state": "OFFERED",
+        "wave": 2,
+        "radius_m": 6000,
+        "rider_account_id": "360dc1c7-7ab4-4557-a148-035991eda5e5",
+        "offer_outcome": "ACCEPTED",
+        "at": "2026-08-10T18:16:11.412Z"
+      },
+      {
+        "state": "ASSIGNED",
+        "wave": 2,
+        "radius_m": 6000,
+        "rider_account_id": "360dc1c7-7ab4-4557-a148-035991eda5e5",
+        "offer_outcome": null,
+        "at": "2026-08-10T18:16:11.412Z"
+      }
+    ],
+    "payment": {
+      "order_id": "667b2675-680b-4325-a593-040cbf33951b",
+      "state": "SUCCEEDED",
+      "kind": "ORDER",
+      "amount_authorized_cents": 10684,
+      "amount_captured_cents": 10684,
+      "amount_refunded_cents": 1695,
+      "currency": "CAD",
+      "card_brand": "visa",
+      "card_last4": "4242",
+      "wallet": null,
+      "failure_code": null,
+      "decline_code": null,
+      "client_secret": null,
+      "authorized_at": "2026-08-10T18:11:11.412Z",
+      "captured_at": "2026-08-10T18:13:11.412Z"
+    },
+    "refunds": [
+      {
+        "id": "8f3f23c8-899e-4dd9-a707-483004fba88d",
+        "order_id": "667b2675-680b-4325-a593-040cbf33951b",
+        "kind": "PARTIAL_ITEMS",
+        "scope": "PARTIAL_ITEMS",
+        "reason_code": "ITEM_MISSING",
+        "amount_cents": 1695,
+        "tax_cents": 220,
+        "currency": "CAD",
+        "state": "SETTLED",
+        "liability_split": {
+          "platform_cents": 0,
+          "restaurant_cents": 1695,
+          "rider_cents": 0
+        },
+        "note": "The biryani was missing from the bag.",
+        "requested_at": "2026-08-10T18:40:31.412Z",
+        "settled_at": "2026-08-10T18:41:01.412Z",
+        "failure_message": null
+      },
+      {
+        "id": "308df11b-2e30-4026-a63a-33f60eaad98d",
+        "order_id": "667b2675-680b-4325-a593-040cbf33951b",
+        "kind": "GOODWILL",
+        "scope": "PARTIAL_AMOUNT",
+        "reason_code": "GOODWILL",
+        "amount_cents": 500,
+        "tax_cents": 0,
+        "currency": "CAD",
+        "state": "FAILED",
+        "liability_split": {
+          "platform_cents": 500,
+          "restaurant_cents": 0,
+          "rider_cents": 0
+        },
+        "note": null,
+        "requested_at": "2026-08-10T18:41:31.412Z",
+        "settled_at": null,
+        "failure_message": "The card issuer declined the refund."
+      }
+    ],
+    "internal_money": {
+      "commission_cents": 0,
+      "restaurant_net_cents": 7987,
+      "rider_earnings_cents": 1149,
+      "platform_gross_cents": 399,
+      "ledger_residual_cents": 0,
+      "ledger_entries": [
+        {
+          "batch_id": "31916784-fd66-4257-af4f-f71546a05af0",
+          "batch_kind": "CAPTURE",
+          "account": "CUSTOMER_CHARGES",
+          "component": "SUBTOTAL",
+          "counterparty_type": null,
+          "counterparty_id": null,
+          "amount_cents": -10684,
+          "currency": "CAD",
+          "memo": null,
+          "posted_at": "2026-08-10T18:13:11.412Z"
+        },
+        {
+          "batch_id": "31916784-fd66-4257-af4f-f71546a05af0",
+          "batch_kind": "CAPTURE",
+          "account": "PSP_CLEARING",
+          "component": "SUBTOTAL",
+          "counterparty_type": null,
+          "counterparty_id": null,
+          "amount_cents": 10684,
+          "currency": "CAD",
+          "memo": null,
+          "posted_at": "2026-08-10T18:13:11.412Z"
+        },
+        {
+          "batch_id": "835d1b78-758b-4bde-a8e6-2093114cca00",
+          "batch_kind": "REFUND",
+          "account": "CUSTOMER_CHARGES",
+          "component": "REFUND",
+          "counterparty_type": null,
+          "counterparty_id": null,
+          "amount_cents": 1695,
+          "currency": "CAD",
+          "memo": null,
+          "posted_at": "2026-08-10T18:41:01.412Z"
+        },
+        {
+          "batch_id": "835d1b78-758b-4bde-a8e6-2093114cca00",
+          "batch_kind": "REFUND",
+          "account": "PSP_CLEARING",
+          "component": "REFUND",
+          "counterparty_type": null,
+          "counterparty_id": null,
+          "amount_cents": -1695,
+          "currency": "CAD",
+          "memo": null,
+          "posted_at": "2026-08-10T18:41:01.412Z"
+        }
+      ],
+      "currency": "CAD"
+    },
+    "pii_revealed": false,
+    "chargebacks": [],
+    "money_timeline": [
+      {
+        "kind": "PAYMENT_AUTHORISED",
+        "at": "2026-08-10T18:11:11.412Z",
+        "amount_cents": 10684,
+        "currency": "CAD",
+        "actor_kind": "SYSTEM",
+        "actor_account_id": null,
+        "refund_id": null,
+        "chargeback_id": null,
+        "reason": null
+      },
+      {
+        "kind": "PAYMENT_CAPTURED",
+        "at": "2026-08-10T18:13:11.412Z",
+        "amount_cents": 10684,
+        "currency": "CAD",
+        "actor_kind": "SYSTEM",
+        "actor_account_id": null,
+        "refund_id": null,
+        "chargeback_id": null,
+        "reason": null
+      },
+      {
+        "kind": "REFUND_REQUESTED",
+        "at": "2026-08-10T18:40:31.412Z",
+        "amount_cents": 1695,
+        "currency": "CAD",
+        "actor_kind": "ACCOUNT",
+        "actor_account_id": "6eadb17e-4986-45d0-a5ed-7d24980666dd",
+        "refund_id": "8f3f23c8-899e-4dd9-a707-483004fba88d",
+        "chargeback_id": null,
+        "reason": "The biryani was missing from the bag."
+      },
+      {
+        "kind": "REFUND_SUBMITTED",
+        "at": "2026-08-10T18:40:31.412Z",
+        "amount_cents": 1695,
+        "currency": "CAD",
+        "actor_kind": "SYSTEM",
+        "actor_account_id": null,
+        "refund_id": "8f3f23c8-899e-4dd9-a707-483004fba88d",
+        "chargeback_id": null,
+        "reason": null
+      },
+      {
+        "kind": "REFUND_SUCCEEDED",
+        "at": "2026-08-10T18:41:01.412Z",
+        "amount_cents": 1695,
+        "currency": "CAD",
+        "actor_kind": "WEBHOOK",
+        "actor_account_id": null,
+        "refund_id": "8f3f23c8-899e-4dd9-a707-483004fba88d",
+        "chargeback_id": null,
+        "reason": null
+      },
+      {
+        "kind": "REFUND_REQUESTED",
+        "at": "2026-08-10T18:41:31.412Z",
+        "amount_cents": 500,
+        "currency": "CAD",
+        "actor_kind": "ACCOUNT",
+        "actor_account_id": "6eadb17e-4986-45d0-a5ed-7d24980666dd",
+        "refund_id": "308df11b-2e30-4026-a63a-33f60eaad98d",
+        "chargeback_id": null,
+        "reason": null
+      },
+      {
+        "kind": "REFUND_SUBMITTED",
+        "at": "2026-08-10T18:41:31.412Z",
+        "amount_cents": 500,
+        "currency": "CAD",
+        "actor_kind": "SYSTEM",
+        "actor_account_id": null,
+        "refund_id": "308df11b-2e30-4026-a63a-33f60eaad98d",
+        "chargeback_id": null,
+        "reason": null
+      },
+      {
+        "kind": "REFUND_FAILED",
+        "at": "2026-08-10T18:41:31.412Z",
+        "amount_cents": 500,
+        "currency": "CAD",
+        "actor_kind": "WEBHOOK",
+        "actor_account_id": null,
+        "refund_id": "308df11b-2e30-4026-a63a-33f60eaad98d",
+        "chargeback_id": null,
+        "reason": "The card issuer declined the refund."
+      }
+    ]
+  }
+}

@@ -51,10 +51,10 @@ These are the rules the existing names already follow; new fixtures follow them 
 | `error_` | 153 | `error_<code>` for a code's plain meaning; `error_<context>_<situation>` when one code means several things (`error_menu_locked_banned`, `error_staff_email_in_use`). Status and code live in the fixture, never only in the name. | `error_quote_stale` |
 | `realtime_` | 24 | `realtime_<area>_<story>`: a whole WebSocket script, played over one connection. Areas: `order`, `payment`, `rider`, `restaurant`, `admin_ops`, plus the transport stories `gap_and_resume` and `control_frames`. | `realtime_restaurant_offer_burst` |
 | `realtime_ticket` | 1 | Not a script: the single-use ticket `createRealtimeTicket` returns. | `realtime_ticket` |
-| `order_admin_view_` | 20 | An `OrderState` (lower case) as the staff projection shows it. | `order_admin_view_disputed` |
+| `order_admin_view_` | 44 | An `OrderState` (lower case) as the staff projection shows it. | `order_admin_view_disputed` |
 | `order_list_` | 5 | A list variant: `active`, `past`, `empty`. | `order_list_active` |
 | `order_rating_` | 3 | A rating state. | `order_rating_unrated` |
-| `order_` | 23 | An `OrderState`, lower case, in the customer projection (`order_ready_for_pickup`), or a money or shape edge (`order_zero_tip`). | `order_arrived` |
+| `order_` | 24 | An `OrderState`, lower case, in the customer projection (`order_ready_for_pickup`), or a money or shape edge (`order_zero_tip`). | `order_arrived` |
 | `restaurant_order_` | 17 | An `OrderState` in the restaurant projection, or the queue (`_queue_busy`, `_queue_empty`). | `restaurant_order_preparing` |
 | `tracking_` | 9 | An `OrderState` (or a degraded signal) in the tracking projection. | `tracking_picked_up` |
 | `assignment_` | 14 | An `AssignmentState`, lower case, or a drop-off instruction edge. | `assignment_arrived_at_pickup` |

@@ -372,6 +372,30 @@ const DETAIL: ReadonlyArray<readonly [string, string, string]> = [
   ['OrderDetailChargeback', 'order_admin_view_chargeback', 'card chargeback'],
   ['OrderDetailResidual', 'order_admin_view_ledger_residual', 'ledger does not balance'],
   ['OrderDetailRevealed', 'order_admin_view_pii_revealed', 'delivery address revealed'],
+  // The states #1006 added fixtures for (https://github.com/shaiknoorullah/hg-mono/issues/1006). Each is a
+  // state the order machine can reach; the fixture names the transition that gets an order there.
+  ['OrderDetailFailed', 'order_admin_view_failed', 'payment failed'],
+  ['OrderDetailCancelled', 'order_admin_view_cancelled_after_acceptance', 'cancelled after acceptance, refunded in full'],
+  ['CancelledNoRider', 'order_admin_view_cancelled_no_rider', 'cancelled by the system, no rider found'],
+  ['CancelledPaymentExpired', 'order_admin_view_cancelled_payment_expired', 'cancelled by the system, payment not confirmed'],
+  ['CancelledRestaurantClosed', 'order_admin_view_cancelled_restaurant_closed', 'cancelled by the system, restaurant closed'],
+  ['CancelledTimeout', 'order_admin_view_cancelled_timeout', 'cancelled by the system, restaurant did not answer'],
+  ['OrderDetailDelivered', 'order_admin_view_delivered_refund_failed', 'delivered, a refund failed, settlement held'],
+  ['OrderDetailDeliveredSettled', 'order_admin_view_delivered_refund_settled', 'delivered, refund settled'],
+  ['OrderDetailDisputedDelivered', 'order_admin_view_disputed_delivered', 'disputed after delivery, before settling'],
+  ['OrderDetailDisputedMid', 'order_admin_view_disputed_mid_delivery', 'disputed by support mid-delivery'],
+  ['OrderDetailDisputedRestaurant', 'order_admin_view_disputed_restaurant', 'disputed by the restaurant before pickup'],
+  ['OrderDetailHalalConcern', 'order_admin_view_halal_concern_refund', 'halal concern refund requested'],
+  ['OrderDetailRefundStates', 'order_admin_view_refund_states', 'refund rows in every state'],
+  ['OrderDetailLedgerBatches', 'order_admin_view_ledger_batches', 'ledger batches'],
+  ['OrderDetailNoRider', 'order_admin_view_ready_no_rider', 'ready, no rider found'],
+  ['OrderDetailPrepPending', 'order_admin_view_preparing_dispatch_pending', 'preparing, dispatch about to search'],
+  ['OrderDetailReadyAtRestaurant', 'order_admin_view_ready_at_restaurant', 'ready, rider at the restaurant'],
+  ['OrderDetailReadyOffered', 'order_admin_view_ready_offered', 'ready, offered to a rider'],
+  ['OrderDetailReadySearching', 'order_admin_view_ready_searching', 'ready, searching for a rider'],
+  ['OrderDetailRearmed', 'order_admin_view_preparing_rearmed', 'preparing, deadline re-armed after an overrun'],
+  ['OrderDetailUnassigned', 'order_admin_view_ready_unassigned', 'ready, the rider dropped it'],
+  ['OrderDetailResolvedAuto', 'order_admin_view_resolved_auto', 'resolved automatically at the last deadline'],
 ];
 
 test.describe('redesigned admin · order workspace (mock)', () => {
@@ -557,6 +581,45 @@ test.describe('redesigned admin · cancel and reveal panels (mock)', () => {
     await expect(page.getByRole('dialog')).toBeVisible();
     await capture(page, { 1440: `${OR}ReauthKeepsDraft` });
   });
+
+  // What `cancelOrderAdmin` answers with: the page draws the order the server returned, with the result above it.
+  const CANCEL_RESULTS: ReadonlyArray<{ board: string; before: string; result: string; reason: string; text: string; role?: StaffRole; label: string }> = [
+    {
+      board: 'CancelResultVoid',
+      before: 'order_admin_view_restaurant_pending',
+      result: 'order_admin_view_cancel_result_void',
+      reason: 'Customer asked to cancel',
+      text: DRAFT.before,
+      label: 'an admin cancels before acceptance, authorisation voided',
+    },
+    {
+      board: 'CancelResultVoidSupport',
+      before: 'order_admin_view_restaurant_pending',
+      result: 'order_admin_view_cancel_result_void_support',
+      reason: 'Customer asked to cancel',
+      text: DRAFT.before,
+      role: 'SUPPORT_AGENT',
+      label: 'a support agent cancels before acceptance, authorisation voided',
+    },
+    {
+      board: 'CancelResultRefund',
+      before: 'order_admin_view_preparing',
+      result: 'order_admin_view_cancel_result_refund',
+      reason: 'Cancelled by support',
+      text: DRAFT.after,
+      label: 'an admin cancels after acceptance, refund issued',
+    },
+  ];
+
+  for (const { board, before, result, reason, text, role, label } of CANCEL_RESULTS) {
+    test(`cancel result, ${label}`, async ({ page }) => {
+      await openCancel(page, before, { cancel: fixture(result), ...(role ? { role } : {}) });
+      await fillCancel(page, reason, text, CASE_ID);
+      await page.getByRole('button', { name: 'Cancel order', exact: true }).click();
+      await expect(page.getByText(/^Cancelled\. (Refund issued|Authorisation voided)\.$/)).toBeVisible();
+      await capture(page, { 1440: `${OR}${board}` });
+    });
+  }
 
   test('reveal, the justification panel', async ({ page }) => {
     await openOrder(page, 'order_admin_view_preparing');

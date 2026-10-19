@@ -1,24 +1,24 @@
 {
-  "scenario": "order_admin_view_failed_no_rider",
+  "scenario": "order_admin_view_disputed_mid_delivery",
   "domain": "orders",
   "schema": "OrderAdminView",
-  "describes": "Three dispatch waves, eight riders offered, nobody accepted. The order failed and was fully refunded — the case `admin.dispatch_failure` fires on.",
+  "describes": "Support opened an incident while the rider was still carrying the order, so it went from `PICKED_UP` to `DISPUTED`. The rider still holds the delivery, so dispatch is `CARRYING`.",
   "operations": [
     "getOrderAdmin"
   ],
   "status": 200,
   "tags": [
     "admin",
-    "error-path"
+    "order-state-matrix"
   ],
   "payload": {
-    "id": "ca26cb66-950d-4c39-a919-3bb5477168fa",
-    "code": "HG-FAED-6X",
-    "state": "FAILED",
-    "state_since": "2026-08-10T18:40:41.412Z",
-    "deadline_at": null,
+    "id": "83c87a8b-f6b2-4782-abd7-082c278c483f",
+    "code": "HG-VNDK-YJ",
+    "state": "DISPUTED",
+    "state_since": "2026-08-10T18:38:11.412Z",
+    "deadline_at": "2026-08-12T18:37:11.412Z",
     "server_time": "2026-08-10T18:42:11.412Z",
-    "quote_id": "5acdb23a-a6c0-4dc2-a2b6-2060e7a8ec52",
+    "quote_id": "48f8a513-0653-46ea-a6e0-5a5880222c5a",
     "restaurant": {
       "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
       "name": "Karachi Kitchen",
@@ -131,18 +131,24 @@
       "DO_NOT_RING_BELL"
     ],
     "special_instructions": "Please leave it on the mat, not the shoe rack.",
-    "rider": null,
-    "dispatch_state": "NO_RIDER_FOUND",
-    "cancel_reason": "NO_RIDER_FOUND",
+    "rider": {
+      "first_name": "Bilal",
+      "last_initial": "S",
+      "photo_url": "https://cdn.halalgoes.ca/img/avatar/rider-bilal.webp",
+      "vehicle_type": "SCOOTER",
+      "rating_avg": 4.9
+    },
+    "dispatch_state": "CARRYING",
+    "cancel_reason": null,
     "reject_reason": null,
-    "eta_at": null,
+    "eta_at": "2026-08-10T18:50:11.412Z",
     "delivery_code": null,
     "can_cancel": false,
     "placed_at": "2026-08-10T18:10:11.412Z",
     "accepted_at": "2026-08-10T18:13:11.412Z",
     "ready_at": "2026-08-10T18:28:11.412Z",
-    "picked_up_at": null,
-    "delivered_at": null,
+    "picked_up_at": "2026-08-10T18:31:11.412Z",
+    "delivered_at": "2026-08-10T18:40:11.412Z",
     "completed_at": null,
     "timeline": [
       {
@@ -182,10 +188,17 @@
       },
       {
         "from_state": "READY_FOR_PICKUP",
-        "to_state": "FAILED",
-        "actor_kind": "SYSTEM",
-        "reason": "No rider accepted after 3 dispatch waves",
-        "at": "2026-08-10T18:36:11.412Z"
+        "to_state": "PICKED_UP",
+        "actor_kind": "RIDER",
+        "reason": null,
+        "at": "2026-08-10T18:31:11.412Z"
+      },
+      {
+        "from_state": "PICKED_UP",
+        "to_state": "DISPUTED",
+        "actor_kind": "SUPPORT",
+        "reason": "Customer says the rider is at the wrong building and won’t answer the phone",
+        "at": "2026-08-10T18:38:11.412Z"
       }
     ],
     "dispatch_history": [
@@ -195,7 +208,7 @@
         "radius_m": null,
         "rider_account_id": null,
         "offer_outcome": null,
-        "at": "2026-08-10T18:28:11.412Z"
+        "at": "2026-08-10T18:13:11.412Z"
       },
       {
         "state": "SEARCHING",
@@ -203,35 +216,35 @@
         "radius_m": 3000,
         "rider_account_id": null,
         "offer_outcome": null,
-        "at": "2026-08-10T18:29:11.412Z"
+        "at": "2026-08-10T18:14:11.412Z"
       },
       {
-        "state": "SEARCHING",
+        "state": "OFFERED",
+        "wave": 1,
+        "radius_m": 3000,
+        "rider_account_id": "bb344e16-80c9-43e7-a3b2-c6bc1d3ef231",
+        "offer_outcome": "EXPIRED",
+        "at": "2026-08-10T18:15:11.412Z"
+      },
+      {
+        "state": "OFFERED",
         "wave": 2,
         "radius_m": 6000,
-        "rider_account_id": null,
-        "offer_outcome": null,
-        "at": "2026-08-10T18:30:11.412Z"
+        "rider_account_id": "360dc1c7-7ab4-4557-a148-035991eda5e5",
+        "offer_outcome": "ACCEPTED",
+        "at": "2026-08-10T18:26:11.412Z"
       },
       {
-        "state": "SEARCHING",
-        "wave": 3,
-        "radius_m": 10000,
-        "rider_account_id": null,
+        "state": "ASSIGNED",
+        "wave": 2,
+        "radius_m": 6000,
+        "rider_account_id": "360dc1c7-7ab4-4557-a148-035991eda5e5",
         "offer_outcome": null,
-        "at": "2026-08-10T18:31:11.412Z"
-      },
-      {
-        "state": "NO_RIDER_FOUND",
-        "wave": 3,
-        "radius_m": 10000,
-        "rider_account_id": null,
-        "offer_outcome": null,
-        "at": "2026-08-10T18:36:11.412Z"
+        "at": "2026-08-10T18:26:11.412Z"
       }
     ],
     "payment": {
-      "order_id": "ca26cb66-950d-4c39-a919-3bb5477168fa",
+      "order_id": "83c87a8b-f6b2-4782-abd7-082c278c483f",
       "state": "SUCCEEDED",
       "kind": "ORDER",
       "amount_authorized_cents": 10684,
@@ -256,52 +269,28 @@
       "ledger_residual_cents": 0,
       "ledger_entries": [
         {
-          "batch_id": "af8b9dfb-661b-4c32-a326-a7a207bebff7",
+          "batch_id": "db6c41ba-3a2d-41a3-af90-f9fa698be922",
           "batch_kind": "CAPTURE",
           "account": "CUSTOMER_CHARGES",
           "component": "SUBTOTAL",
-          "counterparty_type": "RESTAURANT",
-          "counterparty_id": "c6823af1-98db-462e-a3e5-3cd11caa6928",
+          "counterparty_type": null,
+          "counterparty_id": null,
           "amount_cents": -10684,
           "currency": "CAD",
-          "memo": "Memo",
-          "posted_at": "2026-08-10T18:32:11.412Z"
+          "memo": null,
+          "posted_at": "2026-08-10T18:13:11.412Z"
         },
         {
-          "batch_id": "aaf5ec4e-7055-4623-a701-95255217effd",
+          "batch_id": "db6c41ba-3a2d-41a3-af90-f9fa698be922",
           "batch_kind": "CAPTURE",
-          "account": "RESTAURANT_PAYABLE",
+          "account": "PSP_CLEARING",
           "component": "SUBTOTAL",
-          "counterparty_type": "RESTAURANT",
-          "counterparty_id": "accee3ed-f6c3-4432-a0f0-90f2fb60b493",
-          "amount_cents": 7987,
+          "counterparty_type": null,
+          "counterparty_id": null,
+          "amount_cents": 10684,
           "currency": "CAD",
-          "memo": "Memo",
-          "posted_at": "2026-08-10T18:32:11.412Z"
-        },
-        {
-          "batch_id": "c91ad799-9d55-40ae-a93a-6360e459e63f",
-          "batch_kind": "CAPTURE",
-          "account": "RIDER_PAYABLE",
-          "component": "TIP",
-          "counterparty_type": "RESTAURANT",
-          "counterparty_id": "fdd93d46-5368-468b-a8ff-752048e92bed",
-          "amount_cents": 700,
-          "currency": "CAD",
-          "memo": "Memo",
-          "posted_at": "2026-08-10T18:32:11.412Z"
-        },
-        {
-          "batch_id": "40c646c8-43fe-467c-a190-495cefce4b07",
-          "batch_kind": "CAPTURE",
-          "account": "PLATFORM_REVENUE",
-          "component": "SERVICE_FEE",
-          "counterparty_type": "RESTAURANT",
-          "counterparty_id": "3927b93a-af0d-469b-a96d-b92700d735fb",
-          "amount_cents": 399,
-          "currency": "CAD",
-          "memo": "Memo",
-          "posted_at": "2026-08-10T18:32:11.412Z"
+          "memo": null,
+          "posted_at": "2026-08-10T18:13:11.412Z"
         }
       ],
       "currency": "CAD"

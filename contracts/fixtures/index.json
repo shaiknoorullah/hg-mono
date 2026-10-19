@@ -2,7 +2,7 @@
   "generated_by": "contracts/fixtures/_build/build.py",
   "do_not_edit": "Every file under contracts/fixtures/ is generated. Run `pnpm fixtures:build`.",
   "frozen_clock": "2026-08-10T18:42:11.412Z",
-  "count": 754,
+  "count": 779,
   "counts_by_domain": {
     "admin": 72,
     "cart": 17,
@@ -14,7 +14,7 @@
     "halal": 37,
     "handoff": 13,
     "onboarding": 52,
-    "orders": 86,
+    "orders": 111,
     "payments": 12,
     "platform": 57,
     "realtime": 24,
@@ -2581,7 +2581,7 @@
       "scenario": "dispatch_no_rider_found",
       "domain": "dispatch",
       "schema": "OrderCustomerView",
-      "describes": "`dispatch_state = NO_RIDER_FOUND` on an order in `FAILED`. Every wave exhausted. Terminal — the order fails and is refunded.",
+      "describes": "`dispatch_state = NO_RIDER_FOUND` on an order in `READY_FOR_PICKUP`. Every wave exhausted. Dispatch never cancels the order: it stays `READY_FOR_PICKUP` and its pickup deadline escalates the search, then cancels it (`CANCELLED`, refunded in full) once the escalation cap is reached.",
       "operations": [
         "getOrder",
         "getActiveOrder"
@@ -7376,6 +7376,51 @@
       "file": "orders/order_admin_view_authorized.json"
     },
     {
+      "scenario": "order_admin_view_cancel_result_refund",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "`cancelOrderAdmin` answered for an admin cancelling an order after the restaurant accepted it, while it was still being prepared. Cancelling after acceptance always authorises a whole-order refund in the same transaction; here it has been sent to the provider and is waiting for it to confirm, so the payment still shows nothing refunded.",
+      "operations": [
+        "cancelOrderAdmin",
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin"
+      ],
+      "file": "orders/order_admin_view_cancel_result_refund.json"
+    },
+    {
+      "scenario": "order_admin_view_cancel_result_void",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "`cancelOrderAdmin` answered for an admin cancelling an order that was waiting for the restaurant. The authorisation is voided and nothing was captured, so there is no refund and no ledger posting. The timeline records the actor as `ADMIN` either way: before acceptance the order machine records a staff cancel as an admin's, whichever role made it.",
+      "operations": [
+        "cancelOrderAdmin",
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin"
+      ],
+      "file": "orders/order_admin_view_cancel_result_void.json"
+    },
+    {
+      "scenario": "order_admin_view_cancel_result_void_support",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "`cancelOrderAdmin` answered for a support agent cancelling an order that was waiting for the restaurant. The authorisation is voided and nothing was captured, so there is no refund and no ledger posting. The timeline records the actor as `ADMIN` either way: before acceptance the order machine records a staff cancel as an admin's, whichever role made it.",
+      "operations": [
+        "cancelOrderAdmin",
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin"
+      ],
+      "file": "orders/order_admin_view_cancel_result_void_support.json"
+    },
+    {
       "scenario": "order_admin_view_cancelled",
       "domain": "orders",
       "schema": "OrderAdminView",
@@ -7389,6 +7434,81 @@
         "order-state-matrix"
       ],
       "file": "orders/order_admin_view_cancelled.json"
+    },
+    {
+      "scenario": "order_admin_view_cancelled_after_acceptance",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "Staff cancelled the order while it was being prepared. The cancel and a whole-order refund were one transaction, and the provider has confirmed the refund, so everything captured has been refunded.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_cancelled_after_acceptance.json"
+    },
+    {
+      "scenario": "order_admin_view_cancelled_no_rider",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "Dispatch searched three waves out to 10 km and nobody accepted, which ends the search but never cancels the order: it stayed `READY_FOR_PICKUP` until its pickup deadline ran out its escalations, then the system cancelled it with `cancel_reason: NO_RIDER_FOUND`. The customer is refunded in full, the restaurant is paid in full and the platform absorbs the cost. This replaces the fixture that called the same order `FAILED`, which no transition produces. It is the case `admin.dispatch_failure` fires on.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_cancelled_no_rider.json"
+    },
+    {
+      "scenario": "order_admin_view_cancelled_payment_expired",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "The customer never confirmed the payment, so at the 15-minute payment deadline the system cancelled the payment and the order (`cancel_reason: PAYMENT_EXPIRED`). Nothing was authorised or charged and the restaurant never saw the order.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_cancelled_payment_expired.json"
+    },
+    {
+      "scenario": "order_admin_view_cancelled_restaurant_closed",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "The payment was authorised, but the restaurant was closed or not accepting when the order was offered, so the system cancelled it (`cancel_reason: RESTAURANT_CLOSED`) and voided the authorisation. The restaurant never saw it and nothing was charged.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_cancelled_restaurant_closed.json"
+    },
+    {
+      "scenario": "order_admin_view_cancelled_timeout",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "The restaurant did not answer within the 180-second acceptance window, so the system cancelled the order (`cancel_reason: RESTAURANT_TIMEOUT`) and voided the authorisation. Nothing was charged.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_cancelled_timeout.json"
     },
     {
       "scenario": "order_admin_view_chargeback",
@@ -7451,6 +7571,36 @@
       "file": "orders/order_admin_view_delivered.json"
     },
     {
+      "scenario": "order_admin_view_delivered_refund_failed",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "A delivered order, still `DELIVERED`, with one refund settled and a second one the provider refused. A failed refund holds settlement: the order is not allowed to reach `COMPLETED`, so its settlement deadline stays armed and re-arms on every attempt until a new refund succeeds.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_delivered_refund_failed.json"
+    },
+    {
+      "scenario": "order_admin_view_delivered_refund_settled",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "A delivered order, still `DELIVERED` and about to settle, with one refund the provider has confirmed. Nothing is failing, so nothing holds the settlement deadline.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_delivered_refund_settled.json"
+    },
+    {
       "scenario": "order_admin_view_delivery_overridden",
       "domain": "orders",
       "schema": "OrderAdminView",
@@ -7481,19 +7631,94 @@
       "file": "orders/order_admin_view_disputed.json"
     },
     {
-      "scenario": "order_admin_view_failed_no_rider",
+      "scenario": "order_admin_view_disputed_delivered",
       "domain": "orders",
       "schema": "OrderAdminView",
-      "describes": "Three dispatch waves, eight riders offered, nobody accepted. The order failed and was fully refunded — the case `admin.dispatch_failure` fires on.",
+      "describes": "The customer reported a problem right after delivery, before the order settled, so it went from `DELIVERED` to `DISPUTED` and carries the 48-hour dispute deadline. It never reached `COMPLETED`.",
       "operations": [
         "getOrderAdmin"
       ],
       "status": 200,
       "tags": [
         "admin",
-        "error-path"
+        "order-state-matrix"
       ],
-      "file": "orders/order_admin_view_failed_no_rider.json"
+      "file": "orders/order_admin_view_disputed_delivered.json"
+    },
+    {
+      "scenario": "order_admin_view_disputed_mid_delivery",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "Support opened an incident while the rider was still carrying the order, so it went from `PICKED_UP` to `DISPUTED`. The rider still holds the delivery, so dispatch is `CARRYING`.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_disputed_mid_delivery.json"
+    },
+    {
+      "scenario": "order_admin_view_disputed_restaurant",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "The restaurant reported an unrecoverable problem after marking the order ready and before any pickup, so it went from `READY_FOR_PICKUP` to `DISPUTED`. A rider had accepted it and is waiting for a decision.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_disputed_restaurant.json"
+    },
+    {
+      "scenario": "order_admin_view_failed",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "The staff projection of an order in `FAILED`. Terminal. The payment permanently failed before the restaurant saw the order. Nothing was authorised or charged, so there is nothing to refund. There is no `cancel_reason`: the order was never cancelled.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_failed.json"
+    },
+    {
+      "scenario": "order_admin_view_halal_concern_refund",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "A completed order with a whole-order refund the customer raised as a halal concern. It is only `REQUESTED`: nothing is authorised yet, so the liability split is not computed (it is fixed when the refund is authorised, and depends on whether the complaint is upheld).",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_halal_concern_refund.json"
+    },
+    {
+      "scenario": "order_admin_view_ledger_batches",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "A completed order whose ledger shows each kind of batch it has in these fixtures: the capture, the provider's fee and the settlement that splits the charge between the restaurant, the platform, the rider and tax. Every batch sums to zero on its own.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_ledger_batches.json"
     },
     {
       "scenario": "order_admin_view_ledger_residual",
@@ -7572,6 +7797,51 @@
       "file": "orders/order_admin_view_preparing.json"
     },
     {
+      "scenario": "order_admin_view_preparing_dispatch_pending",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "The restaurant accepted 20 seconds ago. Dispatch has the order but has not started searching: the search starts within 10 seconds of acceptance.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_preparing_dispatch_pending.json"
+    },
+    {
+      "scenario": "order_admin_view_preparing_rearmed",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "The order of `order_admin_view_preparing` about a minute after its first prep deadline passed. The server re-armed the deadline ten minutes ahead and gave the customer a new estimate; the order is still `PREPARING`. After the third overrun the system cancels it and refunds the customer in full.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_preparing_rearmed.json"
+    },
+    {
+      "scenario": "order_admin_view_ready_at_restaurant",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "Ready for pickup, and the assigned rider is at the restaurant waiting for the bag. They still need the kitchen’s pickup code to take it.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_ready_at_restaurant.json"
+    },
+    {
       "scenario": "order_admin_view_ready_for_pickup",
       "domain": "orders",
       "schema": "OrderAdminView",
@@ -7585,6 +7855,66 @@
         "order-state-matrix"
       ],
       "file": "orders/order_admin_view_ready_for_pickup.json"
+    },
+    {
+      "scenario": "order_admin_view_ready_no_rider",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "Ready for pickup, and the search ran every wave without finding a rider. The order is not cancelled: its pickup deadline re-opens the search and alerts operations, and after the third escalation the system cancels it and refunds the customer in full.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_ready_no_rider.json"
+    },
+    {
+      "scenario": "order_admin_view_ready_offered",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "Ready for pickup, with a live offer to a rider: they have 30 seconds to answer before the search moves on.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_ready_offered.json"
+    },
+    {
+      "scenario": "order_admin_view_ready_searching",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "Ready for pickup with the search still open in its second wave, 6 km out, and no rider offered it yet.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_ready_searching.json"
+    },
+    {
+      "scenario": "order_admin_view_ready_unassigned",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "Ready for pickup, but the rider who accepted it dropped it before collecting. Dispatch re-opens the search within seconds; until then no rider holds the order.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_ready_unassigned.json"
     },
     {
       "scenario": "order_admin_view_refund_failed_settlement_held",
@@ -7601,6 +7931,21 @@
         "error-path"
       ],
       "file": "orders/order_admin_view_refund_failed_settlement_held.json"
+    },
+    {
+      "scenario": "order_admin_view_refund_states",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "A completed order carrying a refund in each state that has not been settled or failed: requested, waiting for a second approver, approved, authorised, succeeded, declined and withdrawn (settled and failed refunds have their own fixtures). Only the money the provider has confirmed shows as refunded on the payment, and the refunds that can still move money add up to less than was captured.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_refund_states.json"
     },
     {
       "scenario": "order_admin_view_rejected",
@@ -7631,6 +7976,21 @@
         "order-state-matrix"
       ],
       "file": "orders/order_admin_view_resolved.json"
+    },
+    {
+      "scenario": "order_admin_view_resolved_auto",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "A dispute nobody resolved: it was escalated at each deadline until the third, and then the system resolved it itself in the customer’s favour (`actor_kind: SYSTEM` on the move to `RESOLVED`), refunding the order in full. A person resolving a dispute is the `order_admin_view_resolved` fixture.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_resolved_auto.json"
     },
     {
       "scenario": "order_admin_view_restaurant_pending",
@@ -7729,6 +8089,21 @@
       "file": "orders/order_cancelled.json"
     },
     {
+      "scenario": "order_cancelled_no_rider",
+      "domain": "orders",
+      "schema": "OrderCustomerView",
+      "describes": "Terminal. Dispatch found no rider, the order sat `READY_FOR_PICKUP` through its pickup escalations, and the system cancelled it (`cancel_reason: NO_RIDER_FOUND`). The customer is refunded in full. This is the fixture a payment-failed order (`order_failed`) is not.",
+      "operations": [
+        "getOrder",
+        "getActiveOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "order-state-matrix"
+      ],
+      "file": "orders/order_cancelled_no_rider.json"
+    },
+    {
       "scenario": "order_completed",
       "domain": "orders",
       "schema": "OrderCustomerView",
@@ -7811,7 +8186,7 @@
       "scenario": "order_failed",
       "domain": "orders",
       "schema": "OrderCustomerView",
-      "describes": "Terminal. Dispatch exhausted every wave and found no rider (`cancel_reason: NO_RIDER_FOUND`). Fully refunded.",
+      "describes": "Terminal. The payment permanently failed before the restaurant saw the order. Nothing was authorised or charged, so there is nothing to refund. There is no `cancel_reason`: the order was never cancelled.",
       "operations": [
         "getOrder",
         "getActiveOrder",
@@ -9892,7 +10267,7 @@
       "scenario": "realtime_order_timeout_no_rider",
       "domain": "realtime",
       "schema": "RealtimeEvent[]",
-      "describes": "Three dispatch waves, nobody accepts, the order fails and is fully refunded. Ends with `admin.dispatch_failure` on `admin:ops`.",
+      "describes": "Three dispatch waves, nobody accepts. Dispatch never cancels an order: the search ends `NO_RIDER_FOUND` (with `admin.dispatch_failure` on `admin:ops`) and the order stays `READY_FOR_PICKUP` until its pickup deadline runs out its escalations, when the system cancels it (`READY_FOR_PICKUP` to `CANCELLED`, reason `NO_RIDER_FOUND`) and refunds the customer in full. The real wait for that last step is about 45 minutes; the script compresses it to 15 seconds.",
       "operations": [],
       "status": 200,
       "tags": [
@@ -11741,6 +12116,9 @@
     "cancelOrderAdmin": [
       "error_order_admin_cancel_illegal_transition",
       "error_order_admin_cancel_rate_limited",
+      "order_admin_view_cancel_result_refund",
+      "order_admin_view_cancel_result_void",
+      "order_admin_view_cancel_result_void_support",
       "order_admin_view_completed"
     ],
     "changePassword": [
@@ -11968,6 +12346,7 @@
       "order_arrived_meet_in_lobby",
       "order_authorized",
       "order_cancelled",
+      "order_cancelled_no_rider",
       "order_completed",
       "order_created",
       "order_delivered",
@@ -12104,6 +12483,7 @@
       "order_arrived_meet_in_lobby",
       "order_authorized",
       "order_cancelled",
+      "order_cancelled_no_rider",
       "order_completed",
       "order_created",
       "order_delivered",
@@ -12125,23 +12505,47 @@
     "getOrderAdmin": [
       "order_admin_view_arrived",
       "order_admin_view_authorized",
+      "order_admin_view_cancel_result_refund",
+      "order_admin_view_cancel_result_void",
+      "order_admin_view_cancel_result_void_support",
       "order_admin_view_cancelled",
+      "order_admin_view_cancelled_after_acceptance",
+      "order_admin_view_cancelled_no_rider",
+      "order_admin_view_cancelled_payment_expired",
+      "order_admin_view_cancelled_restaurant_closed",
+      "order_admin_view_cancelled_timeout",
       "order_admin_view_chargeback",
       "order_admin_view_completed",
       "order_admin_view_created",
       "order_admin_view_delivered",
+      "order_admin_view_delivered_refund_failed",
+      "order_admin_view_delivered_refund_settled",
       "order_admin_view_delivery_overridden",
       "order_admin_view_disputed",
-      "order_admin_view_failed_no_rider",
+      "order_admin_view_disputed_delivered",
+      "order_admin_view_disputed_mid_delivery",
+      "order_admin_view_disputed_restaurant",
+      "order_admin_view_failed",
+      "order_admin_view_halal_concern_refund",
+      "order_admin_view_ledger_batches",
       "order_admin_view_ledger_residual",
       "order_admin_view_masked",
       "order_admin_view_picked_up",
       "order_admin_view_pii_revealed",
       "order_admin_view_preparing",
+      "order_admin_view_preparing_dispatch_pending",
+      "order_admin_view_preparing_rearmed",
+      "order_admin_view_ready_at_restaurant",
       "order_admin_view_ready_for_pickup",
+      "order_admin_view_ready_no_rider",
+      "order_admin_view_ready_offered",
+      "order_admin_view_ready_searching",
+      "order_admin_view_ready_unassigned",
       "order_admin_view_refund_failed_settlement_held",
+      "order_admin_view_refund_states",
       "order_admin_view_rejected",
       "order_admin_view_resolved",
+      "order_admin_view_resolved_auto",
       "order_admin_view_restaurant_pending"
     ],
     "getOrderPayment": [
