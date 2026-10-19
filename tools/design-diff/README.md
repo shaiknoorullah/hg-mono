@@ -301,6 +301,6 @@ none was available when this was written. Run one flow on the design AVD and rea
 trusting a number: that run is [#966](https://github.com/shaiknoorullah/hg-mono/issues/966). Which
 emulator takes design captures at all is [#963](https://github.com/shaiknoorullah/hg-mono/issues/963)
 — the boards are 390 dp and the emulator the pull-request flows use is a Pixel 6 profile at 411 dp,
-so a capture taken there was never compared. The `e2e-full` run now sets that emulator to 443 dpi
-before the flows (`tools/e2e/android/design-size.sh`) and prints the measured width; until a run
-log shows 390, treat the device lab as the only place native captures compare.
+so a capture taken there was never compared. The `e2e-full` run now sets that emulator to 1170 x 2532 px at 480 dpi
+before the flows (`tools/e2e/android/design-size.sh`) and prints the measured size; until a run
+log shows 390 x 844, treat the device lab as the only place native captures compare.

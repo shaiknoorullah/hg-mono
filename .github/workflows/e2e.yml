@@ -344,8 +344,8 @@ jobs:
           # "isn't responding" dialog (the launcher, under load) must never cover the app under
           # test, so error dialogs are hidden first; more memory keeps the launcher responsive.
           #
-          # The design boards are 390 dp wide and a Pixel 6 is 411 dp, so the density is set first
-          # and the measured width is printed in this log (tools/e2e/android/design-size.sh).
+          # The design boards are 390 dp wide and a Pixel 6 is 411 dp, so the size and density are set
+          # first and the measured size is printed in this log (tools/e2e/android/design-size.sh).
           script: adb shell settings put global hide_error_dialogs 1 && bash tools/e2e/android/design-size.sh && bash tools/e2e/run.sh
 
       - name: Collect the stack's logs

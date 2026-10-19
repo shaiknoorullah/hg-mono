@@ -259,8 +259,8 @@ board by that name, and judges it (a web capture pixel by pixel, a native one by
   the app is the folder the screenshots are in, so a customer capture is the board `customer/<area>/<Board>`.
   Capture in the device-lab flows (`lab/`, and `1-first-run.yaml` that the sign-in mission also runs) until a CI run has
   shown the width below. The CI emulator is a Pixel 6 profile, 411 dp wide, and a native capture of another width than
-  its board is not compared; [`android/design-size.sh`](android/design-size.sh) sets it to 443 dpi (390 dp) before
-  `run.sh`, and the `design-size:` line in the `flows` job's log is the measured width. Trust it only once that line reads 390.
+  its board is not compared; [`android/design-size.sh`](android/design-size.sh) sets it to 1170 x 2532 px at 480 dpi (390 x 844 dp at 3x, the device-lab AVD) before
+  `run.sh`, and the `design-size:` line in the `flows` job's log is the measured size. Trust it only once that line reads 390 x 844.
   The customer boards that no flow captures, each with its reason, are in
   [`native/customer-boards.mjs`](native/customer-boards.mjs); `pnpm e2e:boards:check` fails on a capture named for a
   board that does not exist, and (with `origin/claude/redesign-canvases` fetched) on a board that is neither captured nor
