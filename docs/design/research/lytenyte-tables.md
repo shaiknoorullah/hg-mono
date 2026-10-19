@@ -11,7 +11,7 @@ reviewed: 2026-10-17
 > live operations map are outside this draft's scope; the operations map lists its orders as plain
 > text beneath the map rather than in a grid.
 >
-> **2026-10-17:** the order workspace's live map pane (`LiveMap` through the admin's design-system
+> **2026-10-17:** the live map pane on the order workspace (`LiveMap` through the admin's design-system
 > adapter) is outside this draft's scope too; it has a text equivalent rather than a grid.
 >
 > **2026-10-15:** the redesigned admin Orders and Disputes lists draw their rows through the
