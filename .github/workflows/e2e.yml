@@ -395,3 +395,91 @@ jobs:
             !${{ env.E2E_OUT }}/apk
           if-no-files-found: warn
           retention-days: 14
+
+  # Whether every redesigned screen matches the board it names, on every run that captures one.
+  #
+  # Nothing used to answer that in CI: the harness was unit-tested and the captures were uploaded,
+  # but no job ever rendered a board or compared one, so "pixel perfect" could only be shown by hand
+  # on a developer's machine (#1034). The verdicts on record before this were run that way, once.
+  #
+  # Its own job, not a step in `flows`: it needs no emulator, no stack and no APKs, and a 20-minute
+  # emulator run should not wait on rendering boards.
+  design-diff:
+    needs: [plan, flows]
+    if: "!cancelled() && needs.flows.result == 'success'"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      E2E_OUT: ${{ github.workspace }}/e2e-out
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      # The boards themselves, from the canvases' mirror branch. render-refs reads them with
+      # `git archive` out of this checkout, so the ref has to be here and the default checkout has
+      # only the merge commit.
+      - name: Fetch the canvases
+        run: git fetch --depth=1 origin claude/redesign-canvases:refs/remotes/origin/claude/redesign-canvases
+
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # The same build the captures were taken on. A board drawn by another build is not comparable
+      # and the renderer refuses to draw on one (tools/design-diff/README.md, "One browser for both
+      # sides"); the `flows` job installs this too, for the capture side.
+      - name: Install the Chromium build the design boards are drawn with
+        run: |
+          npx -y playwright@1.60.0 install --with-deps chromium
+          test -d "$HOME/.cache/ms-playwright/chromium-1223" || {
+            echo "::error::playwright@1.60.0 did not provide Chromium build 1223; boards cannot be compared with the captures"
+            exit 1
+          }
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: e2e-screenshots-and-traces
+          path: ${{ env.E2E_OUT }}
+
+      # Every board of the apps whose captures a browser takes, not only the areas captured: the
+      # count of boards with no capture at all is the coverage figure, and rendering only what was
+      # captured would report it as zero.
+      #
+      # `--repo` is not optional here even though it defaults to the working directory: pnpm runs
+      # the script inside tools/design-diff, and `git archive <commit> canvases` resolves its
+      # pathspec relative to the directory it runs in, so from there it looks for
+      # tools/design-diff/canvases and finds nothing.
+      - name: Render the boards
+        run: >-
+          pnpm --filter @hg/design-diff exec node src/render-refs.mjs
+          --repo "$GITHUB_WORKSPACE" --out "$E2E_OUT/design-refs" --apps restaurant,admin --concurrency 6
+
+      # --no-strict: the diff exits 1 on any FAIL, and no board passes yet. A gate that is red
+      # before the first board is fixed tells nobody anything and blocks every merge; the verdicts
+      # are published instead, and a regression gate comes once there is something to protect.
+      - name: Compare the captures with their boards
+        run: >-
+          pnpm --filter @hg/design-diff exec node src/diff.mjs --no-strict
+          --refs "$E2E_OUT/design-refs" --captures "$E2E_OUT/design-captures" --out "$E2E_OUT/design-diff"
+
+      - name: Write the report
+        if: always()
+        run: pnpm --filter @hg/design-diff exec node src/report.mjs --results "$E2E_OUT/design-diff" || true
+
+      - name: Summary
+        if: always()
+        run: node tools/design-diff/src/job-summary.mjs --results "$E2E_OUT/design-diff" >>"$GITHUB_STEP_SUMMARY" || true
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: design-diff
+          path: ${{ env.E2E_OUT }}/design-diff
+          if-no-files-found: warn
+          retention-days: 14
