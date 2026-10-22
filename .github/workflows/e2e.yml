@@ -668,6 +668,13 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+      # The regression gate (#1034): the diff above runs with --no-strict, so this is the step that can
+      # fail the job, and only when a board listed in tools/design-diff/passing.json, one that has
+      # passed on main, is not PASS here. Boards newly passing are printed for adding to the list.
+      # After the report steps, so a failing gate still leaves the verdicts and findings behind.
+      - name: Boards that passed on main still pass
+        run: node tools/design-diff/src/gate.mjs --results "$E2E_OUT/design-diff" --passing tools/design-diff/passing.json
+
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:

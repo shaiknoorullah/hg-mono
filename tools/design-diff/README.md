@@ -214,6 +214,15 @@ into a second artifact, `design-diff-near`, with `results.json`, `findings.txt` 
 best first. Those are the boards worth reading pixel by pixel:
 `gh run download <run> -n design-diff-near`.
 
+## The regression gate
+
+`passing.json` lists every board that has passed on `main`. In CI, after the report, `gate`
+(`src/gate.mjs`) fails the `design-diff` job when any listed board is not `PASS` in the run: it
+fails, was not compared, or has no capture at all (a capture spec that broke counts). The diff
+itself stays `--no-strict`, so the hundreds of boards not passing yet block nothing; only a board
+that has passed can. Boards that pass and are not listed are printed in the job log, to be added in
+the pull request that makes them pass. Removing one needs its reason in that pull request.
+
 ## Phone captures
 
 A board is the app's content only. A phone capture comes from an emulator whose content area is
@@ -266,6 +275,7 @@ the board's size, and loses Android's status and navigation bars before the comp
 | `src/job-summary.mjs` | A run's verdicts as one Markdown table, areas worst first, for a CI job summary |
 | `src/findings.mjs` | The failing boards in words, for a CI job log: why each one is not passing, and where |
 | `src/near.mjs` | The pairs under 3 % with their side-by-side and diff images, for the small `design-diff-near` CI artifact |
+| `src/gate.mjs`, `passing.json` | The regression gate: the boards that have passed on `main`, and the CI step that fails a run in which one of them does not pass |
 | `src/names.mjs`, `src/insets.mjs` | The capture names; the phone profiles and their bars |
 | `src/capture-size.mjs` | A board's size from its `canvas.json`, and the viewport a web capture is taken at: a board taller than the window at the same width is captured at its own height, because the consoles scroll inside a fixed-height frame and `fullPage` would stop at the window; and whether a capture is taken at all: only at the board's own width (`widthMismatch`) |
 | `src/vendor-fonts.mjs`, `third-party/` | React and the fonts the boards load, and their licences |
