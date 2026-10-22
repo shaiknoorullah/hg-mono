@@ -50,6 +50,8 @@ export interface AdminRoute {
   readonly path: string;
   /** The app bar heading. */
   readonly title: string;
+  /** `chrome`: the dark app bar the orders boards draw (`AppBar` tone chrome); default is the raised bar. */
+  readonly bar?: 'chrome';
   /** Roles that may open it; anyone else gets "No permission". */
   readonly roles: readonly StaffRole[];
   /** The sidebar item that is current on this route (`system` is the footer link). */
@@ -82,12 +84,12 @@ export const ADMIN_ROUTES: readonly AdminRoute[] = [
   { id: 'issuingBodies', path: '/issuing-bodies', title: 'Issuing bodies', roles: ALL, nav: 'issuingBodies', detail: false, wp: 'WP-4' },
   { id: 'menuReview', path: '/menu-reviews/:versionId', title: 'Menu reviews', roles: ADMINS, nav: 'menuReviews', detail: true, wp: 'WP-4', permission: 'menu review' },
   { id: 'menuReviews', path: '/menu-reviews', title: 'Menu reviews', roles: ADMINS, nav: 'menuReviews', detail: false, wp: 'WP-4', permission: 'menu review' },
-  { id: 'order', path: '/orders/:orderId', title: 'Order', roles: ALL, nav: 'orders', detail: true, wp: 'WP-7' },
-  { id: 'orders', path: '/orders', title: 'Orders', roles: ALL, nav: 'orders', detail: false, wp: 'WP-6' },
-  { id: 'disputes', path: '/disputes', title: 'Disputes', roles: ALL, nav: 'refunds', detail: false, wp: 'WP-6' },
+  { id: 'order', path: '/orders/:orderId', title: 'Order', bar: 'chrome', roles: ALL, nav: 'orders', detail: true, wp: 'WP-7' },
+  { id: 'orders', path: '/orders', title: 'Orders', bar: 'chrome', roles: ALL, nav: 'orders', detail: false, wp: 'WP-6' },
+  { id: 'disputes', path: '/disputes', title: 'Disputes', bar: 'chrome', roles: ALL, nav: 'refunds', detail: false, wp: 'WP-6' },
   { id: 'refunds', path: '/refunds', title: 'Refunds & disputes', roles: ALL, nav: 'refunds', detail: false, wp: 'WP-8' },
-  { id: 'alert', path: '/alerts/:seq', title: 'Live alerts', roles: ALL, nav: 'alerts', detail: false, wp: 'WP-9' },
-  { id: 'alerts', path: '/alerts', title: 'Live alerts', roles: ALL, nav: 'alerts', detail: false, wp: 'WP-9' },
+  { id: 'alert', path: '/alerts/:seq', title: 'Live alerts', bar: 'chrome', roles: ALL, nav: 'alerts', detail: false, wp: 'WP-9' },
+  { id: 'alerts', path: '/alerts', title: 'Live alerts', bar: 'chrome', roles: ALL, nav: 'alerts', detail: false, wp: 'WP-9' },
   { id: 'staffMember', path: '/staff/:staffId', title: 'Staff', roles: ADMINS, nav: 'staff', detail: false, wp: 'WP-11', permission: 'staff accounts' },
   { id: 'staff', path: '/staff', title: 'Staff', roles: ADMINS, nav: 'staff', detail: false, wp: 'WP-11', permission: 'staff accounts' },
   { id: 'account', path: '/account', title: 'Your account', roles: ALL, nav: 'account', detail: false, wp: 'WP-10' },

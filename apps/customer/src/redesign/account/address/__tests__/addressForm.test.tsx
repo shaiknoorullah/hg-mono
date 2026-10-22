@@ -1,8 +1,8 @@
 /**
  * The address form against the contract's fixtures: search, the pin step, details, save, edit,
  * make default, delete and the guard on leaving, with every failure the contract defines (boards
- * `AC/AddressForm*`). The map is a placeholder (issue #1023), so the pin is placed by a search
- * result or by Move pin, and these tests do exactly that.
+ * `AC/AddressForm*`). Jest has no Mapbox SDK, so the map draws its text-panel fallback and the pin is
+ * placed by a search result or by Move pin, and these tests do exactly that.
  */
 import * as React from 'react';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-native';

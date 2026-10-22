@@ -21,6 +21,7 @@ import { unwrap } from '../../lib/load';
 import { api } from '../data/api';
 import { formatFullDateTime, formatShortDateTime, formatTime } from '../data/format';
 import { useOnline } from '../auth/online';
+import { usePageBar } from '../app/pageTitle';
 import {
   Badge,
   Banner,
@@ -119,6 +120,7 @@ export function OrderListPage({ mode }: { mode: 'orders' | 'disputes' }) {
   const navigate = useNavigate();
   const base = useHref('/orders');
   const online = useOnline();
+  usePageBar(mode === 'disputes' ? ORDERS.disputesSubtitle : ORDERS.subtitle);
 
   // Disputes ignore every filter but the code: the state is fixed to Disputed.
   const filters = useMemo(() => {
@@ -385,7 +387,6 @@ export function OrderListPage({ mode }: { mode: 'orders' | 'disputes' }) {
   return (
     <section aria-label={disputes ? 'Disputes page' : 'Orders page'} className="flex min-h-0 flex-1 flex-col gap-3 p-3">
       {!online ? <Banner tone="warning" title={ORDERS.offlineTitle} description={ORDERS.offline(noun)} announce="status" /> : null}
-      <p className="text-body-md text-fg-secondary">{disputes ? ORDERS.disputesSubtitle : ORDERS.subtitle}</p>
 
       <FilterBar
         label={disputes ? 'Dispute filters' : 'Order filters'}

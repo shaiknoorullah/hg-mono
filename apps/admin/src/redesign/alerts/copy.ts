@@ -4,6 +4,7 @@
  * `LiveAlertsInvalidChannel` and `LiveAlertsSessionEnded`. Those two sets of boards are different.
  */
 export const ALERTS = {
+  barSubtitle: 'Dispatch failures, ledger mismatches and ops alerts, newest first',
   subtitle: 'Shows recent alerts the live connection can replay (at most the last 7 days). Reloading replays them again.',
   subtitleRecent: 'Shows recent alerts the live connection can replay. Reloading replays them again.',
   kindLabel: 'Kind of alert',

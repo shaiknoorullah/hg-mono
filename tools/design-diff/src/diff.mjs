@@ -24,6 +24,7 @@
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { setImmediate as nextTurn } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { BROWSER_APPS, browserMismatch, provenanceProblem } from './browser.mjs';
 import { CONVENTION, CONVENTION_NOTE, DEFAULTS, MISMATCH_FIELD, compare } from './compare.mjs';
@@ -31,6 +32,7 @@ import { PROFILES, profileInsets } from './insets.mjs';
 import { compareLayouts } from './layout-diff.mjs';
 import { compareNative } from './native-geometry.mjs';
 import { snapshotFromHierarchy } from './uiautomator.mjs';
+import { snapshotFromMaestro } from './maestro-hierarchy.mjs';
 import { APPS, parseBoardId, parseCaptureFile } from './names.mjs';
 import { crop, readPng, shrink, sideBySide, writePng } from './png.mjs';
 
@@ -181,7 +183,7 @@ export function nativeDensity(sidecar, screenshotWidthPx, ref) {
   return { value: screenshotWidthPx / ref.w, source: 'screenshot width over board width (the capture recorded no density)' };
 }
 
-function main() {
+async function main() {
   const o = args(process.argv.slice(2));
   const manifest = JSON.parse(readFileSync(path.join(o.refs, 'manifest.json'), 'utf8'));
   const map = o.map ? JSON.parse(readFileSync(o.map, 'utf8')) : {};
@@ -192,6 +194,13 @@ function main() {
 
   const pairs = [];
   for (const c of captures) {
+    // One turn of the event loop per pair, so the images the last pair decoded are freed. Node frees
+    // a Buffer's memory only on a turn of the event loop, and this loop never gave it one: on the
+    // GitHub runner it grew about 19 MB a pair until the 16 GB machine ran out, about 700 pairs in,
+    // and the job was cancelled with no error (run 39809562532, #1074). Measured locally, the same
+    // read-compare-write loop grew 80 MB an iteration synchronously, also with `global.gc()` after
+    // each, and stayed flat at 160 MB with this one await.
+    await nextTurn();
     if (c.pairing === null) {
       pairs.push({ id: c.rel, app: c.owner, area: null, board: null, capture: c.rel, title: null, verdict: 'UNCOVERED', reason: c.problem });
       console.log(`${'UNCOVERED'.padEnd(12)} ${''.padStart(8)}    ${c.rel}  ${c.problem}`);
@@ -236,18 +245,27 @@ function main() {
       // A native screen and an HTML board never agree pixel for pixel (different text rasterisers), so
       // pixels are not a criterion for it: the pair is measured by layout geometry and colour
       // (src/native-geometry.mjs). The pixel figure is kept for information and never sets a verdict.
-      const hierarchyFile = c.file.replace(/\.png$/, '.hierarchy.xml');
+      // Maestro's own hierarchy first, then a `uiautomator dump`. Maestro's is what a capture can
+      // actually get: the dump is killed while a flow is in progress, and a capture runs inside a
+      // flow (https://github.com/shaiknoorullah/hg-mono/issues/1026). The dump is still read when
+      // it is there, for a capture taken outside a flow or by an older run.
+      const maestroFile = c.file.replace(/\.png$/, '.hierarchy.json');
+      const dumpFile = c.file.replace(/\.png$/, '.hierarchy.xml');
+      const hierarchyFile = existsSync(maestroFile) ? maestroFile : dumpFile;
       const refPng = readPng(path.join(o.refs, ref.file));
       const info = compare(refPng, shot, { scale: ref.scale, ...thresholds })[MISMATCH_FIELD] ?? null;
       const native = { ...base, informationalSharedHeightMismatchPct: info };
       if (!existsSync(hierarchyFile)) {
-        const reason = 'the capture has no view-hierarchy snapshot (a .hierarchy.xml beside it, from `uiautomator dump`; android/capture-server.mjs writes it), so its geometry cannot be measured';
+        const reason = 'the capture has no view-hierarchy snapshot beside it, so its geometry cannot be measured: no .hierarchy.json (Maestro\'s own, which tools/e2e/native/pick-hierarchies.mjs puts there from the probe step in design-capture.yaml) and no .hierarchy.xml (a `uiautomator dump`, which cannot be taken while a flow runs)';
         pairs.push({ ...native, verdict: 'NO LAYOUT', reason });
         console.log(`${'NO LAYOUT'.padEnd(12)} ${String(info ?? '').padStart(8)} %  ${c.id}  (${c.rel})  ${reason}`);
         continue;
       }
       const density = nativeDensity(readSidecar(c.file), full, ref);
-      const snapshot = snapshotFromHierarchy(readFileSync(hierarchyFile, 'utf8'), { density: density.value, cut });
+      const raw = readFileSync(hierarchyFile, 'utf8');
+      const snapshot = hierarchyFile === maestroFile
+        ? snapshotFromMaestro(raw, { density: density.value, cut })
+        : snapshotFromHierarchy(raw, { density: density.value, cut });
       const g = compareNative(JSON.parse(readFileSync(path.join(o.refs, ref.layout), 'utf8')), snapshot, { designPng: refPng, designScale: ref.scale, appPng: shot, appScale: density.value });
       pairs.push({ ...native, verdict: g.verdict, reason: g.reason, geometry: { tolerance: g.tolerance, measured: g.measured, density }, layout: { matchedTexts: g.measured.texts ?? 0, findings: g.findings } });
       console.log(`${g.verdict.padEnd(12)} ${String(info ?? '').padStart(8)} %  ${c.id}  (${c.rel})  geometry: ${g.measured.texts ?? 0}/${g.measured.boardTexts ?? 0} texts, ${g.measured.boxes ?? 0} boxes, worst ${g.measured.worstDp ?? 0} dp${g.reason ? `; ${g.reason}` : ''}`);
@@ -301,10 +319,8 @@ function main() {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  try {
-    main();
-  } catch (e) {
+  main().catch((e) => {
     console.error(`diff: ${e.message}`);
     process.exit(2);
-  }
+  });
 }

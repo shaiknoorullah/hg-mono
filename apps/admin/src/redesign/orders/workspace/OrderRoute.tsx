@@ -33,6 +33,8 @@ import { unwrap } from '../../../lib/load';
 import { api } from '../../data/api';
 import { getSession, staffRoleOf, subscribeSession } from '../../data/session';
 import { useOnline } from '../../auth/online';
+import { usePageBar, usePageTitle } from '../../app/pageTitle';
+import { ORDER_STATE } from '../labels';
 import { Banner, Button, EmptyState, ErrorState, InlineAlert, Menu, Skeleton, SplitPanes } from '../../ds';
 import { useSyncExternalStore } from 'react';
 import { asContract } from '../model';
@@ -115,6 +117,9 @@ export default function OrderRoute() {
   });
 
   const order = load.kind === 'ready' ? load.order : null;
+  // The boards' app bar: "Orders" with a way back, and which order and state beneath it.
+  usePageTitle('Orders');
+  usePageBar(order ? `Order ${order.code} · ${ORDER_STATE[order.state].label}` : undefined, { label: 'Back to Orders', to: '/orders' });
   const close = useCallback(() => {
     setPanel('none');
     openedBy.current?.focus?.();

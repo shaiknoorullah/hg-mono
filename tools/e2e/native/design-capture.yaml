@@ -16,6 +16,23 @@
 appId: ${APP_ID}
 ---
 - takeScreenshot: ${SHOT}
+# The view hierarchy, which is the whole reason a capture can be measured rather than only looked
+# at. It cannot come from `uiautomator dump`: that command is killed while a flow is in progress,
+# and this runs inside a flow by definition. Measured, same device and run — `Killed`, `rc=137`
+# during a flow, `rc=0` with nothing driving (https://github.com/shaiknoorullah/hg-mono/issues/1026).
+#
+# Maestro has the hierarchy anyway, and writes it to `screen-hierarchy/step-NNN-<command>.json` for
+# a step that failed or was retried. An `optional` step that matches nothing is exactly that, and
+# the flow still passes: the rider flows have done it three times a run for months, with
+# `tapOn: { text: "While using the app", optional: true }`.
+#
+# So this looks for an element named after the capture, which nothing has. It never matches, the
+# file it leaves behind is named after the capture, and run.sh picks it up by that name — not by
+# the order the probes ran in, which would silently pair the wrong screen with a board the moment a
+# capture was added in the middle of a flow.
+- tapOn:
+    id: ${SHOT}
+    optional: true
 - runScript:
     file: design-capture.js
     env:

@@ -24,6 +24,7 @@ export {
   Icon,
   IconButton,
   Input,
+  MapPinPicker,
   MapView,
   Modal,
   Price,

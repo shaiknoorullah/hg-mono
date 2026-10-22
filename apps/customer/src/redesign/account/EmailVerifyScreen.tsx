@@ -17,9 +17,13 @@
  *
  * Result pages have no live region: focus moves to the heading on arrival.
  *
+ * Signed out (board `EmailVerify-signedout`): the Shell accepts the link before sign-in and passes
+ * `onSignIn`. The link still confirms the email (`verifyEmail` is public and issues no session), the
+ * profile is not read (there is no session to read it with), and the page ends in "Sign in", which
+ * drops the link and hands over to the sign-in flow.
+ *
  * Not built: the browser page and "link was for another account" (the 204 does not say whose
- * email it was), and the signed-out page, which needs a deep link to be accepted before sign-in.
- * The tracking issue lists them.
+ * email it was). The tracking issue lists them.
  */
 import * as React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -35,7 +39,7 @@ import {
   useTypeStyle,
 } from '../ds';
 import { getNow } from '../lib/now';
-import { useNav } from '../navigation/context';
+import { NavContext } from '../navigation/context';
 import { formatTime } from '../lib/time';
 import { getProfile, resendEmailLink, verifyEmailToken, VerifyError } from './accountApi';
 import type { CustomerProfile, ResendLimit } from './rules';
@@ -65,6 +69,7 @@ export const VERIFY_COPY = {
   usedTitle: 'This link was already used',
   usedBody: 'Each link works once. If you opened it before, your email may already be confirmed.',
   usedMore: 'Check Account to see.',
+  signedOutBody: 'Sign in with your mobile number to keep ordering.',
   usedConfirmedTitle: 'Your email is already confirmed',
   usedConfirmedBody: 'You opened this link before, so there is nothing more to do.',
   usedUnconfirmedBody: "Your email isn't confirmed yet. Send a new link to confirm it.",
@@ -75,6 +80,7 @@ export const VERIFY_COPY = {
 export function verifyContent(
   phase: VerifyPhase,
   resend: Resend,
+  signedOut = false,
 ): { icon: IconName; title: string; body: string; more?: string; status?: string; primary: 'account' | 'retry' | 'resend'; secondary?: 'account' } {
   const email = phase.kind === 'checking' || phase.kind === 'failed' ? null : phase.profile?.email ?? null;
   if ((phase.kind === 'expired' || phase.kind === 'used') && resend.kind === 'sent') {
@@ -84,6 +90,9 @@ export function verifyContent(
       body: `Open the email we sent to ${email}. The new link works for 24 hours.`,
       primary: 'account',
     };
+  }
+  if (signedOut && phase.kind === 'confirmed') {
+    return { icon: 'check', title: VERIFY_COPY.confirmedTitle, body: VERIFY_COPY.signedOutBody, primary: 'account' };
   }
   switch (phase.kind) {
     case 'checking':
@@ -152,7 +161,8 @@ export function verifyContent(
   }
 }
 
-async function readProfile(): Promise<CustomerProfile | null> {
+async function readProfile(signedOut: boolean): Promise<CustomerProfile | null> {
+  if (signedOut) return null;
   try {
     return await getProfile();
   } catch {
@@ -160,9 +170,14 @@ async function readProfile(): Promise<CustomerProfile | null> {
   }
 }
 
-export function EmailVerifyScreen({ token }: { token: string }): React.ReactElement {
+/**
+ * The email-link page. `onSignIn` is passed only by the Shell when the link opens before sign-in
+ * (no navigation exists then): the page confirms the email, reads no profile and ends in "Sign in".
+ */
+export function EmailVerifyScreen({ token, onSignIn }: { token: string; onSignIn?: () => void }): React.ReactElement {
   const theme = useTheme();
-  const nav = useNav();
+  const nav = React.useContext(NavContext);
+  const signedOut = onSignIn !== undefined;
   const small = useTypeStyle('body.sm');
   const h1 = useTypeStyle('heading.lg');
   const bodyStyle = useTypeStyle('body.md');
@@ -175,13 +190,13 @@ export function EmailVerifyScreen({ token }: { token: string }): React.ReactElem
     setPhase({ kind: 'checking' });
     verifyEmailToken(token)
       .then(async () => {
-        const profile = await readProfile();
+        const profile = await readProfile(signedOut);
         if (live) setPhase({ kind: 'confirmed', profile });
       })
       .catch(async (e: unknown) => {
         const code = e instanceof VerifyError ? e.code : null;
         if (code === 'VERIFICATION_TOKEN_EXPIRED' || code === 'VERIFICATION_TOKEN_USED') {
-          const profile = await readProfile();
+          const profile = await readProfile(signedOut);
           if (live) setPhase({ kind: code === 'VERIFICATION_TOKEN_EXPIRED' ? 'expired' : 'used', profile });
         } else if (live) {
           setPhase({ kind: 'failed' });
@@ -190,10 +205,10 @@ export function EmailVerifyScreen({ token }: { token: string }): React.ReactElem
     return () => {
       live = false;
     };
-  }, [token, attempt]);
+  }, [token, attempt, signedOut]);
 
   const profile = phase.kind === 'expired' || phase.kind === 'used' ? phase.profile : null;
-  const content = verifyContent(phase, resend);
+  const content = verifyContent(phase, resend, signedOut);
 
   async function sendNewLink(): Promise<void> {
     if (!profile?.email || resend.kind === 'sending') return;
@@ -219,10 +234,10 @@ export function EmailVerifyScreen({ token }: { token: string }): React.ReactElem
     return undefined;
   }, [resend]);
 
-  const goAccount = () => nav.reset({ name: 'account' });
+  const goAccount = () => (onSignIn ? onSignIn() : nav?.reset({ name: 'account' }));
   const actions =
     content.primary === 'account'
-      ? { label: 'Go to Account', onPress: goAccount }
+      ? { label: signedOut ? 'Sign in' : 'Go to Account', onPress: goAccount }
       : content.primary === 'retry'
         ? { label: 'Try again', onPress: () => setAttempt((n) => n + 1) }
         : { label: resend.kind === 'sending' ? 'Sending link' : 'Send a new link', onPress: sendNewLink, loading: resend.kind === 'sending', disabled: limited };

@@ -29,6 +29,7 @@ import { AccountScreen } from '../account/AccountScreen';
 import { AddressesScreen as RedesignedAddressesScreen } from '../account/AddressesScreen';
 import { AddressFormScreen as RedesignedAddressFormScreen } from '../account/address/AddressFormScreen';
 import { EmailVerifyScreen } from '../account/EmailVerifyScreen';
+import { AppSettingsScreen } from '../account/AppSettingsScreen';
 import { NotificationSettingsScreen } from '../account/NotificationSettingsScreen';
 import { WhatsNewScreen } from '../whatsnew/WhatsNewScreen';
 import { AddressStepScreen } from '../signin/AddressStepScreen';
@@ -51,15 +52,15 @@ export const REDESIGNED: Registry = {
   // Browse (All restaurants, with its filters sheet) and Search. Address search is not built.
   browse: (r) => <BrowseScreen sort={r.sort} openNow={r.openNow} />,
   search: () => <SearchScreen />,
-  // WP10/WP11: Account (with its edit sheet and sign-out), Saved addresses, Notification settings
-  // the email-link page, What's new (opened from Account; the once-after-an-update sheet is
-  // Home's) and the address form (search, details, edit, delete, default; its map pin step is a
-  // placeholder until the native map exists, issue #1023). App settings is not built yet and
-  // still falls back to legacy or to Account.
+  // WP10/WP11: Account (with its edit sheet and sign-out), Saved addresses, Notification settings,
+  // App settings (location permission and appearance), the email-link page, What's new (opened
+  // from Account; the once-after-an-update sheet is Home's) and the address form (search, details,
+  // edit, delete, default; its pin step is the design system's draggable-pin map).
   account: () => <AccountScreen />,
   addresses: () => <RedesignedAddressesScreen />,
   addressForm: (r) => <RedesignedAddressFormScreen addressId={r.addressId} first={r.first} />,
   notificationSettings: () => <NotificationSettingsScreen />,
+  appSettings: () => <AppSettingsScreen />,
   emailVerify: (r) => <EmailVerifyScreen token={r.token} />,
   whatsNew: () => <WhatsNewScreen />,
   // WP4: restaurant page (with its certification sheet) and the certificate viewer.

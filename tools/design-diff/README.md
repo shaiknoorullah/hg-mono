@@ -76,6 +76,15 @@ Per area, `manifest.areas` has the artifact's link and the union of its missing 
 be fetched from the artifact's asset store later. A second run into the same folder updates the
 boards it renders and keeps the rest.
 
+A note is hidden, not removed, so the pixels are right — and the **box keys ignore it too**. A box
+is keyed by the words it shows, which is not `textContent`: that returns the text of hidden
+descendants as well, so a note used to put its own words into the key of every box around it and
+those boxes could not be paired. A run reported
+`Boxes holding "Proposed component: AppBar with brand mark…": the text names more than one box on a
+side, so they were not compared` on a board whose pixels were already correct. That changes no
+verdict for a web board, which is judged on pixels, but it loses the worded findings for those
+boxes — and a native board **is** judged on its layout, so there it can change the verdict.
+
 **The designers' notes.** Boards carry inline notes ("Needs API: …", "Proposed component: …",
 "DS issue: …") that are not UI and push the layout. They are hidden before the screenshot and kept
 in the manifest (`src/page-scripts.mjs`, `hideNotes`): by the classes the canvases use only for
@@ -118,6 +127,12 @@ browser, so this rule is for the web apps (restaurant, admin) only; see "Native 
 `diff` (`src/diff.mjs`) pairs each capture under `--captures` with the board its spec declared (see Pairing),
 compares them (`src/compare.mjs`) and writes `<out>/results.json` and, per pair, `diff.png` and
 `side-by-side.png` (design, app, difference) under `<out>/pairs/`.
+
+It yields to the event loop once a pair. Node frees an image's memory only on a turn of the event
+loop, and without one the diff held every image it had decoded: on CI it grew about 19 MB a pair
+until the runner ran out of memory, about 700 pairs in, and the job was cancelled without an error
+([#1074](https://github.com/shaiknoorullah/hg-mono/pull/1074) measured it). Keep a loop over pairs
+`await`ing; calling `global.gc()` instead does not free them.
 
 **Height (the shared-height scale).** Boards are drawn at a fixed height; a real page is as tall as
 its content. Only the rows the capture and the board both have are compared, and the percentage is of
@@ -244,9 +259,10 @@ the board's size, and loses Android's status and navigation bars before the comp
 | `src/job-summary.mjs` | A run's verdicts as one Markdown table, areas worst first, for a CI job summary |
 | `src/findings.mjs` | The failing boards in words, for a CI job log: why each one is not passing, and where |
 | `src/names.mjs`, `src/insets.mjs` | The capture names; the phone profiles and their bars |
+| `src/capture-size.mjs` | A board's size from its `canvas.json`, and the viewport a web capture is taken at: a board taller than the window at the same width is captured at its own height, because the consoles scroll inside a fixed-height frame and `fullPage` would stop at the window; and whether a capture is taken at all: only at the board's own width (`widthMismatch`) |
 | `src/vendor-fonts.mjs`, `third-party/` | React and the fonts the boards load, and their licences |
 | `android/` | The capture AVDs and the device state; `capture-server.mjs`, which writes a native capture's hierarchy and provenance |
-| `test/` | `pnpm --filter @hg/design-diff test:unit`: the verdict, the bars, the names, the findings |
+| `test/` | `pnpm --filter @hg/design-diff test:unit`: the verdict, the bars, the names, the findings, and which capture specs failed ([`tools/e2e/web/capture-failures.mjs`](../e2e/web/capture-failures.mjs) — it lives with the e2e suite that writes the reports, and is tested here because what it reports is a board without a capture) |
 
 ## Native boards (customer, rider)
 
@@ -315,6 +331,20 @@ real captures show the spread.
 and asks `android/capture-server.mjs` (started by `tools/e2e/run.sh` for each flow) to write the
 `.hierarchy.xml` and `.capture.json` (device, app build, density) beside it. If the server is not
 running the flow still passes and the diff reports `NO LAYOUT`.
+
+**Where a native capture's layout comes from.** Not `uiautomator dump`: that is killed while a
+Maestro flow is in progress, and a capture runs inside a flow by definition — measured on one device
+in one run, `Killed`/`rc=137` during a flow and `rc=0` with nothing driving
+([#1026](https://github.com/shaiknoorullah/hg-mono/issues/1026)). Maestro holds the hierarchy anyway
+and writes it for any step that failed or was retried, so `tools/e2e/native/design-capture.yaml`
+asks for an element named after the capture that nothing has. The capture server takes the newest
+such file at the moment the flow POSTs, which is the step straight after that probe, and writes it
+beside the screenshot as `<capture>.hierarchy.json`.
+
+It cannot be matched by file name: Maestro names the file from the **literal** command text, so a
+real run leaves `step-022-tapOnElement-${SHOT}.json` with the variable unsubstituted. Each file is
+used once, so a probe that wrote nothing is given nothing rather than the previous capture's screen.
+`diff.mjs` reads `.hierarchy.json` first and falls back to the `.hierarchy.xml` of a dump.
 
 A capture never fails the journey it measures, so the only account of why one is missing is what the
 server logged, so it is made to say as much as it can.

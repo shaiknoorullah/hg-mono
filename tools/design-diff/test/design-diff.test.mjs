@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { chmodSync } from 'node:fs';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
@@ -615,6 +615,29 @@ test('Maestro hierarchy: a real device capture becomes a layout record in dp', a
   assert.throws(() => parseMaestroHierarchy('null'), /not a Maestro hierarchy/);
 });
 
+// Naming the capture specs that failed. The captures job is lenient on purpose — one broken spec
+// must not cost every other board its verdict — which made a failure silent: a spec that fails
+// takes no capture, and the diff reports a board with no capture as "uncaptured", exactly as it
+// reports a board nobody has written a capture for. One is a regression, the other is work not
+// started.
+test('a failed capture spec is named, and a passing one never is', async () => {
+  const { failuresIn } = await import('../../e2e/web/capture-failures.mjs');
+
+  // The trap: Playwright writes passing tests as self-closing tags. Let one open a pair and its
+  // body runs on to the NEXT </testcase>, swallowing that test's <failure> and naming a test that
+  // passed — which is worse than naming none, because it sends someone to fix working code.
+  const xml = `<testsuites><testsuite name="s">
+    <testcase name="passing one" classname="a.spec.ts"/>
+    <testcase name="failing one" classname="a.spec.ts"><failure message="timeout">Error</failure></testcase>
+    <testcase name="another pass" classname="a.spec.ts"/>
+    <testcase name="crashing one" classname="b.spec.ts"><error message="boom">x</error></testcase>
+  </testsuite></testsuites>`;
+
+  assert.deepEqual(failuresIn(xml), ['a.spec.ts › failing one', 'b.spec.ts › crashing one']);
+  assert.deepEqual(failuresIn('<testsuites><testsuite name="s"><testcase name="all fine" classname="a.spec.ts"/></testsuite></testsuites>'), []);
+  assert.deepEqual(failuresIn(''), []);
+});
+
 // The findings listing a CI log carries, so a board can be looked up without downloading anything.
 // The case that matters is a board UNDER the percentage and still failing: it fails on the blob
 // rule, which the percentage alone hides, and that is where the first passes come from.
@@ -642,4 +665,61 @@ test('findings: a board under the percentage still says why it fails', async () 
   assert.ok(!text.includes('a/b/Fine'), 'a passing board is not in the list');
   assert.match(text, /shorter than its board/);
   assert.match(text, /Copy differs\./);
+});
+
+// Taking the hierarchy Maestro wrote for the probe step. It cannot be matched by file name:
+// Maestro names the file from the LITERAL command text, so a real run leaves
+// `step-022-tapOnElement-${SHOT}.json` with the variable unsubstituted. It is matched by the moment
+// instead — the capture POSTs straight after the probe — and each file is used once, so a probe
+// that wrote nothing cannot be handed the previous capture's screen
+// (https://github.com/shaiknoorullah/hg-mono/issues/1026).
+test('a capture takes the newest hierarchy once, and never a used one', async () => {
+  const { takeHierarchyForTest } = await import('../android/capture-server.mjs');
+  const dir = mkdtempSync(path.join(tmpdir(), 'th-'));
+  const sh = path.join(dir, 'run', 'flow', 'screen-hierarchy');
+  const out = path.join(dir, 'shots');
+  mkdirSync(sh, { recursive: true });
+  mkdirSync(out, { recursive: true });
+
+  const write = (n, ms) => {
+    const f = path.join(sh, n);
+    writeFileSync(f, '{"children":[]}');
+    utimesSync(f, new Date(ms), new Date(ms));
+    return f;
+  };
+  write('step-001-tapOnElement-${SHOT}.json', 1_000_000);
+  write('step-002-tapOnElement-${SHOT}.json', 2_000_000);
+
+  const first = takeHierarchyForTest(dir, out, 'design--a--One');
+  assert.ok(first && existsSync(path.join(out, 'design--a--One.hierarchy.json')), 'the newest is taken');
+
+  // Nothing newer since: a probe that wrote nothing must get nothing, not the one already used.
+  const second = takeHierarchyForTest(dir, out, 'design--a--Two');
+  assert.equal(second, null, 'a used file is never handed to a second capture');
+  assert.equal(existsSync(path.join(out, 'design--a--Two.hierarchy.json')), false);
+
+  write('step-003-tapOnElement-${SHOT}.json', 3_000_000);
+  assert.ok(takeHierarchyForTest(dir, out, 'design--a--Three'), 'a newer file is taken');
+});
+
+// snapshotLayout runs in the page through `page.evaluate`, which serialises the function and
+// nothing around it: a helper defined at module scope would be a ReferenceError in the browser and
+// would only show up on a CI run. This pins the two things that matter about the box key — that it
+// steps over the designers' notes, and that it can still be serialised.
+test('the box key ignores hidden notes, and snapshotLayout stays self-contained', async () => {
+  const { snapshotLayout } = await import('../src/page-scripts.mjs');
+  const src = String(snapshotLayout);
+
+  assert.match(src, /const shownText = /, 'the helper is inside the function page.evaluate serialises');
+  assert.ok(!/\bshownText\b/.test(src.slice(0, src.indexOf('const shownText'))), 'nothing refers to it before it exists');
+  assert.match(src, /data-design-note/, 'the key steps over the notes');
+  assert.ok(!/squash\(el\.textContent\)\.slice\(0, 80\)/.test(src), 'the key is not textContent: that returns hidden text too');
+
+  // The helper's own logic, on the shape it walks: text nodes are kept, a marked element's whole
+  // subtree is stepped over, and an unmarked element's text is kept.
+  const t = (v) => ({ nodeType: 3, nodeValue: v });
+  const e = (children, note = false) => ({ nodeType: 1, childNodes: children, hasAttribute: (a) => note && a === 'data-design-note' });
+  const shownText = new Function(`${src.slice(src.indexOf('const shownText'), src.indexOf('const boxes'))} return shownText;`)();
+  assert.equal(shownText(e([t('Sign in'), e([t('Proposed component: AppBar')], true)])), 'Sign in');
+  assert.equal(shownText(e([t('a'), e([t('b')]), t('c')])), 'abc');
 });

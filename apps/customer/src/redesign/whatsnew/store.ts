@@ -3,12 +3,11 @@
  * `AC/WhatsNew*`; issue 99).
  *
  * It sits behind a two-method store so the app can keep it in the phone's small-preferences
- * storage. The customer app has no such storage today (no `@react-native-async-storage` and no
- * `expo-secure-store` in its dependencies, and adding a native module is a build decision), so the
- * default store is memory and says so: `persistent: false`. While the store is not persistent, or
- * when reading it fails, What's new shows nothing by itself (it cannot tell what was already seen,
- * and would repeat on every launch) and stays one tap away in Account. The day a persistent store is
- * passed to `setLastSeenStore`, the sheet starts opening once per update with no other change.
+ * storage. The app does that at start-up: `RedesignApp` passes the AsyncStorage-backed store
+ * (`asyncStorage.ts`) to `setLastSeenStore`, and the sheet opens once per update. The default
+ * here is memory and says so: `persistent: false`. While the store is not persistent, or when
+ * reading it fails, What's new shows nothing by itself (it cannot tell what was already seen, and
+ * would repeat on every launch) and stays one tap away in Account.
  */
 import { useSyncExternalStore } from 'react';
 
@@ -104,7 +103,7 @@ export function markSeen(version: string): void {
   });
 }
 
-/** Where the last-seen version is kept. Not called today; see the file comment. */
+/** Where the last-seen version is kept. `RedesignApp` calls it once at start-up; see the file comment. */
 export function setLastSeenStore(next: LastSeenStore): void {
   store = next;
   epoch += 1;

@@ -11,6 +11,7 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { markOffline, resetConnectivity } from '../../lib/connectivity';
 import { setNowOverride } from '../../lib/now';
 import { resetCartMemory } from '../../ordering/cart';
+import { clearNextCard, peekNextCard, rememberNextCard } from '../nextCard';
 import { mockApi, payloadOf, type MockApi } from '../../test/mockApi';
 import { navSpy, renderRedesign, type NavSpy } from '../../test/render';
 import { MONEY_KEY, keysOf } from '../../test/requests';
@@ -46,6 +47,7 @@ async function place() {
 }
 
 beforeEach(() => {
+  clearNextCard();
   resetConnectivity();
   resetCartMemory();
   payWithSheet.mockReset();
@@ -134,6 +136,19 @@ describe('checkout: placing the order', () => {
     });
     expect(keysOf(call.body).filter((k) => MONEY_KEY.test(k))).toEqual([]);
     expect(payWithSheet).toHaveBeenCalledWith(SECRET);
+  });
+
+  it('a card picked while recovering an unpaid order is the one chosen here, once', async () => {
+    const [, mastercard] = payloadOf('payment_methods_list');
+    rememberNextCard(mastercard.id);
+    payWithSheet.mockResolvedValue({ status: 'paid' });
+    show();
+    await ready();
+    await place();
+    await waitFor(() => expect(mock.callsTo('createOrder')).toHaveLength(1));
+    expect(mock.callsTo('createOrder')[0]!.body).toMatchObject({ payment_method_id: mastercard.id });
+    // It is forgotten once read: the next checkout goes back to the default card.
+    expect(peekNextCard()).toBeUndefined();
   });
 
   it('never says placed on the sheet\'s word alone: the payment is read back first', async () => {
