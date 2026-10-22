@@ -276,9 +276,12 @@ board by that name, and judges it (a web capture pixel by pixel, a native one by
   in progress and a capture runs inside a flow, so `design-capture.yaml` asks for an element named
   after the capture that nothing has: the step fails harmlessly, Maestro writes
   `screen-hierarchy/step-NNN-…-<capture>.json` as it does for any failed step, and
-  [`native/pick-hierarchies.mjs`](native/pick-hierarchies.mjs) puts it beside the screenshot —
-  **matched by name, never by order**, so adding a capture mid-flow cannot pair one screen with
-  another's board ([#1026](https://github.com/shaiknoorullah/hg-mono/issues/1026)). This leans on
+  the capture server puts it beside the screenshot. It cannot be matched by file name: Maestro names
+  the file from the **literal** command text, so a real run leaves `step-022-tapOnElement-${SHOT}.json`
+  with the variable unsubstituted. It is matched by the moment instead — the capture POSTs in the
+  step straight after the probe, so the newest hierarchy is that probe's — and each file is used
+  once, so a probe that wrote nothing is given nothing rather than the previous capture's screen
+  ([#1026](https://github.com/shaiknoorullah/hg-mono/issues/1026)). This leans on
   Maestro's debug output rather than a documented API, so
   [`native/check-hierarchies.mjs`](native/check-hierarchies.mjs) **fails the run** when captures were
   taken and none has a hierarchy: a Maestro upgrade that stopped writing those files would otherwise

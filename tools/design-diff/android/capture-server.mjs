@@ -13,7 +13,7 @@
 // a request cannot write elsewhere. Needs adb on PATH and one device attached.
 
 import { execFile } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -58,6 +58,51 @@ export function buildFromDumpsys(out) {
   const name = /versionName=(\S+)/.exec(out)?.[1];
   const code = /versionCode=(\d+)/.exec(out)?.[1];
   return name ? `${name}${code ? ` (${code})` : ''}` : null;
+}
+
+/**
+ * The hierarchy Maestro wrote for the probe step that ran a moment ago, copied beside the capture.
+ *
+ * design-capture.yaml asks for an element named after the capture that nothing has. Maestro writes
+ * `screen-hierarchy/step-NNN-<command>-<selector>.json` for that failed step — but it names the file
+ * from the **literal** text of the command, so the selector in the name reads `${SHOT}` rather than
+ * the capture. Measured on a real run: `step-022-tapOnElement-${SHOT}.json`. The name cannot be used
+ * to pair them.
+ *
+ * What can: this runs when the flow POSTs, which is the step straight after the probe, so the newest
+ * hierarchy file is the probe's. The capture's real name comes from the POST, where it is
+ * substituted. Each file is used once — `since` only ever moves forward — so a probe that wrote
+ * nothing cannot be given the previous capture's screen, which would be a plausible wrong answer.
+ */
+let lastHierarchyMs = 0;
+export function takeHierarchyForTest(debugDir, dir, name) {
+  return takeHierarchy(debugDir, dir, name);
+}
+function takeHierarchy(debugDir, dir, name) {
+  if (!debugDir) return null;
+  let newest = null;
+  const walk = (d) => {
+    let entries;
+    try {
+      entries = readdirSync(d, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const e of entries) {
+      const p = path.join(d, e.name);
+      if (e.isDirectory()) walk(p);
+      else if (e.isFile() && e.name.endsWith('.json') && path.basename(d) === 'screen-hierarchy') {
+        const t = statSync(p).mtimeMs;
+        if (t > lastHierarchyMs && (!newest || t > newest.t)) newest = { p, t };
+      }
+    }
+  };
+  walk(debugDir);
+  if (!newest) return null;
+  lastHierarchyMs = newest.t;
+  const out = path.join(dir, `${name}.hierarchy.json`);
+  copyFileSync(newest.p, out);
+  return out;
 }
 
 async function capture({ dir, name, appId, serial }) {
@@ -122,7 +167,7 @@ async function logForwardsOnce() {
   }
 }
 
-export function serve({ dir, port, serial, defaultAppId }) {
+export function serve({ dir, port, serial, defaultAppId, debugDir = null }) {
   return createServer((req, res) => {
     let body = '';
     req.on('data', (d) => (body += d));
@@ -132,8 +177,20 @@ export function serve({ dir, port, serial, defaultAppId }) {
         if (req.method !== 'POST' || req.url !== '/capture') return reply(404, 'POST /capture');
         const { name, appId } = JSON.parse(body || '{}');
         if (typeof name !== 'string' || !parseCaptureFile(`${name}.png`)) return reply(400, `"${name}" is not a capture name (design--<area>--<Board>)`);
-        await capture({ dir, name, appId: appId || defaultAppId, serial });
-        reply(200, `wrote ${name}`);
+        // The dump is attempted first and usually fails: it cannot run while a flow is in progress.
+        // Maestro's own hierarchy is the one that works, so a failed dump must not stop it being
+        // taken (https://github.com/shaiknoorullah/hg-mono/issues/1026).
+        let dumped = true;
+        let dumpError = null;
+        try {
+          await capture({ dir, name, appId: appId || defaultAppId, serial });
+        } catch (e) {
+          dumped = false;
+          dumpError = e;
+        }
+        const layout = takeHierarchy(debugDir, dir, name);
+        if (!dumped && !layout) throw dumpError;
+        reply(200, `wrote ${name}${layout ? ' with Maestro’s hierarchy' : ''}${dumped ? '' : ' (no uiautomator dump: ' + dumpError.message + ')'}`);
       } catch (e) {
         console.error(`capture-server: ${e.message}`);
         await logForwardsOnce();
@@ -150,6 +207,6 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     process.exit(2);
   }
   const port = Number(process.env.CAPTURE_PORT ?? 4192);
-  serve({ dir: path.resolve(dir), port, serial: process.env.ANDROID_SERIAL, defaultAppId: process.env.APP_ID });
+  serve({ dir: path.resolve(dir), port, serial: process.env.ANDROID_SERIAL, defaultAppId: process.env.APP_ID, debugDir: process.env.MAESTRO_DEBUG_DIR ?? null });
   console.log(`capture-server: writing to ${dir} on 127.0.0.1:${port}`);
 }

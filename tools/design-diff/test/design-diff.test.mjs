@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { chmodSync } from 'node:fs';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
@@ -615,27 +615,37 @@ test('Maestro hierarchy: a real device capture becomes a layout record in dp', a
   assert.throws(() => parseMaestroHierarchy('null'), /not a Maestro hierarchy/);
 });
 
-// Pairing a capture with the hierarchy Maestro left for it. By name, never by order: the nth
-// hierarchy is not the nth capture the moment a capture is added in the middle of a flow, and
-// getting that wrong would read one screen against another screen's board — silently, which is
-// worse than not measuring it (https://github.com/shaiknoorullah/hg-mono/issues/1026).
-test('a capture takes the hierarchy named after it, not the one next to it', async () => {
-  const { captureNameOf, hierarchyFiles } = await import('../../e2e/native/pick-hierarchies.mjs');
-
-  assert.equal(captureNameOf('step-053-tapOnElement-design--sign-in--Main.json'), 'design--sign-in--Main');
-  assert.equal(captureNameOf('/a/b/screen-hierarchy/step-007-tapOnElement-design--discover-order--Restaurant-open.json'), 'design--discover-order--Restaurant-open');
-  // A step that failed for a real reason leaves a file here too, and is not a capture's.
-  assert.equal(captureNameOf('step-011-tapOnElement-While_using_the_app.json'), null);
-  assert.equal(captureNameOf('step-053-assertCondition-Account.json'), null);
-  assert.equal(captureNameOf('design--sign-in--Main.json'), null, 'without the step prefix it is not one of Maestro’s');
-
-  const dir = mkdtempSync(path.join(tmpdir(), 'ph-'));
-  const sh = path.join(dir, 'run', 'flow name', 'screen-hierarchy');
+// Taking the hierarchy Maestro wrote for the probe step. It cannot be matched by file name:
+// Maestro names the file from the LITERAL command text, so a real run leaves
+// `step-022-tapOnElement-${SHOT}.json` with the variable unsubstituted. It is matched by the moment
+// instead — the capture POSTs straight after the probe — and each file is used once, so a probe
+// that wrote nothing cannot be handed the previous capture's screen
+// (https://github.com/shaiknoorullah/hg-mono/issues/1026).
+test('a capture takes the newest hierarchy once, and never a used one', async () => {
+  const { takeHierarchyForTest } = await import('../android/capture-server.mjs');
+  const dir = mkdtempSync(path.join(tmpdir(), 'th-'));
+  const sh = path.join(dir, 'run', 'flow', 'screen-hierarchy');
+  const out = path.join(dir, 'shots');
   mkdirSync(sh, { recursive: true });
-  writeFileSync(path.join(sh, 'step-001-tapOnElement-design--sign-in--Main.json'), '{"children":[]}');
-  writeFileSync(path.join(sh, 'step-002-assertCondition-Account.json'), '{"children":[]}');
-  // Not under a screen-hierarchy folder, so not a hierarchy.
-  writeFileSync(path.join(dir, 'run', 'commands.json'), '[]');
-  const found = hierarchyFiles(dir).map((f) => path.basename(f)).sort();
-  assert.deepEqual(found, ['step-001-tapOnElement-design--sign-in--Main.json', 'step-002-assertCondition-Account.json']);
+  mkdirSync(out, { recursive: true });
+
+  const write = (n, ms) => {
+    const f = path.join(sh, n);
+    writeFileSync(f, '{"children":[]}');
+    utimesSync(f, new Date(ms), new Date(ms));
+    return f;
+  };
+  write('step-001-tapOnElement-${SHOT}.json', 1_000_000);
+  write('step-002-tapOnElement-${SHOT}.json', 2_000_000);
+
+  const first = takeHierarchyForTest(dir, out, 'design--a--One');
+  assert.ok(first && existsSync(path.join(out, 'design--a--One.hierarchy.json')), 'the newest is taken');
+
+  // Nothing newer since: a probe that wrote nothing must get nothing, not the one already used.
+  const second = takeHierarchyForTest(dir, out, 'design--a--Two');
+  assert.equal(second, null, 'a used file is never handed to a second capture');
+  assert.equal(existsSync(path.join(out, 'design--a--Two.hierarchy.json')), false);
+
+  write('step-003-tapOnElement-${SHOT}.json', 3_000_000);
+  assert.ok(takeHierarchyForTest(dir, out, 'design--a--Three'), 'a newer file is taken');
 });
