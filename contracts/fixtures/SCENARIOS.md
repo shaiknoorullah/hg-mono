@@ -95,7 +95,7 @@ These are the rules the existing names already follow; new fixtures follow them 
 | `owned_menu_` | 4 | The restaurant's own menu, as its editor reads it. | `owned_menu_every_review_status` |
 | `order_admin_list_` | 3 | A staff order list variant. | `order_admin_list_every_state` |
 | `staff_list` | 4 | A platform staff list variant. | `staff_list_edge_rows` |
-| (other) | 138 | One-off subjects named for what they are (`public_config`, `cart_many_lines`, `quote_standard`). | `public_config` |
+| (other) | 147 | One-off subjects named for what they are (`public_config`, `cart_many_lines`, `quote_standard`). | `public_config` |
 
 ## 2. How one scenario is chosen per operation (the mock server)
 
