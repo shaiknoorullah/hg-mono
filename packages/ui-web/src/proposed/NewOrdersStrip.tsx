@@ -613,7 +613,7 @@ export function NewOrdersStrip({
               aria-label={`Show ${hiddenAfter} more new ${plural(hiddenAfter, 'order', 'orders')}`}
               onClick={() => showOverflow(1)}
             >
-              <span>{`+${hiddenAfter} more`}</span>
+              <span>+{hiddenAfter} more</span>
               <Icon name="chevron-right" size={20} />
             </StripOverflowButton>
           ) : null}

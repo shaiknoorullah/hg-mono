@@ -199,7 +199,7 @@ export function DocumentWorkspace({ variant }: { variant: WorkspaceVariant }) {
         <InlineAlert
           tone={needNow.tone === 'slate' ? 'neutral' : needNow.tone}
           icon={needNow.tone === 'slate' ? 'clock' : needNow.tone === 'warning' ? 'warning' : 'info'}
-          title={anyExpired ? expiredBannerTitle(anyExpired) : "What's needed now"}
+          title={anyExpired ? expiredBannerTitle(anyExpired) : "What’s needed now"}
           testId="needed-now"
         >
           <span>{needNow.text}</span>
