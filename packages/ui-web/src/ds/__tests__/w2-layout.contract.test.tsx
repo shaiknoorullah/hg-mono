@@ -409,10 +409,10 @@ describe('app requests (#675 restaurant, #699 admin)', () => {
     expect(onCollapsedChange).toHaveBeenCalledWith(true);
   });
 
-  it('SideNav rail: 80px wide, labels wrap under the icon instead of truncating', () => {
+  it('SideNav rail: 72px wide, labels wrap under the icon instead of truncating', () => {
     render(<SideNav groups={groups} activeKey="orders" collapsed />);
     const nav = screen.getByRole('navigation', { name: 'Main' });
-    expect(nav.className).toMatch(/\bw-20\b/);
+    expect(nav.className).toMatch(/\bw-18\b/);
     const label = within(screen.getByRole('link', { name: 'Live orders, 3 new' })).getByText('Orders');
     expect(label.className).toMatch(/max-w-18/);
     expect(label.className).not.toMatch(/\btruncate\b/);
