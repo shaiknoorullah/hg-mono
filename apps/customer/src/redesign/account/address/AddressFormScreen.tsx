@@ -52,7 +52,6 @@ import { formatTime } from '../../lib/time';
 import { useNav } from '../../navigation/context';
 import { listOrdersPage } from '../../orders/ordersApi';
 import { listAddresses } from '../accountApi';
-import { ADDRESS_LIMIT } from '../rules';
 import { createAddress, deleteAddress, getAddress, reverseGeocode, setDefaultAddress, updateAddress } from './addressApi';
 import { showAddressNotice } from './addressNotice';
 import {
