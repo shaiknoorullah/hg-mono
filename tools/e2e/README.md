@@ -332,7 +332,7 @@ board by that name, and judges it (a web capture pixel by pixel, a native one by
   [`android/design-size.sh`](android/design-size.sh) sets it to 1170 x 2532 px at 480 dpi (390 x 844 dp at 3x, the
   device-lab AVD) before `run.sh` and fails the job unless it reads back. The `design-size:` line in the `flows` job's
   log is the measured size, and it has read `390.00 x 844.00 dp` since
-  [#1024](https://github.com/shaiknoorullah/hg-mono/pull/1024). Trust a native capture's verdict only when that line does.
+  [#1024](https://github.com/shaiknoorullah/hg-mono/pull/1024). Trust a native capture's verdict only when that line does. The same step then records the emulator's measured status and navigation bars in `insets.json` ([`android/measure-insets.sh`](android/measure-insets.sh)), which the `design-diff` job uses to cut them from each capture before comparing the customer and rider captures with their boards (`design-diff-native` in the `design-diff` artifact; [design-diff README](../design-diff/README.md)).
   A capture's `uiautomator dump` is killed every time — the device reports `Killed` and `rc=137`,
   which is SIGKILL — so **every native capture has no hierarchy and no native board has ever been
   measured** ([#1026](https://github.com/shaiknoorullah/hg-mono/issues/1026)). `rc=137` names the

@@ -127,9 +127,12 @@ async function capture({ dir, name, appId, serial }) {
   // unquoted, the device runs `sh -c uiautomator` with `dump` and the path demoted to positional
   // parameters, and answers with `uiautomator`'s usage message and `rc=0` — a failure invented by
   // the probe, hiding the one being looked for.
-  const said = await shell(adb, 'sh', '-c', `'uiautomator dump ${remote} 2>&1; echo "rc=$?"'`);
-  if (!/dumped to/i.test(said)) throw new Error(`uiautomator dump did not write ${remote}: ${said || 'it said nothing'}`);
-  const { stdout: xml } = await adbRun(adb, ['exec-out', 'cat', remote]);
+  //
+  // (The comment above is about the dump, further down.) Provenance is written FIRST, because the
+  // dump is the part that fails: while a flow is in progress it is killed every time, and with the
+  // sidecar written after it no capture ever got one, so every native pair in CI was `NO PROVENANCE`
+  // and never reached its geometry (run 39830402335 on #1089). The hierarchy has its own source,
+  // Maestro's (takeHierarchy); the sidecar must not depend on this dump.
   const [model, id, wm, pkg] = await Promise.all([
     shell(adb, 'getprop', 'ro.product.model'),
     adbRun(adb, ['get-serialno']).then((r) => r.stdout.trim()),
@@ -139,9 +142,12 @@ async function capture({ dir, name, appId, serial }) {
   const appBuild = buildFromDumpsys(pkg);
   const density = densityFromWm(wm);
   mkdirSync(dir, { recursive: true });
-  writeFileSync(path.join(dir, `${name}.hierarchy.xml`), xml);
   // appBuild stays absent when it cannot be read, so the diff says NO PROVENANCE rather than trust a guess.
   writeFileSync(path.join(dir, `${name}.capture.json`), JSON.stringify({ device: `${model} (${id})`, ...(appBuild ? { appBuild } : {}), ...(density ? { density } : {}), capturedAt: new Date().toISOString() }, null, 1) + '\n');
+  const said = await shell(adb, 'sh', '-c', `'uiautomator dump ${remote} 2>&1; echo "rc=$?"'`);
+  if (!/dumped to/i.test(said)) throw new Error(`uiautomator dump did not write ${remote}: ${said || 'it said nothing'}`);
+  const { stdout: xml } = await adbRun(adb, ['exec-out', 'cat', remote]);
+  writeFileSync(path.join(dir, `${name}.hierarchy.xml`), xml);
 }
 
 let forwardsLogged = false;
