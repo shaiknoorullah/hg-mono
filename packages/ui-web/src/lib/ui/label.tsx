@@ -19,12 +19,12 @@ export function Label({
   return (
     <LabelPrimitive.Root
       data-slot="label"
-      className={cn('text-label-md font-semibold leading-normal tracking-normal text-fg-secondary', className)}
+      className={cn('text-label-md font-semibold text-fg-secondary', className)}
       {...props}
     >
       {children}
       {required ? (
-        <span aria-hidden="true" className="text-brand-700">
+        <span aria-hidden="true" className="text-line-brand">
           {' *'}
         </span>
       ) : null}

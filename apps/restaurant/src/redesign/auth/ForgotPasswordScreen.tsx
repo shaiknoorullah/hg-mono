@@ -51,14 +51,18 @@ export function ForgotPasswordScreen() {
   if (sentTo) {
     return (
       <StateCard testId="forgot-sent">
-        <h1 className="m-0 text-heading-xl text-fg-primary">{FORGOT.sentTitle}</h1>
-        <p className="m-0 text-body-md leading-normal text-fg-secondary">
-          {FORGOT.sentBefore}
-          <strong className="text-fg-primary">{sentTo}</strong>
-          {FORGOT.sentAfter}
-        </p>
+        <StateCardHeading
+          title={FORGOT.sentTitle}
+          intro={
+            <>
+              {FORGOT.sentBefore}
+              <strong className="text-fg-primary">{sentTo}</strong>
+              {FORGOT.sentAfter}
+            </>
+          }
+        />
         <p className="m-0 text-body-md leading-normal text-fg-secondary">{FORGOT.sentHelp}</p>
-        <div className="flex flex-wrap items-center justify-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
           <Button variant="tertiary" size="md" onPress={() => setSentTo(null)}>
             {FORGOT.another}
           </Button>
