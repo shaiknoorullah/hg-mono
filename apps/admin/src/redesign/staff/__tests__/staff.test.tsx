@@ -95,7 +95,7 @@ describe('Staff list: loading, error, more', () => {
   it('shows a loading state, then an error with Try again that loads', async () => {
     const api = mockApi({ listStaff: { status: 500, body: envelope('INTERNAL_ERROR', 'boom') } });
     renderStaff('SUPER_ADMIN');
-    expect(await screen.findByText('Staff accounts didn’t load')).toBeTruthy();
+    expect(await screen.findByText("Staff accounts didn't load")).toBeTruthy();
     api.set({ listStaff: page(sevenAccounts()) });
     fireEvent.click(screen.getByRole('button', { name: /Try again/ }));
     expect(await screen.findByRole('grid')).toBeTruthy();
@@ -109,7 +109,7 @@ describe('Staff list: loading, error, more', () => {
     renderStaff('SUPER_ADMIN');
     await screen.findByRole('grid');
     fireEvent.click(await screen.findByRole('button', { name: 'Load more' }));
-    expect(await screen.findByText('The next accounts didn’t load')).toBeTruthy();
+    expect(await screen.findByText("The next accounts didn't load")).toBeTruthy();
     expect(within(screen.getByRole('grid')).getByText('Yusuf Ali')).toBeTruthy();
     expect(api.callsTo('listStaff').some((c) => c.query['cursor'] === 'cursor-2')).toBe(true);
   });
@@ -150,7 +150,7 @@ describe('Staff account panel', () => {
   it('draws no account-changing control for an admin, only whom to ask, and no email', async () => {
     mockApi({ listStaff: page(sevenAccounts()) });
     const { container } = renderStaff('ADMIN', '/staff/a0000000-0000-4000-8000-000000000004');
-    expect(await screen.findByText(/To remove this person’s access or reset their two-step sign-in, ask a super admin: Aminah Rahman or Sana Qureshi/)).toBeTruthy();
+    expect(await screen.findByText(/To remove this person's access or reset their two-step sign-in, ask a super admin: Aminah Rahman or Sana Qureshi/)).toBeTruthy();
     expect(screen.queryByRole('button', { name: /Remove access|Reset two-step|Cancel this invite/ })).toBeNull();
     expect(container.textContent).not.toContain('yusuf.ali@halalgoes.ca');
   });
@@ -166,19 +166,19 @@ describe('Staff account panel', () => {
   it('offers no way to reactivate a deactivated account, because the server refuses that email', async () => {
     mockApi({ listStaff: page(sevenAccounts()) });
     renderStaff('SUPER_ADMIN', '/staff/a0000000-0000-4000-8000-000000000007');
-    await screen.findByText(/They can’t sign in, and their sessions have ended/);
+    await screen.findByText(/They can't sign in, and their sessions have ended/);
     expect(screen.queryByRole('button', { name: /Invite this email again|Reactivate/ })).toBeNull();
   });
 
   it('says so when a link opens an account that is not in the list, and offers Load more only while there is more', async () => {
     mockApi({ listStaff: page(sevenAccounts(), true) });
     renderStaff('SUPER_ADMIN', '/staff/ffffffff-0000-4000-8000-000000000000');
-    expect(await screen.findByText('This account couldn’t be opened')).toBeTruthy();
+    expect(await screen.findByText("This account couldn't be opened")).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Load more accounts' })).toBeTruthy();
     cleanup();
     mockApi({ listStaff: page(sevenAccounts()) });
     renderStaff('SUPER_ADMIN', '/staff/ffffffff-0000-4000-8000-000000000000');
-    expect(await screen.findByText('This account couldn’t be opened')).toBeTruthy();
+    expect(await screen.findByText("This account couldn't be opened")).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Load more accounts' })).toBeNull();
   });
 });
@@ -233,7 +233,7 @@ describe('Invite staff', () => {
     await openInvite();
     fill('Hamza Siddiqui', 'hamza@halalgoes.ca');
     send();
-    expect(await screen.findByText('We couldn’t confirm the invite was sent')).toBeTruthy();
+    expect(await screen.findByText("We couldn't confirm the invite was sent")).toBeTruthy();
     expect((screen.getByRole('textbox', { name: /Work email/ }) as HTMLInputElement).value).toBe('hamza@halalgoes.ca');
     // The invite did go through: the refreshed list now holds it as Invited.
     api.set({ listStaff: page([...sevenAccounts(), staffRow({ id: 'new1', full_name: 'Hamza Siddiqui', email: 'hamza@halalgoes.ca', role: 'SUPPORT_AGENT', status: 'INVITED', last_login_at: null, mfa_enrolled: false })]) });
@@ -249,7 +249,7 @@ describe('Invite staff', () => {
     await openInvite();
     fill('Hamza Siddiqui', 'hamza@halalgoes.ca');
     send();
-    expect(await screen.findByText('You can’t invite staff any more')).toBeTruthy();
+    expect(await screen.findByText("You can't invite staff any more")).toBeTruthy();
     expect(screen.getByText(/No invite was sent/)).toBeTruthy();
   });
 

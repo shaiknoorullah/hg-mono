@@ -178,7 +178,7 @@ function StatusPane({ state, reading, role, online }: { state: StatusState; read
           <p className="m-0 mt-2 text-body-md text-fg-secondary">
             {r.kind === 'answered' && r.dependencies === null ? (
               <>
-                {SYSTEM.notReady.answered} {r.message ? <q>{r.message}</q> : null} {SYSTEM.notReady.notSaid}
+                {SYSTEM.notReady.answered} {r.message ? <span className="font-mono text-fg-primary">{`“${r.message}”`}</span> : null} {SYSTEM.notReady.notSaid}
               </>
             ) : (
               SYSTEM.notReady.answeredNamed

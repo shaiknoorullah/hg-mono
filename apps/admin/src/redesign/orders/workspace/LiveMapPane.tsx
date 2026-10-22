@@ -140,7 +140,7 @@ export function LiveMapPane({ order, onRefresh, onClose, onReveal, returnFocusRe
         <Banner
           tone="warning"
           title="You’re offline."
-          description={`This computer has no network, so the map stopped at ${formatTimeWithSeconds(paused.at)} and isn’t retrying. It reconnects by itself when the network is back. This isn’t the rider’s signal.`}
+          description={`This computer has no network, so the map stopped at ${formatTimeWithSeconds(paused.at)} and isn't retrying. It reconnects by itself when the network is back. This isn't the rider's signal.`}
         />
       );
     }
@@ -169,7 +169,7 @@ export function LiveMapPane({ order, onRefresh, onClose, onReveal, returnFocusRe
             <Banner
               tone="info"
               title={`${state.label} at ${formatTime(order.state_since)}, while you were watching.`}
-              description="The rider’s position has stopped updating. Refunds and the rest of the order’s actions are in the order pane beside this map."
+              description="The rider's position has stopped updating. Refunds and the rest of the order's actions are in the order pane beside this map."
             />
           ) : null}
 
@@ -211,8 +211,8 @@ export function LiveMapPane({ order, onRefresh, onClose, onReveal, returnFocusRe
                 recenterLabel="Recenter on the order"
                 textEquivalentId="live-map-text"
                 loadingLabel="Loading the map…"
-                errorTitle="The map didn’t load"
-                errorBody="The order’s positions didn’t arrive. Nothing was changed. The order pane beside this map still says where things are, in words."
+                errorTitle="The map didn't load"
+                errorBody="The order's positions didn't arrive. Nothing was changed. The order pane beside this map still says where things are, in words."
                 onPhaseChange={setPhase}
                 height="100%"
                 style={{ height: '100%' }}
@@ -282,7 +282,7 @@ export function LiveMapPane({ order, onRefresh, onClose, onReveal, returnFocusRe
               {seen.stale && !paused ? (
                 <div role="note" className="flex flex-col gap-2 rounded-md border border-feedback-warning-border bg-feedback-warning-tint p-3 text-body-sm text-feedback-warning-tint-text">
                   <strong className="text-body-md">What happens next</strong>
-                  <span>If there’s no update by the deadline, the rider is pinged and ops are alerted automatically. You don’t need to do anything yet.</span>
+                  <span>If there's no update by the deadline, the rider is pinged and ops are alerted automatically. You don't need to do anything yet.</span>
                 </div>
               ) : null}
             </aside>

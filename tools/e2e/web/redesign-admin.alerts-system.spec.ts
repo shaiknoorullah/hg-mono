@@ -84,7 +84,7 @@ test.describe('redesigned admin · system status and account (mock)', () => {
 
   test('system, neither check answers', async ({ page }) => {
     await openSystem(page, 'SUPER_ADMIN', { readiness: status(500, ENVELOPE_503), health: status(500, ENVELOPE_503) });
-    await expect(page.getByText('The API didn’t answer either check')).toBeVisible();
+    await expect(page.getByText("The API didn't answer either check")).toBeVisible();
     await capture(page, { 1440: `${ASS}SystemError` });
   });
 

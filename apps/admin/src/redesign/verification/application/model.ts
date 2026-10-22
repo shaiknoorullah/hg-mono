@@ -109,7 +109,7 @@ export function describeBlockers(raw: readonly string[], certificateId: string |
     if (doc === 'HALAL_CERTIFICATE' || blocker === 'No approved halal certificate') {
       add({ id: 'halal', text: 'The halal certificate isn’t approved yet.', toVerification: certificateId !== null });
     } else if (doc && doc in DOC_LABEL) {
-      add({ id: `doc-${doc}`, text: `The ${DOC_LABEL[doc as DocType].toLowerCase()} isn’t approved yet.`, toVerification: false });
+      add({ id: `doc-${doc}`, text: `The ${DOC_LABEL[doc as DocType].toLowerCase().replace(/\bid\b/, 'ID')} isn’t approved yet.`, toVerification: false });
     } else {
       add({
         id: `unknown-${blocker}`,

@@ -150,7 +150,7 @@ export const GROUP_LABEL: Record<Exclude<AlertGroup, 'unknown'>, string> = {
 
 /** Reconciliation kinds this console has words for. Others show only their code. */
 const RECON_KIND_LABEL: Record<string, string> = {
-  capture_mismatch: 'Captured amount doesn’t match the order',
+  capture_mismatch: "Captured amount doesn't match the order",
 };
 
 export function reconLabel(code: string | null): string | null {
@@ -224,7 +224,7 @@ export function subjectOf(row: AlertRow, role: StaffRole | null): Subject {
 const CUSTOMER_IMPACT: Record<string, { readonly headline: string; readonly sentence: string }> = {
   webhook_delivery_failed: {
     headline: 'Payment problem',
-    sentence: 'Customers’ payments may not confirm right away; don’t promise a refund until the order updates.',
+    sentence: "Customers' payments may not confirm right away; don't promise a refund until the order updates.",
   },
 };
 

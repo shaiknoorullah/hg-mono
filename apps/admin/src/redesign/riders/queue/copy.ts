@@ -19,12 +19,12 @@ export const QUEUE = {
   notInReview: 'Not in review',
   empty: { title: 'Nothing waiting for review', body: 'New applications appear here, oldest first, when a rider submits documents.' },
   filtered: (label: string) => ({ title: `No applications in ${label}`, body: 'No rider matches this state right now. Choose other states to see more.' }),
-  error: { title: 'Rider applications didn’t load', body: 'The server didn’t respond. Nothing was claimed and your filter is kept.' },
+  error: { title: "Rider applications didn't load", body: 'The server didn’t respond. Nothing was claimed and your filter is kept.' },
   forbidden: {
     title: 'You don’t have access to rider applications',
     body: 'The server refused this list. Your role may have changed while you were signed in; if you think that’s wrong, ask a Super Admin.',
   },
-  offline: { title: 'You’re offline. Take next is paused.', body: 'This list won’t update until the connection returns. Nothing you do now is queued or sent later.' },
+  offline: { title: "You're offline. Take next is paused.", body: 'This list won’t update until the connection returns. Nothing you do now is queued or sent later.' },
   holding: (name: string, left: string) => ({
     title: `You have ${name} claimed, ${left}`,
     body: (endsAt: string) => `Your claim ends at ${endsAt} and can’t be extended. Continue where you left off.`,
@@ -39,7 +39,7 @@ export const QUEUE = {
     body: (firstEnd: string | null) =>
       `Take next claims only unclaimed applications.${firstEnd ? ` The first claim ends at ${firstEnd}; try again then, or open a row to read it.` : ' Open a row to read it.'}`,
   }),
-  takeFailed: { title: 'Take next didn’t work. Nothing was claimed.', body: 'The server didn’t answer. Trying again can’t claim two applications: the same request key is sent.' },
+  takeFailed: { title: "Take next didn't work. Nothing was claimed.", body: 'The server didn’t answer. Trying again can’t claim two applications: the same request key is sent.' },
   takeHeld: (name: string, endsAt: string) => ({
     title: `You already have ${name} claimed`,
     body: `Take next opened your current claim instead of claiming a second one. Finish it, or let the claim end at ${endsAt}.`,

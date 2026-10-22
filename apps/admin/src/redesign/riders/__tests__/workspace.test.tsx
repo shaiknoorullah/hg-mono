@@ -38,7 +38,7 @@ describe('Rider workspace: who may decide', () => {
   it('turns every decision off when only reading, when another reviewer holds it, and when the claim ended', async () => {
     renderWorkspace(applicationInReview({ assigned_admin_id: null, review_lock_expires_at: null }));
     await screen.findByText(/You’re reading without a claim/);
-    for (const name of ['Reject…', 'Request changes…']) expect(screen.getByRole('button', { name }).getAttribute('aria-disabled')).toBe('true');
+    for (const name of ['Reject…', 'Request changes']) expect(screen.getByRole('button', { name }).getAttribute('aria-disabled')).toBe('true');
     cleanup();
 
     renderWorkspace(applicationInReview({ assigned_admin_id: OTHER_ADMIN_ID, review_lock_expires_at: minutesFromNow(20) }));
@@ -77,7 +77,7 @@ describe('Rider workspace: deciding', () => {
   it('sends nothing until the panel’s own button, then sends one approval whose code follows the message', async () => {
     const app = applicationReady();
     const api = renderWorkspace(app, { decideRiderApplication: { data: { ...app, onboarding_state: 'PAYOUT_PENDING' } } });
-    fireEvent.click(await screen.findByRole('button', { name: 'Approve rider…' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Approve rider' }));
     const panel = await screen.findByRole('region', { name: 'Approve Fatima Noor as a rider' });
     expect(api.callsTo('decideRiderApplication')).toHaveLength(0);
     expect((within(panel).getByLabelText(/Message to the rider/) as HTMLTextAreaElement).value).toBe(APPROVE_MESSAGE);
@@ -92,7 +92,7 @@ describe('Rider workspace: deciding', () => {
   it('sends "approved with notes" once the reviewer has edited the message', async () => {
     const app = applicationReady();
     const api = renderWorkspace(app, { decideRiderApplication: { data: app } });
-    fireEvent.click(await screen.findByRole('button', { name: 'Approve rider…' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Approve rider' }));
     const panel = await screen.findByRole('region', { name: 'Approve Fatima Noor as a rider' });
     fireEvent.change(within(panel).getByLabelText(/Message to the rider/), { target: { value: 'Approved. Please keep your insurance renewal date handy.' } });
     fireEvent.click(within(panel).getByRole('button', { name: 'Approve rider' }));
@@ -117,7 +117,7 @@ describe('Rider workspace: deciding', () => {
       review_note: 'Page 2 is missing. Upload every page of the policy.',
     });
     const api = renderWorkspace(app, { decideRiderApplication: { data: { ...app, onboarding_state: 'DOCUMENTS_REJECTED' } } });
-    fireEvent.click(await screen.findByRole('button', { name: 'Request changes…' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Request changes' }));
     const panel = await screen.findByRole('region', { name: 'Ask Fatima Noor to fix documents' });
     expect(ticked(within(panel).getByRole('checkbox', { name: /Vehicle insurance/ }))).toBe(true);
     expect(ticked(within(panel).getByRole('checkbox', { name: /Work eligibility/ }))).toBe(false);
@@ -140,7 +140,7 @@ describe('Rider workspace: deciding', () => {
     ];
     for (const [args, status, title] of cases) {
       renderWorkspace(applicationReady(), { decideRiderApplication: { status, body: envelope(...args) } });
-      fireEvent.click(await screen.findByRole('button', { name: 'Approve rider…' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Approve rider' }));
       const panel = await screen.findByRole('region', { name: 'Approve Fatima Noor as a rider' });
       fireEvent.click(within(panel).getByRole('button', { name: 'Approve rider' }));
       expect((await screen.findByRole('alert')).textContent).toContain(title);
@@ -157,7 +157,7 @@ describe('Rider workspace: deciding', () => {
         return attempt === 1 ? { status: 502, body: fixture('error_internal_error') } : { data: { ...app, onboarding_state: 'PAYOUT_PENDING' } };
       },
     });
-    fireEvent.click(await screen.findByRole('button', { name: 'Approve rider…' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Approve rider' }));
     const panel = await screen.findByRole('region', { name: 'Approve Fatima Noor as a rider' });
     fireEvent.click(within(panel).getByRole('button', { name: 'Approve rider' }));
     expect((await within(panel).findByRole('alert')).textContent).toContain('Nothing was recorded');
@@ -196,7 +196,7 @@ describe('Rider workspace: documents', () => {
 
     fireEvent.click(within(groups[3]!).getByRole('radio', { name: 'Fails' }));
     expect(within(card).getByRole('button', { name: /^Approve document, unavailable: a check failed/ })).toBeTruthy();
-    expect(within(card).getByRole('button', { name: 'Reject document…' }).getAttribute('aria-disabled')).not.toBe('true');
+    expect(within(card).getByRole('button', { name: 'Reject document' }).getAttribute('aria-disabled')).not.toBe('true');
     expect(api.callsTo('reviewRiderDocument')).toHaveLength(0);
   });
 
@@ -221,7 +221,7 @@ describe('Rider workspace: documents', () => {
     const card = await screen.findByTestId('DocumentCard');
     const groups = within(card).getAllByRole('radiogroup');
     fireEvent.click(within(groups[0]!).getByRole('radio', { name: 'Fails' }));
-    fireEvent.click(within(card).getByRole('button', { name: 'Reject document…' }));
+    fireEvent.click(within(card).getByRole('button', { name: 'Reject document' }));
     const panel = await screen.findByTestId('DocumentRejectPanel');
     const options = Array.from(panel.querySelectorAll('option')).map((o) => o.textContent);
     expect(options.join('|')).not.toMatch(/forgery|alteration/i);

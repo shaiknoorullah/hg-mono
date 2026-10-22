@@ -3,7 +3,7 @@ export const WORKSPACE = {
   notFound: { title: 'This application doesn’t exist', body: 'The link may be old or mistyped. Nothing was changed.', back: 'Back to rider applications' },
   loadError: { title: 'The application didn’t load', body: 'The server didn’t respond. Nothing was changed.' },
   forbidden: { title: 'You can’t open this application', body: 'The server refused it. Your role may have changed while you were signed in. Nothing was changed.' },
-  loading: 'Loading the application',
+  loading: 'Loading the application…',
   backToQueue: 'Back to rider applications',
   takeNext: 'Take next',
   unclaimed: {

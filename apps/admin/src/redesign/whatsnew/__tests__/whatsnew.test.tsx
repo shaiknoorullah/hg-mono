@@ -21,7 +21,7 @@ const NOTES: Release[] = [
   { version: '0.8.0', date: '2026-09-01', notes: [{ title: 'Oldest thing', body: 'Long ago.' }] },
 ];
 
-const trigger = () => screen.getByRole('button', { name: /^What’s new/ });
+const trigger = () => screen.getByRole('button', { name: /^What's new/ });
 const notice = () => screen.queryByRole('region', { name: 'Console update' });
 const panel = () => screen.queryByTestId('whats-new-panel');
 
@@ -138,11 +138,11 @@ describe('the panel', () => {
     window.localStorage.setItem(LAST_SEEN_KEY, '0.8.0');
     load();
     renderApp();
-    fireEvent.click(await screen.findByRole('button', { name: /See what’s new/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /See what's new/ }));
     const open = await screen.findByTestId('whats-new-panel');
-    expect(within(open).getByRole('heading', { level: 2, name: 'What’s new' })).toBeTruthy();
+    expect(within(open).getByRole('heading', { level: 2, name: "What's new" })).toBeTruthy();
     expect(open.textContent).toContain('You last looked on console version 0.8.0.');
-    expect(open.textContent).toContain('Here’s what changed since, newest first.');
+    expect(open.textContent).toContain("Here's what changed since, newest first.");
     const versions = within(open).getAllByTestId('whats-new-release').map((r) => r.getAttribute('data-version'));
     expect(versions).toEqual([APP_VERSION, '0.9.0']);
     expect(within(open).getAllByText('New')).toHaveLength(2);
@@ -159,7 +159,7 @@ describe('the panel', () => {
   it('on a first device lists only the newest release', async () => {
     load();
     renderApp();
-    fireEvent.click(await screen.findByRole('button', { name: /See what’s new/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /See what's new/ }));
     const open = await screen.findByTestId('whats-new-panel');
     expect(within(open).getAllByTestId('whats-new-release').map((r) => r.getAttribute('data-version'))).toEqual([APP_VERSION]);
   });
@@ -173,8 +173,8 @@ describe('the panel', () => {
     await act(async () => {});
     fireEvent.click(trigger());
     const open = await screen.findByTestId('whats-new-panel');
-    expect(open.textContent).toContain('You’re up to date');
-    expect(open.textContent).toContain(`You’re on console version ${APP_VERSION}. Earlier updates are below.`);
+    expect(open.textContent).toContain("You're up to date");
+    expect(open.textContent).toContain(`You're on console version ${APP_VERSION}. Earlier updates are below.`);
     expect(within(open).getAllByTestId('whats-new-release')).toHaveLength(3);
     expect(within(open).queryByText('New')).toBeNull();
   });
@@ -186,7 +186,7 @@ describe('the panel', () => {
     for (const close of [
       () => fireEvent.click(screen.getByRole('button', { name: 'Done' })),
       () => fireEvent.click(screen.getByRole('button', { name: 'Close' })),
-      () => fireEvent.keyDown(screen.getByRole('heading', { name: 'What’s new' }), { key: 'Escape' }),
+      () => fireEvent.keyDown(screen.getByRole('heading', { name: "What's new" }), { key: 'Escape' }),
     ]) {
       trigger().focus();
       fireEvent.click(trigger());
@@ -202,9 +202,9 @@ describe('the panel', () => {
   it('moves focus to its heading when it opens', async () => {
     load();
     renderApp();
-    fireEvent.click(await screen.findByRole('button', { name: /See what’s new/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /See what's new/ }));
     const open = await screen.findByTestId('whats-new-panel');
-    await waitFor(() => expect(document.activeElement).toBe(within(open).getByRole('heading', { name: 'What’s new' })));
+    await waitFor(() => expect(document.activeElement).toBe(within(open).getByRole('heading', { name: "What's new" })));
   });
 
   it('shows the readable notes for a role, with the role named', async () => {
@@ -214,7 +214,7 @@ describe('the panel', () => {
       { version: '0.9.0', date: '2026-10-01', notes: [{ title: 'Super only', body: 'z', roles: ['SUPER_ADMIN'] }] },
     ]);
     renderApp('SUPPORT_AGENT');
-    fireEvent.click(await screen.findByRole('button', { name: /See what’s new/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /See what's new/ }));
     const open = await screen.findByTestId('whats-new-panel');
     expect(open.textContent).toContain('Showing changes for support agents, newest first.');
     expect(open.textContent).toContain('For everyone.');
@@ -226,9 +226,9 @@ describe('the panel', () => {
     vi.spyOn(window.navigator, 'onLine', 'get').mockReturnValue(false);
     load();
     renderApp();
-    fireEvent.click(await screen.findByRole('button', { name: /See what’s new/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /See what's new/ }));
     const open = await screen.findByTestId('whats-new-panel');
-    expect(open.textContent).toContain('You’re offline, but these notes come with the app, so they still show.');
+    expect(open.textContent).toContain("You're offline, but these notes come with the app, so they still show.");
     expect(within(open).getAllByTestId('whats-new-release').length).toBeGreaterThan(0);
   });
 });
@@ -253,7 +253,7 @@ describe('the panel when the notes are not ready', () => {
     fireEvent.click(trigger());
     const open = await screen.findByTestId('whats-new-panel');
     expect(await within(open).findByText('No release notes yet')).toBeTruthy();
-    expect(open.textContent).toContain(`You’re on console version ${APP_VERSION}. Notes appear here after the next update.`);
+    expect(open.textContent).toContain(`You're on console version ${APP_VERSION}. Notes appear here after the next update.`);
   });
 
   it('error: names the version, keeps the version unseen, and Try again loads the notes', async () => {
@@ -264,8 +264,8 @@ describe('the panel when the notes are not ready', () => {
     await act(async () => {});
     fireEvent.click(trigger());
     const open = await screen.findByTestId('whats-new-panel');
-    expect(await within(open).findByText('The release notes couldn’t be read')).toBeTruthy();
-    expect(open.textContent).toContain(`You’re on console version ${APP_VERSION}. We’ll show the notes the next time they load.`);
+    expect(await within(open).findByText("The release notes couldn't be read")).toBeTruthy();
+    expect(open.textContent).toContain(`You're on console version ${APP_VERSION}. We'll show the notes the next time they load.`);
     expect(window.localStorage.getItem(OPENED_KEY)).toBeNull();
     expect(notice()).toBeNull();
     fireEvent.click(within(open).getByRole('button', { name: 'Try again' }));
@@ -278,6 +278,6 @@ describe('the panel when the notes are not ready', () => {
     renderApp();
     await act(async () => {});
     fireEvent.click(trigger());
-    expect(await screen.findByText('The release notes couldn’t be read')).toBeTruthy();
+    expect(await screen.findByText("The release notes couldn't be read")).toBeTruthy();
   });
 });

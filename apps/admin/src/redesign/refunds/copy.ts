@@ -58,7 +58,7 @@ export const REFUND_COPY = {
   disputed: 'Pick what went wrong. Resolving the dispute is a separate step, and refunding doesn’t close it.',
 
   reviewIntro:
-    'Money moves as soon as you issue it, unless it’s above your limit; then it goes to a second person and nothing moves yet. A refund can’t be undone.',
+    "Money moves as soon as you issue it, unless it's above your limit; then it goes to a second person and nothing moves yet. A refund can't be undone.",
   reviewNote: 'You review it here before anything is sent. Pressing twice, or retrying after an error, still issues one refund.',
   noPreview: 'The amount and who bears it can’t be shown before you issue: the server has no refund preview yet.',
 
@@ -95,7 +95,7 @@ export const PAGE = {
   lookupIdleBody: 'The order and its refunds appear here when the server answers.',
   notFound: (code: string) => `No order has the code ${code}`,
   notFoundBody: 'Check the code with the customer.',
-  lookupErrorTitle: 'The lookup didn’t finish.',
+  lookupErrorTitle: "The lookup didn't finish.",
   lookupErrorBody: 'This is not the same as “no order”. Nothing was changed.',
   offline: 'You’re offline. Nothing is searched or queued until you reconnect.',
   failedHeading: 'Failed refunds',

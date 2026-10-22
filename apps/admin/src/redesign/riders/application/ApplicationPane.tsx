@@ -27,7 +27,6 @@ import {
   documentTone,
   DOC_STATE_LABEL,
   isUnder18,
-  readiness,
   statusLine,
   type Application,
   type DecisionGate,
@@ -92,7 +91,6 @@ export function ApplicationPane({ app, mode, claim, gate, selectedId, onSelect, 
   const queueHref = useHref('/riders');
   const strip = claimStrip(mode, claim);
   const docs = currentDocuments(app.documents);
-  const ready = readiness(app);
   const age = ageOf(app);
   const under18 = isUnder18(app);
   const canAct = mode === 'claimed' || mode === 'inspect' || mode === 'other-reviewer' || mode === 'claim-ended';
@@ -152,7 +150,7 @@ export function ApplicationPane({ app, mode, claim, gate, selectedId, onSelect, 
             <Icon name="lock" size="md" />
             <div>
               <p className="text-label-lg text-fg-primary">
-                Claimed by you ·{' '}
+                Claimed by you{' '}
                 <Countdown variant="text" size="sm" expiresAt={claim.expiresAt} serverNow={new Date(now).toISOString()} windowSeconds={3600} criticalThreshold={0} label="left" />
               </p>
               <p className="text-body-sm text-fg-secondary">Your claim ends at {formatTime(claim.expiresAt)} and can’t be extended.</p>
@@ -192,12 +190,12 @@ export function ApplicationPane({ app, mode, claim, gate, selectedId, onSelect, 
       ) : null}
 
       {canAct ? (
-        <Disclosure title="Decision readiness" meta={mode === 'claimed' ? `${ready.approved} of ${ready.total} documents approved` : undefined} defaultOpen headingLevel={3}>
+        <Disclosure title="Decision readiness" meta={app.blockers.length > 0 ? blockersTitle(app.blockers.length) : 'nothing stops approval'} defaultOpen headingLevel={3}>
           <div className="flex flex-col gap-3 pt-2">
             {app.blockers.length > 0 ? (
               <InlineAlert tone="neutral" title={blockersTitle(app.blockers.length)} items={app.blockers.map((b, i) => ({ id: `b-${i}`, content: b }))} />
             ) : mode === 'claimed' && gate.canApprove ? (
-              <InlineAlert tone="success-tint" title="Nothing stops approval">
+              <InlineAlert tone="success-tint" title="Nothing stops approval.">
                 Every document is approved and the rider is 18 or older.
               </InlineAlert>
             ) : null}
@@ -224,7 +222,7 @@ export function ApplicationPane({ app, mode, claim, gate, selectedId, onSelect, 
                 Reject…
               </Button>
               <Button variant="tertiary" ref={decisionRefs.changes} disabled={!gate.canDecide} aria-expanded={openPanel === 'changes'} onPress={() => onOpenDecision('changes')}>
-                Request changes…
+                Request changes
               </Button>
               <Button
                 variant="primary"
@@ -234,7 +232,7 @@ export function ApplicationPane({ app, mode, claim, gate, selectedId, onSelect, 
                 {...(!gate.canApprove && gate.approveWhy ? { accessibilityLabel: `Approve rider…, unavailable: ${gate.approveWhy}` } : {})}
                 onPress={() => onOpenDecision('approve')}
               >
-                Approve rider…
+                Approve rider
               </Button>
             </div>
             <p className="text-body-sm text-fg-secondary">{note}</p>
@@ -264,7 +262,7 @@ export function ApplicationPane({ app, mode, claim, gate, selectedId, onSelect, 
               { label: 'Name', value: [profile.first_name, profile.last_name].filter(Boolean).join(' ') || null },
               { label: 'Email', value: maskEmail(profile.email) },
               { label: 'Date of birth', value: profile.date_of_birth ? formatLongDate(profile.date_of_birth) : null },
-              { label: 'Vehicle', value: vehicle ? [vehicleLabel(vehicle.vehicle_type), vehicle.make, vehicle.model, vehicle.year, vehicle.colour].filter(Boolean).join(' · ') : vehicleLabel(app.vehicle_type) },
+              { label: 'Vehicle', value: vehicle ? [vehicleLabel(vehicle.vehicle_type), [vehicle.make, vehicle.model].filter(Boolean).join(' '), vehicle.year, vehicle.colour].filter(Boolean).join(' · ') : vehicleLabel(app.vehicle_type) },
               { label: 'Plate', value: vehicle?.licence_plate ?? (app.vehicle_type === 'BICYCLE' || app.vehicle_type === 'ON_FOOT' ? 'None: no plate for this vehicle' : null), mono: Boolean(vehicle?.licence_plate) },
               { label: 'Attempt', value: String(app.attempt_number ?? 1) },
               { label: 'Rider ID', value: app.rider_account_id, mono: true },
@@ -281,6 +279,9 @@ export function ApplicationPane({ app, mode, claim, gate, selectedId, onSelect, 
 
 function DocumentRow({ doc, selected, onSelect }: { doc: Document; selected: boolean; onSelect: (id: string) => void }) {
   const label = documentLabel(doc);
+  // The board draws this list's names with a straight apostrophe (Driver's licence); the card title and the
+  // checklist keep the typographic one. The accessible name below keeps `label`.
+  const drawn = label.replace('\u2019', "'");
   return (
     <li className={selected ? 'bg-surface-sunken' : undefined}>
       <button
@@ -294,7 +295,7 @@ function DocumentRow({ doc, selected, onSelect }: { doc: Document; selected: boo
           <span className="flex min-w-0 flex-col leading-tight">
             <span className={selected ? 'flex items-center gap-1 font-bold text-fg-primary' : 'flex items-center gap-1 font-semibold text-fg-primary'}>
               {selected ? <Icon name="chevron-right" size="sm" /> : null}
-              {label}
+              {drawn}
               {selected ? <span className="sr-only"> (open in the viewer)</span> : null}
             </span>
             <span className="text-body-sm text-fg-secondary">

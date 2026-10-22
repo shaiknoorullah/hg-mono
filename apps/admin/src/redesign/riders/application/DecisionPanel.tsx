@@ -316,7 +316,7 @@ export function DecisionPanel({ kind, application, preset, returnFocusRef, onSwi
             placeholder="Choose a reason"
             value={form.reason}
             options={reasons.map((r) => ({ value: r, label: REJECTION_REASON_LABEL[r] }))}
-            errorText={fieldError('reason')}
+            errorText={fieldError('reason') ? 'Choose a reason.' : null}
             helperText={
               kind === 'changes'
                 ? 'Only reasons the rider can act on are offered. Suspected forgery and suspected alteration are not reasons a reviewer can send.'
@@ -360,7 +360,7 @@ export function DecisionPanel({ kind, application, preset, returnFocusRef, onSwi
 
         {kind === 'reject' ? (
           <div className="rounded-md border border-line-decorative bg-surface-subtle p-3">
-            <p className="text-label-lg text-fg-primary">What happens next depends on the reason you choose</p>
+            <p className="text-label-lg text-fg-primary">What happens next depends on the reason you choose.</p>
             <p className="mt-1 text-body-md text-fg-secondary">
               {application.computed_age_years != null && application.computed_age_years < 18
                 ? 'The age rule can’t be overridden: this rider can’t be approved while they are under 18.'

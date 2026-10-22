@@ -5,14 +5,14 @@ export const SYSTEM = {
   recheck: 'Check again',
   callWith: (at: string) => `Call the platform on-call engineer and give them the time of the last check, ${at}.`,
   checking: 'Checking again. The results below stay until the new answer arrives.',
-  replicaNote: 'One of the API’s replicas answered. Each check may reach a different one.',
+  replicaNote: "One of the API's replicas answered. Each check may reach a different one.",
   tableCaption: 'What the API needs to work',
   loading: 'Checking the API',
   ready: { title: 'The API is ready to serve requests', badge: 'Ready' },
   notReady: {
     title: 'The API is not ready',
     unnamed:
-      'The server didn’t say which part failed, so sign-in, orders, payments, documents and live updates may each fail until it’s ready.',
+      "The server didn't say which part failed, so sign-in, orders, payments, documents and live updates may each fail until it's ready.",
     named: (parts: string) => `The server says ${parts} not ready. Anything that needs it may fail until it’s ready.`,
     todo: 'What to do:',
     todoBody: (at: string) =>
@@ -21,9 +21,9 @@ export const SYSTEM = {
     badge: 'Not ready',
     answered: 'The server answered 503 with this message:',
     answeredNamed: 'The server answered 503 and named what failed. See the table.',
-    notSaid: 'It didn’t say which part failed.',
+    notSaid: "It didn't say which part failed.",
     rotation:
-      'The replica that answered is taken out of rotation until it’s ready again. If every replica reports this, the API stops taking requests and this page will show that the API didn’t answer.',
+      "The replica that answered is taken out of rotation until it's ready again. If every replica reports this, the API stops taking requests and this page will show that the API didn't answer.",
   },
   supportNotReady: {
     customers: 'What customers may notice',
@@ -32,12 +32,12 @@ export const SYSTEM = {
     tellBody:
       '“We’re having a technical problem and we’re fixing it. If your order didn’t go through, you won’t be charged for it. Any pending amount on your card is released automatically. Please try again in a few minutes.”',
     escalate:
-      'If a customer’s order shows as placed but hasn’t updated for 15 minutes, or this is still showing when you next look, call the platform on-call engineer.',
+      "If a customer's order shows as placed but hasn't updated for 15 minutes, or this is still showing when you next look, call the platform on-call engineer.",
     forEngineer: 'For the on-call engineer: the server answered 503 with this message:',
   },
   recovered: (at: string, from: string) => `Ready again since ${at}. It was not ready from ${from}.`,
   timeout: {
-    title: 'The API is running but the readiness check didn’t finish',
+    title: "The API is running but the readiness check didn't finish",
     badge: 'Readiness unknown',
     body: (version: string, at: string, earlier: string | null) =>
       `The API is running (API version ${version}) but the readiness check at ${at} didn’t finish in 10 seconds. One of its dependencies may be slow.${
@@ -45,12 +45,12 @@ export const SYSTEM = {
       }`,
   },
   versionUnknown: {
-    body: 'API version unknown. The readiness check passed, but the liveness check didn’t answer, so the version and start time aren’t available.',
+    body: "API version unknown. The readiness check passed, but the liveness check didn't answer, so the version and start time aren't available.",
     escalate: (at: string) =>
       `If this stays for more than a few minutes, call the platform on-call engineer and give them the time of the last check, ${at}.`,
   },
   unreachable: {
-    title: 'The API didn’t answer either check',
+    title: "The API didn't answer either check",
     body: 'Neither the liveness check nor the readiness check answered within 10 seconds. The API may be down, or the network between you and it may be.',
     startup:
       'If a deploy just happened, a start-up check (private buckets, PostGIS or Stripe mode) may have stopped the API from starting. Call the platform on-call engineer.',
@@ -62,7 +62,7 @@ export const SYSTEM = {
       `The API answered but listed nothing it depends on, so we can’t tell if it’s ready. Call the platform on-call engineer and give them the time of the last check, ${at}.`,
   },
   inconsistent: {
-    title: 'The readiness report doesn’t add up',
+    title: "The readiness report doesn't add up",
     badge: 'Report inconsistent',
     // Board: "Treat Redis as down. All sign-in fails … Staff already signed in may be signed out."
     // Not used verbatim: sessions live in Postgres and survive a Redis outage (websocket.md 6.2),
