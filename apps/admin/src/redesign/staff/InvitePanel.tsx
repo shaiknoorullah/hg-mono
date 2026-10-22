@@ -23,6 +23,7 @@ import { getToken } from '../../lib/token';
 import { unwrap } from '../../lib/load';
 import { INVITE } from './copy';
 import { ROLE_LABEL, sameEmail, STATUS_LABEL, validateInvite, type InviteDraft, type InviteErrors, type InviteRole, type StaffUser } from './model';
+import { useHoldWhatsNewNotice } from '../whatsnew/hold';
 
 const DRAFT_KEY = 'staff-invite';
 const ROLES: InviteRole[] = ['SUPPORT_AGENT', 'ADMIN', 'SUPER_ADMIN'];
@@ -40,6 +41,8 @@ interface Props {
 type Failure = 'duplicate' | 'rejected' | 'limited' | 'unknown' | 'forbidden' | null;
 
 export function InvitePanel({ rows, initialRole, onlyActiveSuper, onClose, onSent, onOpenAccount, reloadList }: Props) {
+  // An update that arrives while this panel holds unsent input waits until it closes.
+  useHoldWhatsNewNotice();
   const online = useOnline();
   const [draft, setDraft] = useState<InviteDraft>(() => {
     const saved = loadDraft<InviteDraft>(DRAFT_KEY);

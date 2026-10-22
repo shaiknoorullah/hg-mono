@@ -19,12 +19,16 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type MouseEvent } from 'react';
 import { Outlet, useHref, useLocation, useNavigate } from 'react-router-dom';
 
-import { Banner, Button, Icon, NavDrawer, SideNav, SideNavIconSlot, Wordmark } from '../ds';
+import { Badge, Banner, Button, Icon, NavDrawer, SideNav, SideNavIconSlot, Wordmark } from '../ds';
 import { api } from '../data/api';
 import { getSession, staffRoleOf, subscribeSession, type StaffRole } from '../data/session';
 import { queueCountsNote, useQueueDepth } from '../realtime/queueDepth';
 import { useSystemStatusPolling } from '../system/status';
 import { useSystemBanners } from '../system/banners';
+import { WHATS_NEW } from '../whatsnew/copy';
+import { WhatsNewNotice } from '../whatsnew/WhatsNewNotice';
+import { WhatsNewPanel } from '../whatsnew/WhatsNewPanel';
+import { useWhatsNew, useWhatsNewApi, WhatsNewProvider, WHATS_NEW_PANEL_ID } from '../whatsnew/WhatsNewProvider';
 import { FORBIDDEN, NOT_FOUND } from './copy';
 import { useLanding } from './landing';
 import { navGroupsFor, ROLE_LABEL } from './nav';
@@ -70,10 +74,6 @@ function useMediaQuery(query: string, fallbackMaxPx: number | null): boolean {
   return matches;
 }
 
-/** The What's new panel's id (WP-10), for the footer button's `aria-controls`. */
-const WHATS_NEW_PANEL_ID = 'admin-whats-new-panel';
-const WHATS_NEW_UNAVAILABLE = 'What’s new comes in a later update.';
-
 const CHROME_ITEM =
   'hg-focus [--hg-focus-ring-offset:var(--hg-surface-chrome)] [--hg-focus-ring-color:var(--hg-text-on-accent)] flex min-h-11 items-center rounded-md text-fg-on-accent no-underline';
 
@@ -87,6 +87,7 @@ function NavFooter({
   onSignOut,
   signingOut,
   countsNote,
+  onWhatsNew,
 }: {
   collapsed: boolean;
   role: StaffRole | null;
@@ -96,7 +97,10 @@ function NavFooter({
   onSignOut: () => void;
   signingOut: boolean;
   countsNote: string | null;
+  /** Runs after What's new is pressed (the drawer closes behind it). */
+  onWhatsNew?: () => void;
 }) {
+  const whatsNew = useWhatsNew();
   const roleLabel = role ? ROLE_LABEL[role] : '';
   return (
     <div className={collapsed ? 'flex w-full flex-col items-center gap-1' : 'flex w-full flex-col gap-1'}>
@@ -105,33 +109,34 @@ function NavFooter({
           {countsNote}
         </p>
       ) : null}
-      {/*
-        What's new, as `ASS/AdminSidebar` draws it. Its panel is WP-10, so the button is drawn but
-        unavailable: aria-disabled (still focusable, so the reason can be heard), collapsed, and
-        pointing at the (empty, hidden) panel region it will open.
-      */}
+      {/* What's new, as `ASS/AdminSidebar` draws it: an inverted tile while its panel is open. */}
       <button
         type="button"
-        aria-disabled="true"
-        aria-expanded={false}
+        data-testid="whats-new-trigger"
+        aria-expanded={whatsNew.open}
         aria-controls={WHATS_NEW_PANEL_ID}
-        aria-label={collapsed ? 'What’s new' : undefined}
-        aria-describedby={`${WHATS_NEW_PANEL_ID}-reason`}
-        title={WHATS_NEW_UNAVAILABLE}
-        onClick={(event) => event.preventDefault()}
-        className={`${CHROME_ITEM} cursor-not-allowed border-0 bg-transparent opacity-70 ${
-          collapsed ? 'min-h-12 w-full flex-col justify-center gap-0.5 px-0.5 py-1 text-caption' : 'w-full gap-3 px-3 py-2 text-body-md'
-        }`}
+        aria-label={collapsed ? (whatsNew.hasNew ? `${WHATS_NEW.button}${WHATS_NEW.newHint}` : WHATS_NEW.button) : undefined}
+        onClick={(event) => {
+          whatsNew.toggle(event.currentTarget);
+          onWhatsNew?.();
+        }}
+        className={`${CHROME_ITEM} cursor-pointer border-0 ${
+          whatsNew.open ? 'bg-fg-on-accent font-bold text-surface-chrome' : 'bg-transparent hover:bg-[var(--hg-state-hover-overlay)]'
+        } ${collapsed ? 'min-h-12 w-full flex-col justify-center gap-0.5 px-0.5 py-1 text-caption' : 'w-full gap-3 px-3 py-2 text-body-md'}`}
       >
         <SideNavIconSlot />
-        <span aria-hidden={collapsed ? 'true' : undefined} className={collapsed ? 'max-w-[72px] text-center leading-tight' : undefined}>
-          What’s new
+        <span aria-hidden={collapsed ? 'true' : undefined} className={collapsed ? 'max-w-[72px] text-center leading-tight' : 'flex-grow'}>
+          {WHATS_NEW.button}
         </span>
+        {!collapsed && whatsNew.hasNew ? (
+          <>
+            <Badge variant="brand" appearance="solid" size="sm">
+              {WHATS_NEW.newBadge}
+            </Badge>
+            <span className="sr-only">{WHATS_NEW.newHint}</span>
+          </>
+        ) : null}
       </button>
-      <span id={`${WHATS_NEW_PANEL_ID}-reason`} className="sr-only">
-        {WHATS_NEW_UNAVAILABLE}
-      </span>
-      <div id={WHATS_NEW_PANEL_ID} hidden />
       <a
         href={systemHref}
         aria-current={systemCurrent ? 'page' : undefined}
@@ -191,7 +196,17 @@ function Forbidden({ role, permission }: { role: StaffRole | null; permission: s
   );
 }
 
+/** The console's frame, with the What's new state (`../whatsnew`) around it. */
 export function AdminShell() {
+  const session = useSyncExternalStore(subscribeSession, getSession, getSession);
+  return (
+    <WhatsNewProvider role={staffRoleOf(session.principal)}>
+      <AdminShellFrame />
+    </WhatsNewProvider>
+  );
+}
+
+function AdminShellFrame() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const session = useSyncExternalStore(subscribeSession, getSession, getSession);
@@ -199,7 +214,10 @@ export function AdminShell() {
   const queue = useQueueDepth();
   useSystemStatusPolling();
   const banners = useSystemBanners(undefined, role);
+  const whatsNew = useWhatsNewApi();
   const narrow = useMediaQuery(NARROW_QUERY, NARROW_MAX_PX);
+  // At 720 px and below the panel takes the whole content area (boards `WhatsNewZoom200`, `-Reflow320`).
+  const panelFullArea = narrow && whatsNew.open;
   // No fallback without matchMedia: an unknown width keeps the nav open.
   const compact = useMediaQuery(COMPACT_QUERY, null);
   const base = useHref('/');
@@ -210,14 +228,16 @@ export function AdminShell() {
   const notFound = route === null && pathname !== '/' && !pathname.startsWith('/applications/');
 
   const [titleOverride, setTitleOverride] = useState<string | null>(null);
-  const heading = forbidden ? FORBIDDEN.heading : notFound ? NOT_FOUND.heading : (titleOverride ?? route?.title ?? '');
+  const pageHeading = forbidden ? FORBIDDEN.heading : notFound ? NOT_FOUND.heading : (titleOverride ?? route?.title ?? '');
+  const heading = panelFullArea ? WHATS_NEW.panelTitle : pageHeading;
 
   // The rail on detail workspaces; elsewhere whatever the person last chose on a list page.
   const detail = Boolean(route?.detail) && !forbidden;
   // `null` until the person chooses on a list page: the window's width decides until then.
   const [preferCollapsed, setPreferCollapsed] = useState<boolean | null>(null);
   const [manual, setManual] = useState<{ path: string; collapsed: boolean } | null>(null);
-  const collapsed = manual && manual.path === pathname ? manual.collapsed : detail || (preferCollapsed ?? compact);
+  // The rail whenever What's new is open, so the page keeps its width beside the panel.
+  const collapsed = whatsNew.open || (manual && manual.path === pathname ? manual.collapsed : detail || (preferCollapsed ?? compact));
   const onCollapsedChange = (next: boolean) => {
     setManual({ path: pathname, collapsed: next });
     if (!detail) setPreferCollapsed(next);
@@ -275,7 +295,7 @@ export function AdminShell() {
     finishSignOut();
   };
 
-  const footer = (rail: boolean) => (
+  const footer = (rail: boolean, afterWhatsNew?: () => void) => (
     <NavFooter
       collapsed={rail}
       role={role}
@@ -289,6 +309,7 @@ export function AdminShell() {
       onSignOut={() => void signOut()}
       signingOut={signingOut}
       countsNote={queueCountsNote(queue)}
+      {...(afterWhatsNew ? { onWhatsNew: afterWhatsNew } : {})}
     />
   );
 
@@ -347,6 +368,8 @@ export function AdminShell() {
               ))}
             </div>
           ) : null}
+          {/* Below the warning banners, above the page (board `ASS/WhatsNewNotice`). */}
+          <WhatsNewNotice />
 
           <main
             ref={mainRef}
@@ -356,7 +379,11 @@ export function AdminShell() {
             className="flex min-h-0 flex-1 flex-col outline-none"
           >
             <div ref={appBarRef} className="flex min-h-14 shrink-0 items-center gap-3 border-b border-line-decorative bg-surface-raised px-4">
-              {narrow ? (
+              {panelFullArea ? (
+                <Button variant="tertiary" iconStart="back" onPress={whatsNew.close}>
+                  {WHATS_NEW.back(pageHeading)}
+                </Button>
+              ) : narrow ? (
                 <Button
                   variant="tertiary"
                   iconStart="menu"
@@ -372,9 +399,14 @@ export function AdminShell() {
                 {heading}
               </h1>
             </div>
-            {forbidden ? <Forbidden role={role} permission={route?.permission} /> : <Outlet />}
+            {/* Kept mounted (typed input survives) but out of the way while the panel has the whole area. */}
+            <div className={panelFullArea ? 'hidden' : 'contents'}>
+              {forbidden ? <Forbidden role={role} permission={route?.permission} /> : <Outlet />}
+            </div>
+            {narrow ? <WhatsNewPanel layout="page" /> : null}
           </main>
         </div>
+        {narrow ? null : <WhatsNewPanel layout="side" />}
 
         {narrow ? (
           <NavDrawer id={NAV_DRAWER_ID} open={drawerOpen} onClose={() => setDrawerOpen(false)}>
@@ -384,7 +416,7 @@ export function AdminShell() {
               groups={groups}
               collapsed={false}
               header={header}
-              footer={footer(false)}
+              footer={footer(false, () => setDrawerOpen(false))}
               onNavigate={(target) => {
                 setDrawerOpen(false);
                 onNavigate(target);

@@ -23,6 +23,9 @@ import { BannerSlot, SHELL_PANELS, StatusBarSlot, StripSlot } from './slots';
 import { ConsoleLayoutContext } from './layout';
 import { SignOutConfirm } from './SignOutConfirm';
 import { useWaitingCount } from './waiting';
+import { WHATS_NEW } from '../whatsnew/copy';
+import { useAutoOpenWhatsNew } from '../whatsnew/autoOpen';
+import { useUnseenNotes } from '../whatsnew/useNotes';
 import { useIsDesktop, useIsPhone } from './viewport';
 
 const RAIL_KEY = 'hg_restaurant_rail_expanded_v1';
@@ -65,6 +68,15 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
   const panelKey = params.get('panel');
   const shellPanel = panelKey ? SHELL_PANELS[panelKey] : undefined;
   const anyPanelOpen = pagePanelOpen || Boolean(shellPanel);
+  const unseenNotes = useUnseenNotes();
+  // After an update the notes open in the panel beside the page, but never over a panel or a
+  // confirmation the owner is in the middle of; a new order goes to the strip and leaves it open.
+  const openWhatsNew = useCallback(() => {
+    const next = new URLSearchParams(params);
+    next.set('panel', 'whats-new');
+    setParams(next, { replace: true });
+  }, [params, setParams]);
+  useAutoOpenWhatsNew({ blocked: anyPanelOpen || confirm !== null, open: openWhatsNew });
   const expanded = isDesktop && !anyPanelOpen && railPref;
 
   // A drawer left open must not outlive a resize past 768 px.
@@ -134,7 +146,7 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
       ? [{ key: 'who', label: `${ownerName} · Owner`, disabled: true, disabledReason: 'You are signed in as this person' }]
       : []),
     { key: 'settings', label: 'Settings', onSelect: () => navigate('/settings'), separatorBefore: Boolean(ownerName) },
-    { key: 'whats-new', label: "What's new", onSelect: () => navigate(`${location.pathname}?panel=whats-new`) },
+    { key: 'whats-new', label: unseenNotes ? WHATS_NEW.menuItemNew : WHATS_NEW.menuItem, onSelect: () => navigate(`${location.pathname}?panel=whats-new`) },
     { key: 'sign-out', label: 'Sign out…', onSelect: startSignOut, separatorBefore: true },
   ];
 
