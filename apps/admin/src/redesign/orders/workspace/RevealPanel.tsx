@@ -12,6 +12,7 @@ import { api } from '../../data/api';
 import { clearDraft, loadDraft, saveDraft } from '../../data/drafts';
 import { asContract } from '../model';
 import { Button, DetailPanel, InlineAlert, Textarea } from '../../ds';
+import { useHoldWhatsNewNotice } from '../../whatsnew/hold';
 
 type Order = Schema['OrderAdminView'];
 
@@ -28,6 +29,8 @@ export interface RevealPanelProps {
 type Phase = { kind: 'idle' } | { kind: 'loading' } | { kind: 'refused'; status: number; message: string; retryAfter: number | null } | { kind: 'failed' };
 
 export function RevealPanel({ orderId, code, onClose, onRevealed }: RevealPanelProps) {
+  // An update that arrives while this panel holds unsent input waits until it closes.
+  useHoldWhatsNewNotice();
   const draftKey = `order-reveal:${orderId}`;
   const [text, setText] = useState(() => loadDraft<string>(draftKey) ?? '');
   const [submitted, setSubmitted] = useState(false);

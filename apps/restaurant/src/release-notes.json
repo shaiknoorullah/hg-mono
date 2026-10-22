@@ -1,0 +1,20 @@
+[
+  {
+    "version": "1.0.0",
+    "date": "2026-10-22",
+    "notes": [
+      {
+        "title": "A new look for your console",
+        "body": "Live orders, History, Menu, Hours, Payouts and Settings share one layout, with the navigation on the left."
+      },
+      {
+        "title": "New orders at the top of every page",
+        "body": "A new order waits in a strip at the top of every page. Open it to accept or decline, and the order sound rings until you answer."
+      },
+      {
+        "title": "Settings, one section at a time",
+        "body": "Settings opens one section at a time and edits open in a panel beside it. This device holds the sound, notification and screen settings for the browser you are using."
+      }
+    ]
+  }
+]
