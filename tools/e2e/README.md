@@ -32,6 +32,20 @@ The full list of journeys still to cover is the harness plan in
 | A pull request with the **`e2e` label** | The web flows only, on every push while the label is on. No APK build and no emulator: those take the longest ([below](#what-it-costs)). Without the label no job starts |
 | A pull request with the **`e2e-full` label** | Every flow, emulator included, on every push while the label is on. The by-hand run for a pull request: a workflow can only be started from the Actions tab once it is on `main`. Remove the label when done |
 
+**After the flows, `design-diff`.** Whenever the `flows` job succeeds, a second job renders every
+`restaurant` and `admin` board from `claude/redesign-canvases` on the same Chromium build the
+captures were taken on, compares the captures with the boards they name, writes a per-area verdict
+table to the job summary and uploads the HTML report as the `design-diff` artifact
+([tools/design-diff/README.md](../design-diff/README.md)). It is its own job because it needs no
+emulator, no stack and no APKs, and a 20-minute emulator run should not wait on rendering boards.
+
+It compares with `--no-strict`: the diff exits 1 on any failing board and no board passes yet, so a
+gate there would be red before the first board is fixed and would block every merge. A crash still
+fails the job. The regression gate — a board that passed on `main` failing on a pull request — comes
+once there is something to protect ([#1034](https://github.com/shaiknoorullah/hg-mono/issues/1034)),
+and native captures join it once they have a view hierarchy
+([#1026](https://github.com/shaiknoorullah/hg-mono/issues/1026)).
+
 A run on a pull request reads no secret. No run needs one: the API runs with `HG_ENV=local`, so it
 uses its fake payment client (no Stripe keys) and writes phone sign-in codes to its own log
 instead of texting them. No flow sends an SMS or charges a card.
@@ -103,7 +117,7 @@ bash tools/e2e/web/serve.sh       # restaurant on :4173, admin on :4174 (and the
 E2E_FLOWS=web bash tools/e2e/run.sh  # or E2E_FLOWS=all with an emulator attached and the APKs in e2e-out/apk/
 ```
 
-The web runs and the design captures use one pinned Chromium build, recorded in `tools/design-diff/src/browser.mjs` as `CHROMIUM_BUILD`, currently build 1223 (Chromium 148). The build matters because the Chromium that ships with the pinned Playwright fails to render several boards' icons, and a capture taken on a different build is not comparable: design-diff reports `BROWSER MISMATCH` rather than a pixel figure. The install step above gives you the build the pinned Playwright 1.50.1 ships, 1155, **not** 1223: fetch the pinned build with a Playwright release that carries it, `npx -y playwright@latest install chromium`, and check that `~/.cache/ms-playwright/chromium-1223/` now exists — its binary reports `Google Chrome for Testing 148`. That is a manual step until the repository pins one Playwright everywhere ([aligning the pinned Playwright repo-wide](https://github.com/shaiknoorullah/hg-mono/issues/842)); the reference renderer refuses to draw boards on any other build rather than produce pixels that cannot be compared.
+The web runs and the design captures use one pinned Chromium build, recorded in `tools/design-diff/src/browser.mjs` as `CHROMIUM_BUILD`, currently build 1223 (Chromium 148). The build matters because the Chromium that ships with the pinned Playwright fails to render several boards' icons, and a capture taken on a different build is not comparable: design-diff reports `BROWSER MISMATCH` rather than a pixel figure. The install step above gives you the build the pinned Playwright 1.50.1 ships, 1155, **not** 1223: fetch the pinned build from the release that carries it, **`npx -y playwright@1.60.0 install chromium`**, and check that `~/.cache/ms-playwright/chromium-1223/` now exists — its binary reports `Google Chrome for Testing 148`. Name that version rather than `@latest`: Playwright's bundled Chromium moves on (1.61 ships 1228, 1.63 ships 1243, 1.64 ships 1248), so `@latest` stops providing 1223 and the boards become uncomparable again. **CI does this too**, in the `flows` job, and fails the job if the build is missing rather than capturing on a browser whose pixels cannot be compared. It stays a separate install until one Playwright is pinned everywhere ([aligning the pinned Playwright repo-wide](https://github.com/shaiknoorullah/hg-mono/issues/842)); the reference renderer refuses to draw boards on any other build rather than produce pixels that cannot be compared.
 
 `e2e-out/world.json` holds the run's password and the admin's TOTP secret; set `E2E_PASSWORD`
 before seeding to choose the password yourself.
