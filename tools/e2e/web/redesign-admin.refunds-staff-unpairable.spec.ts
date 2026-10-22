@@ -67,47 +67,17 @@ const REFUND_GROUPS: ReadonlyArray<Group> = [
     ],
   },
   {
-    name: 'refunds: the board disagrees with the contract',
+    name: 'refunds: not states of the platform',
     boards: [
-      ['admin/refunds/RefundsSupport', `wrong: the support form omits Goodwill amount, but the contract and the role matrix let a support agent issue goodwill, under a lower limit (${R915}, item 1)`],
-      ['admin/refunds/RefundForbidden', `wrong: says a support agent cannot issue a goodwill amount and refuses it with a 403; the contract's only 403 on issuing is MFA_REQUIRED (${R915}, item 1)`],
-      ['admin/refunds/RefundDailyCap', `wrong: a disabled "Can't send: you've reached your 24-hour limit" button, but no endpoint returns the remaining limit and the server answers 202 above a limit instead of refusing (${R915}, items 2 and 3)`],
-      ['admin/refunds/RefundSelfApproval', `wrong: the server answers "can't approve your own" only when approving, never when issuing, and its next step is the approvals queue, which waits on an owner decision (${R915}, item 3; ${R917})`],
-      ['admin/refunds/RefundApprovalAdmin', `wrong: writes a fixed CAD 50.00 into the result ("Goodwill above $50.00"); the threshold is a setting and the app writes no amount of its own (${R915}, item 5)`],
-      ['admin/refunds/RefundConfirmAfterPartial', `wrong: assumes Whole order refunds what is left after an earlier refund; the server refunds the total less earlier refunds and the app keeps Whole order on until nothing is left. The board is labelled reference only (${R915}, item 4)`],
-      ['admin/refunds/RefundItemsAfterConflict', `wrong: assumes Whole order is off once another refund landed, and the board's note says so; the app keeps it on (${R915}, item 4)`],
+      ['admin/refunds/RefundDailyCap', `not a state of the platform: the board's canvas note says so. No endpoint returns the remaining limit and the server answers 202 above a limit instead of refusing, so nothing reaches this screen (${R915}, items 2 and 3)`],
+      ['admin/refunds/RefundSelfApproval', `not a state of the platform: the board's canvas note says so. The server answers "can't approve your own" only when approving, never when issuing, and the approvals queue it points to waits on an owner decision (${R915}, item 3; ${R917})`],
     ],
   },
 ];
 
-const STALE_MFA = `wrong: says the person sets their own password and two-step sign-in before they can use the console, but ${OPTIONAL_MFA} (${S908}, item 1)`;
 const ONCALL_PLACEHOLDERS = `blocked on an owner decision: the board names the platform on-call engineer with placeholders ([ON-CALL NAME], [ON-CALL PHONE]) and the runbook as bare text; the app reads the contact from the build and says when there is none, until the owner names them (${ONCALL}; ${S908}, item 7)`;
 
 const STAFF_GROUPS: ReadonlyArray<Group> = [
-  {
-    name: 'staff: the board says two-step sign-in is required',
-    boards: [
-      ['admin/staff/InviteOpen', STALE_MFA],
-      ['admin/staff/InviteValidation', STALE_MFA],
-      ['admin/staff/InviteSubmitting', STALE_MFA],
-      ['admin/staff/InviteDuplicate', STALE_MFA],
-      ['admin/staff/InviteRejected', STALE_MFA],
-      ['admin/staff/InviteFailed', STALE_MFA],
-      ['admin/staff/InviteOfflineSubmit', STALE_MFA],
-      ['admin/staff/InviteSecondSuper', STALE_MFA],
-      ['admin/staff/InviteZoom200', STALE_MFA],
-      ['admin/staff/InviteDuplicateUnloaded', `${STALE_MFA}. It also draws a 409 that names no account; the app names the account when it is in the loaded list (${S908}, item 3)`],
-      ['admin/staff/StaffOnlyYou', STALE_MFA],
-      ['admin/staff/StaffDetailNoMfa', `wrong: calls an active account without two-step sign-in a defect to report, and offers Reset two-step sign-in for an account that has nothing set up; it is optional for staff (the owner's decision, ${D1}; ${S908}, items 1 and 6)`],
-    ],
-  },
-  {
-    name: 'staff: reactivating a deactivated account',
-    boards: [
-      ['admin/staff/InviteReactivate', `wrong: inviting a deactivated account's email does not reactivate it; the server answers 409 EMAIL_IN_USE (${S908}, item 2)`],
-      ['admin/staff/StaffDetailDeactivated', `wrong: offers "Invite this email again" to reactivate; the server answers 409 EMAIL_IN_USE and the app says reactivation is not in the console (${S908}, item 2)`],
-    ],
-  },
   {
     name: 'staff: the on-call engineer and what has no operation yet',
     boards: [

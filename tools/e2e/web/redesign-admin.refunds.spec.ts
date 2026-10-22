@@ -142,3 +142,28 @@ test.describe('redesigned admin · refunds page, an order found by its code (moc
     });
   }
 });
+
+test.describe('redesigned admin · refunds page, goodwill sent for a second approval (mock)', () => {
+  test.use({ colorScheme: 'light' });
+
+  test('an admin’s large goodwill refund', async ({ page }) => {
+    await openAdmin(page, '#/refunds', {
+      failed: FAILED,
+      list: EVERY_STATE,
+      order: fixture('order_admin_view_completed'),
+      issue: fixture('refund_approval_request_pending'),
+    });
+    await expect(failedGrid(page).getByText('HG-COED-9X')).toBeVisible();
+    await find(page, 'HG-2RC9LA');
+    await page.getByRole('button', { name: 'Issue refund', exact: true }).click();
+    const panel = page.getByRole('region', { name: /Issue a refund/ });
+    await panel.getByRole('radio', { name: /Goodwill amount/ }).click();
+    await panel.getByRole('textbox', { name: /Goodwill amount/ }).fill('60.00');
+    await page.keyboard.press('Tab');
+    await panel.getByLabel(/What happened/).fill('Customer waited 40 minutes past the estimate; offering goodwill.');
+    await panel.getByRole('button', { name: 'Review refund' }).click();
+    await page.getByRole('region', { name: /Review before money moves/ }).getByRole('button', { name: 'Issue refund', exact: true }).click();
+    await expect(page.getByText(/Sent for approval. Nothing has moved yet./)).toBeVisible();
+    await shoot(page, { 1440: 'admin/refunds/RefundApprovalAdmin' });
+  });
+});

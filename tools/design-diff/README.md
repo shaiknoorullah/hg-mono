@@ -24,6 +24,24 @@ pnpm --filter @hg/design-diff diff --refs ../../e2e-out/design-refs --captures .
 pnpm --filter @hg/design-diff report --results ../../e2e-out/design-diff
 ```
 
+**Reading one board from a CI run.** The HTML report is for looking at a board and `results.json`
+holds everything, but neither is quick to reach from a slow link — a 28 MB artifact download to read
+four lines has taken minutes. So the `design-diff` job also prints the failing boards in words:
+
+```bash
+gh run view <run id> --log | grep -A 4 'restaurant/sign-in/Verify-Used'
+```
+
+```
+FAIL  0.045 %  restaurant/sign-in/Verify-Used
+    · 2 patches of difference larger than the 4 px allowed; the largest is 11 x 6 dp at 612, 338 (54 px)
+    - Resend code: text #5A6B63 in the design, #44544C in the app.
+```
+
+A board **under** the mismatch percentage and still failing is failing the other half of the rule —
+no connected group of differing pixels over `maxRegionPx` — and the percentage alone hides that.
+Those are the boards closest to passing, so that is the line worth reading first.
+
 **CI runs this on every `e2e-full` or `e2e` run**, in the `design-diff` job of `.github/workflows/e2e.yml`: it renders the boards, compares the captures the `flows` job uploaded, writes the per-area verdict table to the job summary and uploads the HTML report as the `design-diff` artifact. It compares with `--no-strict`, so a failing board reports rather than failing the run — no board passes yet, and a gate that is red before the first one is fixed blocks every merge and tells nobody anything. A regression gate comes once there is something to protect ([#1034](https://github.com/shaiknoorullah/hg-mono/issues/1034)).
 
 Paths are relative to `tools/design-diff/`, where pnpm runs the scripts. On a machine where
@@ -57,6 +75,15 @@ the board shows, for the worded findings) and `<out>/manifest.json`, per board:
 Per area, `manifest.areas` has the artifact's link and the union of its missing images, so they can
 be fetched from the artifact's asset store later. A second run into the same folder updates the
 boards it renders and keeps the rest.
+
+A note is hidden, not removed, so the pixels are right — and the **box keys ignore it too**. A box
+is keyed by the words it shows, which is not `textContent`: that returns the text of hidden
+descendants as well, so a note used to put its own words into the key of every box around it and
+those boxes could not be paired. A run reported
+`Boxes holding "Proposed component: AppBar with brand mark…": the text names more than one box on a
+side, so they were not compared` on a board whose pixels were already correct. That changes no
+verdict for a web board, which is judged on pixels, but it loses the worded findings for those
+boxes — and a native board **is** judged on its layout, so there it can change the verdict.
 
 **The designers' notes.** Boards carry inline notes ("Needs API: …", "Proposed component: …",
 "DS issue: …") that are not UI and push the layout. They are hidden before the screenshot and kept
@@ -224,6 +251,7 @@ the board's size, and loses Android's status and navigation bars before the comp
 | `src/maestro-hierarchy.mjs` | The same record from Maestro's own hierarchy JSON, which is where a capture's layout has to come from ([#1026](https://github.com/shaiknoorullah/hg-mono/issues/1026)) |
 | `src/report.mjs`, `src/png.mjs` | The HTML report; PNG helpers |
 | `src/job-summary.mjs` | A run's verdicts as one Markdown table, areas worst first, for a CI job summary |
+| `src/findings.mjs` | The failing boards in words, for a CI job log: why each one is not passing, and where |
 | `src/names.mjs`, `src/insets.mjs` | The capture names; the phone profiles and their bars |
 | `src/vendor-fonts.mjs`, `third-party/` | React and the fonts the boards load, and their licences |
 | `android/` | The capture AVDs and the device state; `capture-server.mjs`, which writes a native capture's hierarchy and provenance |

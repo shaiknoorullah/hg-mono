@@ -72,7 +72,7 @@ falling through, so a typo is visible immediately.
 
 ## Scenarios by domain
 
-**781 scenarios** across 16 domains.
+**790 scenarios** across 16 domains.
 
 | Domain | Scenarios | What it covers |
 |---|---:|---|
@@ -80,7 +80,7 @@ falling through, so a typo is visible immediately.
 | [`cart`](#cart) | 17 | Cart and quote — every blocking reason, the quantity cap, and the money edges. |
 | [`catalogue`](#catalogue) | 57 | Discovery, restaurant detail, hours and menus. |
 | [`dispatch`](#dispatch) | 32 | Dispatch states, rider offers and assignments. |
-| [`documents`](#documents) | 27 | KYC uploads, review states and every rejection reason. |
+| [`documents`](#documents) | 36 | KYC uploads, review states and every rejection reason. |
 | [`errors`](#errors) | 153 | `{error}` envelopes for the codes an app actually branches on. |
 | [`geo`](#geo) | 11 | Address search through our API to Mapbox — suggestions, a picked place, a map pin, and the no-match and provider-down paths. |
 | [`halal`](#halal) | 37 | Badges, certificates, checks and issuing bodies — the platform's core promise. |
@@ -301,7 +301,7 @@ Dispatch states, rider offers and assignments. — 32 scenarios.
 
 ### documents
 
-KYC uploads, review states and every rejection reason. — 27 scenarios.
+KYC uploads, review states and every rejection reason. — 36 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
@@ -321,7 +321,16 @@ KYC uploads, review states and every rejection reason. — 27 scenarios.
 | `presigned_upload` | `PresignedUpload` | 201 | A one-hour presigned PUT plus the `PENDING` stored object it will fill. |
 | `restaurant_document_pack_complete` | `array&lt;KycDocument&gt;` | 200 | All five restaurant document types present and APPROVED. Note `VOID_CHEQUE_OR_BANK_LETTER` is absent by design — Stripe Connect supersedes it and the platform stores no bank details (contradiction log #20). |
 | `restaurant_document_pack_empty` | `array&lt;KycDocument&gt;` | 200 | Nothing uploaded yet — the first thing a new partner sees. |
+| `restaurant_document_pack_food_safety_expired` | `array&lt;KycDocument&gt;` | 200 | The food safety certificate EXPIRED while the pack waited for review; the halal certificate is still valid and the other documents are APPROVED. Not a halal state. |
+| `restaurant_document_pack_halal_duplicate` | `array&lt;KycDocument&gt;` | 200 | The halal certificate was REJECTED as `OTHER` with a reviewer note that says the same certificate is held by another restaurant (the contract has no duplicate code yet); the other three are APPROVED. |
+| `restaurant_document_pack_halal_expired` | `array&lt;KycDocument&gt;` | 200 | The halal certificate EXPIRED while the pack waited for review; the other three are APPROVED. Setup does not move on until a current certificate is uploaded. Never a listing state: nothing is listed yet. |
+| `restaurant_document_pack_halal_forgery` | `array&lt;KycDocument&gt;` | 200 | The halal certificate was REJECTED as `SUSPECTED_FORGERY`; the other three are APPROVED. Uploading the same file again cannot fix it: partner support leads. |
+| `restaurant_document_pack_halal_rejected` | `array&lt;KycDocument&gt;` | 200 | The halal certificate was REJECTED (`ILLEGIBLE`, the reviewer's sentence beside it); the other three are APPROVED. One document to upload again. |
+| `restaurant_document_pack_in_review` | `array&lt;KycDocument&gt;` | 200 | All four required documents sent and waiting for a reviewer (IN_REVIEW): the first round of the awaiting-review step. |
 | `restaurant_document_pack_incomplete` | `array&lt;KycDocument&gt;` | 200 | Two of five uploaded, one rejected, two never attached. Submitting is `422 INCOMPLETE_DOCUMENT_PACK`. |
+| `restaurant_document_pack_partly_approved` | `array&lt;KycDocument&gt;` | 200 | Business licence and food safety certificate APPROVED; halal certificate and owner ID still IN_REVIEW: a live update while the review is part way through. |
+| `restaurant_document_pack_ready` | `array&lt;KycDocument&gt;` | 200 | All four required documents uploaded and saved (SUBMITTED), not yet sent for review: 4 of 4, the documents step with Send for review as the primary action. |
+| `restaurant_document_pack_two_rejected` | `array&lt;KycDocument&gt;` | 200 | Food safety certificate (`EXPIRED`) and owner ID (`INCOMPLETE_PAGES`) REJECTED, the halal certificate and business licence APPROVED: the pack `restaurant_onboarding_documents_rejected` describes. Two documents to upload again. |
 | `rider_document_pack_complete` | `array&lt;KycDocument&gt;` | 200 | All six rider document types APPROVED, including `WORK_ELIGIBILITY` (retained per contradiction log #20). |
 | `rider_document_pack_empty` | `array&lt;KycDocument&gt;` | 200 | No documents uploaded yet. |
 | `rider_document_pack_expired` | `array&lt;KycDocument&gt;` | 200 | The driver's licence expired three days ago (`state: EXPIRED`). Going online is refused with `DOCUMENT_EXPIRED` until a new one is approved. |
@@ -994,11 +1003,11 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 |---|---:|---|
 | `admin` | 182 | Admin/support-facing surface. |
 | `error-envelope` | 153 | A `{error}` body with a real `ErrorCode`. |
+| `error-path` | 132 | The unhappy branch a client must handle. |
 | `rider` | 132 | Rider-facing surface. |
-| `error-path` | 128 | The unhappy branch a client must handle. |
 | `state-matrix` | 108 | One fixture per member of a closed enum. |
-| `restaurant` | 92 | Restaurant-facing surface. |
-| `edge` | 90 | A shape that breaks naive layouts — empty, overflowing, at a boundary. |
+| `restaurant` | 101 | Restaurant-facing surface. |
+| `edge` | 92 | A shape that breaks naive layouts — empty, overflowing, at a boundary. |
 | `money` | 74 | Exercises the money path specifically. |
 | `order-state-matrix` | 68 | One per `OrderState` (all 14). |
 | `platform` | 57 | Cross-cutting platform surface. |
@@ -1012,9 +1021,9 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `refund-state-matrix` | 24 | One per `RefundState` (all 10). |
 | `script` | 24 | A realtime event sequence, not a response body. |
 | `review-queue` | 23 | An admin review queue item. |
+| `documents` | 22 | KYC document surface. |
 | `onboarding-state-matrix` | 21 | One per onboarding state, restaurant and rider. |
 | `payout-state-matrix` | 15 | One per `PayoutState` (all 7). |
-| `documents` | 13 | KYC document surface. |
 | `assignment-state-matrix` | 12 | One per `AssignmentState` (all 12). |
 | `dense` | 12 | Deliberately busy — the worst case for a list or a card. |
 | `document-state-matrix` | 12 | One per `KycDocumentState`, plus rejection reasons. |
@@ -1166,7 +1175,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `listRefunds` | `refund_list_empty` | `refund_list_every_state`, `refund_list_several_reports_on_order` |
 | `listRefundsAdmin` | `admin_refund_queue` | `admin_refund_queue_empty`, `admin_refund_queue_failed` |
 | `listRestaurantApplications` | `restaurant_application_queue` | `restaurant_application_queue_empty` |
-| `listRestaurantDocuments` | `restaurant_document_pack_complete` | `restaurant_document_pack_empty`, `restaurant_document_pack_incomplete` |
+| `listRestaurantDocuments` | `restaurant_document_pack_complete` | `restaurant_document_pack_empty`, `restaurant_document_pack_food_safety_expired`, `restaurant_document_pack_halal_duplicate`, `restaurant_document_pack_halal_expired`, `restaurant_document_pack_halal_forgery`, `restaurant_document_pack_halal_rejected`, `restaurant_document_pack_in_review`, `restaurant_document_pack_incomplete`, `restaurant_document_pack_partly_approved`, `restaurant_document_pack_ready`, `restaurant_document_pack_two_rejected` |
 | `listRestaurantOrders` | `restaurant_order_queue_busy` | `restaurant_order_arrived`, `restaurant_order_cancelled`, `restaurant_order_cancelled_after_accept`, `restaurant_order_completed`, `restaurant_order_delivered`, `restaurant_order_disputed`, `restaurant_order_picked_up`, `restaurant_order_pickup_code_locked`, `restaurant_order_preparing`, `restaurant_order_queue_empty`, `restaurant_order_queue_pending_four`, `restaurant_order_queue_with_completed`, `restaurant_order_ready_for_pickup`, `restaurant_order_rejected`, `restaurant_order_resolved`, `restaurant_order_restaurant_pending` |
 | `listRestaurantPayouts` | `restaurant_payout_history` | `payout_list_empty`, `restaurant_payout_history_every_state`, `restaurant_payout_history_page_1`, `restaurant_payout_history_page_2` |
 | `listRestaurantStaff` | `restaurant_staff_list` | — |

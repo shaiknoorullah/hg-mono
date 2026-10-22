@@ -2,13 +2,13 @@
   "generated_by": "contracts/fixtures/_build/build.py",
   "do_not_edit": "Every file under contracts/fixtures/ is generated. Run `pnpm fixtures:build`.",
   "frozen_clock": "2026-08-10T18:42:11.412Z",
-  "count": 781,
+  "count": 790,
   "counts_by_domain": {
     "admin": 72,
     "cart": 17,
     "catalogue": 57,
     "dispatch": 32,
-    "documents": 27,
+    "documents": 36,
     "errors": 153,
     "geo": 11,
     "halal": 37,
@@ -3020,6 +3020,101 @@
       "file": "documents/restaurant_document_pack_empty.json"
     },
     {
+      "scenario": "restaurant_document_pack_food_safety_expired",
+      "domain": "documents",
+      "schema": "array<KycDocument>",
+      "describes": "The food safety certificate EXPIRED while the pack waited for review; the halal certificate is still valid and the other documents are APPROVED. Not a halal state.",
+      "operations": [
+        "listRestaurantDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "documents",
+        "edge"
+      ],
+      "file": "documents/restaurant_document_pack_food_safety_expired.json"
+    },
+    {
+      "scenario": "restaurant_document_pack_halal_duplicate",
+      "domain": "documents",
+      "schema": "array<KycDocument>",
+      "describes": "The halal certificate was REJECTED as `OTHER` with a reviewer note that says the same certificate is held by another restaurant (the contract has no duplicate code yet); the other three are APPROVED.",
+      "operations": [
+        "listRestaurantDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "documents",
+        "error-path"
+      ],
+      "file": "documents/restaurant_document_pack_halal_duplicate.json"
+    },
+    {
+      "scenario": "restaurant_document_pack_halal_expired",
+      "domain": "documents",
+      "schema": "array<KycDocument>",
+      "describes": "The halal certificate EXPIRED while the pack waited for review; the other three are APPROVED. Setup does not move on until a current certificate is uploaded. Never a listing state: nothing is listed yet.",
+      "operations": [
+        "listRestaurantDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "documents",
+        "edge"
+      ],
+      "file": "documents/restaurant_document_pack_halal_expired.json"
+    },
+    {
+      "scenario": "restaurant_document_pack_halal_forgery",
+      "domain": "documents",
+      "schema": "array<KycDocument>",
+      "describes": "The halal certificate was REJECTED as `SUSPECTED_FORGERY`; the other three are APPROVED. Uploading the same file again cannot fix it: partner support leads.",
+      "operations": [
+        "listRestaurantDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "documents",
+        "error-path"
+      ],
+      "file": "documents/restaurant_document_pack_halal_forgery.json"
+    },
+    {
+      "scenario": "restaurant_document_pack_halal_rejected",
+      "domain": "documents",
+      "schema": "array<KycDocument>",
+      "describes": "The halal certificate was REJECTED (`ILLEGIBLE`, the reviewer's sentence beside it); the other three are APPROVED. One document to upload again.",
+      "operations": [
+        "listRestaurantDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "documents",
+        "error-path"
+      ],
+      "file": "documents/restaurant_document_pack_halal_rejected.json"
+    },
+    {
+      "scenario": "restaurant_document_pack_in_review",
+      "domain": "documents",
+      "schema": "array<KycDocument>",
+      "describes": "All four required documents sent and waiting for a reviewer (IN_REVIEW): the first round of the awaiting-review step.",
+      "operations": [
+        "listRestaurantDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "documents"
+      ],
+      "file": "documents/restaurant_document_pack_in_review.json"
+    },
+    {
       "scenario": "restaurant_document_pack_incomplete",
       "domain": "documents",
       "schema": "array<KycDocument>",
@@ -3034,6 +3129,52 @@
         "error-path"
       ],
       "file": "documents/restaurant_document_pack_incomplete.json"
+    },
+    {
+      "scenario": "restaurant_document_pack_partly_approved",
+      "domain": "documents",
+      "schema": "array<KycDocument>",
+      "describes": "Business licence and food safety certificate APPROVED; halal certificate and owner ID still IN_REVIEW: a live update while the review is part way through.",
+      "operations": [
+        "listRestaurantDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "documents"
+      ],
+      "file": "documents/restaurant_document_pack_partly_approved.json"
+    },
+    {
+      "scenario": "restaurant_document_pack_ready",
+      "domain": "documents",
+      "schema": "array<KycDocument>",
+      "describes": "All four required documents uploaded and saved (SUBMITTED), not yet sent for review: 4 of 4, the documents step with Send for review as the primary action.",
+      "operations": [
+        "listRestaurantDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "documents"
+      ],
+      "file": "documents/restaurant_document_pack_ready.json"
+    },
+    {
+      "scenario": "restaurant_document_pack_two_rejected",
+      "domain": "documents",
+      "schema": "array<KycDocument>",
+      "describes": "Food safety certificate (`EXPIRED`) and owner ID (`INCOMPLETE_PAGES`) REJECTED, the halal certificate and business licence APPROVED: the pack `restaurant_onboarding_documents_rejected` describes. Two documents to upload again.",
+      "operations": [
+        "listRestaurantDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "documents",
+        "error-path"
+      ],
+      "file": "documents/restaurant_document_pack_two_rejected.json"
     },
     {
       "scenario": "rider_document_pack_complete",
@@ -12949,7 +13090,16 @@
     "listRestaurantDocuments": [
       "restaurant_document_pack_complete",
       "restaurant_document_pack_empty",
-      "restaurant_document_pack_incomplete"
+      "restaurant_document_pack_food_safety_expired",
+      "restaurant_document_pack_halal_duplicate",
+      "restaurant_document_pack_halal_expired",
+      "restaurant_document_pack_halal_forgery",
+      "restaurant_document_pack_halal_rejected",
+      "restaurant_document_pack_in_review",
+      "restaurant_document_pack_incomplete",
+      "restaurant_document_pack_partly_approved",
+      "restaurant_document_pack_ready",
+      "restaurant_document_pack_two_rejected"
     ],
     "listRestaurantOrders": [
       "restaurant_order_arrived",

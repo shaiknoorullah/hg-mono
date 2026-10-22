@@ -637,3 +637,54 @@ test('a failed capture spec is named, and a passing one never is', async () => {
   assert.deepEqual(failuresIn('<testsuites><testsuite name="s"><testcase name="all fine" classname="a.spec.ts"/></testsuite></testsuites>'), []);
   assert.deepEqual(failuresIn(''), []);
 });
+
+// The findings listing a CI log carries, so a board can be looked up without downloading anything.
+// The case that matters is a board UNDER the percentage and still failing: it fails on the blob
+// rule, which the percentage alone hides, and that is where the first passes come from.
+test('findings: a board under the percentage still says why it fails', async () => {
+  const { listing, whyNotPassing } = await import('../src/findings.mjs');
+  const thresholds = { maxMismatchPct: 0.1, maxRegionPx: 4 };
+
+  const why = whyNotPassing({ sharedHeightMismatchPct: 0.045, regionsOverLimit: 2, largestRegion: { x: 612, y: 338, w: 11, h: 6, px: 54 } }, thresholds);
+  assert.equal(why.length, 1, 'under the percentage, so only the blob is named');
+  assert.match(why[0], /2 patches .* larger than the 4 px allowed/);
+  assert.match(why[0], /11 x 6 dp at 612, 338/, 'where to look, not only that it is wrong');
+
+  const results = {
+    comparison: { mismatchField: 'sharedHeightMismatchPct' },
+    thresholds,
+    pairs: [
+      { id: 'a/b/Low', verdict: 'FAIL', sharedHeightMismatchPct: 0.045, regionsOverLimit: 1, largestRegion: { x: 1, y: 2, w: 9, h: 9, px: 81 }, layout: { findings: [{ text: 'Copy differs.' }] } },
+      { id: 'a/b/High', verdict: 'FAIL', sharedHeightMismatchPct: 9.4, shortfall: 2300, layout: { findings: [] } },
+      { id: 'a/b/Fine', verdict: 'PASS', sharedHeightMismatchPct: 0.01 },
+    ],
+  };
+  const text = listing(results, { limit: 6 });
+  assert.match(text, /2 boards are not passing/);
+  assert.ok(text.indexOf('a/b/High') < text.indexOf('a/b/Low'), 'worst first');
+  assert.ok(!text.includes('a/b/Fine'), 'a passing board is not in the list');
+  assert.match(text, /shorter than its board/);
+  assert.match(text, /Copy differs\./);
+});
+
+// snapshotLayout runs in the page through `page.evaluate`, which serialises the function and
+// nothing around it: a helper defined at module scope would be a ReferenceError in the browser and
+// would only show up on a CI run. This pins the two things that matter about the box key — that it
+// steps over the designers' notes, and that it can still be serialised.
+test('the box key ignores hidden notes, and snapshotLayout stays self-contained', async () => {
+  const { snapshotLayout } = await import('../src/page-scripts.mjs');
+  const src = String(snapshotLayout);
+
+  assert.match(src, /const shownText = /, 'the helper is inside the function page.evaluate serialises');
+  assert.ok(!/\bshownText\b/.test(src.slice(0, src.indexOf('const shownText'))), 'nothing refers to it before it exists');
+  assert.match(src, /data-design-note/, 'the key steps over the notes');
+  assert.ok(!/squash\(el\.textContent\)\.slice\(0, 80\)/.test(src), 'the key is not textContent: that returns hidden text too');
+
+  // The helper's own logic, on the shape it walks: text nodes are kept, a marked element's whole
+  // subtree is stepped over, and an unmarked element's text is kept.
+  const t = (v) => ({ nodeType: 3, nodeValue: v });
+  const e = (children, note = false) => ({ nodeType: 1, childNodes: children, hasAttribute: (a) => note && a === 'data-design-note' });
+  const shownText = new Function(`${src.slice(src.indexOf('const shownText'), src.indexOf('const boxes'))} return shownText;`)();
+  assert.equal(shownText(e([t('Sign in'), e([t('Proposed component: AppBar')], true)])), 'Sign in');
+  assert.equal(shownText(e([t('a'), e([t('b')]), t('c')])), 'abc');
+});
