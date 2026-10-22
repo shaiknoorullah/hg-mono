@@ -332,6 +332,15 @@ in its `.capture.json` and reported as uncovered. Three helpers in `web/design.t
   captured exactly as before, and so is every board when the branch is not fetched (`git fetch origin
   claude/redesign-canvases:refs/remotes/origin/claude/redesign-canvases`); the `flows` and `captures` jobs fetch it.
   The folder is still named for the project's viewport; `.capture.json` records the `viewport` actually used.
+- **Only at the board's own width.** A capture is compared only with a board drawn at the capture's width, so
+  `expectDesign` takes none when the board's width (from the same `canvas.json`) differs from the page's viewport
+  (`widthMismatch`): it writes no screenshot and adds a `design-capture-skipped` annotation to the test, naming the
+  board and both widths, which shows in the Playwright report and does not fail the test. The specs say which
+  project a board belongs to: a board declared as `{ 1440: ..., 1024: ... }` is taken in the project of each width, and a
+  board of one width alone is declared with that width (`at1440(board)` in `web/design.ts` for a 1440 board), so the
+  tablet project does not produce captures that [design-diff](../design-diff/README.md) can only list as not compared
+  (93 `restaurant/settings` boards in [run 39769464232](https://github.com/shaiknoorullah/hg-mono/actions/runs/39769464232)).
+  When the canvases branch is not fetched the width is not known, and the capture is taken as before.
 - `declareUnpairable(page, board, reason)` for a **composite** board (several states drawn side by
   side, such as `admin/restaurant-verification/SignIn-Errors`). One screenshot cannot be compared
   with a composite, so the capture goes to `<app>/unpairable/` with the reason in its `.capture.json`

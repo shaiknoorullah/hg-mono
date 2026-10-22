@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { expectDesignFor } from './design';
+import { at1440, expectDesignFor } from './design';
 import { MOCK_API, MODE, openSignedIn } from './redesign-restaurant.support';
 
 test.skip(MODE !== 'mock', 'written against the mock server; run with E2E_MODE=mock');
@@ -72,7 +72,7 @@ async function open(page: Page, { notifications = 'granted', sound = 'plays', wa
 async function capture(page: Page, board: Parameters<typeof expectDesignFor>[1]) {
   await page.waitForLoadState('networkidle');
   await expect(page.getByText('Not built yet')).toHaveCount(0);
-  await expectDesignFor(page, board);
+  await expectDesignFor(page, at1440(board));
 }
 
 test.describe('redesigned restaurant settings · this device (mock)', () => {

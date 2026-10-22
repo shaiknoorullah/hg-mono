@@ -1,6 +1,6 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
 
-import { expectDesignFor, type BoardFor } from './design';
+import { at1440, expectDesignFor, type BoardFor } from './design';
 import { MODE, openSignedIn, scenarioPayload as fixture, torontoDateIn as torontoDate } from './redesign-restaurant.support';
 
 test.skip(MODE !== 'mock', 'written against the mock server; run with E2E_MODE=mock');
@@ -71,7 +71,7 @@ async function serve(page: Page, o: Road = {}) {
 async function capture(page: Page, board: BoardFor, { settled = true } = {}) {
   if (settled) await page.waitForLoadState('networkidle');
   await expect(page.getByText('Not built yet')).toHaveCount(0);
-  await expectDesignFor(page, board);
+  await expectDesignFor(page, at1440(board));
 }
 
 const FILE = (name: string) => ({ name, mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4 a document') });
