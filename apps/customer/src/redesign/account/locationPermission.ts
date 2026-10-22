@@ -42,6 +42,27 @@ export async function askForLocation(): Promise<LocationState> {
   }
 }
 
+/** How long to wait for the phone to find where it is before saying it could not. */
+export const POSITION_TIMEOUT_MS = 15000;
+
+/**
+ * Where the phone is now, once, while the app is open. Rejects when the phone cannot say (location
+ * services off, no fix) or does not answer within `POSITION_TIMEOUT_MS`; the caller treats both as
+ * "couldn't find where you are". Call it only when the permission is `allowed`.
+ */
+export async function currentPosition(): Promise<{ latitude: number; longitude: number }> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error('position timed out')), POSITION_TIMEOUT_MS);
+  });
+  try {
+    const fix = await Promise.race([Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }), timeout]);
+    return { latitude: fix.coords.latitude, longitude: fix.coords.longitude };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** Open this app's page in the phone's settings. */
 export function openLocationSettings(): void {
   void Linking.openSettings().catch(() => {});
@@ -51,7 +72,7 @@ export function openLocationSettings(): void {
  * The permission as last read, or `null` while it loads. It is read again whenever the app comes
  * back to the front, because the customer may have changed it in the phone's settings.
  */
-export function useLocationState(): { state: LocationState | null; turnOn: () => Promise<void> } {
+export function useLocationState(): { state: LocationState | null; turnOn: () => Promise<LocationState> } {
   const [state, setState] = React.useState<LocationState | null>(null);
   const live = React.useRef(true);
   React.useEffect(() => {
@@ -69,6 +90,7 @@ export function useLocationState(): { state: LocationState | null; turnOn: () =>
   const turnOn = React.useCallback(async () => {
     const s = await askForLocation();
     if (live.current) setState(s);
+    return s;
   }, []);
   return { state, turnOn };
 }
