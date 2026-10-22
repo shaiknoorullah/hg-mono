@@ -1,7 +1,8 @@
 import { defineConfig, type Project } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 import { resolveBrowser } from '@hg/design-diff/browser';
 import path from 'node:path';
-import { OUT as out } from '../lib/paths.mjs';
+import { OUT as out, ROOT } from '../lib/paths.mjs';
 import { E2E_MODE, type ProjectMeta } from './mode';
 
 const webBrowser = resolveBrowser();
@@ -42,6 +43,29 @@ const URLS = {
   },
 } as const;
 
+// A fresh browser has seen no release notes, so the redesigned apps would open What's new (restaurant)
+// or show the update notice (admin) over every screen a spec captures. Every redesign project starts
+// as a device that has already seen the notes of the build it is served; the What's new specs
+// (`redesign-*.whats-new.spec.ts`) clear this and set what they need.
+// The key names are the apps' own: apps/admin/src/redesign/whatsnew/store.ts and
+// apps/restaurant/src/redesign/whatsnew/store.ts.
+function appVersion(app: ProjectMeta['app']): string {
+  return (JSON.parse(readFileSync(path.join(ROOT, 'apps', app, 'package.json'), 'utf8')) as { version: string }).version;
+}
+
+const SEEN_KEYS: Record<ProjectMeta['app'], string[]> = {
+  admin: ['hg-admin-whatsnew:last-seen', 'hg-admin-whatsnew:opened'],
+  restaurant: ['hg.restaurant.whatsnew.last-seen'],
+};
+
+function seenReleaseNotes(app: ProjectMeta['app'], baseURL: string) {
+  const version = appVersion(app);
+  return {
+    cookies: [],
+    origins: [{ origin: new URL(baseURL).origin, localStorage: SEEN_KEYS[app].map((name) => ({ name, value: version })) }],
+  };
+}
+
 const NOTHING = /^$/;
 
 function testMatch(app: ProjectMeta['app'], flag: ProjectMeta['flag']): RegExp {
@@ -59,7 +83,11 @@ for (const app of ['restaurant', 'admin'] as const) {
         name: `${app}-${flag}-${viewport}`,
         testMatch: testMatch(app, flag),
         metadata,
-        use: { baseURL: URLS[app][flag], viewport: VIEWPORTS[viewport] },
+        use: {
+          baseURL: URLS[app][flag],
+          viewport: VIEWPORTS[viewport],
+          ...(flag === 'redesign' ? { storageState: seenReleaseNotes(app, URLS[app][flag]) } : {}),
+        },
       });
     }
   }

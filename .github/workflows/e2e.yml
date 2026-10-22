@@ -275,6 +275,11 @@ jobs:
         with:
           persist-credentials: false
 
+      # The web captures read each board's size from its canvas.json to capture a tall board at its
+      # own height (tools/e2e/README.md, "Tall boards"); without the ref they fall back to the viewport.
+      - name: Fetch the canvases
+        run: git fetch --depth=1 origin claude/redesign-canvases:refs/remotes/origin/claude/redesign-canvases
+
       - name: Let the emulator use KVM
         if: env.E2E_FLOWS == 'all'
         run: |
@@ -367,9 +372,14 @@ jobs:
           # "isn't responding" dialog (the launcher, under load) must never cover the app under
           # test, so error dialogs are hidden first; more memory keeps the launcher responsive.
           #
+          # `logcat -G 16M` grows the ring buffer before the flows start, which needs neither root
+          # nor a restart. The default is small and ReactNativeJS and Maestro's driver are both
+          # noisy, so a kill early in a 20-minute run would otherwise have scrolled away long before
+          # kill-evidence.sh reads the buffer at the end.
+          #
           # The design boards are 390 dp wide and a Pixel 6 is 411 dp, so the size and density are set
           # first and the measured size is printed in this log (tools/e2e/android/design-size.sh).
-          script: adb shell settings put global hide_error_dialogs 1 && bash tools/e2e/android/design-size.sh && bash tools/e2e/run.sh
+          script: adb shell settings put global hide_error_dialogs 1 && bash tools/e2e/android/design-size.sh && adb logcat -G 16M && { bash tools/e2e/run.sh; rc=$?; bash tools/e2e/android/kill-evidence.sh || true; exit $rc; }
 
       - name: Collect the stack's logs
         if: always()
@@ -411,7 +421,10 @@ jobs:
     needs: plan
     if: "!cancelled() && needs.plan.outputs.mode != 'none'"
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    # 60, not 30: with the admin refunds, staff and restaurant onboarding captures in, one mock pass
+    # over both consoles ran past 30 minutes (run 39770582269). A stopgap until the job is split
+    # into one job per app.
+    timeout-minutes: 60
     env:
       E2E_OUT: ${{ github.workspace }}/e2e-out
       E2E_MODE: mock
@@ -419,6 +432,11 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
+
+      # The web captures read each board's size from its canvas.json to capture a tall board at its
+      # own height (tools/e2e/README.md, "Tall boards"); without the ref they fall back to the viewport.
+      - name: Fetch the canvases
+        run: git fetch --depth=1 origin claude/redesign-canvases:refs/remotes/origin/claude/redesign-canvases
 
       - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0

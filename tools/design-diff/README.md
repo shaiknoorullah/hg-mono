@@ -76,6 +76,15 @@ Per area, `manifest.areas` has the artifact's link and the union of its missing 
 be fetched from the artifact's asset store later. A second run into the same folder updates the
 boards it renders and keeps the rest.
 
+A note is hidden, not removed, so the pixels are right — and the **box keys ignore it too**. A box
+is keyed by the words it shows, which is not `textContent`: that returns the text of hidden
+descendants as well, so a note used to put its own words into the key of every box around it and
+those boxes could not be paired. A run reported
+`Boxes holding "Proposed component: AppBar with brand mark…": the text names more than one box on a
+side, so they were not compared` on a board whose pixels were already correct. That changes no
+verdict for a web board, which is judged on pixels, but it loses the worded findings for those
+boxes — and a native board **is** judged on its layout, so there it can change the verdict.
+
 **The designers' notes.** Boards carry inline notes ("Needs API: …", "Proposed component: …",
 "DS issue: …") that are not UI and push the layout. They are hidden before the screenshot and kept
 in the manifest (`src/page-scripts.mjs`, `hideNotes`): by the classes the canvases use only for
@@ -244,6 +253,7 @@ the board's size, and loses Android's status and navigation bars before the comp
 | `src/job-summary.mjs` | A run's verdicts as one Markdown table, areas worst first, for a CI job summary |
 | `src/findings.mjs` | The failing boards in words, for a CI job log: why each one is not passing, and where |
 | `src/names.mjs`, `src/insets.mjs` | The capture names; the phone profiles and their bars |
+| `src/capture-size.mjs` | A board's size from its `canvas.json`, and the viewport a web capture is taken at: a board taller than the window at the same width is captured at its own height, because the consoles scroll inside a fixed-height frame and `fullPage` would stop at the window |
 | `src/vendor-fonts.mjs`, `third-party/` | React and the fonts the boards load, and their licences |
 | `android/` | The capture AVDs and the device state; `capture-server.mjs`, which writes a native capture's hierarchy and provenance |
 | `test/` | `pnpm --filter @hg/design-diff test:unit`: the verdict, the bars, the names, the findings |

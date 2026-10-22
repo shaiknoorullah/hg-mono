@@ -1,8 +1,8 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page, type Route } from '@playwright/test';
 
 import { E2E_MODE } from './mode';
-import { refuse, shoot } from './redesign-admin.refunds-staff.support';
-import { ID, openStaff, sevenAndOmar, secondSuperInvited, secondSuperSuspended, withoutSana, edgeRows, zainab } from './redesign-admin.staff.scene';
+import { refuse, shoot, never, fixture } from './redesign-admin.refunds-staff.support';
+import { ID, onlyYou, openStaff, sevenAndNoor, sevenAndOmar, secondSuperInvited, secondSuperSuspended, withoutSana, edgeRows, zainab } from './redesign-admin.staff.scene';
 
 test.skip(E2E_MODE !== 'mock', 'written against the mock server; run with E2E_MODE=mock');
 
@@ -314,5 +314,146 @@ test.describe('redesigned admin · accepting an invite (mock)', () => {
     await page.goto('/accept-invite');
     await expect(page.getByRole('heading', { level: 1, name: 'This invite link doesn’t work' })).toBeVisible();
     await shoot(page, { 1440: 'admin/staff/AcceptInvalid' });
+  });
+});
+
+/** Opens the invite form from the staff list and fills it as a board does; an empty `role` leaves the choice unmade. */
+async function fillInvite(page: Page, name: string, email: string, role?: 'Support agent' | 'Admin' | 'Super admin') {
+  await page.getByRole('button', { name: /Invite staff/ }).click();
+  const nameField = page.getByRole('textbox', { name: /Full name/ });
+  await expect(nameField).toBeVisible();
+  if (name) await nameField.fill(name);
+  if (email) await page.getByRole('textbox', { name: /Work email/ }).fill(email);
+  if (role) await page.getByRole('radio', { name: role }).click();
+}
+const send = (page: Page) => page.getByRole('button', { name: /Send invite|Send again/ }).click();
+
+// The corrected boards: two-step sign-in is optional for staff, a deactivated account's email is
+// refused, and an active account without two-step sign-in is a normal state
+// (https://github.com/shaiknoorullah/hg-mono/issues/908).
+test.describe('redesigned admin · the invite form and accounts without two-step sign-in (mock)', () => {
+  test.use({ colorScheme: 'light' });
+
+  test('the form, open', async ({ page }) => {
+    await openStaff(page, '#/staff');
+    await listed(page);
+    await fillInvite(page, '', '');
+    await shoot(page, { 1440: 'admin/staff/InviteOpen' });
+  });
+
+  test('the form, fix the fields', async ({ page }) => {
+    await openStaff(page, '#/staff');
+    await listed(page);
+    await fillInvite(page, 'M', 'maryam@halalgoes');
+    await send(page);
+    await expect(page.getByText('Fix the fields marked below, then send again.')).toBeVisible();
+    await shoot(page, { 1440: 'admin/staff/InviteValidation' });
+  });
+
+  test('sending', async ({ page }) => {
+    await openStaff(page, '#/staff', { create: never });
+    await listed(page);
+    await fillInvite(page, 'Zainab Hussain', 'zainab.hussain@halalgoes.ca', 'Admin');
+    await send(page);
+    await shoot(page, { 1440: 'admin/staff/InviteSubmitting' }, { idle: false });
+  });
+
+  test('the email belongs to a loaded account', async ({ page }) => {
+    await openStaff(page, '#/staff', { create: fixture('error_staff_email_in_use') });
+    await listed(page);
+    await fillInvite(page, 'Maryam Khan', 'maryam.khan@halalgoes.ca', 'Admin');
+    await send(page);
+    await expect(page.getByText('Maryam Khan (Admin, Active) already uses this email. Nothing was changed.')).toBeVisible();
+    await shoot(page, { 1440: 'admin/staff/InviteDuplicate' });
+  });
+
+  test('the email belongs to an account that is not loaded', async ({ page }) => {
+    await openStaff(page, '#/staff', { create: fixture('error_staff_email_in_use') });
+    await listed(page);
+    await fillInvite(page, 'Omar Siddiq', 'omar.siddiq@halalgoes.ca', 'Admin');
+    await send(page);
+    await expect(page.getByText('This email already belongs to an account. Nothing was changed.')).toBeVisible();
+    await shoot(page, { 1440: 'admin/staff/InviteDuplicateUnloaded' });
+  });
+
+  test('the email belongs to a deactivated account', async ({ page }) => {
+    await openStaff(page, '#/staff', { create: fixture('error_staff_email_in_use') });
+    await listed(page);
+    await fillInvite(page, 'Hana Siddiqui', 'hana.siddiqui@halalgoes.ca', 'Admin');
+    await send(page);
+    await expect(page.getByText('Hana Siddiqui (Admin, Deactivated) already uses this email. Nothing was changed.')).toBeVisible();
+    await shoot(page, { 1440: 'admin/staff/InviteReactivate' });
+  });
+
+  test('rejected by the server', async ({ page }) => {
+    const reject = (route: Route) =>
+      route.fulfill({
+        status: 422,
+        json: { error: { code: 'VALIDATION_FAILED', message: 'Invalid.', request_id: 'req_e2e', details: [{ field: 'email', message: 'The server didn’t accept this address.' }] } },
+      });
+    await openStaff(page, '#/staff', { create: reject });
+    await listed(page);
+    await fillInvite(page, 'Zainab Hussain', 'zainab.hussain@halalgoes.ca', 'Admin');
+    await send(page);
+    await expect(page.getByText('The server turned these details down. Fix the field marked below, then send again.')).toBeVisible();
+    await shoot(page, { 1440: 'admin/staff/InviteRejected' });
+  });
+
+  test('the outcome is unknown', async ({ page }) => {
+    await openStaff(page, '#/staff', { create: refuse(503, 'INTERNAL_ERROR', 'slow') });
+    await listed(page);
+    await fillInvite(page, 'Zainab Hussain', 'zainab.hussain@halalgoes.ca', 'Admin');
+    await send(page);
+    await expect(page.getByText('We couldn’t confirm the invite was sent')).toBeVisible();
+    await shoot(page, { 1440: 'admin/staff/InviteFailed' });
+  });
+
+  test('offline while sending', async ({ page }) => {
+    const drop = async (route: Route) => {
+      await page.context().setOffline(true);
+      await route.abort('internetdisconnected');
+    };
+    await openStaff(page, '#/staff', { create: drop });
+    await listed(page);
+    await fillInvite(page, 'Zainab Hussain', 'zainab.hussain@halalgoes.ca', 'Admin');
+    await send(page);
+    await expect(page.getByText('We couldn’t confirm the invite was sent')).toBeVisible();
+    await shoot(page, { 1440: 'admin/staff/InviteOfflineSubmit' });
+  });
+
+  test('a second super admin, from Only you', async ({ page }) => {
+    await openStaff(page, '#/staff', { rows: onlyYou() });
+    await page.getByRole('button', { name: 'Invite a second super admin' }).click();
+    await expect(page.getByRole('textbox', { name: /Full name/ })).toBeVisible();
+    await shoot(page, { 1440: 'admin/staff/InviteSecondSuper' });
+  });
+
+  test('only you', async ({ page }) => {
+    await openStaff(page, '#/staff', { rows: onlyYou() });
+    await expect(page.getByText('Only you so far')).toBeVisible();
+    await shoot(page, { 1440: 'admin/staff/StaffOnlyYou' });
+  });
+
+  test('an active account without two-step sign-in', async ({ page }) => {
+    await openStaff(page, detail(ID.noor), { rows: sevenAndNoor() });
+    await expect(page.getByRole('heading', { name: /Noor Aziz/ })).toBeVisible();
+    await shoot(page, { 1440: 'admin/staff/StaffDetailNoMfa' });
+  });
+
+  test('a deactivated account', async ({ page }) => {
+    await openStaff(page, detail(ID.hana));
+    await expect(page.getByRole('heading', { name: /Hana Siddiqui/ })).toBeVisible();
+    await shoot(page, { 1440: 'admin/staff/StaffDetailDeactivated' });
+  });
+
+  test.describe('720 wide', () => {
+    test.use({ viewport: { width: 720, height: 1300 } });
+
+    test('the invite form takes the whole content area', async ({ page }) => {
+      await openStaff(page, '#/staff');
+      await listed(page);
+      await fillInvite(page, '', '');
+      await shoot(page, { 720: 'admin/staff/InviteZoom200' });
+    });
   });
 });

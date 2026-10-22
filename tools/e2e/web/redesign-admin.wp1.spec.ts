@@ -144,10 +144,10 @@ for (const vp of VIEWPORTS) {
           if (vp.width < 1280) await expect(link).toBeInViewport({ ratio: 1 });
         }
         const whatsNew = page.getByRole('button', { name: /What’s new/ });
-        await expect(whatsNew).toHaveAttribute('aria-disabled', 'true');
+        // A button that opens the What's new panel (redesign-admin.whats-new.spec.ts drives it).
+        await expect(whatsNew).not.toHaveAttribute('aria-disabled', 'true');
         await expect(whatsNew).toHaveAttribute('aria-expanded', 'false');
         await expect(whatsNew).toHaveAttribute('aria-controls', 'admin-whats-new-panel');
-        await expect(whatsNew).toHaveAccessibleDescription('What’s new comes in a later update.');
         await expect(n.getByRole('link', { name: /^Restaurant applications/ })).toHaveAttribute('aria-current', 'page');
         await expect(page.getByRole('link', { name: /System status/ })).toBeVisible();
         if (vp.width < 1280) {
