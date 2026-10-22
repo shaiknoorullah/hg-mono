@@ -268,3 +268,47 @@ test.describe('redesigned admin · refund results (mock)', () => {
     await shoot(page, { 1440: 'admin/refunds/RefundRowStates' });
   });
 });
+
+// The corrected boards (https://github.com/shaiknoorullah/hg-mono/issues/915): a support agent is
+// offered Goodwill amount, issuing without a sign-in code is the 403 MFA_REQUIRED, and Whole order
+// stays on after another refund.
+test.describe('redesigned admin · refund panel, corrected boards (mock)', () => {
+  test.use({ colorScheme: 'light' });
+
+  test('a support agent’s form', async ({ page }) => {
+    await openOrder(page, PLAIN, { role: 'SUPPORT_AGENT' });
+    await start(page);
+    await fill(page, WHOLE);
+    await expect(form(page).getByRole('radio', { name: /Goodwill amount/ })).toBeEnabled();
+    await shoot(page, { 1440: 'admin/refunds/RefundsSupport' });
+  });
+
+  test('issuing without an authenticator code', async ({ page }) => {
+    await openOrder(page, WITH_REFUNDS, { role: 'SUPPORT_AGENT', issue: fixture('error_refund_mfa_required') });
+    await start(page);
+    await fill(page, { scope: 'Goodwill amount', goodwill: '15.00', text: 'Customer waited 40 minutes past the estimate; offering goodwill.' });
+    await toReview(page);
+    await issue(page);
+    await expect(page.getByText('Turn on two-step sign-in to move money')).toBeVisible();
+    await shoot(page, { 1440: 'admin/refunds/RefundForbidden' });
+  });
+
+  test('whole order after an earlier refund, reviewed', async ({ page }) => {
+    await openOrder(page, WITH_REFUNDS);
+    await start(page);
+    await fill(page, WHOLE);
+    await toReview(page);
+    await shoot(page, { 1440: 'admin/refunds/RefundConfirmAfterPartial' });
+  });
+
+  test('switched to selected items after another refund landed', async ({ page }) => {
+    await openOrder(page, PLAIN, { issue: fixture('error_refund_already_requested_items') });
+    await start(page);
+    await fill(page, WHOLE);
+    await toReview(page);
+    await issue(page);
+    await review(page).getByRole('button', { name: 'Switch to selected items' }).click();
+    await expect(form(page).getByRole('radio', { name: /Selected items/ })).toBeChecked();
+    await shoot(page, { 1440: 'admin/refunds/RefundItemsAfterConflict' });
+  });
+});
