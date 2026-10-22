@@ -11,11 +11,15 @@
  *   no retry; the words say what a person can do (sign in again after a role change, or ask an admin).
  * - `invalid-channel`: `subscribe_error` `invalid_channel`. The page asked for a channel the server
  *   does not know. Asking again sends the same request, so the only action is a full reload.
+ * - `fatal`: the socket closed `4400` or `4403`, both marked do not retry. Nothing a person can do
+ *   puts it right, so there is no button at all, and the close code is shown for the platform team.
+ *   This one has no board yet; its words are written here rather than taken from one
+ *   (https://github.com/shaiknoorullah/hg-mono/issues/1010).
  */
 import { Button, Disclosure, Icon } from '../ds';
 import { ALERTS } from './copy';
 
-export type PanelKind = 'ticket' | 'forbidden' | 'invalid-channel';
+export type PanelKind = 'ticket' | 'forbidden' | 'invalid-channel' | 'fatal';
 
 interface PanelContent {
   readonly title: string;
@@ -25,7 +29,7 @@ interface PanelContent {
   readonly action: { readonly label: string } | null;
 }
 
-function contentOf(kind: PanelKind): PanelContent {
+function contentOf(kind: PanelKind, closeCode: number | null): PanelContent {
   const c = ALERTS.failure;
   switch (kind) {
     case 'ticket':
@@ -34,11 +38,15 @@ function contentOf(kind: PanelKind): PanelContent {
       return { ...c.forbidden, icon: 'lock', action: null };
     case 'invalid-channel':
       return { ...c.invalidChannel, icon: 'warning', action: { label: c.invalidChannel.action } };
+    case 'fatal':
+      // The code is the one thing the platform team needs and the one thing a person cannot guess,
+      // so an unknown one still shows the panel rather than dropping it.
+      return { ...c.fatal, code: c.fatal.code(closeCode ?? 0), icon: 'warning', action: null };
   }
 }
 
-export function FailurePanel({ kind, onAction }: { kind: PanelKind; onAction: () => void }) {
-  const c = contentOf(kind);
+export function FailurePanel({ kind, onAction, closeCode = null }: { kind: PanelKind; onAction: () => void; closeCode?: number | null }) {
+  const c = contentOf(kind, closeCode);
   return (
     <div role="alert" data-testid="alerts-failure" data-kind={kind} className="flex flex-col items-center gap-3 p-10 text-center">
       <span className={c.icon === 'lock' ? 'text-fg-secondary' : 'text-feedback-warning-icon'}>

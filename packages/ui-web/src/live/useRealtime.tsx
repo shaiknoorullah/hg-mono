@@ -51,6 +51,7 @@ export function RealtimeProvider({ children, enabled = true, ...options }: Realt
         random: options.random,
         onStatus: setStatus,
         onReauthRequired: (info) => optionsRef.current.onReauthRequired?.(info),
+        onFatalClose: (info) => optionsRef.current.onFatalClose?.(info),
       }),
   );
 

@@ -213,6 +213,27 @@ describe('Live alerts: why alerts are not arriving, one screen for each cause th
     expect(screen.queryByText('No recent alerts')).toBeNull();
   });
 
+  // The close codes contracts/websocket.md marks do not retry. The connection is 'offline' here
+  // because it has stopped for good, and that is the same state the page reads to say "refused five
+  // times, Try again" — so this pins that the reason wins over the count
+  // (https://github.com/shaiknoorullah/hg-mono/issues/1010).
+  for (const code of [4400, 4403]) {
+    it(`a ${code} close offers no retry and shows the code for the platform team`, () => {
+      renderAlerts();
+      act(() => {
+        setAlertsConnection('offline');
+        setAlertsFailure({ kind: 'fatal', code, at: new Date('2026-08-10T19:05:00Z') });
+      });
+      expect(screen.getByRole('heading', { name: 'The server refused live alerts' })).toBeTruthy();
+      expect(screen.getByText('Not connected')).toBeTruthy();
+      expect(screen.queryByRole('button', { name: /Try again|Reload the page/ })).toBeNull();
+      // Not the "refused 5 times in a row" screen, which would be untrue here and offers a retry.
+      expect(screen.queryByRole('heading', { name: 'Live alerts can’t connect' })).toBeNull();
+      expect(screen.queryByText('Reconnecting')).toBeNull();
+      expect(controls.reconnectNow).not.toHaveBeenCalled();
+    });
+  }
+
   it('a subscribe refused as invalid_channel is a fault on our side: the only action is to reload the page', () => {
     const reload = vi.fn();
     vi.stubGlobal('location', { ...window.location, reload });

@@ -76,6 +76,15 @@ export const ALERTS = {
       body: 'The server refused the alerts channel for your sign-in. If your role changed recently, sign out and back in. Otherwise ask an admin to check your role. Nothing was changed.',
       code: 'subscribe_error: forbidden',
     },
+    // NOT FROM A BOARD. No failure board draws a do-not-retry close, so these words are written to
+    // the voice of the boards beside them rather than taken from one, and the sentence that says
+    // whose fault it is follows `invalidChannel`, which draws the nearest case. A board should
+    // replace this: https://github.com/shaiknoorullah/hg-mono/issues/1010
+    fatal: {
+      title: 'The server refused live alerts',
+      body: 'The server refused the connection outright, and asking again would be refused the same way. That’s a fault on our side, not yours. Other pages still work; tell the platform team, and use the orders grid for anything urgent.',
+      code: (code: number) => `socket closed ${code}`,
+    },
     invalidChannel: {
       title: 'Live alerts couldn’t start',
       body: 'The page asked for an alerts channel the server doesn’t recognise. That’s a fault on our side, not yours. Reload the page; if it keeps happening, tell the platform team.',
