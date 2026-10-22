@@ -216,6 +216,7 @@ the board's size, and loses Android's status and navigation bars before the comp
 | `src/page-scripts.mjs` | Runs in the page: hides the notes, snapshots the layout, waits for it to settle |
 | `src/diff.mjs`, `src/compare.mjs`, `src/layout-diff.mjs` | Pairing, the pixel comparison and verdict, the worded findings |
 | `src/uiautomator.mjs`, `src/native-geometry.mjs` | A native capture's view hierarchy as a layout record; the geometry and colour verdict and its tolerances |
+| `src/maestro-hierarchy.mjs` | The same record from Maestro's own hierarchy JSON, which is where a capture's layout has to come from ([#1026](https://github.com/shaiknoorullah/hg-mono/issues/1026)) |
 | `src/report.mjs`, `src/png.mjs` | The HTML report; PNG helpers |
 | `src/names.mjs`, `src/insets.mjs` | The capture names; the phone profiles and their bars |
 | `src/vendor-fonts.mjs`, `third-party/` | React and the fonts the boards load, and their licences |
