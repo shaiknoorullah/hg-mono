@@ -51,7 +51,7 @@ These are the rules the existing names already follow; new fixtures follow them 
 | `error_` | 153 | `error_<code>` for a code's plain meaning; `error_<context>_<situation>` when one code means several things (`error_menu_locked_banned`, `error_staff_email_in_use`). Status and code live in the fixture, never only in the name. | `error_quote_stale` |
 | `realtime_` | 24 | `realtime_<area>_<story>`: a whole WebSocket script, played over one connection. Areas: `order`, `payment`, `rider`, `restaurant`, `admin_ops`, plus the transport stories `gap_and_resume` and `control_frames`. | `realtime_restaurant_offer_burst` |
 | `realtime_ticket` | 1 | Not a script: the single-use ticket `createRealtimeTicket` returns. | `realtime_ticket` |
-| `order_admin_view_` | 44 | An `OrderState` (lower case) as the staff projection shows it. | `order_admin_view_disputed` |
+| `order_admin_view_` | 45 | An `OrderState` (lower case) as the staff projection shows it. | `order_admin_view_disputed` |
 | `order_list_` | 5 | A list variant: `active`, `past`, `empty`. | `order_list_active` |
 | `order_rating_` | 3 | A rating state. | `order_rating_unrated` |
 | `order_` | 24 | An `OrderState`, lower case, in the customer projection (`order_ready_for_pickup`), or a money or shape edge (`order_zero_tip`). | `order_arrived` |
@@ -61,7 +61,7 @@ These are the rules the existing names already follow; new fixtures follow them 
 | `dispatch_` | 10 | A `DispatchState`, lower case. | `dispatch_searching` |
 | `offer_` | 8 | A rider offer outcome. | `offer_pending` |
 | `payment_` | 11 | A `PaymentState`, lower case, or saved methods. | `payment_requires_action` |
-| `refund_` | 18 | A `RefundState` in the customer view. | `refund_settled` |
+| `refund_` | 19 | A `RefundState` in the customer view. | `refund_settled` |
 | `admin_refund_` | 14 | A `RefundState` or queue in the staff view. | `admin_refund_queue` |
 | `chargeback_` | 12 | A chargeback state or list. | `chargeback_needs_response` |
 | `halal_badge_` | 4 | A `HalalDisplayState`, lower case. | `halal_badge_expiring_soon` |

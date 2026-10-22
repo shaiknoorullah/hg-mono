@@ -72,7 +72,7 @@ falling through, so a typo is visible immediately.
 
 ## Scenarios by domain
 
-**788 scenarios** across 16 domains.
+**790 scenarios** across 16 domains.
 
 | Domain | Scenarios | What it covers |
 |---|---:|---|
@@ -86,11 +86,11 @@ falling through, so a typo is visible immediately.
 | [`halal`](#halal) | 37 | Badges, certificates, checks and issuing bodies — the platform's core promise. |
 | [`handoff`](#handoff) | 13 | The package-seal chain of custody (later version: seals are not used at launch) — every `PackageSeal` status, `HandoffEvent` type, and the bind/pickup-scan/delivery-scan/tamper-report results. |
 | [`onboarding`](#onboarding) | 52 | Restaurant and rider onboarding, profiles, vehicles and trading state. |
-| [`orders`](#orders) | 111 | The 14 `OrderState` values, per-audience projections, tracking and receipts. |
+| [`orders`](#orders) | 112 | The 14 `OrderState` values, per-audience projections, tracking and receipts. |
 | [`payments`](#payments) | 12 | The 8 `PaymentState` values, saved cards and setup intents. |
 | [`platform`](#platform) | 57 | Auth, config, addresses, notifications, Connect and health. |
 | [`realtime`](#realtime) | 24 | Scripted WebSocket sequences that drive a screen through a whole lifecycle. |
-| [`refunds`](#refunds) | 44 | The 10 `RefundState` values, liability splits, approval requests, the staff review queue and chargebacks. |
+| [`refunds`](#refunds) | 45 | The 10 `RefundState` values, liability splits, approval requests, the staff review queue and chargebacks. |
 | [`rider`](#rider) | 60 | Availability, dashboard, earnings and payouts. |
 
 ### admin
@@ -645,7 +645,7 @@ Restaurant and rider onboarding, profiles, vehicles and trading state. — 52 sc
 
 ### orders
 
-The 14 `OrderState` values, per-audience projections, tracking and receipts. — 111 scenarios.
+The 14 `OrderState` values, per-audience projections, tracking and receipts. — 112 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
@@ -669,6 +669,7 @@ The 14 `OrderState` values, per-audience projections, tracking and receipts. —
 | `order_admin_view_completed` | `OrderAdminView` | 200 | The full admin projection: timeline, dispatch history across two waves, payment, the ledger decomposition and `pii_revealed: false` (unmasking needs a recorded justification). |
 | `order_admin_view_created` | `OrderAdminView` | 200 | The staff projection of an order in `CREATED`. Order exists, payment not yet authorised. 3-D Secure lives here — the order stays CREATED under its 15-minute deadline while `payment.action_required` is outstanding. |
 | `order_admin_view_delivered` | `OrderAdminView` | 200 | The staff projection of an order in `DELIVERED`. Proof of delivery recorded. Not yet financially settled. |
+| `order_admin_view_delivered_no_halal` | `OrderAdminView` | 200 | The staff projection of an order in `DELIVERED` at a restaurant with no halal status on file: `restaurant.halal` is absent. Screens draw no badge for it, never a certified or an expired one in its place. |
 | `order_admin_view_delivered_refund_failed` | `OrderAdminView` | 200 | A delivered order, still `DELIVERED`, with one refund settled and a second one the provider refused. A failed refund holds settlement: the order is not allowed to reach `COMPLETED`, so its settlement deadline stays armed and re-arms on every attempt until a new refund succeeds. |
 | `order_admin_view_delivered_refund_settled` | `OrderAdminView` | 200 | A delivered order, still `DELIVERED` and about to settle, with one refund the provider has confirmed. Nothing is failing, so nothing holds the settlement deadline. |
 | `order_admin_view_delivery_overridden` | `OrderAdminView` | 200 | The order after `handover_override_delivery`: the timeline's `DELIVERED` step is `actor_kind: ADMIN` with the reason and the case, and `delivery_code` is null, as it always is for support and admin. |
@@ -877,7 +878,7 @@ Scripted WebSocket sequences that drive a screen through a whole lifecycle. — 
 
 ### refunds
 
-The 10 `RefundState` values, liability splits, approval requests, the staff review queue and chargebacks. — 44 scenarios.
+The 10 `RefundState` values, liability splits, approval requests, the staff review queue and chargebacks. — 45 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
@@ -923,6 +924,7 @@ The 10 `RefundState` values, liability splits, approval requests, the staff revi
 | `refund_second_report_on_order` | `Refund` | 200 | A second problem report on an order that already has one: the missing item was refunded, and now the customer reports the delivery was late. It is accepted as its own refund with its own reason, so the platform absorbs the fees while the restaurant was charged for the missing item. It does not claim the item again. |
 | `refund_settled` | `Refund` | 200 | Funds are back on the card. The only state that may say 'refunded'. |
 | `refund_submitted` | `Refund` | 200 | Sent to Stripe, awaiting acknowledgement. |
+| `refund_submitted_no_split` | `Refund` | 200 | Sent to Stripe, awaiting acknowledgement, and the response carries no `liability_split`. The contract allows `null` on any state, so a screen shows the refund without saying who bears it. |
 | `refund_succeeded` | `Refund` | 200 | Stripe accepted it. **Customer copy still reads 'refund in progress'** until SETTLED — money has not reached the card yet. |
 | `refund_wrong_address_before_delivery` | `Refund` | 200 | Reported from "Get help" before delivery: the order is going to the wrong address. `WRONG_ADDRESS` waits for support, who redirect the delivery when they can. Any refund is per support's judgement and absorbed by the platform: the restaurant cooked the order and the rider carried it to the address on the order. |
 
@@ -999,7 +1001,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 
 | Tag | Count | Meaning |
 |---|---:|---|
-| `admin` | 181 | Admin/support-facing surface. |
+| `admin` | 182 | Admin/support-facing surface. |
 | `error-envelope` | 153 | A `{error}` body with a real `ErrorCode`. |
 | `error-path` | 132 | The unhappy branch a client must handle. |
 | `rider` | 132 | Rider-facing surface. |
@@ -1007,7 +1009,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `restaurant` | 101 | Restaurant-facing surface. |
 | `edge` | 92 | A shape that breaks naive layouts — empty, overflowing, at a boundary. |
 | `money` | 74 | Exercises the money path specifically. |
-| `order-state-matrix` | 67 | One per `OrderState` (all 14). |
+| `order-state-matrix` | 68 | One per `OrderState` (all 14). |
 | `platform` | 57 | Cross-cutting platform surface. |
 | `halal` | 48 | Touches the halal claim surface. |
 | `auth` | 43 | Session and identity. |
@@ -1016,8 +1018,8 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `account-action` | 31 | Suspending, reinstating, delisting, deactivating or banning an account. |
 | `realtime` | 25 | WebSocket, not HTTP. |
 | `home` | 24 |  |
+| `refund-state-matrix` | 24 | One per `RefundState` (all 10). |
 | `script` | 24 | A realtime event sequence, not a response body. |
-| `refund-state-matrix` | 23 | One per `RefundState` (all 10). |
 | `review-queue` | 23 | An admin review queue item. |
 | `documents` | 22 | KYC document surface. |
 | `onboarding-state-matrix` | 21 | One per onboarding state, restaurant and rider. |
@@ -1101,7 +1103,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `createPayoutRun` | `payout_run_queued` | — |
 | `createQuote` | `quote_standard` | `error_ordering_paused`, `quote_large_tip`, `quote_multi_variant`, `quote_pickup`, `quote_single_line_minimum`, `quote_with_discount`, `quote_zero_tip` |
 | `createRealtimeTicket` | `realtime_ticket` | — |
-| `createRefund` | `refund_requested` | `error_refund_already_requested_fees`, `error_refund_already_requested_items`, `error_refund_exceeds_captured`, `error_refund_not_refundable`, `refund_approved`, `refund_authorised`, `refund_cancelled`, `refund_declined`, `refund_failed`, `refund_pending_approval`, `refund_second_report_on_order`, `refund_settled`, `refund_submitted`, `refund_succeeded`, `refund_wrong_address_before_delivery` |
+| `createRefund` | `refund_requested` | `error_refund_already_requested_fees`, `error_refund_already_requested_items`, `error_refund_exceeds_captured`, `error_refund_not_refundable`, `refund_approved`, `refund_authorised`, `refund_cancelled`, `refund_declined`, `refund_failed`, `refund_pending_approval`, `refund_second_report_on_order`, `refund_settled`, `refund_submitted`, `refund_submitted_no_split`, `refund_succeeded`, `refund_wrong_address_before_delivery` |
 | `createRestaurantStaffUser` | `restaurant_staff_list` | — |
 | `createStaffUser` | `staff_user_invited` | `error_staff_email_in_use` |
 | `createUpload` | `presigned_upload` | `error_payload_too_large` |
@@ -1130,7 +1132,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `getHealth` | `health_ok` | `health_version` |
 | `getHomeFeed` | `feed_sections` | `feed_empty` |
 | `getOrder` | `order_preparing` | `dispatch_assigned`, `dispatch_at_customer`, `dispatch_at_restaurant`, `dispatch_carrying`, `dispatch_completed`, `dispatch_no_rider_found`, `dispatch_offered`, `dispatch_pending`, `dispatch_searching`, `dispatch_unassigned`, `order_arrived`, `order_arrived_delivery_code_locked`, `order_arrived_meet_in_lobby`, `order_authorized`, `order_cancelled`, `order_cancelled_no_rider`, `order_completed`, `order_created`, `order_delivered`, `order_delivered_meet_at_door`, `order_disputed`, `order_failed`, `order_large_tip`, `order_picked_up`, `order_picked_up_meet_at_door`, `order_pickup_no_address`, `order_ready_for_pickup`, `order_rejected`, `order_resolved`, `order_restaurant_pending`, `order_single_line`, `order_zero_tip` |
-| `getOrderAdmin` | `order_admin_view_completed` | `order_admin_view_arrived`, `order_admin_view_authorized`, `order_admin_view_cancel_result_refund`, `order_admin_view_cancel_result_void`, `order_admin_view_cancel_result_void_support`, `order_admin_view_cancelled`, `order_admin_view_cancelled_after_acceptance`, `order_admin_view_cancelled_no_rider`, `order_admin_view_cancelled_payment_expired`, `order_admin_view_cancelled_restaurant_closed`, `order_admin_view_cancelled_timeout`, `order_admin_view_chargeback`, `order_admin_view_created`, `order_admin_view_delivered`, `order_admin_view_delivered_refund_failed`, `order_admin_view_delivered_refund_settled`, `order_admin_view_delivery_overridden`, `order_admin_view_disputed`, `order_admin_view_disputed_delivered`, `order_admin_view_disputed_mid_delivery`, `order_admin_view_disputed_restaurant`, `order_admin_view_failed`, `order_admin_view_halal_concern_refund`, `order_admin_view_ledger_batches`, `order_admin_view_ledger_residual`, `order_admin_view_masked`, `order_admin_view_picked_up`, `order_admin_view_pii_revealed`, `order_admin_view_preparing`, `order_admin_view_preparing_dispatch_pending`, `order_admin_view_preparing_rearmed`, `order_admin_view_ready_at_restaurant`, `order_admin_view_ready_for_pickup`, `order_admin_view_ready_no_rider`, `order_admin_view_ready_offered`, `order_admin_view_ready_searching`, `order_admin_view_ready_unassigned`, `order_admin_view_refund_failed_settlement_held`, `order_admin_view_refund_states`, `order_admin_view_rejected`, `order_admin_view_resolved`, `order_admin_view_resolved_auto`, `order_admin_view_restaurant_pending` |
+| `getOrderAdmin` | `order_admin_view_completed` | `order_admin_view_arrived`, `order_admin_view_authorized`, `order_admin_view_cancel_result_refund`, `order_admin_view_cancel_result_void`, `order_admin_view_cancel_result_void_support`, `order_admin_view_cancelled`, `order_admin_view_cancelled_after_acceptance`, `order_admin_view_cancelled_no_rider`, `order_admin_view_cancelled_payment_expired`, `order_admin_view_cancelled_restaurant_closed`, `order_admin_view_cancelled_timeout`, `order_admin_view_chargeback`, `order_admin_view_created`, `order_admin_view_delivered`, `order_admin_view_delivered_no_halal`, `order_admin_view_delivered_refund_failed`, `order_admin_view_delivered_refund_settled`, `order_admin_view_delivery_overridden`, `order_admin_view_disputed`, `order_admin_view_disputed_delivered`, `order_admin_view_disputed_mid_delivery`, `order_admin_view_disputed_restaurant`, `order_admin_view_failed`, `order_admin_view_halal_concern_refund`, `order_admin_view_ledger_batches`, `order_admin_view_ledger_residual`, `order_admin_view_masked`, `order_admin_view_picked_up`, `order_admin_view_pii_revealed`, `order_admin_view_preparing`, `order_admin_view_preparing_dispatch_pending`, `order_admin_view_preparing_rearmed`, `order_admin_view_ready_at_restaurant`, `order_admin_view_ready_for_pickup`, `order_admin_view_ready_no_rider`, `order_admin_view_ready_offered`, `order_admin_view_ready_searching`, `order_admin_view_ready_unassigned`, `order_admin_view_refund_failed_settlement_held`, `order_admin_view_refund_states`, `order_admin_view_rejected`, `order_admin_view_resolved`, `order_admin_view_resolved_auto`, `order_admin_view_restaurant_pending` |
 | `getOrderPayment` | `payment_succeeded` | `payment_canceled`, `payment_failed`, `payment_processing`, `payment_requires_action`, `payment_requires_capture`, `payment_requires_confirmation`, `payment_requires_payment_method` |
 | `getOrderRating` | `order_rating_food_and_rider` | `order_rating_food_pending_moderation`, `order_rating_unrated` |
 | `getOrderReceipt` | `receipt_standard` | `error_receipt_not_ready`, `error_receipt_not_ready_never_completed`, `error_receipt_not_ready_no_charge`, `receipt_no_tax_no_service_fee`, `receipt_pickup_zero_tip`, `receipt_with_refund` |
@@ -1142,7 +1144,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `getPublicConfig` | `public_config` | `public_config_ordering_paused`, `public_config_phone_support_off`, `public_config_support_unavailable`, `public_config_without_support_email` |
 | `getQuote` | `quote_standard` | `quote_expired`, `quote_large_tip`, `quote_multi_variant`, `quote_pickup`, `quote_with_discount`, `quote_zero_tip` |
 | `getReadiness` | `readiness_ok` | `readiness_not_ready_503` |
-| `getRefund` | `refund_settled` | `refund_approved`, `refund_authorised`, `refund_cancelled`, `refund_declined`, `refund_failed`, `refund_full_never_delivered`, `refund_pending_approval`, `refund_requested`, `refund_second_report_on_order`, `refund_submitted`, `refund_succeeded`, `refund_wrong_address_before_delivery` |
+| `getRefund` | `refund_settled` | `refund_approved`, `refund_authorised`, `refund_cancelled`, `refund_declined`, `refund_failed`, `refund_full_never_delivered`, `refund_pending_approval`, `refund_requested`, `refund_second_report_on_order`, `refund_submitted`, `refund_submitted_no_split`, `refund_succeeded`, `refund_wrong_address_before_delivery` |
 | `getRestaurant` | `restaurant_detail_certified` | `restaurant_detail_closed`, `restaurant_detail_expired`, `restaurant_detail_expiring_soon`, `restaurant_detail_no_address`, `restaurant_detail_no_menu`, `restaurant_detail_out_of_range`, `restaurant_detail_paused`, `restaurant_detail_unverified` |
 | `getRestaurantApplication` | `restaurant_application_pending_review` | `restaurant_application_approved`, `restaurant_application_changes_requested`, `restaurant_application_claimed_by_other`, `restaurant_application_no_certificate`, `restaurant_application_withdrawn` |
 | `getRestaurantAvailability` | `restaurant_open_state_open` | `restaurant_open_state_closed_holiday`, `restaurant_open_state_closed_hours`, `restaurant_open_state_closed_offline`, `restaurant_open_state_closed_suspended`, `restaurant_open_state_closed_toggle`, `restaurant_open_state_closed_toggle_auto_off`, `restaurant_open_state_open_no_closing`, `restaurant_open_state_paused`, `restaurant_open_state_paused_outside_hours`, `restaurant_open_state_paused_until_closing` |
@@ -1159,7 +1161,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `getRiderOnboardingStatus` | `rider_onboarding_active` | `rider_onboarding_documents_approved`, `rider_onboarding_documents_pending`, `rider_onboarding_documents_rejected`, `rider_onboarding_documents_review`, `rider_onboarding_payout_pending`, `rider_onboarding_phone_verified`, `rider_onboarding_profile_pending`, `rider_onboarding_registered`, `rider_onboarding_vehicle_pending` |
 | `getRiderPayout` | `payout_detail_paid` | `payout_detail_draft`, `payout_detail_failed`, `payout_detail_held`, `payout_detail_ready`, `payout_detail_transferred`, `payout_detail_transferring` |
 | `getSmsSenderStatus` | `sms_sender_passed` | `sms_sender_failed`, `sms_sender_not_checked` |
-| `issueRefund` | `refund_goodwill_admin` | `error_refund_already_requested_fees`, `error_refund_already_requested_items`, `error_refund_conflict`, `error_refund_daily_cap`, `error_refund_exceeds_captured`, `error_refund_goodwill_exceeds`, `error_refund_mfa_required`, `error_refund_not_refundable`, `error_refund_self_approval_forbidden`, `refund_approval_request_pending`, `refund_approved`, `refund_authorised`, `refund_cancelled`, `refund_declined`, `refund_failed`, `refund_pending_approval`, `refund_requested`, `refund_settled`, `refund_submitted`, `refund_succeeded` |
+| `issueRefund` | `refund_goodwill_admin` | `error_refund_already_requested_fees`, `error_refund_already_requested_items`, `error_refund_conflict`, `error_refund_daily_cap`, `error_refund_exceeds_captured`, `error_refund_goodwill_exceeds`, `error_refund_mfa_required`, `error_refund_not_refundable`, `error_refund_self_approval_forbidden`, `refund_approval_request_pending`, `refund_approved`, `refund_authorised`, `refund_cancelled`, `refund_declined`, `refund_failed`, `refund_pending_approval`, `refund_requested`, `refund_settled`, `refund_submitted`, `refund_submitted_no_split`, `refund_succeeded` |
 | `joinWaitlist` | `waitlist_joined` | `error_waitlist_consent_missing`, `error_waitlist_invalid_contact`, `error_waitlist_rate_limited`, `waitlist_joined_again`, `waitlist_joined_as_restaurant` |
 | `listAddresses` | `addresses_list` | `addresses_empty` |
 | `listChargebacks` | `chargeback_list` | `chargeback_list_empty` |
