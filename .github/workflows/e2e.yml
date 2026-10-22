@@ -421,13 +421,21 @@ jobs:
     needs: plan
     if: "!cancelled() && needs.plan.outputs.mode != 'none'"
     runs-on: ubuntu-24.04
-    # 60, not 30: with the admin refunds, staff and restaurant onboarding captures in, one mock pass
-    # over both consoles ran past 30 minutes (run 39770582269). A stopgap until the job is split
-    # into one job per app.
-    timeout-minutes: 60
+    # One job per console. Both in one job ran past 30 minutes once the admin refunds, staff and
+    # restaurant onboarding captures were in (run 39770582269), and took 39 on run 39783303279:
+    # 13 to install, then 12 for restaurant and 13 for admin one after the other. Split, the two
+    # run side by side, about 27 minutes each. fail-fast off: one console's crash must not cancel
+    # the other's captures.
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [restaurant, admin]
+    name: captures (${{ matrix.app }})
+    timeout-minutes: 45
     env:
       E2E_OUT: ${{ github.workspace }}/e2e-out
       E2E_MODE: mock
+      E2E_APPS: ${{ matrix.app }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -470,16 +478,14 @@ jobs:
       - name: Take the design captures
         run: |
           cd tools/e2e
-          for app in restaurant admin; do
-            E2E_RUN="captures-$app" pnpm exec playwright test --config web/playwright.config.ts \
-              --project "$app-redesign-*" --pass-with-no-tests || echo "::warning::$app capture specs had failures; boards they would have captured are reported as uncaptured"
-          done
+          E2E_RUN="captures-$E2E_APPS" pnpm exec playwright test --config web/playwright.config.ts \
+            --project "$E2E_APPS-redesign-*" --pass-with-no-tests || echo "::warning::$E2E_APPS capture specs had failures; boards they would have captured are reported as uncaptured"
 
       - name: Summary
         if: always()
         run: |
           n=$(find "$E2E_OUT/design-captures" -name '*.png' 2>/dev/null | wc -l)
-          echo "## Design captures (mock)" >>"$GITHUB_STEP_SUMMARY"
+          echo "## Design captures (mock, $E2E_APPS)" >>"$GITHUB_STEP_SUMMARY"
           echo "" >>"$GITHUB_STEP_SUMMARY"
           echo "$n captures taken against the mock API." >>"$GITHUB_STEP_SUMMARY"
 
@@ -494,7 +500,7 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
-          name: design-captures-mock
+          name: design-captures-mock-${{ matrix.app }}
           path: ${{ env.E2E_OUT }}/design-captures
           if-no-files-found: warn
           retention-days: 14
@@ -514,7 +520,9 @@ jobs:
     # through the mock — so a broken API should not also cost the fidelity verdicts. It did: #1040
     # made the legacy live-orders queue read one `state` value and the real-stack specs timed out,
     # which under the old condition would have skipped this job entirely.
-    if: "!cancelled() && needs.captures.result == 'success'"
+    # And on either console's captures: with one captures job per app, a crash in one fails the
+    # matrix, and the other console's captures are still worth their verdicts.
+    if: "!cancelled() && (needs.captures.result == 'success' || needs.captures.result == 'failure')"
     runs-on: ubuntu-24.04
     # The comparison is about a second a pair and the capture count only goes up: 681 when it
     # landed, 823 a day later, and roughly 2,600 boards exist. 90 minutes is headroom, not a fix —
@@ -566,11 +574,13 @@ jobs:
       # real-mode flows write theirs to design-captures-real, which is kept in their own artifact and
       # not compared: the three boards both modes declare would otherwise be counted twice, and
       # nothing dedupes by board (#1028). Not fatal when absent — a diff of what did arrive is worth
-      # more than no diff, and a missing capture is reported as a board without one.
+      # more than no diff, and a missing capture is reported as a board without one. One artifact per
+      # console, merged into one directory: each holds only its own app's folder, so nothing collides.
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         continue-on-error: true
         with:
-          name: design-captures-mock
+          pattern: design-captures-mock-*
+          merge-multiple: true
           path: ${{ env.E2E_OUT }}/design-captures
 
       # Every board of the apps whose captures a browser takes, not only the areas captured: the

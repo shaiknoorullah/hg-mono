@@ -139,6 +139,20 @@ describe('SideNav stub', () => {
     expect(other.hasAttribute('aria-current')).toBe(false);
     expect(screen.getByRole('button', { name: 'Collapse navigation' }).getAttribute('aria-expanded')).toBe('true');
   });
+
+  it('draws the collapsed rail with icons only when railLabels is false, items still named and titled', () => {
+    render(
+      <SideNav
+        collapsed
+        railLabels={false}
+        groups={[{ key: 'g', items: [{ key: 'orders', label: 'Orders', shortLabel: 'Orders', href: '/orders', current: true }] }]}
+      />,
+    );
+    const link = screen.getByRole('link', { name: 'Orders' });
+    expect(link.getAttribute('title')).toBe('Orders');
+    expect(link.querySelector('[data-rail-label]')!.className).toContain('sr-only');
+    expect(link.className).toContain('bg-fg-on-accent');
+  });
 });
 
 describe('DetailPanel stub', () => {
