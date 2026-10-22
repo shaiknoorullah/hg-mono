@@ -14,7 +14,7 @@ covers:
   - packages/ui-native/src/ds/**
   - packages/ui-native/src/lib/**
   - packages/ui-native/src/proposed/**
-reviewed: 2026-10-15
+reviewed: 2026-10-22
 ---
 
 # HalalGoes — Component Inventory
@@ -308,7 +308,7 @@ There is **no** `color`, `label`, `variant` or `icon` prop. The four states are 
 
 **Purpose.** The generic surface container everything else composes from.
 
-**Variants.** `elevated` (elevation 1, `surface.raised`) · `outlined` (1px `border.decorative`) · `filled` (`surface.subtle`) · `interactive` (elevated + hover/press).
+**Variants.** `elevated` (elevation 1, `surface.raised`) · `outlined` (1px `border.decorative`) · `filled` (`surface.subtle`) · `interactive` (elevated + hover/press). Every variant has a 1px border, transparent unless `outlined`, as [the Claude Design Card](https://claude.ai/artifact/1GwGVZz8Ju9wcz4HfCnzbv) draws it: all four are the same size, and the content sits 1px in from the edge ([#878](https://github.com/shaiknoorullah/hg-mono/issues/878)).
 **Props.** `variant`, `padding` (defaults to `density.cardPadding`), `radius` (default `lg`), `onPress`, `media`, `header`, `footer`.
 **States.** interactive only: hover (elevation +1), pressed (scale 0.99 + overlay), focus-visible (ring around the whole card).
 **Accessibility.** An interactive card is **one** tab stop with **one** accessible name; nested links inside a pressable card are forbidden (the "nested interactive" trap). If a card needs two actions, the card is not pressable and the actions are explicit buttons.
