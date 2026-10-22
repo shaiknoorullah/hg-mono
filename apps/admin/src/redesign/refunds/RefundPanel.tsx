@@ -57,6 +57,7 @@ import {
   type Refusal,
   type ScopeChoice,
 } from './model';
+import { useHoldWhatsNewNotice } from '../whatsnew/hold';
 
 type Order = Schema['OrderAdminView'];
 type Refund = Schema['Refund'];
@@ -82,6 +83,8 @@ function lineLabel(l: Order['lines'][number]): string {
 }
 
 export function RefundPanel({ order, role, onClose, onAnswered, onReload, prefill }: RefundPanelProps) {
+  // An update that arrives while this panel holds unsent input waits until it closes.
+  useHoldWhatsNewNotice();
   const draftKey = `refund:${order.id}`;
   const restored = useRef(loadDraft<RefundDraft>(draftKey));
   const [draft, setDraft] = useState<RefundDraft>(() => ({ ...EMPTY_DRAFT, ...(restored.current ?? {}), ...(prefill?.draft ?? {}) }));

@@ -36,6 +36,7 @@ import {
   type Certificate,
   type RejectionReason,
 } from './model';
+import { useHoldWhatsNewNotice } from '../../whatsnew/hold';
 
 type Application = Schema['RestaurantApplication'];
 export type HalalDecision = 'approve' | 'reject' | 'revoke';
@@ -81,6 +82,8 @@ function starterMessage(reason: RejectionReason | null, cert: Certificate, legal
 }
 
 export function HalalDecisionPanel({ decision, certificate, application, presetReason, returnFocusRef, onClose, onResult }: Props) {
+  // An update that arrives while this panel holds unsent input waits until it closes.
+  useHoldWhatsNewNotice();
   const name = application?.display_name ?? 'the restaurant';
   const legalName = application?.profile.legal_name ?? null;
   const draftKey = `halal-decision:${certificate.id}:${decision}`;

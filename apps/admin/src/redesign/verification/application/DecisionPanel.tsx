@@ -25,6 +25,7 @@ import { Button, Checkbox, DetailPanel, InlineAlert, Select, Textarea } from '..
 import { unwrap } from '../../../lib/load';
 import { errorCode, fieldErrors, stringList } from '../shared/errors';
 import { DOC_LABEL, DOC_ORDER, OPTIONAL_DOCS, type Application, type DocType } from './model';
+import { useHoldWhatsNewNotice } from '../../whatsnew/hold';
 
 export type DecisionKind = 'approve' | 'reject' | 'changes';
 
@@ -111,6 +112,8 @@ function plural(n: number): string {
 }
 
 export function DecisionPanel({ kind, application, presetDocs, presetReason, presetMessage, presetNote, returnFocusRef, onClose, onResult }: Props) {
+  // An update that arrives while this panel holds unsent input waits until it closes.
+  useHoldWhatsNewNotice();
   const uid = useId();
   const draftKey = `restaurant-decision:${application.restaurant_id}:${kind}`;
   const name = application.display_name;

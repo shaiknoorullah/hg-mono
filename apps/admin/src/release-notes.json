@@ -1,0 +1,20 @@
+[
+  {
+    "version": "1.0.0",
+    "date": "2026-10-22",
+    "notes": [
+      {
+        "title": "One layout on every page",
+        "body": "The sidebar sits on the left, the page title at the top, and details open beside the list instead of over it."
+      },
+      {
+        "title": "Narrow screens and zoom",
+        "body": "On a narrow window, or at 200% zoom, the sidebar folds into an Open navigation menu and nothing needs sideways scrolling."
+      },
+      {
+        "title": "What's new",
+        "body": "Open What's new in the sidebar to read these notes again. A New label shows beside it until you have opened them."
+      }
+    ]
+  }
+]

@@ -280,6 +280,14 @@ board by that name, and judges it (a web capture pixel by pixel, a native one by
   example `expectDesign(page, 'restaurant/sign-in/SignIn-Invalid')`. It saves a full-page
   screenshot and a layout snapshot to `$E2E_OUT/design-captures/<app>/<width>x<height>/`.
   `redesign-restaurant.sign-in.spec.ts` names a board for each sign-in state.
+- **What's new.** A fresh browser has seen no release notes, and the redesigned apps show them then
+  (the restaurant console opens a panel, the admin console shows an update notice), over every screen
+  a spec captures. So every redesign project in `web/playwright.config.ts` starts with the last-seen
+  keys of the build it serves already stored (the version in `apps/<app>/package.json`). The What's new
+  specs (`redesign-admin.whats-new.spec.ts`, `redesign-restaurant.whats-new.spec.ts`) clear that and
+  store what each board needs; they hold, fail or empty the notes chunk (`release-notes`) with
+  `page.route` to reach the loading, error and empty boards. If an app's keys change
+  (`apps/*/src/redesign/whatsnew/store.ts`), change them in that config too.
 - **Maestro:** `runFlow: ../../design-capture.yaml` with `SHOT: design--<area>--<Board>` (it takes the
   screenshot and has the view hierarchy and device recorded beside it), for
   example `design--sign-in--Main` in `native/customer/redesign/lab/1-sign-in.yaml` (a device-lab flow).
@@ -332,6 +340,17 @@ in its `.capture.json` and reported as uncovered. Three helpers in `web/design.t
   The restaurant console opens with its side navigation collapsed to icons; for the areas whose
   boards draw it expanded (menu-hours, settings, payouts) `expectDesign` first presses the rail's
   own expand button, unless a panel is open (the rail is then collapsed on the board and the app).
+- **Tall boards.** A board taller than the viewport, drawn at the viewport's width, is captured at
+  its own height. The consoles lay out in a frame as tall as the window (a 100vh shell with a scrolling region
+  inside), so the document never scrolls and `fullPage` adds nothing: the screenshot stopped at the window
+  while a narrow board such as `restaurant/settings/Reflow-Settings-320` draws the whole page unrolled, which
+  [design-diff](../design-diff/README.md) reported as "2300 dp short: 69.7 % of the board not compared". `expectDesign`
+  reads the board's width and height from its `canvas.json` on `origin/claude/redesign-canvases` (`captureViewport`
+  in [`design-diff/src/capture-size.mjs`](../design-diff/src/capture-size.mjs)), sets the window to that size, waits for the page to
+  settle, takes the screenshot and puts the window back. A board that fits the viewport (most 1440 x 900 boards) is
+  captured exactly as before, and so is every board when the branch is not fetched (`git fetch origin
+  claude/redesign-canvases:refs/remotes/origin/claude/redesign-canvases`); the `flows` and `captures` jobs fetch it.
+  The folder is still named for the project's viewport; `.capture.json` records the `viewport` actually used.
 - `declareUnpairable(page, board, reason)` for a **composite** board (several states drawn side by
   side, such as `admin/restaurant-verification/SignIn-Errors`). One screenshot cannot be compared
   with a composite, so the capture goes to `<app>/unpairable/` with the reason in its `.capture.json`
@@ -369,6 +388,7 @@ job has a timeout:
 | A push to a PR labelled `e2e-full` | as a nightly run | 35 to 60 |
 | Run workflow, `flows: web` | plan 1, flows 15 | 16 |
 | Each redesign build, once an app has redesign specs or flows | web: about 1 more per app in `flows`; Android: one more APK build, 15 (1 from the cache), and its flows | +1 to +30 |
+| The design captures, beside `flows` on every `e2e` or `e2e-full` run | `captures` (the redesign specs in mock mode, both consoles) about 30, with a 60-minute limit until it runs as one job per app | in parallel with `flows`, so about +0 to +15 to the run |
 
 A month of nightly runs on a busy `main` is about 1,000 to 1,800 minutes of run time, which costs
 nothing here. To spend less time, label only the pull requests that change an app's flows, or run

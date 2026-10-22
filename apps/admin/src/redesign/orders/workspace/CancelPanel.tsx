@@ -25,6 +25,7 @@ import { Button, DetailPanel, InlineAlert, Input, Select, Textarea } from '../..
 import { CANCEL_REASON, STAFF_CANCEL_REASONS, type CancelReason } from '../labels';
 import { asContract, isUuid } from '../model';
 import { isAccepted, SYSTEM_ONLY_NOTE } from './notes';
+import { useHoldWhatsNewNotice } from '../../whatsnew/hold';
 
 type Order = Schema['OrderAdminView'];
 
@@ -53,6 +54,8 @@ function retryAfterSeconds(details: unknown): number | null {
 }
 
 export function CancelPanel({ order, isSupport, onClose, onCancelled, onReload }: CancelPanelProps) {
+  // An update that arrives while this panel holds unsent input waits until it closes.
+  useHoldWhatsNewNotice();
   const draftKey = `order-cancel:${order.id}`;
   const saved = useRef(loadDraft<Draft>(draftKey));
   const [reason, setReason] = useState<Draft['reason']>(saved.current?.reason ?? '');
