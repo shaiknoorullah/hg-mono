@@ -120,7 +120,7 @@ any other non-PASS verdict. Retake such a capture. Android captures (customer, r
 browser, so this rule is for the web apps (restaurant, admin) only; see "Native boards" below. Why 1223: playwright 1.50.1 ships build 1155, which cannot parse
 `var(--icon-md)` in an SVG `width`, so most sign-in boards do not render on it.
 
-**Launching Chromium.** Chromium always starts with `--no-sandbox --disable-setuid-sandbox --disable-gpu --disable-dev-shm-usage`, because on hosts that cannot start Chromium's sandbox the first page died at once and the renderer looked like a hang rather than a failure. The launch has a 60 second timeout, and both settle waits are bounded at 30 seconds, so a wedged page gives up and says so instead of hanging for ever.
+**Launching Chromium.** Chromium always starts with `--no-sandbox --disable-setuid-sandbox --disable-gpu --enable-unsafe-swiftshader --disable-dev-shm-usage`, because on hosts that cannot start Chromium's sandbox the first page died at once and the renderer looked like a hang rather than a failure. `--enable-unsafe-swiftshader` keeps WebGL, in software: without it, under `--disable-gpu`, this Chromium has none, and a screen drawing a map with mapbox-gl (the admin live map) never left its error state. The launch has a 60 second timeout, and both settle waits are bounded at 30 seconds, so a wedged page gives up and says so instead of hanging for ever.
 
 ## Compare
 
