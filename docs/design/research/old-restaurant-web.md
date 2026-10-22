@@ -1,7 +1,7 @@
 ---
 covers:
   - apps/restaurant/src/**
-reviewed: 2026-10-16
+reviewed: 2026-10-22
 ---
 
 # What the old restaurant web app teaches the redesign
@@ -962,6 +962,14 @@ Today's app has **no notifications UI at all**, even though the contract has `li
 **Where they live permanently.** A "What's new" entry under Settings, rendered as a `StatusTimeline`-style list of versions with section `Chip`s (neutral or info tones) and item counts.
 
 **Storage.** The last-seen version is stored per device, wrapped in try/catch. All states: empty, loading, error.
+
+**As built** ([#101](https://github.com/shaiknoorullah/hg-mono/issues/101), [#102](https://github.com/shaiknoorullah/hg-mono/issues/102)):
+each app bundles one `src/release-notes.json`, newest release first, `[{ version, date, notes: [{ title, body }] }]`, written by hand until
+[#97](https://github.com/shaiknoorullah/hg-mono/issues/97) generates the same file. One file rather than an index plus a file per
+release: the file ships inside the app, so there is nothing to fetch selectively, and it loads as its own chunk so the loading and
+error states are real. The app's version is `package.json`'s `version`, which is also the newest release in the file. The restaurant
+console opens the notes in the shell panel once after an update and keeps them in the account menu and in Settings; the admin
+console shows a notice in the banner slot and opens the panel from the sidebar. Notes have no section kinds or counts yet.
 
 ---
 

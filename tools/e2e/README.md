@@ -264,6 +264,14 @@ board by that name, and judges it (a web capture pixel by pixel, a native one by
   example `expectDesign(page, 'restaurant/sign-in/SignIn-Invalid')`. It saves a full-page
   screenshot and a layout snapshot to `$E2E_OUT/design-captures/<app>/<width>x<height>/`.
   `redesign-restaurant.sign-in.spec.ts` names a board for each sign-in state.
+- **What's new.** A fresh browser has seen no release notes, and the redesigned apps show them then
+  (the restaurant console opens a panel, the admin console shows an update notice), over every screen
+  a spec captures. So every redesign project in `web/playwright.config.ts` starts with the last-seen
+  keys of the build it serves already stored (the version in `apps/<app>/package.json`). The What's new
+  specs (`redesign-admin.whats-new.spec.ts`, `redesign-restaurant.whats-new.spec.ts`) clear that and
+  store what each board needs; they hold, fail or empty the notes chunk (`release-notes`) with
+  `page.route` to reach the loading, error and empty boards. If an app's keys change
+  (`apps/*/src/redesign/whatsnew/store.ts`), change them in that config too.
 - **Maestro:** `runFlow: ../../design-capture.yaml` with `SHOT: design--<area>--<Board>` (it takes the
   screenshot and has the view hierarchy and device recorded beside it), for
   example `design--sign-in--Main` in `native/customer/redesign/lab/1-sign-in.yaml` (a device-lab flow).
