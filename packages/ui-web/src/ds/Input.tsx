@@ -266,7 +266,7 @@ export function Input({
         htmlFor={ids.control}
         id={ids.label}
         required={required}
-        className="leading-normal tracking-normal [&>span]:text-brand-700"
+        className="leading-normal tracking-normal [&>span]:text-[var(--hg-color-brand-700)]"
       >
         {label}
       </Label>
