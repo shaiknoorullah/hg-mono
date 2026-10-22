@@ -19,6 +19,7 @@ export default defineConfig({
     environment: 'jsdom',
     globals: false,
     include: ['smoke/**/*.test.{ts,tsx}', 'src/redesign/**/*.test.{ts,tsx}'],
+    setupFiles: ['src/redesign/test/setup.ts'],
     testTimeout: 15000,
   },
 });

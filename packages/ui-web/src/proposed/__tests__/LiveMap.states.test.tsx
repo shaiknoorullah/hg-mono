@@ -13,7 +13,8 @@ import { loadFakeMapbox } from '../__fixtures__/fake-mapbox';
 import { LiveMap } from '../index';
 
 const NOW = Date.parse('2026-10-10T22:52:48Z');
-const places = [{ id: 'r', kind: 'restaurant' as const, label: 'Zaytoun Grill', latitude: 43.73, longitude: -79.26 }];
+const PLACE = { id: 'r', kind: 'restaurant' as const, label: 'Zaytoun Grill', latitude: 43.73, longitude: -79.26 };
+const places = [PLACE];
 const RIDER_AT = { latitude: 43.731, longitude: -79.262 };
 const rider = (agoSeconds: number) => [
   {
@@ -24,6 +25,9 @@ const rider = (agoSeconds: number) => [
 ];
 
 type Spied = { prototype: { setLngLat: (p: [number, number]) => unknown } };
+
+const seatedAt = (p: [number, number], at: { longitude: number; latitude: number }) =>
+  p[0] === at.longitude && p[1] === at.latitude;
 
 describe('LiveMap: a stale position freezes', () => {
   it('does not move the pin when the clock moves on and no newer fix arrived', async () => {
@@ -36,8 +40,15 @@ describe('LiveMap: a stale position freezes', () => {
 
     setLngLat.mockClear();
     rerender(<LiveMap {...props} now={() => NOW + 600_000} />);
-    const riderMoves = setLngLat.mock.calls.filter(([p]) => p[0] === RIDER_AT.longitude && p[1] === RIDER_AT.latitude);
-    expect(riderMoves).toHaveLength(0);
+    // Seats, not writes. A marker re-created on a later render is seated at its own position
+    // again, and a re-seat where the pin already is moves nothing — counting those made this
+    // assertion depend on how many times React committed, which is why it failed under CI's
+    // scheduling and passed here (#1067). What would break the promise is a seat anywhere the
+    // rider has not been seen, so that is what is forbidden.
+    const movedElsewhere = setLngLat.mock.calls
+      .map(([p]) => p)
+      .filter((p) => !seatedAt(p, RIDER_AT) && !seatedAt(p, PLACE));
+    expect(movedElsewhere).toEqual([]);
     setLngLat.mockRestore();
   });
 });
