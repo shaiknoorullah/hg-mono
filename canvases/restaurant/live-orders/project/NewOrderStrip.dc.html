@@ -74,7 +74,7 @@
 
 </section>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"strip":{"editor":null,"tsType":"object"},"$preview":{"width":1360,"height":186}}'>
+<script type="text/x-dc" data-dc-script data-props='{"strip":{"editor":null,"tsType":"object"},"$preview":{"width":1368,"height":186}}'>
 class Component extends DCLogic {
   renderVals() {
     if (!this._anchor) this._anchor = Date.now();
@@ -86,7 +86,7 @@ class Component extends DCLogic {
     const tile = (code, remain, earn, summary, note) => ({ code: code, w: 372, cdExpires: iso(a + remain * 1000), cdNow: iso(a), earn: earn, earnReady: true, earnLoading: false, summary: summary, hasNote: note,
       acceptLabel: 'Accept · 20 min', acceptName: 'Accept order ' + code + ', ready in 20 minutes', declineName: 'Decline order ' + code + ', choose a reason', aria: 'New order ' + code, isLive: true, isOutcome: false });
     const base = {
-      w: 1360, h: 186, aria: 'New orders, 2 waiting', bg: 'var(--state-selected-tint)', edgeTop: '0', edgeBottom: '2px solid var(--border-brand)', ring: 'none',
+      w: 1368, h: 186, aria: 'New orders, 2 waiting', bg: 'var(--state-selected-tint)', edgeTop: '0', edgeBottom: '2px solid var(--border-brand)', ring: 'none',
       isFull: true, isCompact: false, isLive: true, isLoading: false, isEmpty: false, hasWaiting: true, waitingLabel: '2 waiting', rule: 'Answer within 3 minutes. Soonest deadline first.',
       showKeys: true, keys: keys, tiles: [tile('B3M9', 40, 2210, 'Omar S. · 2 items', false), tile('A7K2', 132, 3769, 'Aisha K. · 3 items', true)],
       hasMore: false, moreLabel: '', moreName: '', emptyIcon: 'bell', emptyTitle: '', emptyBody: '', hasEmptyAction: false, emptyAction: '', emptyActionVariant: 'tertiary',

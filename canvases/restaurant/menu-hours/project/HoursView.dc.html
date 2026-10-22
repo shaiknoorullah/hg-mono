@@ -15,7 +15,7 @@
 <style>body{margin:0}.hg-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}</style>
 </helmet>
 <div data-hg-density="compact" style="width: {{W}}px; height: {{H}}px; display: grid; grid-template-columns: {{railW}}px {{mainW}}px; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui); position: relative; overflow: hidden;">
-  <dc-import name="PartRail" active="hours" collapsed="{{tablet}}" orders="{{m.orders}}" h="{{nine}}" hint-size="224px,900px"></dc-import>
+  <dc-import name="PartRail" active="hours" collapsed="{{tablet}}" orders="{{m.orders}}" h="{{nine}}" hint-size="232px,900px"></dc-import>
   <div style="display: flex; flex-direction: column; min-width: 0; height: {{H}}px;">
     <dc-import name="PartTopBar" title="Hours" w="{{mainW}}" state="{{m.bar}}" controls="status" sound="{{m.sound}}" sound-gate="{{m.soundGate}}" strip="{{m.strip}}" version="{{zero}}" hint-size="1216px,208px"></dc-import>
     <main id="main" aria-busy="{{m.busyAttr}}" style="flex-grow: 1; min-height: 0; box-sizing: border-box; padding: var(--space-3) var(--space-4) var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); overflow: hidden;">
@@ -399,7 +399,7 @@ class Component extends DCLogic {
     const t12 = (v) => { const [hh, mi] = String(v).split(':').map(Number); return ((hh % 12) || 12) + ':' + String(mi).padStart(2, '0') + ' ' + (hh < 12 ? 'am' : 'pm'); };
     // Kitchen tablet, landscape 1024 × 768 and up (owner decision): the side navigation stays collapsed.
     const tablet = (this.props.device ?? 'desktop') === 'tablet';
-    const W = tablet ? 1024 : 1440, H = tablet ? 768 : 900, railW = tablet ? 88 : 224, mainW = W - railW;
+    const W = tablet ? 1024 : 1440, H = tablet ? 768 : 900, railW = tablet ? 72 : 232, mainW = W - railW;
     const noop = () => {};
     const editModes = ['edit', 'specialemptyedit', 'dirty', 'overlap', 'overlapnight', 'twentyfour', 'closesnow', 'limits', 'dayclosed', 'saving', 'server422', 'conflict', 'savefailed', 'overridemodal', 'overrideclosed', 'overrideerrors', 'overrideduplicate', 'overridenight', 'override24', 'overrideedit', 'overrideremove', 'unsaved'];
     const readModes = ['pastdates', 'soundoff', 'soundgate', 'view', 'paused', 'pausedclose', 'pausestale', 'none', 'closedhours', 'offline', 'autooff', 'specialempty', 'specialnight', 'holidaytoday', 'holidayedit', 'holidayremoved', 'suspended', 'saved', 'viewaddoverride'];

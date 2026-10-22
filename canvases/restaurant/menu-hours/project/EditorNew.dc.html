@@ -14,10 +14,10 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
 <style>body{margin:0}</style>
 </helmet>
-<div data-hg-density="compact" style="width: {{W}}px; height: {{H}}px; display: grid; grid-template-columns: 88px {{mainW}}px; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui); position: relative; overflow: hidden;">
-  <dc-import name="PartRail" active="menu" collapsed="{{yes}}" h="{{nine}}" hint-size="88px,900px"></dc-import>
+<div data-hg-density="compact" style="width: {{W}}px; height: {{H}}px; display: grid; grid-template-columns: 72px {{mainW}}px; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui); position: relative; overflow: hidden;">
+  <dc-import name="PartRail" active="menu" collapsed="{{yes}}" h="{{nine}}" hint-size="72px,900px"></dc-import>
   <div style="display: flex; flex-direction: column; min-width: 0; height: {{H}}px;">
-    <dc-import name="PartTopBar" title="Menu" state="open" w="{{mainW}}" hint-size="1352px,208px"></dc-import>
+    <dc-import name="PartTopBar" title="Menu" state="open" w="{{mainW}}" hint-size="1368px,208px"></dc-import>
     <main id="main" style="flex-grow: 1; min-height: 0; box-sizing: border-box; padding: var(--space-3) var(--space-4) var(--space-4); display: flex; gap: var(--space-3); overflow: hidden;">
       <nav aria-label="Menu categories, collapsed" style="width: 56px; height: {{paneH}}px; flex-shrink: 0; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: var(--space-2); padding: 6px 0; border-radius: var(--radius-md); background: var(--surface-raised); border: 1px solid var(--border-decorative);">
         <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="chevron-right" accessibility-label="Show categories" size="md" hint-size="44px,44px"></x-import>
@@ -650,7 +650,7 @@ class Component extends DCLogic {
     m.closeAria = 'Close ' + (m.title || 'the editor');
     return {
       // Kitchen tablet, landscape 1024 × 768 and up (owner decision): the items list narrows so the editor keeps its width.
-      W: tablet ? 1024 : 1440, H: tablet ? 768 : 900, nine: tablet ? 768 : 900, mainW: tablet ? 936 : 1352, paneH: tablet ? 532 : 664, gw: tablet ? 300 : 520,
+      W: tablet ? 1024 : 1440, H: tablet ? 768 : 900, nine: tablet ? 768 : 900, mainW: tablet ? 952 : 1368, paneH: tablet ? 532 : 664, gw: tablet ? 300 : 520,
       yes: true, eighty: 80, twentyfour: 24, noop, m, g,
       catOpts: [{ value: 'mains', label: 'Mains' }, { value: 'wraps', label: 'Wraps' }, { value: 'drinks', label: 'Drinks' }, { value: 'breakfast', label: 'Breakfast' }, { value: 'desserts', label: 'Desserts' }, { value: 'catering', label: 'Catering (inactive, hidden from customers)' }],
     };

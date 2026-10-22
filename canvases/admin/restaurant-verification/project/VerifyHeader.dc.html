@@ -73,7 +73,7 @@
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["mine","untranscribed","nohalal","warn","other","unclaimed","lost","approved","support","loading","rejected","allpass","onefail","errors","blocked","saving","savefail","proposed","waitingbody","h5fail","h7fail","h2fail","expiring","current","override","confirm","renewal","revoked","inspect","waiting","withdrawn"],"default":"mine"},"w":{"editor":null,"default":1352},"restaurant":{"editor":null,"default":"Karahi House"},"number":{"editor":null,"default":""},"tag":{"editor":"boolean","default":true},"$preview":{"width":1352,"height":108}}'>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["mine","untranscribed","nohalal","warn","other","unclaimed","lost","approved","support","loading","rejected","allpass","onefail","errors","blocked","saving","savefail","proposed","waitingbody","h5fail","h7fail","h2fail","expiring","current","override","confirm","renewal","revoked","inspect","waiting","withdrawn"],"default":"mine"},"w":{"editor":null,"default":1344},"restaurant":{"editor":null,"default":"Karahi House"},"number":{"editor":null,"default":""},"tag":{"editor":"boolean","default":true},"$preview":{"width":1344,"height":108}}'>
 class Component extends DCLogic {
   renderVals() {
     const v = this.props.variant ?? 'mine';
@@ -126,7 +126,7 @@ class Component extends DCLogic {
     };
     const halal = profileHalal[v];
     const isLoading = v === 'loading';
-    const w = this.props.w ?? 1352;
+    const w = this.props.w ?? 1344;
     // Claim strip on surface.raised: the DS Countdown text variant draws info-500, 4.59:1 on white
     // (4.0:1 on surface.sunken fails). DS enhancement filed: Countdown text uses info-700.
     // A missing profile.halal renders no badge, never an optimistic one.

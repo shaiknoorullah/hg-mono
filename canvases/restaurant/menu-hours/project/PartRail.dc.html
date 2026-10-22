@@ -59,7 +59,7 @@ body{margin:0}
   </div>
 </nav>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"active":{"editor":"enum","options":["orders","menu","hours","payouts","settings"],"default":"menu"},"collapsed":{"editor":"boolean","default":false},"orders":{"editor":"int","default":2},"h":{"editor":"int","default":900},"$preview":{"width":224,"height":900}}'>
+<script type="text/x-dc" data-dc-script data-props='{"active":{"editor":"enum","options":["orders","menu","hours","payouts","settings"],"default":"menu"},"collapsed":{"editor":"boolean","default":false},"orders":{"editor":"int","default":2},"h":{"editor":"int","default":900},"$preview":{"width":232,"height":900}}'>
 class Component extends DCLogic {
   renderVals() {
     const active = this.props.active ?? 'menu';
@@ -89,7 +89,7 @@ class Component extends DCLogic {
       return { ...b, current: on ? 'page' : 'false', weight: on ? 'bold' : 'linear', hasIcon: !!b.icon, hasCount: !!b.count, linkStyle };
     });
     return {
-      items, full, icons: collapsed, w: collapsed ? 88 : 224, h: this.props.h ?? 900,
+      items, full, icons: collapsed, w: collapsed ? 72 : 232, h: this.props.h ?? 900,
       labelStyle: full ? 'flex-grow: 1;' : 'flex-grow: 0;',
       footAlign: full ? 'stretch' : 'center',
       toggleIcon: collapsed ? 'chevron-right' : 'back',

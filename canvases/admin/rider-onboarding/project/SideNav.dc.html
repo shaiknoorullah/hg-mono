@@ -31,7 +31,7 @@
         </div>
         <button type="button" class="hg-nav-item {{collapseFocus}}" aria-label="Hide navigation" aria-expanded="true" aria-controls="admin-nav-list" style="width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="back" size="md" color="var(--text-on-accent)"></x-import></button>
       </div>
-      <div class="hg-nav-annot" style="margin: 0 var(--space-4) var(--space-2);">Proposed component: SideNav (approved by the owner for the design system, not in it yet). Collapsible: on working pages it folds to a 56 px rail with Show navigation. Current page = an inverted tile: --text-on-accent fill, --surface-chrome label and bold icon, bold label, aria-current="page". No side bar.</div>
+      <div class="hg-nav-annot" style="margin: 0 var(--space-4) var(--space-2);">Proposed component: SideNav (approved by the owner for the design system, not in it yet). Collapsible: on working pages it folds to a 72 px rail with Show navigation. Current page = an inverted tile: --text-on-accent fill, --surface-chrome label and bold icon, bold label, aria-current="page". No side bar.</div>
       <div id="admin-nav-list" style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-2) var(--space-3); overflow: hidden;">
         <div style="display: flex; flex-direction: column; gap: 2px;">
           <span class="type-label-md" style="padding: 0 var(--space-3) var(--space-1); color: var(--text-on-accent);">Review</span>
@@ -69,7 +69,7 @@ class Component extends DCLogic {
     // Shown on its own artboard (no height passed by an importer): draw the focused-link specimen.
     const focus = this.props.focusSpecimen ?? (this.props.height === undefined);
     return {
-      navW: collapsed ? 56 : 264,
+      navW: collapsed ? 72 : 264,
       isCollapsed: collapsed, isOpen: !collapsed,
       height: this.props.height ?? 900,
       isAdmin: role !== 'support', isSupport: role === 'support',

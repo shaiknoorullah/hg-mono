@@ -254,7 +254,7 @@
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["mine","afterdoc","halalrejected","ready","readonly","inspect","support","loading","decided","decidedother","claimlost","rejected","changes","withdrawn","halalrow","docstates","nocert","forgery"],"default":"mine"},"w":{"editor":null,"default":1292},"tag":{"editor":"boolean","default":true},"$preview":{"width":1292,"height":848},"h":{"editor":null,"default":820},"third":{"editor":"enum","options":["viewer","none","collapsed"],"default":"viewer"},"stack":{"editor":"boolean","default":false}}'>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["mine","afterdoc","halalrejected","ready","readonly","inspect","support","loading","decided","decidedother","claimlost","rejected","changes","withdrawn","halalrow","docstates","nocert","forgery"],"default":"mine"},"w":{"editor":null,"default":1284},"tag":{"editor":"boolean","default":true},"$preview":{"width":1284,"height":848},"h":{"editor":null,"default":820},"third":{"editor":"enum","options":["viewer","none","collapsed"],"default":"viewer"},"stack":{"editor":"boolean","default":false}}'>
 class Component extends DCLogic {
   renderVals() {
     const raw = this.props.variant ?? 'mine';
@@ -370,7 +370,7 @@ class Component extends DCLogic {
         badge: savedVal || 'Not recorded', badgeVariant: savedVal === 'Saved: Pass' ? 'outline' : 'neutral',
       };
     });
-    const w = this.props.w ?? 1292;
+    const w = this.props.w ?? 1284;
     const stack = !!this.props.stack;
     const h = stack ? 600 : (this.props.h ?? 820);
     const third = this.props.third ?? 'viewer';

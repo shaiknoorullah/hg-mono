@@ -24,8 +24,8 @@ textarea.hg-ta[aria-invalid="true"]{border:var(--focus-field-border-width) solid
 .prop{display:inline-flex;align-self:flex-start;padding:2px 8px;border-radius:4px;background:var(--color-info-50);color:var(--color-info-700);font-size:12px;font-weight:600;line-height:1.4}
 </style>
 </helmet>
-<div style="width: 1440px; height: 900px; box-sizing: border-box; display: grid; grid-template-columns: 64px minmax(0, 1fr); background: var(--surface-base); position: relative; overflow: hidden; font-family: var(--font-ui); color: var(--text-primary)">
-  <dc-import name="SideNav" active="find" role="ADMIN" collapsed="{{yes}}" h="900" hint-size="64px,900px"></dc-import>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; display: grid; grid-template-columns: 72px minmax(0, 1fr); background: var(--surface-base); position: relative; overflow: hidden; font-family: var(--font-ui); color: var(--text-primary)">
+  <dc-import name="SideNav" active="find" role="ADMIN" collapsed="{{yes}}" h="900" hint-size="72px,900px"></dc-import>
   <div style="display: flex; flex-direction: column; min-width: 0; min-height: 0; position: relative">
     <a class="skip" href="#main">Skip to main content</a>
     <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="raised" title="Zaytoun Grill · Menu" subtitle="Opened from Find a restaurant · admins and super admins only"></x-import>
@@ -40,7 +40,7 @@ textarea.hg-ta[aria-invalid="true"]{border:var(--focus-field-border-width) solid
             <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Name" required="{{yes}}" default-value="Chicken shawarma plate" helper-text="2 to 80 characters"></x-import>
             <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Price" variant="numeric" input-mode="decimal" prefix="$" suffix="CAD" default-value="16.99" helper-text="$0.50 to $500.00. Customers see the new price on their next quote."></x-import>
           </div>
-          <dc-import name="Textarea" tid="ob-desc" label="Description" helper="Up to 600 characters. No halal claim beyond what the restaurant’s certificate covers." value="Charcoal-grilled chicken, garlic sauce, pickles and rice." count="57 of 600 characters" error="" required="{{no}}" rows="3" w="1310" hint-size="1310px,170px"></dc-import>
+          <dc-import name="Textarea" tid="ob-desc" label="Description" helper="Up to 600 characters. No halal claim beyond what the restaurant’s certificate covers." value="Charcoal-grilled chicken, garlic sauce, pickles and rice." count="57 of 600 characters" error="" required="{{no}}" rows="3" w="1302" hint-size="1302px,170px"></dc-import>
           <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Ingredients" default-value="Chicken thigh, garlic, lemon, yoghurt, spices, basmati rice, turnip pickles."></x-import>
           <div style="display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 12px; background: var(--surface-sunken)">
             <strong style="font-size: 15px">Remove from the menu</strong>

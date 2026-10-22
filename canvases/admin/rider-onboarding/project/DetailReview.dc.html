@@ -17,7 +17,7 @@
 </helmet>
 <div data-density="compact" data-theme="{{theme}}" style="position: relative; width: {{w}}px; height: {{h}}px; overflow: hidden; display: grid; grid-template-columns: {{gridCols}}; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui);">
   <a href="#app-main" class="hg-skip">Skip to the application</a>
-  <dc-import name="SideNav" collapsed="{{yes}}" active="riders" role="{{navRole}}" height="{{h}}" rider-count="" hint-size="56px,900px"></dc-import>
+  <dc-import name="SideNav" collapsed="{{yes}}" active="riders" role="{{navRole}}" height="{{h}}" rider-count="" hint-size="72px,900px"></dc-import>
 
   <sc-if value="{{qCollapsed}}" hint-placeholder-val="{{true}}">
     <aside class="hg-strip" aria-label="Rider applications queue, folded" style="height: {{h}}px;">
@@ -1054,7 +1054,7 @@ class Component extends DCLogic {
 
     // ---- Panes (owner layout rule: the page never scrolls; overview -> detail -> more detail side by side) ----
     const qOpen = (this.props.queue ?? 'collapsed') === 'expanded';
-    const railW = 56;
+    const railW = 72;
     const qW = qOpen ? 296 : 48;
     const mainW = W - railW - qW;
     const inner = mainW - 32;

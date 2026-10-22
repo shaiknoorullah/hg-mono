@@ -15,7 +15,7 @@
 <style>body{margin:0}.hg-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}</style>
 </helmet>
 <div data-hg-density="compact" style="width: {{L.W}}px; height: {{L.H}}px; display: grid; grid-template-columns: {{L.railW}}px {{L.mainW}}px; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui); position: relative; overflow: hidden;">
-  <dc-import name="PartRail" active="menu" collapsed="{{L.railCollapsed}}" orders="{{t.orders}}" h="{{nine}}" hint-size="224px,900px"></dc-import>
+  <dc-import name="PartRail" active="menu" collapsed="{{L.railCollapsed}}" orders="{{t.orders}}" h="{{nine}}" hint-size="232px,900px"></dc-import>
   <div style="display: flex; flex-direction: column; min-width: 0; height: {{L.H}}px;">
     <dc-import name="PartTopBar" title="Menu" state="{{t.state}}" halal="{{t.halal}}" account="{{t.account}}" controls="{{t.controls}}" now="{{t.now}}" closing-at="{{t.closing}}" overnight-to="{{t.overnight}}" no-more-hours="{{t.noMore}}" strip="{{t.strip}}" strip-place="{{t.place}}" version="{{t.version}}" w="{{L.mainW}}" hint-size="1216px,208px"></dc-import>
     <main id="main" aria-busy="{{busyAttr}}" style="flex-grow: 1; min-height: 0; box-sizing: border-box; padding: var(--space-3) var(--space-4) var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); overflow: hidden;">
@@ -493,7 +493,7 @@ class Component extends DCLogic {
     const tablet = (this.props.device ?? 'desktop') === 'tablet';
     const W = tablet ? 1024 : 1440, H = tablet ? 768 : 900;
     if (tablet) railCollapsed = true;
-    const railW = railCollapsed ? 88 : 224;
+    const railW = railCollapsed ? 72 : 232;
     const mainW = W - railW;
     const innerW = mainW - 32;
     const top = t.place === 'footer' ? 108 : 208;

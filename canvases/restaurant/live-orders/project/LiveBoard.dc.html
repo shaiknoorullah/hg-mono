@@ -1316,7 +1316,7 @@ class Component extends DCLogic {
 
     /* ---------- tiles: finish ---------- */
     const pendingLive = tiles.filter((t) => t.isLive).length;
-    const railW = zoom ? 0 : navProp === 'expanded' ? 232 : 80;
+    const railW = zoom ? 0 : navProp === 'expanded' ? 232 : 72;
     const mainW = W - railW;
     /* Tablet: no keyboard hints (a touch screen), so the heading column shrinks to 120 px and each tile gets the width back. */
     const headW = tablet ? 120 : 168;

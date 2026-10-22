@@ -22,8 +22,8 @@ textarea.hg-ta[aria-invalid="true"]:focus{box-shadow:0 0 0 var(--focus-offset-wi
 .skip:focus{left:80px;outline:none;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
 </style>
 </helmet>
-<div style="width: 1440px; height: 900px; box-sizing: border-box; display: grid; grid-template-columns: 64px minmax(0, 1fr); background: var(--surface-base); position: relative; overflow: hidden; font-family: var(--font-ui); color: var(--text-primary)">
-  <dc-import name="SideNav" active="applications" role="ADMIN" collapsed="{{yes}}" h="900" hint-size="64px,900px"></dc-import>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; display: grid; grid-template-columns: 72px minmax(0, 1fr); background: var(--surface-base); position: relative; overflow: hidden; font-family: var(--font-ui); color: var(--text-primary)">
+  <dc-import name="SideNav" active="applications" role="ADMIN" collapsed="{{yes}}" h="900" hint-size="72px,900px"></dc-import>
   <div style="display: flex; flex-direction: column; min-width: 0; min-height: 0; position: relative">
     <a class="skip" href="#main">Skip to main content</a>
     <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="raised" title="Restaurant application" subtitle="Karahi House" back-label="Back to restaurant applications" on-back="{{noop}}"></x-import>
@@ -46,8 +46,8 @@ textarea.hg-ta[aria-invalid="true"]:focus{box-shadow:0 0 0 var(--focus-offset-wi
         </div>
       </fieldset>
       <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Select" label="Reason" value="HALAL_CERTIFICATION_INVALID" placeholder="Choose a reason" options="{{reasons}}" required="{{yes}}"></x-import>
-      <dc-import name="Textarea" tid="rc-text" label="Message to the restaurant" helper="Sent to the restaurant word for word. At least 10 characters." value="Please upload a halal certificate that covers your kitchen or the whole restaurant. The one you sent covers your meat supplier only." count="135 of 1000 characters · minimum 10" error="" rows="3" w="466" hint-size="466px,170px"></dc-import>
-      <dc-import name="Textarea" tid="rc-int" label="Internal note (staff only, optional)" helper="Never sent to the restaurant." value="" count="0 of 2000 characters" error="" rows="2" w="466" hint-size="466px,170px"></dc-import>
+      <dc-import name="Textarea" tid="rc-text" label="Message to the restaurant" helper="Sent to the restaurant word for word. At least 10 characters." value="Please upload a halal certificate that covers your kitchen or the whole restaurant. The one you sent covers your meat supplier only." count="135 of 1000 characters · minimum 10" error="" rows="3" w="458" hint-size="458px,170px"></dc-import>
+      <dc-import name="Textarea" tid="rc-int" label="Internal note (staff only, optional)" helper="Never sent to the restaurant." value="" count="0 of 2000 characters" error="" rows="2" w="458" hint-size="458px,170px"></dc-import>
     </div></div><div style="flex: 0 0 auto; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 12px 24px; padding: 10px 16px 12px; border-top: 1px solid var(--border-decorative); background: var(--surface-raised)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md">Cancel</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md">Send request for changes</x-import></div></section>
       </div>
     </main>

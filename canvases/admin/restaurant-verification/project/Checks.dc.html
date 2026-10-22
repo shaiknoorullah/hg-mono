@@ -82,7 +82,7 @@
   <p style="margin: 0; font: var(--text-type-body-sm); color: var(--text-secondary)">A result against the suggestion needs a note of 20 or more characters. Dates valid and Unique, not reused are set by the server and can’t be overridden. Everything here is audited with your account and the time.</p>
 </section>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["untranscribed","progress","allpass","onefail","loading","readonly","rejected","other","unclaimed","inspect","waiting","withdrawn","errors","blocked","saving","savefail","locklost","drafted","h5fail","h7fail","h2fail","h6fail","proposed","waitingbody","override","overrideshort","override422"],"default":"progress"},"who":{"editor":"enum","options":["karahi","zaytoun","noor"],"default":"karahi"},"w":{"editor":null,"default":490},"$preview":{"width":490,"height":720}}'>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["untranscribed","progress","allpass","onefail","loading","readonly","rejected","other","unclaimed","inspect","waiting","withdrawn","errors","blocked","saving","savefail","locklost","drafted","h5fail","h7fail","h2fail","h6fail","proposed","waitingbody","override","overrideshort","override422"],"default":"progress"},"who":{"editor":"enum","options":["karahi","zaytoun","noor"],"default":"karahi"},"w":{"editor":null,"default":482},"$preview":{"width":482,"height":720}}'>
 class Component extends DCLogic {
   renderVals() {
     // Proposed component: SevenChecks. The DS HalalChecklist draws each check as a ~250px card, so
@@ -93,7 +93,7 @@ class Component extends DCLogic {
     const v = this.props.variant ?? 'progress';
     const who = this.props.who ?? 'karahi';
     const noor = who === 'noor';
-    const w = this.props.w ?? 490;
+    const w = this.props.w ?? 482;
     const P = 'PASS', F = 'FAIL', N = 'NOT_ASSESSED';
     const LBL = { PASS: 'Pass', FAIL: 'Fail', NOT_ASSESSED: 'Not assessed' };
     const NAMES = { H1: 'Legible and complete', H2: 'Issuer accepted', H3: 'Name match', H4: 'Address match', H5: 'Dates valid', H6: 'Scope sufficient', H7: 'Unique, not reused' };

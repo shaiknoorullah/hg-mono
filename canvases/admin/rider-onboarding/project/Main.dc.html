@@ -21,7 +21,7 @@
     <dc-import name="SideNav" active="riders" role="{{role}}" height="900" rider-count="{{navCount}}" hint-size="264px,900px"></dc-import>
   </sc-if>
   <sc-if value="{{showRail}}" hint-placeholder-val="{{false}}">
-    <dc-import name="SideNav" collapsed="{{yes}}" active="riders" role="{{role}}" height="900" rider-count="{{navCount}}" hint-size="56px,900px"></dc-import>
+    <dc-import name="SideNav" collapsed="{{yes}}" active="riders" role="{{role}}" height="900" rider-count="{{navCount}}" hint-size="72px,900px"></dc-import>
   </sc-if>
   <main style="position: relative; display: flex; flex-direction: column; min-width: 0;">
     <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="raised" elevated="{{yes}}" title="Rider applications" subtitle="Oldest first · review target 48 business hours (8:00 am–10:00 pm Toronto)" actions="{{actions}}"></x-import>
@@ -316,7 +316,7 @@ class Component extends DCLogic {
       yes: true,
       noop,
       theme: this.props.theme ?? 'light',
-      w: W, showNav: !narrow, showRail: narrow, gridCols: narrow ? '56px minmax(0, 1fr)' : '264px minmax(0, 1fr)',
+      w: W, showNav: !narrow, showRail: narrow, gridCols: narrow ? '72px minmax(0, 1fr)' : '264px minmax(0, 1fr)',
       role: support ? 'support' : 'admin',
       navCount,
       actions,

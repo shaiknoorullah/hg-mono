@@ -22,8 +22,8 @@ textarea.hg-ta[aria-invalid="true"]:focus{box-shadow:0 0 0 var(--focus-offset-wi
 .skip:focus{left:80px;outline:none;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
 </style>
 </helmet>
-<div style="width: 1440px; height: 900px; box-sizing: border-box; display: grid; grid-template-columns: 64px minmax(0, 1fr); background: var(--surface-base); position: relative; overflow: hidden; font-family: var(--font-ui); color: var(--text-primary)">
-  <dc-import name="SideNav" active="applications" role="SUPER_ADMIN" collapsed="{{yes}}" h="900" hint-size="64px,900px"></dc-import>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; display: grid; grid-template-columns: 72px minmax(0, 1fr); background: var(--surface-base); position: relative; overflow: hidden; font-family: var(--font-ui); color: var(--text-primary)">
+  <dc-import name="SideNav" active="applications" role="SUPER_ADMIN" collapsed="{{yes}}" h="900" hint-size="72px,900px"></dc-import>
   <div style="display: flex; flex-direction: column; min-width: 0; min-height: 0; position: relative">
     <a class="skip" href="#main">Skip to main content</a>
     <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="raised" title="Restaurant application" subtitle="Karahi House" back-label="Back to restaurant applications" on-back="{{noop}}"></x-import>
@@ -40,7 +40,7 @@ textarea.hg-ta[aria-invalid="true"]:focus{box-shadow:0 0 0 var(--focus-offset-wi
         <dt style="color: var(--text-secondary)">Reviewer’s note</dt><dd style="margin: 0">“Photo area looks pasted over; the font in the date of birth differs.”</dd>
       </dl>
       <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.RadioGroup" label="Your decision" value="{{nothing}}" options="{{choices}}" required="{{yes}}"></x-import>
-      <dc-import name="Textarea" tid="fc-why" label="Why (required)" helper="At least 20 characters. Recorded in the audit log and the case. Never sent to the restaurant." value="" count="0 of 2000 characters · minimum 20" error="" rows="3" w="466" hint-size="466px,170px"></dc-import>
+      <dc-import name="Textarea" tid="fc-why" label="Why (required)" helper="At least 20 characters. Recorded in the audit log and the case. Never sent to the restaurant." value="" count="0 of 2000 characters · minimum 20" error="" rows="3" w="458" hint-size="458px,170px"></dc-import>
       <dc-import name="InlineAlert" tone="neutral" heading="What each choice does" body="Clear: the hold ends, the owner ID goes back to normal review and the application returns to the queue; the failed check and the forgery note stay on record. Keep: the application stays on hold and the case stays open." w="100%" hint-size="100%,120px"></dc-import>
       <span style="display: inline-flex; align-self: flex-start; padding: 2px 8px; border-radius: 4px; background: var(--surface-sunken); border: 1px solid var(--border-strong); font-size: 12px; font-weight: 600">Needs API: clear or keep a suspected-forgery flag (super admin), and the flag’s who and when</span>
     </div></div><div style="flex: 0 0 auto; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 12px 24px; padding: 10px 16px 12px; border-top: 1px solid var(--border-decorative); background: var(--surface-raised)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md">Cancel</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md">Save decision</x-import></div></section>
