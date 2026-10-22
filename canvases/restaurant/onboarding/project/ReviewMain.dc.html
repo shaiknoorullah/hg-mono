@@ -118,12 +118,12 @@ summary:focus-visible{outline:2px solid transparent;box-shadow:0 0 0 var(--focus
 <sc-if value="{{r.rjActions}}" hint-placeholder-val="{{true}}">
 <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap">
 <sc-if value="{{r.rjSupportFirst}}" hint-placeholder-val="{{false}}">
-<div style="display: flex; flex-direction: column; gap: 4px"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{r.supVariant}}" size="md" href="tel:[support phone]" hint-size="300px,44px">Call partner support: [support phone]</x-import><span class="type-body-sm">[support hours]</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{r.supVariant}}" size="md" href="tel:+18005550199" hint-size="300px,44px">Call partner support: 1-800-555-0199</x-import><span class="type-body-sm">Support Hours</span></div>
 <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="md" icon-start="plus" accessibility-label="{{r.altUpload}}: {{r.lc}}" hint-size="320px,44px">{{r.altUpload}}</x-import>
 </sc-if>
 <sc-if value="{{r.rjUploadFirst}}" hint-placeholder-val="{{true}}">
 <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{r.upVariant}}" size="{{r.rjSize}}" icon-start="plus" accessibility-label="Upload new file: {{r.lc}}" hint-size="200px,52px">Upload new file</x-import>
-<sc-if value="{{r.supSecondary}}" hint-placeholder-val="{{false}}"><span class="type-body-md">Not sure? Call partner support on <a href="tel:[support phone]" style="color: inherit; font-weight: 600">[support phone]</a>, [support hours].</span></sc-if>
+<sc-if value="{{r.supSecondary}}" hint-placeholder-val="{{false}}"><span class="type-body-md">Not sure? Call partner support on <a href="tel:+18005550199" style="color: inherit; font-weight: 600">1-800-555-0199</a>, Support Hours.</span></sc-if>
 </sc-if>
 </div>
 </sc-if>
