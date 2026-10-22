@@ -348,6 +348,12 @@ if [ "$mode" = all ]; then
       continue
     fi
     stop_other_apps "$app"
+    # The rider boards are drawn in the dark theme, and the redesigned rider follows the phone, so its
+    # captures are taken with the phone dark (the customer boards are light, the CI default). Put back
+    # after the app's flows.
+    if [ "$app" = rider ] && ! adb shell cmd uimode night yes >/dev/null 2>&1; then
+      echo "::warning::could not put the phone in the dark theme; the rider captures will be light against dark boards"
+    fi
     if [ "$app" = customer ]; then phone="$(w customers.app.phone)"; else phone="$(w rider.phone)"; fi
     vars=(-e PHONE="$phone" -e RESTAURANT="$(w restaurant.name)" -e DISH="$(w restaurant.menuItemName)"
       -e EXPIRED_RESTAURANT="$(w expiredRestaurant.name)"
@@ -379,6 +385,7 @@ if [ "$mode" = all ]; then
         record "$label" fail "see the Maestro output and screenshots"
       fi
     done
+    if [ "$app" = rider ]; then adb shell cmd uimode night no >/dev/null 2>&1 || true; fi
   done
   adb logcat -d -v time ReactNativeJS:V AndroidRuntime:E '*:S' >"$E2E_OUT/logs/logcat-redesign.txt" 2>&1 || true
 fi

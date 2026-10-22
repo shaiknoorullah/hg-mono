@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { boardOf, check } from './check-boards.mjs';
+import { APPS, boardOf, check, shotsIn } from './check-boards.mjs';
 
 const reason = 'No flow reaches this state, and the reason is written out in full.';
 const shot = (name) => ({ shot: name, file: 'customer/redesign/x.yaml', line: 1 });
@@ -31,4 +31,18 @@ test('each way the two can disagree is reported', () => {
 
 test('without the branch only the flows and the reasons are checked', () => {
   assert.deepEqual(check([shot('design--sign-in--Main')], [[/-dark$/, reason]], null).problems, []);
+});
+
+test('each native app\'s own flows and boards file agree, with or without the branch', () => {
+  for (const [app, { flows, rules, file }] of Object.entries(APPS)) {
+    const { problems, paired } = check(shotsIn(flows), rules, null, { file, app });
+    assert.deepEqual(problems, [], `${app}: ${problems.join('; ')}`);
+    assert.ok(paired.size > 0, `${app} captures at least one board`);
+  }
+});
+
+test('the messages name the app\'s own boards file and canvases folder', () => {
+  const text = check([shot('design--sign-in--Typo')], [], boards, { file: 'rider-boards.mjs', app: 'rider' }).problems.join('\n');
+  assert.match(text, /canvases\/rider\/sign-in\/project\/Typo\.dc\.html/);
+  assert.match(text, /rider-boards\.mjs gives no reason/);
 });

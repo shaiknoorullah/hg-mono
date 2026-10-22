@@ -7,7 +7,6 @@ build:
   note: "Clear the Metro cache when building (EXPO_PUBLIC_* is inlined at transform time; a warm cache from a flag-off build serves the legacy app)."
 setup: [ "make dev-reset" ]
 reality:
-  - theme: light
   - theme: dark
 flows: [ "tools/e2e/native/rider/redesign/1-sign-in.yaml", "tools/e2e/native/rider/redesign/9-account.yaml" ]   # 9-account keeps the session 1-sign-in opens
 explore: >

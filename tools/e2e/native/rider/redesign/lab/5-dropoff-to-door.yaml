@@ -31,7 +31,11 @@ env:
 - assertVisible: "Proof needed"
 - assertVisible: "I'm here"
 - assertNotVisible: ".*[Hh]alal.*"
-- takeScreenshot: rider-wp5-01-go-to-customer
+- runFlow:
+    file: ../../../design-capture.yaml
+    env:
+      SHOT: design--delivery--DropoffEnRoute
+      APP_ID: com.halalgoes.rider.dev
 - travel:
     points:
       - ${RESTAURANT}
@@ -45,7 +49,11 @@ env:
     when:
       visible: "We can't place you at the drop-off"
     commands:
-      - takeScreenshot: rider-wp5-02-geofence
+      - runFlow:
+          file: ../../../design-capture.yaml
+          env:
+            SHOT: design--delivery--DropoffGeofence
+            APP_ID: com.halalgoes.rider.dev
       - tapOn:
           id: "dropoff-geofence-reason-field"
       - inputText: "GPS is off by a block"
@@ -57,4 +65,8 @@ env:
     visible: "Step 4 of 4 · Hand it over"
     timeout: 30000
 - assertVisible: "Hand it over"
-- takeScreenshot: rider-wp5-03-at-the-door
+- runFlow:
+    file: ../../../design-capture.yaml
+    env:
+      SHOT: design--delivery--DropoffArrived
+      APP_ID: com.halalgoes.rider.dev

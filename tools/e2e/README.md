@@ -342,6 +342,28 @@ board by that name, and judges it (a web capture pixel by pixel, a native one by
   board that does not exist, and (with `origin/claude/redesign-canvases` fetched) on a board that is neither captured nor
   given a reason. A new flow screenshot of a board's screen should be named for it; a screen with no board stays unnamed. The seven App settings boards are built but unpaired: the location states are the phone's permission, which no flow sets before it captures.
 
+  **The rider app is measured the same way.** The rider redesign flows (`native/rider/redesign/`, and `lab/`)
+  call the same `design-capture.yaml` at every screen that has a board: 70 of the rider's 652 boards
+  (`delivery` 27, `sign-in-onboarding` 24, `shift-offers` 7, `earnings` 5, `payouts-account` 5, `history-whats-new` 2).
+  The other 582 are in [`native/rider-boards.mjs`](native/rider-boards.mjs), each with its reason (light theme, 200 % text,
+  360 dp, a request in flight, a refusal the dev world never answers, a payout or persona it cannot make, a screen no flow
+  opens); `pnpm e2e:boards:check` now reads both apps' flows and fails the same way (`--app rider` runs one).
+  Three things differ from the customer app:
+  - **The rider boards are drawn dark.** The redesigned rider follows the phone, so `run.sh` puts the phone in the dark theme
+    (`cmd uimode night yes`) for the rider's redesign flows and back after them, and the device-lab rider missions
+    (`native/rider/redesign/missions/`) now say `theme: dark` at 100 % text instead of light at 130 % or 200 %.
+    The boards drawn light (`*Light`, `*-light`: 45 of them) are therefore unpaired.
+  - **The state decides the board.** Where one screen can show several states, the capture sits in a `runFlow` with a `when`
+    on the screen's own text (Ready for pickup or Preparing, Your documents are sent or We're checking your documents, Payouts
+    are not set up), so a board is only named when the screen says it is that state. The e2e world's rider has never earned,
+    so on CI Earnings shows its first run and the period, activity and payout captures wait for a rider with earnings.
+  - **Most captures are in the device lab.** 17 are in the flows CI runs (`redesign/*.yaml`, of which about 13 happen on
+    the e2e world's rider: sign-in 4, Home 3, the offer and its decline reasons, Account and its sign-out, the first run of
+    Earnings, and Payouts when Stripe is not set up); the 53 in `lab/` need the dev world
+    ([#1030](https://github.com/shaiknoorullah/hg-mono/issues/1030)), the emulator camera, or a persona that does not exist yet
+    ([#708](https://github.com/shaiknoorullah/hg-mono/issues/708)), so they are taken in the device lab until CI has them.
+    Which of them could move into `lab_for_ci` is tracked with the dev world in CI, not here.
+
 Every redesign web spec declares the board of each screenshot it takes, and the board has to be
 the exact file `canvases/<app>/<area>/project/<Board>.dc.html` on `origin/claude/redesign-canvases`.
 Nothing is matched by name similarity: a capture with no declared board is recorded as `"board": null`

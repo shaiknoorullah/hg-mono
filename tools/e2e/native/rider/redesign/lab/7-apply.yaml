@@ -39,11 +39,19 @@ env:
     timeout: 60000
 - assertVisible: "Step 1 of 5: your details"
 - assertNotVisible: "Earnings"
-- takeScreenshot: rider-wp7-01-welcome
+- runFlow:
+    file: ../../../design-capture.yaml
+    env:
+      SHOT: design--sign-in-onboarding--Onboarding-Welcome
+      APP_ID: com.halalgoes.rider.dev
 - scrollUntilVisible:
     element:
       text: "By continuing you agree to the rider terms and privacy notice."
-- takeScreenshot: rider-wp7-02-welcome-terms
+- runFlow:
+    file: ../../../design-capture.yaml
+    env:
+      SHOT: design--sign-in-onboarding--Onboarding-Welcome-Terms
+      APP_ID: com.halalgoes.rider.dev
 - tapOn:
     id: "application-next"
 
@@ -51,13 +59,21 @@ env:
 - extendedWaitUntil:
     visible: "Tell us who you are"
     timeout: 30000
-- takeScreenshot: rider-wp7-03-details
+- runFlow:
+    file: ../../../design-capture.yaml
+    env:
+      SHOT: design--sign-in-onboarding--Profile-Default
+      APP_ID: com.halalgoes.rider.dev
 - tapOn:
     id: "details-continue"
 - extendedWaitUntil:
     visible: ".* things? needs? fixing"
     timeout: 10000
-- takeScreenshot: rider-wp7-04-details-required
+- runFlow:
+    file: ../../../design-capture.yaml
+    env:
+      SHOT: design--sign-in-onboarding--Profile-Required
+      APP_ID: com.halalgoes.rider.dev
 - scrollUntilVisible:
     element:
       id: "details-first-field"
@@ -98,7 +114,11 @@ env:
     visible: "How will you deliver.*"
     timeout: 30000
 - assertVisible: "Step 2 of 5: how you deliver"
-- takeScreenshot: rider-wp7-06-vehicle-empty
+- runFlow:
+    file: ../../../design-capture.yaml
+    env:
+      SHOT: design--sign-in-onboarding--Vehicle-Empty
+      APP_ID: com.halalgoes.rider.dev
 - tapOn: "Scooter"
 - extendedWaitUntil:
     visible: "About your scooter"
@@ -113,7 +133,11 @@ env:
 - inputRandomNumber:
     length: 4
 - hideKeyboard
-- takeScreenshot: rider-wp7-07-vehicle-scooter
+- runFlow:
+    file: ../../../design-capture.yaml
+    env:
+      SHOT: design--sign-in-onboarding--Vehicle-Scooter
+      APP_ID: com.halalgoes.rider.dev
 - tapOn:
     id: "vehicle-continue"
 
