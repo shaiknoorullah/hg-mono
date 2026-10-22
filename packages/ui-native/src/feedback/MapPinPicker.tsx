@@ -83,7 +83,6 @@ export function MapPinPicker({
         ? { centerCoordinate: [target.longitude, target.latitude], zoomLevel: value ? PIN_ZOOM : AREA_ZOOM, animationDuration: 300 }
         : {},
     // Re-centre only when the pin lands somewhere new: a user's own pan is not fought on re-render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [target?.latitude, target?.longitude, Boolean(value)],
   );
 
