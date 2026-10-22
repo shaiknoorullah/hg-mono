@@ -155,7 +155,7 @@ export function DecisionPanel({ kind, application, preset, returnFocusRef, onSwi
   const messageLen = form.message.trim().length;
   const fixes: Array<{ id: string; text: string }> = [];
   if (kind === 'changes' && form.docs.length === 0) fixes.push({ id: 'docs', text: 'Choose at least one document' });
-  if (kind !== 'approve' && !form.reason) fixes.push({ id: 'reason', text: 'Choose a reason.' });
+  if (kind !== 'approve' && !form.reason) fixes.push({ id: 'reason', text: 'Choose a reason' });
   if (messageLen < MESSAGE_MIN) fixes.push({ id: 'message', text: `Write at least ${MESSAGE_MIN} characters to the rider` });
 
   async function submit() {
@@ -316,7 +316,7 @@ export function DecisionPanel({ kind, application, preset, returnFocusRef, onSwi
             placeholder="Choose a reason"
             value={form.reason}
             options={reasons.map((r) => ({ value: r, label: REJECTION_REASON_LABEL[r] }))}
-            errorText={fieldError('reason')}
+            errorText={fieldError('reason') ? 'Choose a reason.' : null}
             helperText={
               kind === 'changes'
                 ? 'Only reasons the rider can act on are offered. Suspected forgery and suspected alteration are not reasons a reviewer can send.'

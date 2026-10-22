@@ -113,7 +113,7 @@ describe('Live alerts: states', () => {
       applyReplay({ fromSeq: 200, truncated: true });
     });
     expect(getAlerts().gap).not.toBeNull();
-    expect(screen.getAllByText(/couldn’t be replayed/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/couldn't be replayed/).length).toBeGreaterThan(0);
   });
 });
 
@@ -126,7 +126,7 @@ describe('Live alerts: rows stay still under a hand', () => {
     act(() => applyAlertEvent(highAlert(7)));
     act(() => applyAlertEvent(highAlert(8)));
     expect(within(screen.getByRole('grid')).getAllByRole('row').slice(1)).toHaveLength(4);
-    expect(screen.getByText(/2 new alerts\. They’re held while your pointer or focus is in the list/)).toBeTruthy();
+    expect(screen.getByText(/2 new alerts\. They're held while your pointer or focus is in the list/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Show 2 new alerts' }));
     expect(within(screen.getByRole('grid')).getAllByRole('row').slice(1)).toHaveLength(6);
     expect(screen.getByText('2 new alerts shown at the top.')).toBeTruthy();
@@ -170,7 +170,7 @@ describe('the high-severity banner', () => {
     expect(one.action?.to).toBe('/alerts/2');
     const support = alertBanner(getAlerts(), 'SUPPORT_AGENT')!;
     expect(support.title).toMatch(/^Payment problem, /);
-    expect(support.description).toMatch(/don’t promise a refund until the order updates\. Alert: Stripe webhook/);
+    expect(support.description).toMatch(/don't promise a refund until the order updates\. Alert: Stripe webhook/);
     act(() => applyAlertEvent(highAlert(3)));
     expect(alertBanner(getAlerts(), 'ADMIN')!.title).toMatch(/^2 high-severity alerts, latest /);
     act(() => alertBanner(getAlerts(), 'ADMIN')!.onDismiss!());

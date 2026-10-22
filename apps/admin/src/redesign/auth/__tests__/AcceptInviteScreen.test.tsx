@@ -116,7 +116,7 @@ describe('AcceptInviteScreen', () => {
       const status = screen.getByRole('status');
       expect(status.textContent).toContain('You’re offline');
       expect(status.textContent).toContain("What you typed is still here. Continue works again when you're back online.");
-      const button = screen.getByRole('button', { name: 'Continue, available when you’re back online' });
+      const button = screen.getByRole('button', { name: "Continue, available when you're back online" });
       expect(button.getAttribute('aria-disabled')).toBe('true');
       fireEvent.submit(passwordField().closest('form')!);
       expect(api.callsTo('resetPassword')).toHaveLength(0);

@@ -150,7 +150,7 @@ describe('Staff account panel', () => {
   it('draws no account-changing control for an admin, only whom to ask, and no email', async () => {
     mockApi({ listStaff: page(sevenAccounts()) });
     const { container } = renderStaff('ADMIN', '/staff/a0000000-0000-4000-8000-000000000004');
-    expect(await screen.findByText(/To remove this person’s access or reset their two-step sign-in, ask a super admin: Aminah Rahman or Sana Qureshi/)).toBeTruthy();
+    expect(await screen.findByText(/To remove this person's access or reset their two-step sign-in, ask a super admin: Aminah Rahman or Sana Qureshi/)).toBeTruthy();
     expect(screen.queryByRole('button', { name: /Remove access|Reset two-step|Cancel this invite/ })).toBeNull();
     expect(container.textContent).not.toContain('yusuf.ali@halalgoes.ca');
   });
@@ -166,7 +166,7 @@ describe('Staff account panel', () => {
   it('offers no way to reactivate a deactivated account, because the server refuses that email', async () => {
     mockApi({ listStaff: page(sevenAccounts()) });
     renderStaff('SUPER_ADMIN', '/staff/a0000000-0000-4000-8000-000000000007');
-    await screen.findByText(/They can’t sign in, and their sessions have ended/);
+    await screen.findByText(/They can't sign in, and their sessions have ended/);
     expect(screen.queryByRole('button', { name: /Invite this email again|Reactivate/ })).toBeNull();
   });
 

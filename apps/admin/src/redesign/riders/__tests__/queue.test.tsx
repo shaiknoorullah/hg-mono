@@ -82,7 +82,7 @@ describe('Rider applications queue', () => {
     await screen.findByRole('grid');
     fireEvent.click(screen.getByRole('button', { name: 'Take next' }));
     const alert = await screen.findByRole('alert');
-    expect(alert.textContent).toContain('Take next didn’t work');
+    expect(alert.textContent).toContain("Take next didn't work");
     fireEvent.click(within(alert).getByRole('button', { name: 'Try again' }));
     await waitFor(() => expect(api.callsTo('takeNextRiderApplication')).toHaveLength(2));
     const [first, second] = api.callsTo('takeNextRiderApplication');

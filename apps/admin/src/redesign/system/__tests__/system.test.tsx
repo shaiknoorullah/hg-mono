@@ -55,7 +55,7 @@ describe('System status: what the two probes say', () => {
   it('says "Not reported" for every row, not "Ready", when the 503 is only an error envelope', async () => {
     mockApi({ getReadiness: ENVELOPE_503, getHealth: HEALTH });
     await open();
-    expect(screen.getByText(/The server didn’t say which part failed/)).toBeTruthy();
+    expect(screen.getByText(/The server didn't say which part failed/)).toBeTruthy();
     const table = screen.getByRole('table');
     expect(within(table).getAllByText('Not reported')).toHaveLength(4);
     expect(within(table).queryByText('Ready')).toBeNull();
