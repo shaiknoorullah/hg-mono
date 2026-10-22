@@ -11,9 +11,9 @@ import { APP_VERSION, type Release } from '../releaseNotes';
 import { LAST_SEEN_KEY, resetWhatsNew, setReleaseNotesLoader } from '../store';
 
 const NOTES: Release[] = [
-  { version: APP_VERSION, date: '2026-10-22', notes: [{ title: 'Newest thing', body: 'It is the newest.' }, { title: 'Second thing', body: 'Also new.' }] },
-  { version: '0.9.0', date: '2026-10-01', notes: [{ title: 'Older thing', body: 'Before that.' }] },
-  { version: '0.8.0', date: '2026-09-01', notes: [{ title: 'Oldest thing', body: 'Long ago.' }] },
+  { version: APP_VERSION, date: '2026-10-22', notes: [{ title: 'Order strip', body: 'New orders wait at the top.' }, { title: 'Order sound', body: 'It rings until you answer.' }] },
+  { version: '0.9.0', date: '2026-09-24', notes: [{ title: 'Menu', body: 'Edit an item.' }] },
+  { version: '0.8.0', date: '2026-09-10', notes: [{ title: 'Hours', body: 'Set your week.' }] },
 ];
 
 const routes = () =>
@@ -54,7 +54,7 @@ describe('the panel after an update', () => {
     const open = await screen.findByTestId('whats-new-panel');
     expect(within(open).getByRole('heading', { level: 2, name: "What's new since you last looked" })).toBeTruthy();
     expect(within(open).getAllByTestId('whats-new-release').map((r) => r.getAttribute('data-version'))).toEqual([APP_VERSION]);
-    expect(open.textContent).toContain('Newest thing.');
+    expect(open.textContent).toContain('Order strip.');
     await waitFor(() => expect(seen()).toBe(APP_VERSION));
     // The list it opened with does not change under the owner.
     expect(within(open).getAllByTestId('whats-new-release')).toHaveLength(1);

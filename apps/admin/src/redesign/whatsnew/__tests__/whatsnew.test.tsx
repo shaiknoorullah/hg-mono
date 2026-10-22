@@ -106,8 +106,9 @@ describe('the update notice', () => {
   });
 
   it('waits while a panel with unsent input is open, and shows when it closes', async () => {
-    const release = holdNotice();
     load();
+    // After `load()`, which resets the store (and so any hold taken before it).
+    const release = holdNotice();
     renderApp();
     await waitFor(() => expect(trigger().textContent).toContain('New'));
     expect(notice()).toBeNull();
