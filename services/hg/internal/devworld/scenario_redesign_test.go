@@ -14,6 +14,8 @@ import (
 var redesignScenarios = []string{
 	"offer-to-rider", "restaurant-timeout", "admin-cancel", "pickup-lapse",
 	"pickup-lapse-cancelled", "cert-lapse-mid-order", "order-completed",
+	"rider-suspend", "rider-reinstate", "customer-suspend", "customer-reinstate",
+	"rider-earnings", "rider-history",
 }
 
 // clockScenarios move a clock in the local database.

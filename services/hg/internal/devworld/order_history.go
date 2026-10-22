@@ -36,6 +36,8 @@ func ScenarioTimeout(name string) time.Duration {
 		return RefundDecisionsTimeout
 	case "order-history":
 		return OrderHistoryTimeout
+	case "rider-earnings", "rider-history":
+		return riderScenarioTimeout
 	}
 	return 5 * time.Minute
 }

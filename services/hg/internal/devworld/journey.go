@@ -23,6 +23,17 @@ type JourneyOptions struct {
 	// expects it (scenario_refunds.go).
 	NoRefundRequest bool
 	EndShift        bool
+	// Rider is the rider persona that drives the delivery; empty means
+	// rider-sim. The rider-earnings and rider-history scenarios set it.
+	Rider string
+}
+
+// riderSlug is the rider persona that drives the delivery.
+func (o JourneyOptions) riderSlug() string {
+	if o.Rider == "" {
+		return "rider-sim"
+	}
+	return o.Rider
 }
 
 // ParseJourneyArgs reads journey flags. Omitted flags select the short route,
@@ -113,7 +124,7 @@ func RunJourney(ctx context.Context, baseURL string, opts JourneyOptions) error 
 	var riderClient *apiClient
 	onlineBeforeReady := false
 	if driveRider && order.State != "READY_FOR_PICKUP" {
-		riderClient, err = riderClientFor(ctx, baseURL)
+		riderClient, err = riderAs(ctx, baseURL, opts.riderSlug())
 		if err != nil {
 			return err
 		}
@@ -154,7 +165,7 @@ func RunJourney(ctx context.Context, baseURL string, opts JourneyOptions) error 
 	}
 
 	if riderClient == nil {
-		riderClient, err = riderClientFor(ctx, baseURL)
+		riderClient, err = riderAs(ctx, baseURL, opts.riderSlug())
 		if err != nil {
 			return err
 		}

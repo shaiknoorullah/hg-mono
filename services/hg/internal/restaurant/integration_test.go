@@ -1542,17 +1542,21 @@ func TestIntegration_ListOrders_StateFilter(t *testing.T) {
 	preparing := seedOrder(t, pool, f.restaurantID, f.menuItemID, "PREPARING", "now() + interval '20 minutes'")
 	completed := seedOrder(t, pool, f.restaurantID, f.menuItemID, "COMPLETED", "NULL")
 
-	code, got, _, _ := listOrdersPage(t, h, f.ownerAccountID, "state=RESTAURANT_PENDING,PREPARING")
-	if code != http.StatusOK {
-		t.Fatalf("status=%d, want 200", code)
-	}
 	want := map[string]bool{pending + "|RESTAURANT_PENDING": true, preparing + "|PREPARING": true}
-	if len(got) != len(want) {
-		t.Fatalf("filtered list = %v, want exactly %v", got, want)
-	}
-	for _, g := range got {
-		if !want[g] {
-			t.Fatalf("filtered list returned %q, which was not requested", g)
+	// The contract's comma form, and the repeated form the generated client sends
+	// (openapi-fetch's default), must filter alike.
+	for _, q := range []string{"state=RESTAURANT_PENDING,PREPARING", "state=RESTAURANT_PENDING&state=PREPARING"} {
+		code, got, _, _ := listOrdersPage(t, h, f.ownerAccountID, q)
+		if code != http.StatusOK {
+			t.Fatalf("%s: status=%d, want 200", q, code)
+		}
+		if len(got) != len(want) {
+			t.Fatalf("%s: filtered list = %v, want exactly %v", q, got, want)
+		}
+		for _, g := range got {
+			if !want[g] {
+				t.Fatalf("%s: filtered list returned %q, which was not requested", q, g)
+			}
 		}
 	}
 
