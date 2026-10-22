@@ -416,7 +416,10 @@ jobs:
     needs: plan
     if: "!cancelled() && needs.plan.outputs.mode != 'none'"
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    # 60, not 30: with the admin refunds, staff and restaurant onboarding captures in, one mock pass
+    # over both consoles ran past 30 minutes (run 39770582269). A stopgap until the job is split
+    # into one job per app.
+    timeout-minutes: 60
     env:
       E2E_OUT: ${{ github.workspace }}/e2e-out
       E2E_MODE: mock
