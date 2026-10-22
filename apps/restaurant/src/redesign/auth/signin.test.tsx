@@ -137,7 +137,7 @@ describe('sign in · refusals (branch on error.code)', () => {
     expect(title.closest('[role="status"]')).not.toBeNull();
     expect(
       screen.getByText(
-        'We sent a confirmation link to samir@zaytoungrill.ca when you registered. Links work for 24 hours. Signing in won’t work until you’ve opened it.',
+        "We sent a confirmation link to samir@zaytoungrill.ca when you registered. Links work for 24 hours. Signing in won't work until you've opened it.",
       ),
     ).toBeTruthy();
     // Both fields kept; Sign in becomes secondary under the primary "Send a new link".
@@ -228,7 +228,7 @@ describe('sign in · refusals (branch on error.code)', () => {
     vi.stubGlobal('fetch', vi.fn(async () => Promise.reject(new TypeError('Failed to fetch'))));
     await signIn();
     const alert = await findAlert();
-    expect(within(alert).getByText('We couldn’t reach HalalGoes')).toBeTruthy();
+    expect(within(alert).getByText("We couldn't reach HalalGoes")).toBeTruthy();
     await waitFor(() => expect(document.activeElement).toBe(alert));
     expect((screen.getByLabelText(/^Password/) as HTMLInputElement).value).toBe('correct horse battery');
     expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
@@ -255,7 +255,7 @@ describe('sign in · account-state cards', () => {
     [423, 'ACCOUNT_LOCKED', 'This account is locked', 'For your security, only partner support can unlock samir@zaytoungrill.ca.'],
     [403, 'ACCOUNT_SUSPENDED', 'Your sign-in account is suspended', 'You can’t sign in with samir@zaytoungrill.ca while it is suspended.'],
     [403, 'ACCOUNT_BANNED', 'This sign-in account can’t be used', 'samir@zaytoungrill.ca can’t be used on HalalGoes.'],
-    [403, 'ACCOUNT_NOT_ACTIVE', 'This account isn’t active', 'samir@zaytoungrill.ca exists but isn’t active yet.'],
+    [403, 'ACCOUNT_NOT_ACTIVE', "This account isn't active", "samir@zaytoungrill.ca exists but isn't active yet."],
     [403, 'ACCOUNT_DEACTIVATED', 'This account has been closed', 'samir@zaytoungrill.ca can no longer be used to sign in.'],
   ])('%s %s → "%s" with the support block and Back to sign in', async (status, code, title, body) => {
     installFakeApi(routes(apiError(status, code)));
@@ -277,7 +277,7 @@ describe('sign in · account-state cards', () => {
     await waitFor(() => expect(screen.queryByTestId('support-sentence')).toBeNull());
     await signIn();
     expect(await screen.findByText('For your security, it can only be unlocked by HalalGoes.')).toBeTruthy();
-    expect(screen.getByText('Partner support isn’t available right now')).toBeTruthy();
+    expect(screen.getByText("Partner support isn't available right now")).toBeTruthy();
     expect(screen.getByText('Try again later. What you’ve already sent stays on record.')).toBeTruthy();
     expect(screen.queryByTestId('support-block')).toBeNull();
     expect(screen.getByRole('link', { name: 'Back to sign in' })).toBeTruthy();
@@ -307,7 +307,7 @@ describe('sign in · account-state cards', () => {
     const api = installFakeApi(routes('session_grant_customer'));
     await renderPublic('/login');
     await signIn();
-    expect(await screen.findByRole('heading', { name: 'This isn’t a restaurant account' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: "This isn't a restaurant account" })).toBeTruthy();
     expect(screen.getByText(/^samir@zaytoungrill\.ca signed in, but it has no restaurant on HalalGoes\./)).toBeTruthy();
     expect(screen.queryByText(/CUSTOMER/)).toBeNull();
     expect(getSession()).toBeNull();
@@ -324,18 +324,18 @@ describe('sign in · after a session ended', () => {
     installFakeApi(routes({ body: restaurantGrant() }, { 'GET /v1/config/public': { body: config } }));
     localStorage.setItem('hg_restaurant_last_email_v1', 'samir@zaytoungrill.ca');
     await renderPublic('/login?signed_out=expired&return_to=%2Forders');
-    expect(await screen.findByRole('heading', { name: 'You’ve been signed out' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: "You've been signed out" })).toBeTruthy();
     expect(screen.getByText('Sign in again to keep receiving orders.')).toBeTruthy();
     const alert = getAlert();
-    expect(within(alert).getByText('New orders can’t reach this screen')).toBeTruthy();
+    expect(within(alert).getByText("New orders can't reach this screen")).toBeTruthy();
     await waitFor(() =>
       expect(
         within(alert).getByText(
-          'New orders can’t reach this screen until you sign in. Orders that arrive now will time out after 2 minutes, and two missed orders in a row stop new orders.',
+          "New orders can't reach this screen until you sign in. Orders that arrive now will time out after 2 minutes, and two missed orders in a row stop new orders.",
         ),
       ).toBeTruthy(),
     );
-    expect(within(alert).getByText('Orders you’ve already accepted are not affected.')).toBeTruthy();
+    expect(within(alert).getByText("Orders you've already accepted are not affected.")).toBeTruthy();
     expect((screen.getByLabelText(/^Email/) as HTMLInputElement).value).toBe('samir@zaytoungrill.ca');
     expect((screen.getByLabelText(/^Password/) as HTMLInputElement).value).toBe('');
   });

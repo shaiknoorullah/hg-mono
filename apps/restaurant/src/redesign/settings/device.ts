@@ -24,7 +24,7 @@ export function deviceSummary(prefs: DevicePrefs, notifications: NotificationsSt
   if (notifications === 'ask' || notifications === 'asking') return 'Sound on · notifications not on';
   if (notifications === 'blocked') return 'Sound on · notifications blocked';
   if (notifications === 'unsupported') return 'Sound on · notifications unavailable';
-  if (!prefs.screenMayDim && !canKeepScreenOn()) return 'Sound on · screen can’t stay on';
+  if (!prefs.screenMayDim && !canKeepScreenOn()) return "Sound on · screen can't stay on";
   return 'Sound on · notifications allowed';
 }
 

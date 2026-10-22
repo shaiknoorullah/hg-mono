@@ -108,7 +108,7 @@ export function SettingsPage() {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center" data-testid="settings-page" data-state="error">
         <div role="alert" className="flex w-full max-w-[600px] flex-col items-center gap-3 rounded-lg border border-line-interactive bg-surface-raised px-6 py-8 text-center">
-          <h2 className="m-0 text-heading-lg">Couldn’t load your settings</h2>
+          <h2 className="m-0 text-heading-lg">Couldn't load your settings</h2>
           <p className="m-0 text-body-lg text-fg-secondary">Your restaurant and your orders are not affected. Check your connection and try again.</p>
           <Button variant="primary" size="lg" onPress={() => profile.reload()}>
             Try again
@@ -188,7 +188,7 @@ export function SettingsPage() {
           onClose={close}
           onChanged={() => {
             close();
-            toast.show({ variant: 'success', title: 'Password changed', description: 'Sign in again on your order screen if it isn’t this one. Other devices are signed out.' });
+            toast.show({ variant: 'success', title: 'Password changed', description: "Sign in again on your order screen if it isn't this one. Other devices are signed out." });
           }}
         />
       ) : null}

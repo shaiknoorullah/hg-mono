@@ -59,7 +59,7 @@ export function MenuStep() {
         <h1 className="m-0 text-heading-xl text-fg-primary">{MENU_STEP.title}</h1>
         <p className="m-0 max-w-[68ch] text-body-md text-fg-secondary">{MENU_STEP.intro}</p>
       </header>
-      <InlineAlert tone="info" title="What’s needed now" testId="needed-now">
+      <InlineAlert tone="info" title="What's needed now" testId="needed-now">
         <span>{BLOCKING_COPY[hoursSet && !published ? 'menu_in_review' : code]}</span>
       </InlineAlert>
       <section aria-labelledby="mn-h" className="flex flex-col gap-3 rounded-[12px] border border-line-decorative bg-surface-raised p-4">
@@ -219,7 +219,7 @@ function HoursBlock({ hours, onSaved }: { hours: ReturnType<typeof useServerReso
           ) : null}
           {net ? (
             <InlineAlert tone="danger" blocking title="Your hours weren’t saved" testId="hours-net-error">
-              <span>We couldn’t reach HalalGoes, or something went wrong on our side. The times you entered are kept.</span>
+              <span>We couldn't reach HalalGoes, or something went wrong on our side. The times you entered are kept.</span>
             </InlineAlert>
           ) : null}
           <p className="m-0 text-body-sm text-fg-secondary">12-hour time with am or pm, for example 10:00 pm, or 12:30 am for half past midnight. Up to 3 times a day.</p>

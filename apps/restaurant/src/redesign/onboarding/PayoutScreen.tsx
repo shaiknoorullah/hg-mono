@@ -113,7 +113,7 @@ export function PayoutScreen() {
         <p className="m-0 text-body-md text-fg-secondary">{PAYOUT.intro}</p>
       </header>
       {needed && !problem ? (
-        <InlineAlert tone={needed.tone} title="What’s needed now" testId="needed-now">
+        <InlineAlert tone={needed.tone} title="What's needed now" testId="needed-now">
           <span>{needed.text}</span>
         </InlineAlert>
       ) : null}

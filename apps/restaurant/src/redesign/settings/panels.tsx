@@ -38,7 +38,7 @@ export const EDIT_TITLE: Record<EditGroup, string> = {
 };
 
 const SAVED: Record<EditGroup, { title: string; description: string }> = {
-  names: { title: 'Owner name saved', description: 'HalalGoes uses it when we contact you. Customers don’t see it.' },
+  names: { title: 'Owner name saved', description: "HalalGoes uses it when we contact you. Customers don't see it." },
   contact: { title: 'Phone numbers saved', description: 'HalalGoes calls the business number about orders and your account.' },
   kitchen: { title: 'Preparation time saved', description: 'New orders use it from now on. Orders already accepted keep their time.' },
 };
@@ -149,9 +149,9 @@ export function EditPanel({ group, profile, onClose, onSaved }: { group: EditGro
         ) : null}
         {group === 'names' ? (
           <>
-            <p className="m-0 text-body-md text-fg-secondary">HalalGoes uses the owner’s name when we contact you. Customers don’t see it.</p>
-            <Input id="owner_first_name" label="Owner’s first name" value={v.owner_first_name ?? ''} onChange={(x: string) => set('owner_first_name', x)} {...opt(errors['owner_first_name'])} />
-            <Input id="owner_last_name" label="Owner’s last name" value={v.owner_last_name ?? ''} onChange={(x: string) => set('owner_last_name', x)} {...opt(errors['owner_last_name'])} />
+            <p className="m-0 text-body-md text-fg-secondary">HalalGoes uses the owner's name when we contact you. Customers don't see it.</p>
+            <Input id="owner_first_name" label="Owner first name" value={v.owner_first_name ?? ''} onChange={(x: string) => set('owner_first_name', x)} {...opt(errors['owner_first_name'])} />
+            <Input id="owner_last_name" label="Owner last name" value={v.owner_last_name ?? ''} onChange={(x: string) => set('owner_last_name', x)} {...opt(errors['owner_last_name'])} />
           </>
         ) : null}
         {group === 'contact' ? (
@@ -171,10 +171,10 @@ export function EditPanel({ group, profile, onClose, onSaved }: { group: EditGro
 // ── Change password ───────────────────────────────────────────────────────────────────────
 
 const PASSWORD_COPY = {
-  wrong: 'That isn’t your current password. Check it and try again.',
+  wrong: "That isn't your current password. Check it and try again.",
   weak: 'This password appears in known data breaches, or is too short. Choose a different one.',
   limited: 'Too many tries. Wait a few minutes and try again.',
-  failed: 'Couldn’t change your password. Nothing was changed. Check your connection and try again.',
+  failed: "Couldn't change your password. Nothing was changed. Check your connection and try again.",
   short: 'Use at least 12 characters.',
   empty: 'Enter your current password.',
 };

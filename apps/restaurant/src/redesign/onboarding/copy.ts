@@ -1,6 +1,7 @@
 /**
  * Onboarding copy (canvas ON, restaurant onboarding), verbatim from the boards. The boards mix straight and
- * curly apostrophes; the app writes `’` throughout and changes no words. Reviewer notes and the
+ * curly apostrophes; each string keeps the apostrophe style of its own board
+ * (https://github.com/shaiknoorullah/hg-mono/issues/1077). Reviewer notes and the
  * file check's reasons are never in this file: they are shown exactly as the server sent them.
  */
 
@@ -19,14 +20,14 @@ export const RAIL = {
 
 export const FRAME = {
   loading: 'Loading your setup…',
-  loadErrorTitle: 'We couldn’t load your setup',
+  loadErrorTitle: "We couldn't load your setup",
   loadErrorBody: 'Your progress is saved with HalalGoes. Check your connection and try again.',
   tryAgain: 'Try again',
   unknownTitle: 'This page needs an update',
-  unknownBody: 'Your setup has moved to a step this version of the page doesn’t know yet. Refresh to load the latest version. Nothing you’ve done is lost.',
+  unknownBody: "Your setup has moved to a step this version of the page doesn't know yet. Refresh to load the latest version. Nothing you've done is lost.",
   refresh: 'Refresh',
   supportLabel: 'Partner support',
-  neededNow: 'What’s needed now',
+  neededNow: "What's needed now",
 };
 
 export const DRAFT_COPY = {
@@ -37,7 +38,7 @@ export const DRAFT_COPY = {
   network: { title: 'The upload didn’t finish', message: 'Check your connection and try again. Your file is still selected.' },
   session: { title: 'You were signed out', message: 'Sign in again, then try again. Your file is still selected.' },
   other: { title: 'The upload didn’t finish', message: 'Something went wrong on our side. Try again with the same file.' },
-  saveNetwork: { title: 'The details weren’t saved', message: 'We couldn’t reach HalalGoes. Your file is uploaded and what you typed is kept.' },
+  saveNetwork: { title: 'The details weren’t saved', message: "We couldn't reach HalalGoes. Your file is uploaded and what you typed is kept." },
   certifier: {
     title: 'We don’t accept certificates from this body yet',
     message: 'The list of accepted bodies changed while you were adding this. Check the issuing body printed on your certificate. If it isn’t accepted, call partner support.',
@@ -72,7 +73,7 @@ export const DOCS = {
   incompleteTail: 'Add it, then send again. Nothing you added is lost.',
   incompleteTailMany: 'Add them, then send again. Nothing you added is lost.',
   sendErrorTitle: 'Your documents weren’t sent',
-  sendErrorBody: 'We couldn’t reach HalalGoes, or something went wrong on our side. Nothing you added is lost. Sending again is safe.',
+  sendErrorBody: "We couldn't reach HalalGoes, or something went wrong on our side. Nothing you added is lost. Sending again is safe.",
   lockedTitle: 'This step isn’t open right now',
   lockedBody: 'Your documents were sent for review from another device, so they can’t be changed here. Refresh to open the review page.',
   hint: 'Accepted: PDF, JPG or PNG. Every page, clear and readable.',
@@ -147,10 +148,10 @@ export const REVIEW = {
   uploadNew: 'Upload new file',
   callSupport: 'Call partner support',
   uploadFresh: 'Upload a fresh copy from your certifying body',
-  supportUnavailable: 'Partner support isn’t available right now. Try again later.',
+  supportUnavailable: "Partner support isn't available right now. Try again later.",
   historyReplaced: (v: number, file: string | null, why: string) => `Version ${v}${file ? ` · ${file}` : ''} · Replaced${why ? ` · Not approved: ${why}` : ''}`,
   sendFailedTitle: 'Your documents weren’t sent',
-  sendFailedBody: 'We couldn’t reach HalalGoes, or something went wrong on our side. Nothing you added is lost. Sending again is safe.',
+  sendFailedBody: "We couldn't reach HalalGoes, or something went wrong on our side. Nothing you added is lost. Sending again is safe.",
   sendFailed422: 'Not every document has a new upload yet. Replace the ones marked New upload, then send again.',
   // Expired while waiting for review (slate for the halal certificate).
   expiredHalalTitle: 'Your halal certificate needs renewing',
@@ -185,7 +186,7 @@ export const PROFILE = {
   conflictTitle: 'Your changes weren’t saved',
   conflictBody: 'Your setup moved on while this page was open. Refresh to see where your setup is. What you typed stays on screen until you leave.',
   saveErrorTitle: 'Your profile wasn’t saved',
-  saveErrorBody: 'We couldn’t reach HalalGoes, or something went wrong on our side. What you typed is kept.',
+  saveErrorBody: "We couldn't reach HalalGoes, or something went wrong on our side. What you typed is kept.",
   outsideArea: 'This address is outside the area HalalGoes serves. We’re in Ontario at launch.',
   generic422: 'Check the fields marked in each section, then save again.',
   reviewersCompare: 'Reviewers compare these details with your documents, so enter them exactly as they appear there.',
@@ -226,7 +227,7 @@ export const PAYOUT = {
   onTitle: 'Payouts are on',
   advancing: 'Payouts are on. Taking you to your first menu…',
   continueErrorTitle: 'We couldn’t open the next step',
-  continueErrorBody: 'We couldn’t reach HalalGoes, or something went wrong on our side. Your payout setup is safe. Try again.',
+  continueErrorBody: "We couldn't reach HalalGoes, or something went wrong on our side. Your payout setup is safe. Try again.",
   laterBody: 'Nothing to do now. If Stripe needs one of these later, this page and your email will say so.',
   supportOn: (phone: string) => `If it keeps happening, call partner support on ${phone}.`,
   problems: {
@@ -245,7 +246,7 @@ export const RENEW = {
   sentBody: (context: 'setup' | 'live') =>
     `A person at HalalGoes checks your renewed certificate within 3 business days. ${context === 'setup' ? 'Setup carries on by itself once it’s approved, and we’ll email you.' : 'Your listing comes back by itself once it’s approved, and we’ll email you.'}`,
   failedTitle: 'Your renewed certificate wasn’t sent',
-  failedBody: 'We couldn’t reach HalalGoes, or something went wrong on our side. Your file and details are kept. Try again.',
+  failedBody: "We couldn't reach HalalGoes, or something went wrong on our side. Your file and details are kept. Try again.",
   tryAgain: 'Try again',
   sending: 'Sending your renewed certificate…',
   refusedTitle: 'We can’t send this from here yet',
@@ -256,7 +257,7 @@ export const RENEW = {
   cancelKeep: 'Keep uploading',
   cancelGo: 'Cancel upload',
   // The server turned a renewal away because uploads are not open yet (settings board `Renew-TooEarly`).
-  tooEarlyTitle: 'HalalGoes can’t take a renewal yet',
+  tooEarlyTitle: "HalalGoes can't take a renewal yet",
   tooEarlyBody: (opens: string, expires: string) => `You can upload it from ${opens}, 60 days before your current certificate expires on ${expires}.`,
   tooEarlyBodyPlain: 'You can upload it again closer to the date your current certificate expires. Your file and details are kept.',
 };
@@ -268,7 +269,7 @@ export const DOC_SHEET = {
   sentBody: 'A reviewer checks it within 3 business days.',
   sending: (lc: string) => `Sending your ${lc}…`,
   failedTitle: (lc: string) => `Your ${lc} wasn’t sent`,
-  failedBody: 'We couldn’t reach HalalGoes, or something went wrong on our side. Your file and details are kept. Try again.',
+  failedBody: "We couldn't reach HalalGoes, or something went wrong on our side. Your file and details are kept. Try again.",
   refusedTitle: 'We can’t send this from here yet',
   refusedBody: 'Call partner support and they will take it for you. Nothing you uploaded is lost.',
   lockedTitle: 'You can’t send one right now',
@@ -298,7 +299,7 @@ export const ENDS = {
   reason: 'Reason',
   note: 'Reviewer’s note',
   questions: 'Questions about this decision?',
-  supportUnavailable: 'Partner support isn’t available right now. Try again later.',
+  supportUnavailable: "Partner support isn't available right now. Try again later.",
   suspendedBanner: (name: string) => `${name || 'Your restaurant'} is suspended`,
   suspendedFallback: 'Setup is paused until partner support lifts the suspension.',
   suspendedTitle: 'Setup is paused',

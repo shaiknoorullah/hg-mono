@@ -124,7 +124,7 @@ describe('Settings: this device', () => {
     const section = await open();
     expect(within(section).getByTestId('no-wake-lock').textContent).toMatch(/can’t keep the screen on\. Set your device to stay awake/);
     expect(within(section).getByRole('switch', { name: /Keep the screen on/ }).hasAttribute('disabled')).toBe(true);
-    expect(within(screen.getByTestId('settings-nav')).getByText('Sound on · screen can’t stay on')).toBeTruthy();
+    expect(within(screen.getByTestId('settings-nav')).getByText("Sound on · screen can't stay on")).toBeTruthy();
   });
 
   it('letting the screen dim is saved for this browser', async () => {
