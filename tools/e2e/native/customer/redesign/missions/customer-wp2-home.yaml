@@ -33,4 +33,8 @@ explore: >
   bar above the bottom navigation ("View cart · 1 item ·" and a price). (5) Deep link
   `adb shell am start -W -a android.intent.action.VIEW -d "hgcustomer://restaurant/b0000000-0000-4000-8000-000000000208"`
   and back: Home must still show the same address. (6) With amina's active order (devworld
-  journey), screenshot the "order in progress" strip and tap it: it must open that order's tracking.
+  journey), screenshot the "order in progress" strip and tap it: it must open that order's tracking. (7) What's new (#99, #702): the sheet
+  does not open by itself yet (the customer app has no storage that survives a restart, so it
+  stays away rather than repeat every launch). Account > What's new always opens the page: a dev
+  build is version 0.0.0 and reads "Nothing new to show yet"; build with APP_VERSION=1.0.0 and it
+  lists "Version 1.0.0 / Your version" with three notes. Screenshot both, in dark and at 200% text.
