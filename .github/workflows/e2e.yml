@@ -465,6 +465,14 @@ jobs:
           echo "" >>"$GITHUB_STEP_SUMMARY"
           echo "$n captures taken against the mock API." >>"$GITHUB_STEP_SUMMARY"
 
+      # A failing spec takes no capture, and a board with no capture reads as "uncaptured" — which
+      # is also what a board nobody has written a capture for looks like. One is a regression and
+      # the other is work not started, so the failures are named rather than left to the diff's
+      # count, which cannot tell them apart.
+      - name: The capture specs that failed
+        if: always()
+        run: node tools/e2e/web/capture-failures.mjs "$E2E_OUT/playwright" || true
+
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:

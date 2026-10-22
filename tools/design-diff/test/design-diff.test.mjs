@@ -614,3 +614,26 @@ test('Maestro hierarchy: a real device capture becomes a layout record in dp', a
   assert.throws(() => parseMaestroHierarchy({ children: [{ attributes: {} }] }), /no node with bounds/);
   assert.throws(() => parseMaestroHierarchy('null'), /not a Maestro hierarchy/);
 });
+
+// Naming the capture specs that failed. The captures job is lenient on purpose — one broken spec
+// must not cost every other board its verdict — which made a failure silent: a spec that fails
+// takes no capture, and the diff reports a board with no capture as "uncaptured", exactly as it
+// reports a board nobody has written a capture for. One is a regression, the other is work not
+// started.
+test('a failed capture spec is named, and a passing one never is', async () => {
+  const { failuresIn } = await import('../../e2e/web/capture-failures.mjs');
+
+  // The trap: Playwright writes passing tests as self-closing tags. Let one open a pair and its
+  // body runs on to the NEXT </testcase>, swallowing that test's <failure> and naming a test that
+  // passed — which is worse than naming none, because it sends someone to fix working code.
+  const xml = `<testsuites><testsuite name="s">
+    <testcase name="passing one" classname="a.spec.ts"/>
+    <testcase name="failing one" classname="a.spec.ts"><failure message="timeout">Error</failure></testcase>
+    <testcase name="another pass" classname="a.spec.ts"/>
+    <testcase name="crashing one" classname="b.spec.ts"><error message="boom">x</error></testcase>
+  </testsuite></testsuites>`;
+
+  assert.deepEqual(failuresIn(xml), ['a.spec.ts › failing one', 'b.spec.ts › crashing one']);
+  assert.deepEqual(failuresIn('<testsuites><testsuite name="s"><testcase name="all fine" classname="a.spec.ts"/></testsuite></testsuites>'), []);
+  assert.deepEqual(failuresIn(''), []);
+});

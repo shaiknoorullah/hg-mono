@@ -40,8 +40,7 @@ compose stack, no Go and no APKs, runs in parallel, and `serve.sh` starts `pnpm 
 it existed, the first run that produced verdicts compared **4** boards where the one run done by
 hand compared **143** ([#1049](https://github.com/shaiknoorullah/hg-mono/issues/1049)).
 
-A failing capture spec does not fail that job: a spec that failed took no capture, which the diff
-already reports as a board without one, and that is the number to read. A crash still fails it.
+A failing capture spec does not fail that job: one broken spec must not cost every other board its verdict. But the failures are **named** in the job summary, because leniency made them silent — a spec that fails takes no capture, and the diff reports a board with no capture as "uncaptured", which is exactly how it reports a board nobody has written a capture for. One is a regression and the other is work not started ([`web/capture-failures.mjs`](web/capture-failures.mjs)). A crash still fails the job.
 
 Real-mode captures are written to `design-captures-real` and are **not** compared. Three boards are
 declared by both a real-mode and a mock-mode spec, measured, and nothing dedupes by board
