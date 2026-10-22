@@ -260,7 +260,14 @@ export function Input({
 
   return (
     <div data-testid={testId ?? 'Input'} data-variant={variant} className="grid gap-1" style={style}>
-      <Label htmlFor={ids.control} id={ids.label} required={required}>
+      {/* The boards draw the label at normal leading with no tracking and a brand-700 asterisk; the
+          shared `Label` type style alone is tighter (15.6 px line, 0.1 tracking, brand-500 star). */}
+      <Label
+        htmlFor={ids.control}
+        id={ids.label}
+        required={required}
+        className="leading-normal tracking-normal [&>span]:text-brand-700"
+      >
         {label}
       </Label>
       {control}
