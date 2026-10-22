@@ -259,7 +259,7 @@ the board's size, and loses Android's status and navigation bars before the comp
 | `src/job-summary.mjs` | A run's verdicts as one Markdown table, areas worst first, for a CI job summary |
 | `src/findings.mjs` | The failing boards in words, for a CI job log: why each one is not passing, and where |
 | `src/names.mjs`, `src/insets.mjs` | The capture names; the phone profiles and their bars |
-| `src/capture-size.mjs` | A board's size from its `canvas.json`, and the viewport a web capture is taken at: a board taller than the window at the same width is captured at its own height, because the consoles scroll inside a fixed-height frame and `fullPage` would stop at the window |
+| `src/capture-size.mjs` | A board's size from its `canvas.json`, and the viewport a web capture is taken at: a board taller than the window at the same width is captured at its own height, because the consoles scroll inside a fixed-height frame and `fullPage` would stop at the window; and whether a capture is taken at all: only at the board's own width (`widthMismatch`) |
 | `src/vendor-fonts.mjs`, `third-party/` | React and the fonts the boards load, and their licences |
 | `android/` | The capture AVDs and the device state; `capture-server.mjs`, which writes a native capture's hierarchy and provenance |
 | `test/` | `pnpm --filter @hg/design-diff test:unit`: the verdict, the bars, the names, the findings, and which capture specs failed ([`tools/e2e/web/capture-failures.mjs`](../e2e/web/capture-failures.mjs) — it lives with the e2e suite that writes the reports, and is tested here because what it reports is a board without a capture) |
