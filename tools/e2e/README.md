@@ -289,15 +289,11 @@ board by that name, and judges it (a web capture pixel by pixel, a native one by
   the app is the folder the screenshots are in, so a customer capture is the board `customer/<area>/<Board>`.
   The captures live in the device-lab flows (`lab/`, and `1-first-run.yaml` that the sign-in mission also runs).
   **The hierarchy comes from Maestro, not from `uiautomator dump`.** A dump is killed while a flow is
-  in progress and a capture runs inside a flow, so `design-capture.yaml` asks for an element named
-  after the capture that nothing has: the step fails harmlessly, Maestro writes
-  `screen-hierarchy/step-NNN-…-<capture>.json` as it does for any failed step, and
-  the capture server puts it beside the screenshot. It cannot be matched by file name: Maestro names
-  the file from the **literal** command text, so a real run leaves `step-022-tapOnElement-${SHOT}.json`
-  with the variable unsubstituted. It is matched by the moment instead — the capture POSTs in the
-  step straight after the probe, so the newest hierarchy is that probe's — and each file is used
-  once, so a probe that wrote nothing is given nothing rather than the previous capture's screen
-  ([#1026](https://github.com/shaiknoorullah/hg-mono/issues/1026)). This leans on
+  in progress and a capture runs inside a flow, so `design-capture.yaml` ends with a probe whose
+  debug output the capture server pairs with the screenshot: the mechanism, and why the pairing is by
+  moment rather than by file name, is in
+  [the design-diff README](../design-diff/README.md#native-boards-customer-rider), and the evidence is on
+  [#1026](https://github.com/shaiknoorullah/hg-mono/issues/1026). It leans on
   Maestro's debug output rather than a documented API, so
   [`native/check-hierarchies.mjs`](native/check-hierarchies.mjs) **fails the run** when captures were
   taken and none has a hierarchy: a Maestro upgrade that stopped writing those files would otherwise
