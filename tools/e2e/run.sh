@@ -287,17 +287,37 @@ redesign_offer() {
 # The redesign APK replaces the legacy one (same package), with its data cleared. Its flows run in
 # name order, each with the world's values; a 1-ask-for-code.yaml among them runs first, and the
 # others then get the code it asked for as CODE. missions/ holds the device lab's missions, which
-# are never run as flows, and is the only folder left out.
+# are never run as flows.
 #
-# lab/ is in. Those are the same journeys as the flows beside them with takeScreenshot replaced by
-# design captures and the typing matched to the boards, so they are what measures the native boards
-# at all: 16 of the 19 design captures the customer flows declare are in lab/. A `-maxdepth 1` here
-# kept missions/ out and, unremarked, kept lab/ out too, so those 16 had never run anywhere
-# (https://github.com/shaiknoorullah/hg-mono/issues/966). Nested flows were always provided for —
-# maestro_flow flattens the path into the label and gives the flow its own screenshot folder.
+# lab/ stays out as a folder, and `lab_for_ci` names the few files CI does run. Those flows are the
+# same journeys as the ones beside them with takeScreenshot replaced by design captures, so they are
+# what measures the native boards — but most of lab/ also wants devworld (`make dev-scenario`,
+# `make dev-journey`), the emulator camera, or backend that has not merged, and CI has none of that
+# (tools/e2e/README.md, "Device-lab flows"). Running the whole folder would add about twenty rider
+# flows that take no capture at all and fail for reasons that have nothing to do with the boards.
+#
+# So a flow is listed only when it takes captures AND needs nothing CI lacks. That is 8 of the 19
+# captures the customer flows declare: 3 in 1-first-run.yaml, which already ran, and 5 in
+# lab/1-sign-in.yaml. The other 11 wait on devworld in CI
+# (https://github.com/shaiknoorullah/hg-mono/issues/1030). A listed file that has gone missing is
+# recorded as a failure rather than skipped, so a rename cannot quietly drop its captures.
+lab_for_ci() {
+  case "$1" in
+    customer) printf '%s\n' redesign/lab/1-sign-in.yaml ;;
+    *) ;;
+  esac
+}
 if [ "$mode" = all ]; then
   for app in customer rider; do
-    mapfile -t flows < <(find "$e2e/native/$app/redesign" -type f -name '*.yaml' ! -name 'config.yaml' ! -path '*/missions/*' 2>/dev/null | sort)
+    mapfile -t flows < <(find "$e2e/native/$app/redesign" -maxdepth 1 -type f -name '*.yaml' ! -name 'config.yaml' 2>/dev/null | sort)
+    while IFS= read -r rel; do
+      [ -n "$rel" ] || continue
+      if [ -f "$e2e/native/$app/$rel" ]; then
+        flows+=("$e2e/native/$app/$rel")
+      else
+        record "redesign-$app-$(basename "$rel" .yaml)" fail "lab_for_ci names $rel, which does not exist"
+      fi
+    done < <(lab_for_ci "$app")
     if [ "${#flows[@]}" -eq 0 ]; then
       record "redesign-$app" skip "no redesign flows (tools/e2e/native/$app/redesign/*.yaml)"
       continue
