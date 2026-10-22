@@ -9,12 +9,14 @@ import { useSyncExternalStore } from 'react';
 
 import { parseReleaseNotes, type Release } from './notes.js';
 
+/** Where the bundled notes file is: not asked for, on its way, parsed, or unreadable (fetch failed or not a list). */
 export type NotesLoad =
   | { readonly status: 'idle' }
   | { readonly status: 'loading' }
   | { readonly status: 'ready'; readonly releases: readonly Release[] }
   | { readonly status: 'error' };
 
+/** What the store holds and `useState` returns; a new object on every change, never mutated. */
 export interface NotesState {
   readonly load: NotesLoad;
   /** `blocked`: storage cannot be read, so the app cannot tell what this device has seen. */
@@ -27,6 +29,7 @@ export interface NotesState {
 
 type Loader = () => Promise<unknown>;
 
+/** How one app uses the store: its version, its storage keys and how its notes file is imported. */
 export interface NotesStoreConfig {
   /** The build's own version: what "seen" is set to. */
   appVersion: string;
@@ -37,6 +40,11 @@ export interface NotesStoreConfig {
   bundled: Loader;
 }
 
+/**
+ * Makes an app's notes store (module-level state, so make it once per app). Storage reads and writes
+ * never throw: blocked storage reads as `storage: 'blocked'` and a failed write holds for the page only.
+ * `useState` is a React hook; the rest are plain functions.
+ */
 export function createReleaseNotesStore(config: NotesStoreConfig) {
   const { appVersion, lastSeenKey, openedKey, bundled } = config;
   let loader: Loader = bundled;

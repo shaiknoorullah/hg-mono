@@ -19,6 +19,7 @@ export interface ReleaseNote {
   readonly roles?: readonly string[];
 }
 
+/** One release: its version, its date and the notes written for people who use the app. The file lists them newest first. */
 export interface Release {
   readonly version: string;
   /** Calendar date, `YYYY-MM-DD`. */
@@ -43,6 +44,7 @@ export function compareVersions(a: string, b: string): number | null {
   return x[4] < y[4] ? -1 : 1;
 }
 
+/** True for `MAJOR.MINOR.PATCH` with an optional `-label`; a stored last-seen value that fails this counts as none. */
 export function isVersion(value: string): boolean {
   return VERSION.test(value);
 }
@@ -75,6 +77,7 @@ export function parseReleaseNotes(raw: unknown): Release[] {
   return releases.sort((a, b) => -(compareVersions(a.version, b.version) ?? 0));
 }
 
+/** What to show a device, and why: `first` (nothing seen yet), `since` (newer releases) or `current` (nothing new). */
 export type Selection =
   /** No last-seen version on this device: only the newest release. */
   | { readonly mode: 'first'; readonly items: readonly Release[] }
