@@ -16,6 +16,7 @@ export default defineConfig({
     globals: false,
     include: ['smoke/**/*.test.tsx', 'src/redesign/**/__tests__/**/*.test.{ts,tsx}'],
     env: { TZ: 'America/Toronto' },
+    setupFiles: ['src/redesign/testing/setup.ts'],
     testTimeout: 15000,
   },
 });

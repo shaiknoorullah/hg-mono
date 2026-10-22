@@ -16,6 +16,7 @@ import { DeclinePanelRoute } from '../strip/DeclinePanel';
 import { StatusBar } from '../status/StatusBar';
 import { Banners } from '../status/Banners';
 import { HealthPanel } from '../status/HealthPanel';
+import { WhatsNewPanel } from '../whatsnew/WhatsNewPanel';
 
 export function StatusBarSlot() {
   return <StatusBar />;
@@ -42,4 +43,6 @@ export const SHELL_PANELS: Record<string, { title: string; Component: ComponentT
   decline: { title: 'Decline order', Component: DeclinePanelRoute },
   // WP4: screen health (`?panel=health`).
   health: { title: 'Screen health', Component: HealthPanel },
+  // What's new (`?panel=whats-new`): opens by itself once after an update, and from the account menu.
+  'whats-new': { title: "What's new", Component: WhatsNewPanel },
 };

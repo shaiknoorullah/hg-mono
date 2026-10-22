@@ -4,14 +4,14 @@
  * section beside it, and a panel on the right while an edit, an upload or a password change is
  * open (the section list then keeps titles only).
  *
- *   Halal certification | Account | Business profile | Documents | This device | Sign-in and security
+ *   Halal certification | Account | Business profile | Documents | This device | Sign-in and security | What's new
  *
  * Page banners for the certificate, the account state and the connection already sit under
  * the status bar on every page (`status/Banners`), so this page does not draw a second set;
  * the sections carry the detail. The documents other than the halal certificate are sent from
  * the Documents section into the same panel (`?panel=upload-doc&doc=FOOD_SAFETY`). Not built
- * here yet: What's new (the contract has no release notes) and the address change (see the
- * pull request).
+ * here yet: the address change (see the pull request). What's new is the app's own bundled file
+ * (`../whatsnew`), not an API.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -27,6 +27,9 @@ import { usePagePanelOpen } from '../shell/layout';
 import { EditPanel, PasswordPanel, RenewHalalPanel, SupportPanel, UploadDocPanel } from './panels';
 import { DOC_META, isShownDocType, type ShownDocType } from '../onboarding/model';
 import { DeviceSection } from './DeviceSection';
+import { WHATS_NEW } from '../whatsnew/copy';
+import { APP_VERSION } from '../whatsnew/releaseNotes';
+import { WhatsNewSection } from '../whatsnew/WhatsNewSection';
 import { deviceSummary, useDevicePrefs, useNotifications } from './device';
 import { AccountSection, DocumentsSection, HalalSection, ProfileSection, SecuritySection, SectionSkeleton } from './sections';
 import {
@@ -123,6 +126,7 @@ export function SettingsPage() {
     documents: docsDenied ? 'Owner and managers only' : documentsSummary(docs.data, docs.status === 'error'),
     device: deviceSummary(devicePrefs, notifications.state),
     security: 'Sign-in details',
+    whatsnew: WHATS_NEW.settingsStatus(APP_VERSION),
   };
 
   return (
@@ -159,6 +163,8 @@ export function SettingsPage() {
           <DocumentsSection docs={docs} denied={docsDenied} canUpload={manage && !readOnly} onUpload={(type) => open('upload-doc', type)} />
         ) : section === 'device' ? (
           <DeviceSection />
+        ) : section === 'whatsnew' ? (
+          <WhatsNewSection />
         ) : (
           <SecuritySection onChange={() => open('password')} />
         )}

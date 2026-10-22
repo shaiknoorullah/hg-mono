@@ -3,8 +3,8 @@
  * top first, and what each says. The shell draws them with `Banner` from `ds.ts`.
  *
  * Order, top first: staging/local strip · offline · API not ready · SMS sign-in codes (sticky, no
- * dismiss) · high-severity alert · (What's new, not built: see the pull request). The slot sits
- * before `<main>`, pushes content down and never covers it. Only the offline banner is a status
+ * dismiss) · high-severity alert · the What's new notice (`../whatsnew/WhatsNewNotice`, drawn by
+ * the shell below these because it never interrupts). The slot sits before `<main>`, pushes content down and never covers it. Only the offline banner is a status
  * region; a new high-severity alert uses the alert role once.
  *
  * The API-not-ready and SMS banners are for every staff role, because both are outages anyone
