@@ -3,7 +3,7 @@
  * Props follow the canvases' drawing (`ASS/AdminSidebar`, `ORD/AdminNavCollapsed`, manifest §1).
  *
  * The admin's primary navigation on the dark forest chrome (`bg-surface-chrome`,
- * `text-fg-on-accent`). Expanded it is 264px; collapsed it is an 80px rail that keeps a short
+ * `text-fg-on-accent`). Expanded it is 264px; collapsed it is a 72px rail that keeps a short
  * text label under every item, so nothing depends on a hover tooltip. As `ASS/AdminSidebar`
  * draws it, a rail item is 76px wide and its label is caption size, at most 72px, centred, and
  * may break anywhere rather than spill past the rail ("Certificates", "Restaurant"). The current page is a
@@ -23,7 +23,7 @@ export interface SideNavItem {
   key: string;
   /** Full label, shown when expanded and used as the accessible name. */
   label: string;
-  /** Short label shown under the icon in the 80px rail ("Halal", "Orders"). */
+  /** Short label shown under the icon in the 72px rail ("Halal", "Orders"). */
   shortLabel: string;
   href: string;
   /**
@@ -50,7 +50,7 @@ export interface SideNavGroup {
 
 export interface SideNavProps {
   groups: SideNavGroup[];
-  /** Rail (80px) when true; full (264px) when false. */
+  /** Rail (72px) when true; full (264px) when false. */
   collapsed: boolean;
   /** Shows the collapse toggle when set. */
   onCollapsedChange?: (collapsed: boolean) => void;
@@ -132,7 +132,7 @@ export function SideNav({
       data-collapsed={collapsed || undefined}
       className={cx(
         'flex h-full shrink-0 flex-col bg-surface-chrome text-fg-on-accent',
-        collapsed ? 'w-20' : 'w-[264px]',
+        collapsed ? 'w-18' : 'w-[264px]',
         className,
       )}
     >
