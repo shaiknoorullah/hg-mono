@@ -1,7 +1,8 @@
 /**
  * The release notes an app ships with, and the rules for which of them a person has not read yet
- * (issues 101 and 102: https://github.com/shaiknoorullah/hg-mono/issues/101,
- * https://github.com/shaiknoorullah/hg-mono/issues/102). Used by the restaurant and admin consoles.
+ * (issues 99, 101 and 102: https://github.com/shaiknoorullah/hg-mono/issues/99,
+ * https://github.com/shaiknoorullah/hg-mono/issues/101, https://github.com/shaiknoorullah/hg-mono/issues/102).
+ * Shared by the restaurant and admin consoles and the customer app; no React, no storage.
  *
  * The notes are a file bundled with each app, `src/release-notes.json`, written by hand until the
  * versioned-releases work (issue 97, https://github.com/shaiknoorullah/hg-mono/issues/97) generates the
@@ -10,7 +11,7 @@
  *     [{ "version": "1.0.0", "date": "2026-10-22", "notes": [{ "title": "...", "body": "..." }] }]
  *
  * `roles` is an optional extra on a note (the admin console filters by it); a note without it is for
- * everyone.
+ * everyone. A release with no readable note is dropped by `parseReleaseNotes`.
  */
 export interface ReleaseNote {
   readonly title: string;
@@ -72,9 +73,24 @@ export function parseReleaseNotes(raw: unknown): Release[] {
     if (!isRecord(item) || typeof item['version'] !== 'string' || typeof item['date'] !== 'string' || !Array.isArray(item['notes'])) continue;
     if (!VERSION.test(item['version'])) continue;
     const notes = item['notes'].map(parseNote).filter((n): n is ReleaseNote => n !== null);
-    releases.push({ version: item['version'], date: item['date'], notes });
+    if (notes.length > 0) releases.push({ version: item['version'], date: item['date'], notes });
   }
   return releases.sort((a, b) => -(compareVersions(a.version, b.version) ?? 0));
+}
+
+/** Releases up to the build's own version, newest first (a release newer than the build is not shipped in it). */
+export function released(releases: readonly Release[], current: string): Release[] {
+  return releases.filter((r) => (compareVersions(r.version, current) ?? 1) <= 0);
+}
+
+/**
+ * Every release newer than `lastSeen`. With nothing stored, or a stored value that is not a version,
+ * only the latest release (owner decision, round 2).
+ */
+export function unseen(releases: readonly Release[], current: string, lastSeen: string | null): Release[] {
+  const list = released(releases, current);
+  if (lastSeen === null || !VERSION.test(lastSeen)) return list.slice(0, 1);
+  return list.filter((r) => (compareVersions(r.version, lastSeen) ?? -1) > 0);
 }
 
 /** What to show a device, and why: `first` (nothing seen yet), `since` (newer releases) or `current` (nothing new). */
@@ -88,9 +104,8 @@ export type Selection =
 
 /** Which releases to show a person whose device last saw `lastSeen`, on a build at `current`. */
 export function selectReleases(releases: readonly Release[], lastSeen: string | null, current: string): Selection {
-  const eligible = releases.filter((r) => (compareVersions(r.version, current) ?? 1) <= 0);
-  if (lastSeen === null || !VERSION.test(lastSeen)) return { mode: 'first', items: eligible.slice(0, 1) };
-  const items = eligible.filter((r) => (compareVersions(r.version, lastSeen) ?? -1) > 0);
+  const items = unseen(releases, current, lastSeen);
+  if (lastSeen === null || !VERSION.test(lastSeen)) return { mode: 'first', items };
   return items.length > 0 ? { mode: 'since', items } : { mode: 'current', items: [] };
 }
 

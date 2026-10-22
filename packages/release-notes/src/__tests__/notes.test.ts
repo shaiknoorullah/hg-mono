@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { compareVersions, parseReleaseNotes, releaseDate, selectReleases, type Release } from '../notes.js';
+import { compareVersions, parseReleaseNotes, releaseDate, released, selectReleases, unseen, type Release } from '../notes.js';
 
 const note = (title: string, roles?: string[]) => ({ title, body: `${title} body`, ...(roles ? { roles } : {}) });
 const RELEASES: Release[] = [
@@ -51,6 +51,14 @@ describe('which releases a device has not seen', () => {
   });
 });
 
+describe('the plain lists', () => {
+  it('released leaves out what is newer than the build; unseen starts at the latest when nothing is stored', () => {
+    expect(released(RELEASES, '1.3.0').map((r) => r.version)).toEqual(['1.3.0', '1.2.0']);
+    expect(unseen(RELEASES, '1.4.0', null).map((r) => r.version)).toEqual(['1.4.0']);
+    expect(unseen(RELEASES, '1.4.0', '1.2.0').map((r) => r.version)).toEqual(['1.4.0', '1.3.0']);
+  });
+});
+
 describe('reading the file', () => {
   it('reads a list, newest first, accepts a module wrapper and keeps roles', () => {
     const raw = [RELEASES[2], RELEASES[0], RELEASES[1]];
@@ -66,6 +74,10 @@ describe('reading the file', () => {
       { version: '1.1.0', date: '2026-01-02', notes: [{ title: 'Ok', body: 'fine' }, { title: 3 }, null] },
     ]);
     expect(parsed).toEqual([{ version: '1.1.0', date: '2026-01-02', notes: [{ title: 'Ok', body: 'fine' }] }]);
+  });
+
+  it('drops a release none of whose notes can be read', () => {
+    expect(parseReleaseNotes([{ version: '1.0.0', date: '2026-01-01', notes: [{ title: 3 }] }])).toEqual([]);
   });
 
   it('refuses a file that is not a list', () => {

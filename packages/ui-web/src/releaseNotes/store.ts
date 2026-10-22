@@ -7,7 +7,7 @@
  */
 import { useSyncExternalStore } from 'react';
 
-import { parseReleaseNotes, type Release } from './notes.js';
+import { parseReleaseNotes, type Release } from '@hg/release-notes';
 
 /** Where the bundled notes file is: not asked for, on its way, parsed, or unreadable (fetch failed or not a list). */
 export type NotesLoad =

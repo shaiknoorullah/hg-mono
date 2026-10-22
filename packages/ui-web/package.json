@@ -48,6 +48,7 @@
     "@fontsource-variable/plus-jakarta-sans": "^5.2.5",
     "@hg/api-client": "workspace:*",
     "@hg/brand": "workspace:*",
+    "@hg/release-notes": "workspace:*",
     "@iconify/react": "^5.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.6",
     "@radix-ui/react-avatar": "^1.1.10",
