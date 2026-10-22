@@ -128,6 +128,12 @@ browser, so this rule is for the web apps (restaurant, admin) only; see "Native 
 compares them (`src/compare.mjs`) and writes `<out>/results.json` and, per pair, `diff.png` and
 `side-by-side.png` (design, app, difference) under `<out>/pairs/`.
 
+It yields to the event loop once a pair. Node frees an image's memory only on a turn of the event
+loop, and without one the diff held every image it had decoded: on CI it grew about 19 MB a pair
+until the runner ran out of memory, about 700 pairs in, and the job was cancelled without an error
+([#1074](https://github.com/shaiknoorullah/hg-mono/pull/1074) measured it). Keep a loop over pairs
+`await`ing; calling `global.gc()` instead does not free them.
+
 **Height (the shared-height scale).** Boards are drawn at a fixed height; a real page is as tall as
 its content. Only the rows the capture and the board both have are compared, and the percentage is of
 that area. A taller capture is cut to the board's height (the part below was not compared and is noted).
