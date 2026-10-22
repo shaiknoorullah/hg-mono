@@ -69,8 +69,7 @@ a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
 </dl>
 <section style="display: flex; flex-direction: column; gap: var(--space-2); padding-top: var(--space-1); border-top: 1px solid var(--border-decorative)">
 <h3 style="margin: var(--space-2) 0 0; font-size: var(--type-heading-sm-size); font-weight: 600">Changes to this account</h3>
-<p style="margin: 0; font-size: var(--type-body-md-size); line-height: 1.5; color: var(--text-secondary)">They can't sign in, and their sessions have ended. To bring them back, invite this email again: the invite reactivates the account with the role you choose, and they set a new password and two-step sign-in.</p>
-<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="InviteReactivate.dc.html">Invite this email again</x-import>
+<p style="margin: 0; font-size: var(--type-body-md-size); line-height: 1.5; color: var(--text-secondary)">They can't sign in, and their sessions have ended. Bringing them back isn't in the console yet. Inviting the same email again is refused while the account exists.</p>
 </section>
 </div>
 </div>
@@ -112,7 +111,7 @@ class Component extends DCLogic {
       if (r.note === 'auto') return muted('Never set up');
       if (r.status === 'INVITED') return muted('Set up when they accept');
       if (r.mfa) return 'Set up';
-      return h('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' } }, h(DS.Badge, { variant: 'warning', size: 'md', icon: 'warning' }, 'Not set up'), muted('Active accounts must have two-step sign-in. Tell the platform on-call engineer to check this account.'));
+      return h('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' } }, h(DS.Badge, { variant: 'warning', size: 'md', icon: 'warning' }, 'Not set up'));
     };
     const plainName = function (r) { return h('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'center' } }, h('span', { style: { fontWeight: 600 } }, r.full_name), r.you ? h(DS.Badge, { variant: 'outline', size: 'sm' }, 'You') : null); };
     const nameCell = plainName;

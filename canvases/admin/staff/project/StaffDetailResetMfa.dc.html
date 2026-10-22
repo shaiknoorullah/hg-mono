@@ -63,13 +63,13 @@ a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
 <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" href="https://github.com/shaiknoorullah/hg-mono/issues/66">Open the platform runbook</x-import>
 </div>
 <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; margin-top: var(--space-2)"><span style="font-family: var(--font-mono); font-size: var(--type-mono-md-size); overflow-wrap: anywhere">0192f4a8-7c1e-7b3a-9e21-5d6c8a0b3f12</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" on-press="{{noop}}">Copy account ID</x-import></div>
-<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Proposed component: OnCallContact. Name and phone: the owner names the platform on-call person before launch. Runbook: the link recorded in <a href="https://github.com/shaiknoorullah/hg-mono/issues/66">issue 66</a>.</span>
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Proposed component: OnCallContact. Name and phone: the owner names the platform on-call person before launch. Runbook: the link recorded in <a href="https://github.com/shaiknoorullah/hg-mono/issues/66">issue #66, the platform runbook</a>.</span>
 </li>
 <li><strong style="font-weight: 600">Tell them how you confirmed it.</strong> For example: called back on the number on file, 28 Sep, 10:05 am; matched work email and role. They put it in the audit log with your name.</li>
 <li><strong style="font-weight: 600">Stay on the call until they confirm.</strong> Her authenticator then stops working and all her sessions end. Tell her to sign in with her password; she'll be asked to set up her authenticator app again.</li>
 </ol>
 <span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Needs API: reset a staff member's two-step sign-in (ends their sessions, asks for a new authenticator at the next sign-in, audited with how it was confirmed; nobody can reset their own). Needs API: a phone number on each staff account to call back (StaffUser has none); the same call-back check covers a password reset by hand. When it exists this panel becomes the form drawn below this row (Needs API, draw-ahead).</span>
-<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Needs content: the runbook's lost-authenticator section, linked from issue 66.</span>
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Needs content: the runbook's lost-authenticator section, linked from <a href="https://github.com/shaiknoorullah/hg-mono/issues/66">issue #66, the platform runbook</a>.</span>
 </div>
 <div style="display: flex; justify-content: flex-end; gap: var(--space-3); padding: var(--space-3) var(--space-5); border-top: 1px solid var(--border-decorative)">
 <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="StaffDetail.dc.html">Back to account</x-import>
@@ -112,7 +112,7 @@ class Component extends DCLogic {
       if (r.note === 'auto') return muted('Never set up');
       if (r.status === 'INVITED') return muted('Set up when they accept');
       if (r.mfa) return 'Set up';
-      return h('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' } }, h(DS.Badge, { variant: 'warning', size: 'md', icon: 'warning' }, 'Not set up'), muted('Active accounts must have two-step sign-in. Tell the platform on-call engineer to check this account.'));
+      return h('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' } }, h(DS.Badge, { variant: 'warning', size: 'md', icon: 'warning' }, 'Not set up'));
     };
     const plainName = function (r) { return h('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'center' } }, h('span', { style: { fontWeight: 600 } }, r.full_name), r.you ? h(DS.Badge, { variant: 'outline', size: 'sm' }, 'You') : null); };
     const nameCell = plainName;

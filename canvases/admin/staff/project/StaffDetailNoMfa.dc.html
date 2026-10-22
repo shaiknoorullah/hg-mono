@@ -59,12 +59,10 @@ a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
 <div style="display: flex; gap: var(--space-2); align-items: center; flex-wrap: wrap">
 <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="md">Active</x-import>
 <span style="font-size: var(--type-body-md-size); color: var(--text-secondary)">Admin</span>
-<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="warning" size="md" icon="warning">Two-step sign-in not set up</x-import>
 </div>
-<p style="margin: 0; font-size: var(--type-body-md-size); line-height: 1.5; color: var(--text-secondary)">Active accounts must have two-step sign-in. Tell the platform on-call engineer to check this account, and give them its account ID.</p>
 <dl style="margin: 0; display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: var(--space-3) var(--space-4); font-size: var(--type-body-md-size)">
 <dt style="color: var(--text-secondary)">Email</dt><dd style="margin: 0"><span style="font-family: var(--font-mono); font-size: var(--type-mono-md-size); overflow-wrap: anywhere">noor.aziz@halalgoes.ca</span></dd>
-<dt style="color: var(--text-secondary)">Two-step sign-in</dt><dd style="margin: 0">Not set up</dd>
+<dt style="color: var(--text-secondary)">Two-step sign-in</dt><dd style="margin: 0"><div style="display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-1)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="warning" size="md" icon="warning">Not set up</x-import><span style="font-size: var(--type-body-sm-size); line-height: 1.5; color: var(--text-secondary)">Two-step sign-in is optional for staff. Moving money needs it.</span></div></dd>
 <dt style="color: var(--text-secondary)">Last sign-in</dt><dd style="margin: 0"><time datetime="2026-09-25T13:05:00-04:00">Friday 25 September 2026, 1:05 pm EDT</time></dd>
 <dt style="color: var(--text-secondary)">Added</dt><dd style="margin: 0"><time datetime="2026-08-20">Thursday 20 August 2026</time></dd>
 <dt style="color: var(--text-secondary)">Account ID</dt><dd style="margin: 0"><div style="display: flex; flex-direction: column; align-items: flex-start"><span style="font-family: var(--font-mono); font-size: var(--type-mono-md-size); overflow-wrap: anywhere">0192e7b1-3c4d-7e5f-8a6b-9c0d1e2f3a4b</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" on-press="{{noop}}">Copy account ID</x-import></div></dd>
@@ -72,8 +70,7 @@ a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
 <section style="display: flex; flex-direction: column; gap: var(--space-2); padding-top: var(--space-1); border-top: 1px solid var(--border-decorative)">
 <h3 style="margin: var(--space-2) 0 0; font-size: var(--type-heading-sm-size); font-weight: 600">Changes to this account</h3>
 <p style="margin: 0; font-size: var(--type-body-md-size); line-height: 1.5; color: var(--text-secondary)">Someone leaving, or an account you think is misused? Remove access now: the platform on-call engineer does it for you until the console can.</p>
-<div style="display: flex; gap: var(--space-3); flex-wrap: wrap"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" href="StaffDetailRemoveAccess.dc.html">Remove access now</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="StaffDetailResetMfa.dc.html">Reset two-step sign-in</x-import></div>
-<p style="margin: 0; font-size: var(--type-body-md-size); line-height: 1.5; color: var(--text-secondary)">Lost authenticator app? Reset two-step sign-in after you've confirmed who they are. There are no recovery codes.</p>
+<div style="display: flex; gap: var(--space-3); flex-wrap: wrap"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" href="StaffDetailRemoveAccess.dc.html">Remove access now</x-import></div>
 <p style="margin: 0; font-size: var(--type-body-md-size); line-height: 1.5; color: var(--text-secondary)">Changing the role, suspending, restoring and resending an invite aren't in the console yet.</p>
 <span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Needs API: change role, suspend, restore, deactivate, resend or cancel an invite, sign out all their sessions, reset two-step sign-in</span>
 </section>
@@ -117,7 +114,7 @@ class Component extends DCLogic {
       if (r.note === 'auto') return muted('Never set up');
       if (r.status === 'INVITED') return muted('Set up when they accept');
       if (r.mfa) return 'Set up';
-      return h('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' } }, h(DS.Badge, { variant: 'warning', size: 'md', icon: 'warning' }, 'Not set up'), muted('Active accounts must have two-step sign-in. Tell the platform on-call engineer to check this account.'));
+      return h('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' } }, h(DS.Badge, { variant: 'warning', size: 'md', icon: 'warning' }, 'Not set up'));
     };
     const plainName = function (r) { return h('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'center' } }, h('span', { style: { fontWeight: 600 } }, r.full_name), r.you ? h(DS.Badge, { variant: 'outline', size: 'sm' }, 'You') : null); };
     const nameCell = plainName;

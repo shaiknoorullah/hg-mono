@@ -41,7 +41,7 @@ a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
 <span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Proposed component: EmptyState (design system Icon + Button)</span>
 <span style="display: inline-flex; color: var(--text-secondary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="profile" size="xl"></x-import></span>
 <h2 style="margin: 0; font-size: var(--type-heading-lg-size); font-weight: 600">Only you so far</h2>
-<p style="margin: 0; font-size: var(--type-body-md-size); line-height: 1.5; color: var(--text-secondary)">Invite the people who will review applications and help customers. Each one sets their own password and two-step sign-in before they can use the console.</p>
+<p style="margin: 0; font-size: var(--type-body-md-size); line-height: 1.5; color: var(--text-secondary)">Invite the people who will review applications and help customers. Each one gets a link to set their own password; two-step sign-in is optional and they can turn it on later.</p>
 <p style="margin: 0; font-size: var(--type-body-md-size); line-height: 1.5; color: var(--text-secondary)">The platform must keep at least two active super admins, so start with a second super admin.</p>
 <div style="display: flex; gap: var(--space-3); padding-top: var(--space-1); flex-wrap: wrap"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" icon-start="plus" href="InviteSecondSuper.dc.html">Invite a second super admin</x-import></div>
 
@@ -61,10 +61,10 @@ a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
 </div>
 <div style="display: flex; flex-direction: column; gap: var(--space-1)">
 <h3 style="margin: 0; font-size: var(--type-body-md-size); font-weight: 600">Super admin (your role)</h3>
-<p style="margin: 0; font-size: var(--type-body-sm-size); line-height: 1.5; color: var(--text-secondary)">Everything an admin can do, plus inviting staff, removing a leaver's access, resetting a colleague's two-step sign-in after confirming who they are, changing an issuing body's status, and revoking a certificate. The platform must keep at least two active super admins.</p>
+<p style="margin: 0; font-size: var(--type-body-sm-size); line-height: 1.5; color: var(--text-secondary)">Everything an admin can do, plus inviting staff, changing an issuing body's status, and revoking a certificate. The platform must keep at least two active super admins.</p>
 </div>
 </div>
-<p style="margin: 0; font-size: var(--type-body-sm-size); color: var(--text-secondary)">Main differences shown; the full list is set by the platform and can't be edited. Any goodwill refund above CAD 50.00 needs a second admin to approve it, whoever sends it. Changing someone's role isn't in the console yet. Nobody can change their own role or approve their own refund.</p>
+<p style="margin: 0; font-size: var(--type-body-sm-size); color: var(--text-secondary)">Main differences shown; the full list is set by the platform and can't be edited. Changing someone's role isn't in the console yet. Nobody can change their own role or approve their own refund.</p>
 
 <span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Needs API: GET /admin/me/permissions, so this card can be generated from permissions</span>
 </div>

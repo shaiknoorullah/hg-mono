@@ -67,7 +67,7 @@ a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
 <div style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap">
 <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="tel:[ON-CALL PHONE]" accessibility-label="Call [ON-CALL NAME] · [ON-CALL PHONE], platform on-call engineer">Call [ON-CALL NAME] · [ON-CALL PHONE]</x-import>
 <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" href="https://github.com/shaiknoorullah/hg-mono/issues/66">Open the platform runbook</x-import>
-<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Proposed component: OnCallContact. Name and phone: the owner names the platform on-call person before launch. Runbook: the link recorded in <a href="https://github.com/shaiknoorullah/hg-mono/issues/66">issue 66</a>.</span>
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Proposed component: OnCallContact. Name and phone: the owner names the platform on-call person before launch. Runbook: the link recorded in <a href="https://github.com/shaiknoorullah/hg-mono/issues/66">issue #66, the platform runbook</a>.</span>
 </div>
 </li>
 <li><strong style="font-weight: 600">Give them the account ID.</strong>
@@ -78,7 +78,7 @@ a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
 </ol>
 <span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Needs API: cancel an invite (super admin, Idempotency-Key, audited). When it exists this panel becomes one confirmed action: Cancel invite.</span>
 <span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Invite link already expired: the same panel, with the warning "The link has already expired, so they can't set up an account. Cancelling closes the account now instead of 7 days after the link expired."</span>
-<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Needs content: the runbook's cancel-an-invite section, linked from issue 66.</span>
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Needs content: the runbook's cancel-an-invite section, linked from <a href="https://github.com/shaiknoorullah/hg-mono/issues/66">issue #66, the platform runbook</a>.</span>
 </div>
 <div style="padding: var(--space-2) var(--space-5) var(--space-3)"><span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Proposed component: DetailPanel (shadcn Resizable + ScrollArea). Opens beside the list, never over it; drag the edge to resize. Resize handle: shadcn ResizableHandle withHandle, a focusable separator (Left and Right arrow keys resize, Home and End jump to the limits), 44 px hit area centred on the edge, grip in the middle, standard two-layer focus ring. Close or Escape collapses it and focus returns to what opened it.</span></div>
 </aside>
@@ -118,7 +118,7 @@ class Component extends DCLogic {
       if (r.note === 'auto') return muted('Never set up');
       if (r.status === 'INVITED') return muted('Set up when they accept');
       if (r.mfa) return 'Set up';
-      return h('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' } }, h(DS.Badge, { variant: 'warning', size: 'md', icon: 'warning' }, 'Not set up'), muted('Active accounts must have two-step sign-in. Tell the platform on-call engineer to check this account.'));
+      return h('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' } }, h(DS.Badge, { variant: 'warning', size: 'md', icon: 'warning' }, 'Not set up'));
     };
     const plainName = function (r) { return h('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'center' } }, h('span', { style: { fontWeight: 600 } }, r.full_name), r.you ? h(DS.Badge, { variant: 'outline', size: 'sm' }, 'You') : null); };
     const nameCell = plainName;

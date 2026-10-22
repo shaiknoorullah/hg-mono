@@ -351,7 +351,7 @@ textarea[aria-invalid="true"]:focus-visible{border-color:var(--feedback-danger-b
                   <div style="display: flex; flex-direction: column; gap: var(--space-2)">
                     <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Goodwill amount" variant="numeric" input-mode="decimal" prefix="$" suffix="CAD" default-value="{{goodwillValue}}" error-text="{{goodwillError}}"></x-import>
                     <div style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; font-size: var(--type-body-sm-size); color: var(--text-secondary)">
-                      <span>Dollars and cents, sent as whole cents. Above</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{c5000}}" size="sm"></x-import><span>needs a second approver, whatever your role.</span>
+                      <span>Dollars and cents, sent as whole cents. A larger goodwill refund goes to a second person for approval, and nothing moves until they approve.</span>
                       <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm">Proposed component: MoneyInput</x-import>
                     </div>
                   </div>
@@ -444,17 +444,16 @@ textarea[aria-invalid="true"]:focus-visible{border-color:var(--feedback-danger-b
             </sc-if>
 
             <sc-if value="{{showConfirmPartial}}" hint-placeholder-val="{{false}}">
-              <section aria-label="Reference: Whole order after an earlier refund" style="display: flex; flex-direction: column; gap: var(--space-3)">
-                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm" icon="info" style="align-self: flex-start">Needs API</x-import>
-                <span style="font-size: var(--type-body-md-size); line-height: 1.5">Reference only, not reachable at launch. Whole order is off on this order because a refund already went out, and the contract doesn't say what Whole order would do here.</span>
+              <section aria-label="Review: Whole order after an earlier refund" style="display: flex; flex-direction: column; gap: var(--space-3)">
+                <span style="font-size: var(--type-body-md-size); line-height: 1.5">Whole order stays available after an earlier refund. The server refunds only what no other refund already holds, so it never clashes with one.</span>
                 <dl class="hg-kv" style="grid-template-columns: 130px minmax(0, 1fr)">
                   <dt>Order</dt><dd style="font-family: var(--font-mono)">{{o.code}}</dd>
                   <dt>What</dt><dd>Whole order</dd>
                   <dt>Captured</dt><dd><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{o.captured}}" size="sm"></x-import></dd>
                   <dt>Already refunded</dt><dd><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{o.refunded}}" size="sm"></x-import></dd>
-                  <dt>Amount</dt><dd>Unknown. The server could refund what's left or refuse the request; the page can't tell which, so it won't send this.</dd>
+                  <dt>Amount</dt><dd>Calculated by the server when you issue it.</dd>
                 </dl>
-                <span style="font-size: var(--type-body-md-size); line-height: 1.5">Once the API answers, this review shows the amount that will move before you confirm. Until then, use Selected items or Goodwill amount.</span>
+                <span style="font-size: var(--type-body-md-size); line-height: 1.5">The amount and who bears it can’t be shown before you issue: the server has no refund preview yet.</span>
                 <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" style="align-self: flex-end">Go back and edit</x-import>
               </section>
             </sc-if>
@@ -787,13 +786,13 @@ class Component extends DCLogic {
     const danger = { bg: 'var(--feedback-danger-tint)', border: 'var(--feedback-danger-border)', fg: 'var(--feedback-danger-tint-text)', icon: 'error', iconColor: 'var(--feedback-danger-icon)' };
     const A = {
       conflict: Object.assign({}, warn, { title: 'This order changed while you were working', body: 'A whole-order refund would now be more than is left to refund.', hasMoney: true, hasActions: true, primary: 'Switch to selected items', primaryHref: 'RefundItemsAfterConflict.dc.html', hasSecondary: true, secondary: 'Reload the order', secondaryIcon: 'refresh' }),
-      goodwillexceeds: Object.assign({}, warn, { title: 'That’s more than is left to refund', body: 'The amount is more than what’s left of the captured payment, once earlier refunds are counted. Nothing was changed. Captured and already refunded are on the order card. Lower the amount and try again.', hasActions: false }),
+      goodwillexceeds: Object.assign({}, warn, { title: 'That’s more than is left to refund', body: 'The refunds on this order, with this one, would be more than was captured. Nothing was changed. Reload the order, check the payment’s captured and refunded totals, then lower the amount or choose different items.', hasActions: true, primary: 'Reload the order', primaryHref: 'https://claude.ai/artifact/LUWY7aLqsxxkWWnkGRJos8' }),
       dailycap: Object.assign({}, warn, { title: 'You’ve reached your refund limit for the last 24 hours', body: 'Nothing was changed. Ask another admin to issue this refund. Copy your notes so they don’t have to ask the customer again.', hasActions: true, primary: 'Copy my notes', primaryHref: '#', hasSecondary: true, secondary: 'Close', secondaryIcon: 'close' }),
       selfapproval: Object.assign({}, warn, { title: 'You can’t approve a refund you asked for', body: 'Another approver has to. Nothing was changed and the request stays pending for them.', hasActions: true, primary: 'See the approval request', primaryHref: 'RefundApprovalsQueue.dc.html' }),
       notrefundable: Object.assign({}, warn, { title: 'This payment can’t be refunded right now', body: 'The payment on this order changed while you were filling this in. Nothing was changed. Reload the order to see where it stands.', hasActions: true, primary: 'Reload the order', primaryHref: 'https://claude.ai/artifact/LUWY7aLqsxxkWWnkGRJos8' }),
       errors: Object.assign({}, danger, { title: '2 fields need fixing', body: 'Nothing was changed. The fields are marked below.', hasActions: false }),
       goodwillerrors: Object.assign({}, danger, { title: 'The amount needs fixing', body: 'Checked before sending, so nothing was sent. The field is marked below.', hasActions: false }),
-      forbidden: Object.assign({}, warn, { title: 'Your role can’t issue a goodwill amount', body: 'Support agents can’t issue goodwill amounts. Nothing was changed. Choose Whole order or Selected items, or ask an admin.', hasActions: false }),
+      forbidden: Object.assign({}, warn, { title: 'Turn on two-step sign-in to move money', body: 'Moving money needs a session signed in with an authenticator code. Nothing was changed and your draft is kept. Turn on two-step sign-in for your account, sign in again with the code, and come back to this draft.', hasActions: false }),
       timeout: Object.assign({}, warn, { title: 'The server didn’t answer in time', body: 'We can’t tell yet whether the refund went through. Trying again sends the same request, so it can never refund twice.', hasActions: false }),
       ratelimited: Object.assign({}, warn, { title: 'Too many money actions in a short time', body: 'The server paused refunds from your account for a moment. Nothing was sent and your draft is kept. You can try again in 40 seconds.', hasActions: false }),
     };
@@ -890,7 +889,7 @@ class Component extends DCLogic {
     const reasonText = textBad ? 'Wrong' : reasonTextFor[rtKey];
     const approvalMap = {
       approval: { title: 'Above your limit. Sent for approval.', amount: 2698, approver: 'An admin', body: 'No refund exists yet and the customer hasn’t been told anything. Your request is kept, so nothing is lost.' },
-      approvaladmin: { title: 'Goodwill above $50.00. Sent for a second approval.', amount: 6000, approver: 'Another admin or a super admin', body: 'Goodwill above $50.00 always needs a second person, whatever your own limit. No refund exists yet and the customer hasn’t been told anything. You can’t approve your own request.' },
+      approvaladmin: { title: 'Goodwill sent for a second approval.', amount: 6000, approver: 'Another admin or a super admin', body: 'A goodwill refund this large always needs a second person, whatever your own limit. No refund exists yet and the customer hasn’t been told anything. You can’t approve your own request.' },
     };
     const ap = approvalMap[v] || { title: '', amount: 0, approver: '', body: '' };
     const disputeAt = new Date(now + 150000 * 1000).toISOString();
@@ -948,13 +947,12 @@ class Component extends DCLogic {
         { name: 'Resolving a dispute only (Needs API), never on this form', items: ['DISPUTE_RESOLUTION'].map((k) => ({ label: R[k][0], desc: R[k][2], bearer: 'Set by the outcome of the dispute.' })) },
         { name: 'Not offered at launch (needs the package seal)', items: ['HALAL_INTEGRITY'].map((k) => ({ label: R[k][0], desc: R[k][2], bearer: R[k][3] })) },
       ],
-      scope: noScope ? '' : scope,
+      scope: v === 'feesonly' ? '' : scope,
       scopeOptions: [
-        { value: 'FULL', label: 'Whole order', description: 'Calculated by the server from the order.', disabled: priorRefund,
-          disabledReason: priorRefund ? (support ? 'A refund already went out on this order. Choose Selected items, or ask an admin for a goodwill amount.' : 'A refund already went out on this order. Choose Selected items or Goodwill amount.') : undefined },
+        { value: 'FULL', label: 'Whole order', description: 'Calculated by the server from the order.' },
         { value: 'PARTIAL_ITEMS', label: 'Selected items', description: 'Choose lines and quantities.' },
         { value: 'FEES_ONLY', label: 'Fees only', description: 'Delivery and service fees, not the food.', disabled: true, disabledReason: 'The staff refund route has no Fees only scope yet (Needs API)' },
-        { value: 'PARTIAL_AMOUNT', label: 'Goodwill amount', description: 'You type the amount.', disabled: support, disabledReason: support ? 'Support agents can’t issue goodwill amounts.' : undefined },
+        { value: 'PARTIAL_AMOUNT', label: 'Goodwill amount', description: 'You type the amount.' },
       ],
       reason: noScope ? '' : reason, reasonLabel: R[reason][0].toLowerCase(), reasonLocked: scope === 'PARTIAL_AMOUNT',
       reasonOptions: reasonKeys.map(opt),
@@ -980,11 +978,10 @@ class Component extends DCLogic {
       amountText: scope === 'PARTIAL_AMOUNT'
         ? 'The amount you enter, in whole cents. The server still checks it against what was captured.'
         : 'Calculated by the server from the order when you issue it. You see it, and who bears it, straight after. Nothing is sent from this page as an amount.',
-      hasSubmitReason: v === 'dailycap' || v === 'forbidden' || v === 'ratelimited',
-      submitReason: v === 'dailycap' ? 'Can’t send: you’ve reached your 24-hour limit.' : v === 'forbidden' ? 'Can’t send a goodwill amount from a support account.'
-        : v === 'ratelimited' ? 'Paused by the server. The button comes back when the wait is over.' : '',
+      hasSubmitReason: v === 'ratelimited',
+      submitReason: v === 'ratelimited' ? 'Paused by the server. The button comes back when the wait is over.' : '',
       submitLabel: v === 'timeout' ? 'Try again (same request)' : v === 'ratelimited' ? 'Try again in 0:40' : 'Review and issue…',
-      submitDisabled: v === 'dailycap' || v === 'forbidden' || v === 'ratelimited',
+      submitDisabled: v === 'ratelimited',
     };
   }
 }

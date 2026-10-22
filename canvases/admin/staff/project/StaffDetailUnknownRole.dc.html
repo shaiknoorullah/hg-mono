@@ -74,7 +74,7 @@ a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
 <div style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap">
 <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="tel:[ON-CALL PHONE]" accessibility-label="Call [ON-CALL NAME] · [ON-CALL PHONE], platform on-call engineer">Call [ON-CALL NAME] · [ON-CALL PHONE]</x-import>
 <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" href="https://github.com/shaiknoorullah/hg-mono/issues/66">Open the platform runbook</x-import>
-<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Proposed component: OnCallContact. Name and phone: the owner names the platform on-call person before launch. Runbook: the link recorded in <a href="https://github.com/shaiknoorullah/hg-mono/issues/66">issue 66</a>.</span>
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Proposed component: OnCallContact. Name and phone: the owner names the platform on-call person before launch. Runbook: the link recorded in <a href="https://github.com/shaiknoorullah/hg-mono/issues/66">issue #66, the platform runbook</a>.</span>
 </div>
 <span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Needs API: change role, suspend, restore, deactivate, resend or cancel an invite, sign out all their sessions, reset two-step sign-in</span>
 </section>
@@ -118,7 +118,7 @@ class Component extends DCLogic {
       if (r.note === 'auto') return muted('Never set up');
       if (r.status === 'INVITED') return muted('Set up when they accept');
       if (r.mfa) return 'Set up';
-      return h('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' } }, h(DS.Badge, { variant: 'warning', size: 'md', icon: 'warning' }, 'Not set up'), muted('Active accounts must have two-step sign-in. Tell the platform on-call engineer to check this account.'));
+      return h('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' } }, h(DS.Badge, { variant: 'warning', size: 'md', icon: 'warning' }, 'Not set up'));
     };
     const plainName = function (r) { return h('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'center' } }, h('span', { style: { fontWeight: 600 } }, r.full_name), r.you ? h(DS.Badge, { variant: 'outline', size: 'sm' }, 'You') : null); };
     const nameCell = plainName;

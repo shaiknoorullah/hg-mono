@@ -203,7 +203,7 @@
   },
   "RefundForbidden.dc.html": {
    "h": 900,
-   "title": "Refund — support agent, goodwill refused (403)",
+   "title": "Refund — two-step sign-in needed to move money (403)",
    "w": 1440,
    "x": 27360,
    "y": 2560
@@ -273,7 +273,7 @@
   },
   "RefundApprovalAdmin.dc.html": {
    "h": 900,
-   "title": "Refund — admin goodwill above $50, second approver (202)",
+   "title": "Refund — admin goodwill, second approver (202)",
    "w": 1440,
    "x": 10640,
    "y": 3840
@@ -364,7 +364,7 @@
   },
   "RefundConfirmAfterPartial.dc.html": {
    "h": 900,
-   "title": "Refund — Whole order after an earlier refund (needs API, reference only)",
+   "title": "Refund — Whole order after an earlier refund",
    "w": 1440,
    "x": 33440,
    "y": 2560
@@ -497,7 +497,7 @@
   },
   "s_refundform": {
    "fill": "gray",
-   "text": "Reasons follow the scope. Whole order: order-level reasons. Selected items adds Item missing and Wrong item. Fees only: Late delivery, Platform error, Pricing error. Disputed orders add Before a chargeback (admin only); the reason is what went wrong, never Dispute resolution.\n\nHalal concern is offered to staff for a customer's halal complaint, with evidence. Owner decision (round 2): the restaurant pays the item's net price only when the evidence backs the concern up; otherwise it is goodwill paid by the platform. Staff record which in the form; that field, and the server honouring it, are Needs API (today the server charges the restaurant whatever is attached). Packaging tamper isn't offered at launch: with no package seal, nobody can tell whether the restaurant or the delivery opened it.\n\nThe form, the review step and the result all live in one in-page panel in the order workspace, in place of More detail; there is no confirm dialog, and Done on a result closes the panel.\n\nWhole order is off on any order that already has a live refund, until the API defines what it does there. Contract gaps, drawn as Needs API: the staff refund route has no Fees only scope and no evidence ids; the general refund route has both but no case id or reason text, so Fees only is drawn off with its tag. Uploads have no purpose for refund evidence, so Add photos is off and the review step says evidence isn't sent.",
+   "text": "Reasons follow the scope. Whole order: order-level reasons. Selected items adds Item missing and Wrong item. Fees only: Late delivery, Platform error, Pricing error. Disputed orders add Before a chargeback (admin only); the reason is what went wrong, never Dispute resolution.\n\nHalal concern is offered to staff for a customer's halal complaint, with evidence. Owner decision (round 2): the restaurant pays the item's net price only when the evidence backs the concern up; otherwise it is goodwill paid by the platform. Staff record which in the form; that field, and the server honouring it, are Needs API (today the server charges the restaurant whatever is attached). Packaging tamper isn't offered at launch: with no package seal, nobody can tell whether the restaurant or the delivery opened it.\n\nThe form, the review step and the result all live in one in-page panel in the order workspace, in place of More detail; there is no confirm dialog, and Done on a result closes the panel.\n\nWhole order stays available after an earlier refund: the server refunds only what no other refund already holds, so it never clashes. Contract gaps, drawn as Needs API: the staff refund route has no Fees only scope and no evidence ids; the general refund route has both but no case id or reason text, so Fees only is drawn off with its tag. Uploads have no purpose for refund evidence, so Add photos is off and the review step says evidence isn't sent.",
    "w": 460,
    "x": 39520,
    "y": 2560
@@ -523,6 +523,22 @@
    "w": 460,
    "fill": "blue",
    "text": "Split from HalalGoes Admin — Orders & Refunds: https://claude.ai/artifact/LUWY7aLqsxxkWWnkGRJos8\n\nThe order workspace, the admin sidebar and the live map pane are shared components the refund boards import; they also stay on the original canvas."
+  },
+  "n_dailycap": {
+   "x": 15200,
+   "y": 3590,
+   "w": 700,
+   "maxH": 170,
+   "fill": "orange",
+   "text": "Not a state of the platform: see #915 (https://github.com/shaiknoorullah/hg-mono/issues/915). Issuing a refund above your limit is answered 202 and sent up for approval; the daily-limit 409 comes only when approving."
+  },
+  "n_selfapproval": {
+   "x": 16720,
+   "y": 3590,
+   "w": 700,
+   "maxH": 170,
+   "fill": "orange",
+   "text": "Not a state of the platform: see #915 (https://github.com/shaiknoorullah/hg-mono/issues/915). Issuing a refund above your limit is answered 202 and sent up for approval; the self-approval 409 comes only when approving."
   }
  },
  "designSystems": [

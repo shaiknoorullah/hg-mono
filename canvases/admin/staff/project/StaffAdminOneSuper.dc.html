@@ -39,7 +39,7 @@ a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
 <div data-slot="alert" style="display: flex; align-items: center; gap: var(--space-3); min-height: 44px; padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4); border-radius: var(--radius-md); border: 1px solid var(--feedback-info-border); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text)">
 <span style="display: inline-flex; color: var(--feedback-info-icon)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="lock" size="md"></x-import></span>
 <div style="margin: 0; flex-grow: 1; font-size: var(--type-body-md-size); line-height: 1.45">You can view staff accounts. Only a super admin can invite staff: Aminah Rahman.</div>
-<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Names: ACTIVE super admins from the loaded list, shown only when has_more=false. Otherwise the line ends at "invite staff." Fixture: bootstrap, the second super admin (Sana Qureshi) is still Invited, so only one name shows. A suspended second super admin can't happen through the API (the staff rules refuse it with 409 LAST_SUPER_ADMIN).</span>
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Names: ACTIVE super admins from the loaded list, shown only when has_more=false. Otherwise the line ends at "invite staff." Fixture: bootstrap, the second super admin (Sana Qureshi) is still Invited, so only one name shows. A suspended second super admin can't happen through the console (it has no operation that suspends an account).</span>
 <span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Proposed component: Banner (shadcn Alert + design system Icon/Button)</span>
 
 </div>
@@ -71,10 +71,10 @@ a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
 </div>
 <div style="display: flex; flex-direction: column; gap: var(--space-1)">
 <h3 style="margin: 0; font-size: var(--type-body-md-size); font-weight: 600">Super admin</h3>
-<p style="margin: 0; font-size: var(--type-body-sm-size); line-height: 1.5; color: var(--text-secondary)">Everything an admin can do, plus inviting staff, removing a leaver's access, resetting a colleague's two-step sign-in after confirming who they are, changing an issuing body's status, and revoking a certificate. The platform must keep at least two active super admins.</p>
+<p style="margin: 0; font-size: var(--type-body-sm-size); line-height: 1.5; color: var(--text-secondary)">Everything an admin can do, plus inviting staff, changing an issuing body's status, and revoking a certificate. The platform must keep at least two active super admins.</p>
 </div>
 </div>
-<p style="margin: 0; font-size: var(--type-body-sm-size); color: var(--text-secondary)">Main differences shown; the full list is set by the platform and can't be edited. Any goodwill refund above CAD 50.00 needs a second admin to approve it, whoever sends it. Changing someone's role isn't in the console yet. Nobody can change their own role or approve their own refund.</p>
+<p style="margin: 0; font-size: var(--type-body-sm-size); color: var(--text-secondary)">Main differences shown; the full list is set by the platform and can't be edited. Changing someone's role isn't in the console yet. Nobody can change their own role or approve their own refund.</p>
 
 <span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Needs API: GET /admin/me/permissions, so this card can be generated from permissions</span>
 </div>
@@ -119,7 +119,7 @@ class Component extends DCLogic {
       if (r.note === 'auto') return muted('Never set up');
       if (r.status === 'INVITED') return muted('Set up when they accept');
       if (r.mfa) return 'Set up';
-      return h('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' } }, h(DS.Badge, { variant: 'warning', size: 'md', icon: 'warning' }, 'Not set up'), muted('Active accounts must have two-step sign-in. Tell the platform on-call engineer to check this account.'));
+      return h('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' } }, h(DS.Badge, { variant: 'warning', size: 'md', icon: 'warning' }, 'Not set up'));
     };
     const plainName = function (r) { return h('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'center' } }, h('span', { style: { fontWeight: 600 } }, r.full_name), r.you ? h(DS.Badge, { variant: 'outline', size: 'sm' }, 'You') : null); };
     const nameCell = plainName;
