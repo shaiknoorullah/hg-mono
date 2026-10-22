@@ -38,7 +38,7 @@
         <ul aria-label="{{g.name}}" style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--space-2)">
           <sc-for list="{{g.items}}" as="it" hint-placeholder-count="4">
             <li>
-              <a class="hg-focus" href="{{it.href}}" aria-current="{{it.current}}" aria-label="{{it.aria}}" title="{{it.tip}}" style="position: relative; display: flex; align-items: center; justify-content: {{itemJustify}}; gap: var(--space-3); min-height: 44px; padding: 0 var(--space-3); box-sizing: border-box; border-radius: var(--radius-sm); color: var(--text-on-accent); text-decoration: none; font-size: var(--type-body-md-size); font-weight: {{it.weight}}; border: {{it.border}}; box-shadow: {{it.ring}}">
+              <a class="hg-focus" href="{{it.href}}" aria-current="{{it.current}}" aria-label="{{it.aria}}" title="{{it.tip}}" style="position: relative; display: flex; align-items: center; justify-content: {{itemJustify}}; gap: var(--space-3); min-height: 44px; padding: 0 var(--space-3); box-sizing: border-box; border-radius: var(--radius-sm); color: {{it.fg}}; background: {{it.bg}}; text-decoration: none; font-size: var(--type-body-md-size); font-weight: {{it.weight}}; border: {{it.border}}; box-shadow: {{it.ring}}">
                 <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{it.icon}}" weight="{{it.iconWeight}}" size="md"></x-import>
                 <sc-if value="{{expanded}}" hint-placeholder-val="{{true}}">
                   <span style="flex-grow: 1">{{it.label}}</span>
@@ -91,7 +91,11 @@ class Component extends DCLogic {
       iconWeight: key === active ? 'bold' : 'linear',
       current: key === active ? 'page' : undefined,
       weight: key === active ? 'var(--font-weight-bold)' : 'var(--font-weight-medium)',
-      border: key === active ? '1px solid var(--text-on-accent)' : '1px solid transparent',
+      // The current page is an inverted tile on the chrome: filled in the on-accent colour, its label and icon
+      // in the chrome colour, bold. Never an outline or a side bar (owner rule, 1 Oct 2026).
+      fg: key === active ? 'var(--surface-chrome)' : 'var(--text-on-accent)',
+      bg: key === active ? 'var(--text-on-accent)' : 'transparent',
+      border: '1px solid transparent',
       ring: key === focusItem ? ring : 'none',
       hasCount: typeof count === 'number',
       countLabel: typeof count === 'number' ? String(count) : '',
