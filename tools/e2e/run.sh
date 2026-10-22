@@ -301,6 +301,15 @@ redesign_offer() {
 # lab/1-sign-in.yaml. The other 11 wait on devworld in CI
 # (https://github.com/shaiknoorullah/hg-mono/issues/1030). A listed file that has gone missing is
 # recorded as a failure rather than skipped, so a rename cannot quietly drop its captures.
+#
+# A listed flow REPLACES the file of the same name beside it rather than running after it, because
+# it is that journey plus the captures: same assertions, same screenshots but for the one that
+# became a board capture of the same screen. Running both signed in twice, and the second sign-in
+# fails: `CODE` is the code run.sh read once at the start, and it holds only while that challenge is
+# open ("asking again inside the open challenge sends nothing new"). Ten minutes later the second
+# flow's own "Send code" opens a *new* challenge while the flow still types the old code, and the
+# app says "That code isn't right". Replacing in place also keeps the sequence's position, so the
+# session the flows after it reuse is established at the same point.
 lab_for_ci() {
   case "$1" in
     customer) printf '%s\n' redesign/lab/1-sign-in.yaml ;;
@@ -312,11 +321,17 @@ if [ "$mode" = all ]; then
     mapfile -t flows < <(find "$e2e/native/$app/redesign" -maxdepth 1 -type f -name '*.yaml' ! -name 'config.yaml' 2>/dev/null | sort)
     while IFS= read -r rel; do
       [ -n "$rel" ] || continue
-      if [ -f "$e2e/native/$app/$rel" ]; then
-        flows+=("$e2e/native/$app/$rel")
-      else
+      labfile="$e2e/native/$app/$rel"
+      if [ ! -f "$labfile" ]; then
         record "redesign-$app-$(basename "$rel" .yaml)" fail "lab_for_ci names $rel, which does not exist"
+        continue
       fi
+      twin="$e2e/native/$app/redesign/$(basename "$rel")"
+      swapped=no
+      for i in "${!flows[@]}"; do
+        if [ "${flows[$i]}" = "$twin" ]; then flows[$i]="$labfile"; swapped=yes; break; fi
+      done
+      [ "$swapped" = yes ] || flows+=("$labfile")
     done < <(lab_for_ci "$app")
     if [ "${#flows[@]}" -eq 0 ]; then
       record "redesign-$app" skip "no redesign flows (tools/e2e/native/$app/redesign/*.yaml)"
