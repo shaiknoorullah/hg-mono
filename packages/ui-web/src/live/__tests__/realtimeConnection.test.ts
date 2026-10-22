@@ -125,6 +125,107 @@ describe('RealtimeConnection', () => {
   });
 });
 
+describe('RealtimeConnection: refusals the server gives, and what can put each right', () => {
+  const control = (type: string, data: unknown) => ({ id: type, seq: 0, channel: '', type, v: 1, ts: '', data });
+  let sockets: FakeSocket[];
+  let tickets: number;
+  let reauth: unknown[];
+  let mint: () => Promise<{ ticket: string; websocket_url: string }>;
+  let conn: RealtimeConnection;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    sockets = [];
+    tickets = 0;
+    reauth = [];
+    mint = async () => ({ ticket: `t${++tickets}`, websocket_url: 'placeholder' });
+    conn = new RealtimeConnection({
+      client: 'admin-web',
+      apiBaseUrl: 'http://localhost:4010',
+      mintTicket: () => mint(),
+      createSocket: (url) => {
+        const s = new FakeSocket(url);
+        sockets.push(s);
+        return s;
+      },
+      onReauthRequired: (info) => reauth.push(info),
+      random: () => 0,
+    });
+  });
+  afterEach(() => {
+    conn.stop();
+    vi.useRealTimers();
+  });
+
+  it('hands a subscribe_error to the channel that was refused, and to no other', async () => {
+    const ops: unknown[] = [];
+    const orders: unknown[] = [];
+    conn.subscribe('admin:ops', () => undefined, { onSubscribeError: (e) => ops.push(e) });
+    conn.subscribe('order:o1', () => undefined, { onSubscribeError: (e) => orders.push(e) });
+    conn.start();
+    await vi.advanceTimersByTimeAsync(0);
+    sockets[0]!.open();
+    sockets[0]!.push(control('subscribe_error', { channel: 'admin:ops', code: 'forbidden', message: 'No.' }));
+    expect(ops).toEqual([{ channel: 'admin:ops', code: 'forbidden', message: 'No.' }]);
+    expect(orders).toEqual([]);
+    // A refusal is not a lost connection: the socket stays open and nothing is retried.
+    expect(conn.status).toBe('open');
+    expect(conn.retry.attempt).toBe(0);
+  });
+
+  it('reauth_required ends the connection and asks for a sign-in: it does not retry', async () => {
+    conn.subscribe('admin:ops', () => undefined);
+    conn.start();
+    await vi.advanceTimersByTimeAsync(0);
+    sockets[0]!.open();
+    sockets[0]!.push(control('reauth_required', { deadline: '2026-10-05T12:05:00.000Z' }));
+    expect(reauth).toEqual([{ at: expect.any(Number), deadline: '2026-10-05T12:05:00.000Z', via: 'frame' }]);
+    expect(conn.status).toBe('offline');
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(sockets).toHaveLength(1);
+    expect(tickets).toBe(1);
+  });
+
+  it('a 4401 close asks for a sign-in too, and a later reconnectNow mints a fresh ticket', async () => {
+    conn.subscribe('admin:ops', () => undefined);
+    conn.start();
+    await vi.advanceTimersByTimeAsync(0);
+    sockets[0]!.open();
+    sockets[0]!.drop(4401);
+    expect(reauth).toEqual([{ at: expect.any(Number), deadline: null, via: 'close' }]);
+    expect(conn.status).toBe('offline');
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(sockets).toHaveLength(1);
+    // After the person signs in again:
+    conn.reconnectNow();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(sockets).toHaveLength(2);
+    expect(sockets[1]!.url).toContain('ticket=t2');
+  });
+
+  it('says whether the last failed attempt got stuck at the ticket or at the socket', async () => {
+    let fail = true;
+    mint = async () => {
+      if (fail) throw new Error('503');
+      return { ticket: `t${++tickets}`, websocket_url: 'placeholder' };
+    };
+    conn.subscribe('admin:ops', () => undefined);
+    conn.start();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(conn.retry.cause).toBe('ticket');
+    expect(sockets).toHaveLength(0);
+
+    fail = false;
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(sockets).toHaveLength(1);
+    sockets[0]!.drop(1006);
+    expect(conn.retry.cause).toBe('socket');
+    await vi.advanceTimersByTimeAsync(20_000);
+    sockets[1]!.open();
+    expect(conn.retry.cause).toBeNull();
+  });
+});
+
 describe('resolveSocketUrl', () => {
   it("uses the ticket's ws URL, an override, or derives one from the API base", () => {
     expect(resolveSocketUrl('wss://api.halalgoes.com/v1/ws')).toBe('wss://api.halalgoes.com/v1/ws');

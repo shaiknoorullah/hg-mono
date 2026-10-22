@@ -22,7 +22,7 @@ import { unwrap } from '../../lib/load';
 import { getToken } from '../../lib/token';
 import { api } from '../data/api';
 import type { StaffRole } from '../data/session';
-import { applyAlertEvent, applyReplay, BACKFILL_EVENTS, setAlertsConnection } from '../alerts/store';
+import { applyAlertEvent, applyReplay, BACKFILL_EVENTS, setAlertsConnection, setAlertsFailure } from '../alerts/store';
 import { applyQueueDepthFrame, setQueueConnection } from './queueDepth';
 
 const SOCKET_URL = (import.meta.env['VITE_WS_URL'] as string | undefined) || undefined;
@@ -56,7 +56,16 @@ function OpsFeed({ role }: { role: StaffRole | null }) {
       }
       if (signal.kind === 'event') applyAlertEvent(signal.event);
     },
-    { backfill: BACKFILL_EVENTS, onReplay: (result) => applyReplay(result) },
+    {
+      backfill: BACKFILL_EVENTS,
+      onReplay: (result) => applyReplay(result),
+      // Two refusals have a screen of their own (`../alerts/AlertsRoute`). `not_found` and
+      // `subscription_limit` have no board yet, so they are not turned into words here.
+      onSubscribeError: ({ code }) => {
+        if (code === 'forbidden') setAlertsFailure({ kind: 'forbidden' });
+        else if (code === 'invalid_channel') setAlertsFailure({ kind: 'invalid-channel' });
+      },
+    },
   );
   return null;
 }
@@ -80,6 +89,8 @@ export function RedesignRealtime({ children, role, enabled = true, createSocket 
       socketUrl={SOCKET_URL}
       mintTicket={mintTicket}
       getAccessToken={getToken}
+      // The server wants a new sign-in (`reauth_required`, or close 4401): live alerts ask for it.
+      onReauthRequired={(info) => setAlertsFailure({ kind: 'reauth', at: new Date(info.at) })}
       enabled={enabled}
       {...(createSocket ? { createSocket } : {})}
     >

@@ -28,6 +28,29 @@ export interface ReplayState {
   readonly truncated: boolean;
 }
 
+/**
+ * Why live alerts are not arriving, when the server or the sign-in is the reason
+ * (`contracts/websocket.md`). Each kind has its own screen because each is put right differently.
+ * A ticket that could not be minted is not here: the connection itself reports it (`RetryInfo.cause`),
+ * and retrying can work.
+ *
+ *
+ * - `forbidden`: `subscribe_error` `forbidden`. This account may not have the channel. Retrying
+ *   cannot work; a role change needs a new sign-in.
+ * - `invalid-channel`: `subscribe_error` `invalid_channel`. The page asked for a channel the server
+ *   does not know, which is our fault. Retrying sends the same request; reloading the page is the
+ *   only thing a person can do.
+ * - `reauth`: `reauth_required`, or the socket closed `4401`. The session ended. Retrying cannot
+ *   work; the person signs in again, then the connection is restarted.
+ *
+ * The other two `subscribe_error` codes (`not_found`, `subscription_limit`) have no board and are
+ * not recorded here.
+ */
+export type AlertsFailure =
+  | { readonly kind: 'forbidden' }
+  | { readonly kind: 'invalid-channel' }
+  | { readonly kind: 'reauth'; readonly at: Date };
+
 export interface AlertsState {
   readonly rows: readonly AlertRow[];
   readonly replay: ReplayState;
@@ -38,6 +61,8 @@ export interface AlertsState {
   readonly gap: { readonly from: Date; readonly to: Date } | null;
   /** Alerts whose banner the person dismissed this session (that alert only). */
   readonly dismissed: ReadonlySet<number>;
+  /** Set when the reason alerts are not arriving is one of the three above. */
+  readonly failure: AlertsFailure | null;
 }
 
 const INITIAL: AlertsState = {
@@ -47,6 +72,7 @@ const INITIAL: AlertsState = {
   lostAt: null,
   gap: null,
   dismissed: new Set(),
+  failure: null,
 };
 
 let state: AlertsState = INITIAL;
@@ -79,22 +105,36 @@ export function applyAlertEvent(event: RealtimeEnvelope): void {
 
 /** A replay finished. The first one is the backfill; a later one is a reconnect's catch-up. */
 export function applyReplay(signal: { fromSeq: number; truncated: boolean }, now: Date = new Date()): void {
+  // A replay only follows a successful subscribe, so a recorded refusal is over.
+  const refused = state.failure?.kind === 'forbidden' || state.failure?.kind === 'invalid-channel';
+  const failure = refused ? null : state.failure;
   if (state.replay.phase === 'pending') {
     emit({
       ...state,
+      failure,
       replay: { phase: 'done', complete: signal.fromSeq <= 1 && !signal.truncated, truncated: signal.truncated },
     });
     return;
   }
   if (signal.truncated) {
-    emit({ ...state, gap: { from: state.lostAt ?? now, to: now } });
+    emit({ ...state, failure, gap: { from: state.lostAt ?? now, to: now } });
+  } else if (refused) {
+    emit({ ...state, failure });
   }
 }
 
 export function setAlertsConnection(connection: RealtimeStatus, now: Date = new Date()): void {
   if (state.connection === connection) return;
   const wasOpen = state.connection === 'open';
-  emit({ ...state, connection, lostAt: wasOpen && connection !== 'open' ? now : state.lostAt });
+  // An open socket ends a lost sign-in. A refused subscribe stays until a replay shows it worked.
+  const failure = connection === 'open' && state.failure?.kind === 'reauth' ? null : state.failure;
+  emit({ ...state, connection, failure, lostAt: wasOpen && connection !== 'open' ? now : state.lostAt });
+}
+
+/** Records (or clears, with `null`) why alerts are not arriving. */
+export function setAlertsFailure(failure: AlertsFailure | null): void {
+  if (state.failure === failure) return;
+  emit({ ...state, failure });
 }
 
 /** Hides that alert's banner. The alert stays in the list. */

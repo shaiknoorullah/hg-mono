@@ -14,6 +14,7 @@ import {
   type RealtimeConnectionOptions,
   type RealtimeStatus,
   type ReplayResult,
+  type SubscribeErrorInfo,
   type RetryInfo,
   type SubscribeOptions,
 } from './realtimeConnection.js';
@@ -49,6 +50,7 @@ export function RealtimeProvider({ children, enabled = true, ...options }: Realt
         createSocket: options.createSocket,
         random: options.random,
         onStatus: setStatus,
+        onReauthRequired: (info) => optionsRef.current.onReauthRequired?.(info),
       }),
   );
 
@@ -86,13 +88,17 @@ export function useRealtimeChannel(
   const replayRef = useRef(options?.onReplay);
   replayRef.current = options?.onReplay;
   const wantsReplay = Boolean(options?.onReplay);
+  const subscribeErrorRef = useRef(options?.onSubscribeError);
+  subscribeErrorRef.current = options?.onSubscribeError;
+  const wantsSubscribeError = Boolean(options?.onSubscribeError);
   useEffect(() => {
     if (!connection || !channel) return;
     return connection.subscribe(channel, (signal) => handlerRef.current(signal), {
       ...(backfill ? { backfill } : {}),
       ...(wantsReplay ? { onReplay: (result: ReplayResult) => replayRef.current?.(result) } : {}),
+      ...(wantsSubscribeError ? { onSubscribeError: (error: SubscribeErrorInfo) => subscribeErrorRef.current?.(error) } : {}),
     });
-  }, [connection, channel, backfill, wantsReplay]);
+  }, [connection, channel, backfill, wantsReplay, wantsSubscribeError]);
 }
 
 /** What a screen needs to show "Trying again in 8 seconds" and to offer "Reconnect now". */
@@ -101,7 +107,7 @@ export interface RealtimeControls {
   readonly reconnectNow: () => void;
 }
 
-const NO_CONTROLS: RealtimeControls = { retry: () => ({ attempt: 0, nextAt: null }), reconnectNow: () => undefined };
+const NO_CONTROLS: RealtimeControls = { retry: () => ({ attempt: 0, nextAt: null, cause: null }), reconnectNow: () => undefined };
 
 /** The connection's retry state and "reconnect now"; inert without a provider. */
 export function useRealtimeControls(): RealtimeControls {

@@ -1,4 +1,8 @@
-/** Live alerts copy, verbatim from `ASS/Alerts*` where drawn. */
+/**
+ * Live alerts copy, verbatim from `ASS/Alerts*` where drawn, and from `ORD/LiveAlerts*` for the four
+ * connection failures below (`failure`): `LiveAlertsTicketFailed`, `LiveAlertsForbidden`,
+ * `LiveAlertsInvalidChannel` and `LiveAlertsSessionEnded`. Those two sets of boards are different.
+ */
 export const ALERTS = {
   subtitle: 'Shows recent alerts the live connection can replay (at most the last 7 days). Reloading replays them again.',
   subtitleRecent: 'Shows recent alerts the live connection can replay. Reloading replays them again.',
@@ -52,6 +56,40 @@ export const ALERTS = {
       `Other pages still work. If this keeps happening, call the platform on-call engineer and give them the time of the last attempt, ${at}.`,
     retry: 'Try again',
     system: 'Check system status',
+  },
+  /**
+   * Why alerts are not arriving, one screen per cause (each is put right differently, see
+   * `./store` `AlertsFailure`). `code` is the line under "Technical details for the platform team".
+   */
+  failure: {
+    notConnected: 'Not connected',
+    signedOut: 'Signed out',
+    technical: 'Technical details for the platform team',
+    ticket: {
+      title: 'Live alerts didn’t start',
+      body: 'We couldn’t connect to live alerts, so nothing is arriving. Nothing was changed. Try again; if it keeps failing, use the orders grid meanwhile.',
+      action: 'Try again',
+      code: 'POST /v1/realtime/ticket failed',
+    },
+    forbidden: {
+      title: 'This account can’t receive live alerts',
+      body: 'The server refused the alerts channel for your sign-in. If your role changed recently, sign out and back in. Otherwise ask an admin to check your role. Nothing was changed.',
+      code: 'subscribe_error: forbidden',
+    },
+    invalidChannel: {
+      title: 'Live alerts couldn’t start',
+      body: 'The page asked for an alerts channel the server doesn’t recognise. That’s a fault on our side, not yours. Reload the page; if it keeps happening, tell the platform team.',
+      action: 'Reload the page',
+      code: 'subscribe_error: invalid_channel',
+    },
+    reauth: {
+      title: 'Sign in again to keep receiving alerts',
+      body: (at: string) =>
+        `Your session ended at ${at}, so live alerts stopped. Staff sessions end after 30 minutes without activity, or 12 hours after you signed in. The alerts already here are kept underneath. Alerts raised while you're signed out won't appear here afterwards.`,
+      lostAuthenticator: 'Lost your authenticator? A super admin resets it after calling you back on the phone number on your account and checking two account details.',
+      signOut: 'Sign out',
+      submit: 'Sign in and resume alerts',
+    },
   },
   columns: { time: 'Time', kind: 'Kind', severity: 'Severity', about: 'About', what: 'What happened' },
   severityNote: ', platform alerts only',

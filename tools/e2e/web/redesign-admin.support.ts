@@ -1,5 +1,7 @@
 import { expect, type Page, type Route } from '@playwright/test';
 
+import { expectDesignFor, type BoardFor } from './design';
+
 /**
  * Shared steps for the redesigned admin console's specs (redesign-admin.*.spec.ts), on the mock
  * and on the real API alike.
@@ -58,3 +60,26 @@ export async function signIn(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
 }
 
+
+/**
+ * Waits for the screen to settle and captures it for its board. Shared because every
+ * redesign-admin capture spec needs the same two steps, and the "Not built yet" guard is the
+ * one that saves a confusing diff: a build older than the screen draws it, and that is the
+ * build being stale rather than a state the board draws.
+ */
+export async function captureBoard(page: Page, boards: BoardFor): Promise<void> {
+  await page.waitForLoadState('networkidle');
+  await expect(page.getByText('Not built yet')).toHaveCount(0);
+  await expectDesignFor(page, boards);
+}
+
+/** Signs in as `role`, then opens `hash` on the redesigned console. */
+export async function signInAndOpen(page: Page, role: StaffRole, hash: string): Promise<void> {
+  await routeLogin(page, role);
+  await page.goto('/');
+  await signIn(page);
+  await expect(page.locator('#app-bar-heading')).toBeVisible();
+  await page.evaluate((h) => {
+    window.location.hash = h;
+  }, hash);
+}
