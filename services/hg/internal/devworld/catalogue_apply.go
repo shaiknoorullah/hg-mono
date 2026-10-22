@@ -34,7 +34,8 @@ func ApplyCatalogue(ctx context.Context, dsn string) error {
 	}
 	today := torontoWeekday(time.Now())
 	items := 0
-	for _, r := range Catalogue {
+	all := AllRestaurants()
+	for _, r := range all {
 		if err := applyRestaurant(ctx, tx, r, bodies, today); err != nil {
 			return fmt.Errorf("devworld: catalogue %s: %w", r.Slug, err)
 		}
@@ -45,7 +46,7 @@ func ApplyCatalogue(ctx context.Context, dsn string) error {
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("devworld: catalogue commit: %w", err)
 	}
-	fmt.Fprintf(os.Stderr, "devworld: catalogue %d restaurants, %d menu items\n", len(Catalogue), items)
+	fmt.Fprintf(os.Stderr, "devworld: catalogue %d restaurants, %d menu items\n", len(all), items)
 	return nil
 }
 
@@ -127,6 +128,16 @@ func applyRestaurant(ctx context.Context, tx pgx.Tx, r CatalogueRestaurant, bodi
 	return insertMenu(ctx, tx, r)
 }
 
+// certKeyPrefix is the object key prefix of a certificate's stored object.
+// SeedDocumentFiles uploads a file for every key under "devworld/" and for none
+// under any other prefix.
+func certKeyPrefix(r CatalogueRestaurant) string {
+	if r.CertFileMissing {
+		return "devworld-nofile/"
+	}
+	return "devworld/"
+}
+
 func cuisineNames(slugs []string) string {
 	names := make([]string, len(slugs))
 	for i, s := range slugs {
@@ -178,9 +189,9 @@ func insertOwnedRestaurant(ctx context.Context, tx pgx.Tx, r CatalogueRestaurant
 		  id, bucket, object_key, purpose, owner_account_id, restaurant_id,
 		  content_type, byte_size, sha256, state, virus_scan_state, uploaded_by, confirmed_at
 		) VALUES (
-		  $1::uuid, 'hg-kyc', 'devworld/' || $3 || '.pdf', 'KYC_DOCUMENT', $4, $2,
+		  $1::uuid, 'hg-kyc', $5::text || $3 || '.pdf', 'KYC_DOCUMENT', $4, $2,
 		  'application/pdf', 1024, sha256($1::uuid::text::bytea), 'READY', 'CLEAN', $4, now()
-		) ON CONFLICT (id) DO NOTHING`, objID, r.ID, number, catalogueAdminID); err != nil {
+		) ON CONFLICT (id) DO NOTHING`, objID, r.ID, number, catalogueAdminID, certKeyPrefix(r)); err != nil {
 		return fmt.Errorf("certificate object: %w", err)
 	}
 	if _, err := tx.Exec(ctx, `
@@ -231,6 +242,8 @@ func insertHours(ctx context.Context, tx pgx.Tx, r CatalogueRestaurant, today in
 	var opens, closes string
 	skip := -1
 	switch r.Hours {
+	case hoursNone:
+		return nil
 	case hoursAfternoon:
 		opens, closes = "12:00", "23:59"
 	case hoursClosedToday:

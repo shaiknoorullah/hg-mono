@@ -1,0 +1,20 @@
+[
+  {
+    "version": "1.0.0",
+    "date": "2026-10-22",
+    "notes": [
+      {
+        "title": "A new look for HalalGoes",
+        "body": "Home, restaurants, your cart, orders and Account share one design. It follows your phone's light or dark setting and works with larger text."
+      },
+      {
+        "title": "Halal certification you can read",
+        "body": "A restaurant page shows its halal certification details when we have them. How we check explains what we verify."
+      },
+      {
+        "title": "Addresses and notifications in Account",
+        "body": "Save several addresses, choose where each order goes, and manage notifications from Account."
+      }
+    ]
+  }
+]

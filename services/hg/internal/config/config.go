@@ -58,6 +58,7 @@ type Config struct {
 	SMS      SMS
 	OTP      OTP
 	Email    Email
+	Geo      Geo
 	Push     Push
 	RiderPay RiderPay
 	Tax      Tax
@@ -259,6 +260,26 @@ type Push struct {
 	// must not stop sign-in or ordering.
 	Invalid string
 }
+
+// Geo holds the address-search settings (contract operations suggestAddresses,
+// getPlaceAddress and reverseGeocode; docs/decisions/README.md, "Where map
+// address search comes from"). The Mapbox token is a server-side secret: it is
+// never sent to a client, and the public tokens the apps carry for map tiles
+// are a different thing.
+type Geo struct {
+	// Provider is "mapbox", "fake" or "unavailable". Unset means "mapbox"
+	// when HG_MAPBOX_SECRET_TOKEN is set; otherwise "fake" outside production
+	// and "unavailable" in production. The fake answers from a built-in
+	// Toronto catalogue and is refused in production. "unavailable" answers
+	// every call with 503 GEOCODER_UNAVAILABLE.
+	Provider string
+	// MapboxToken is HG_MAPBOX_SECRET_TOKEN. Without it in production,
+	// address search is unavailable until it is set; the API still boots.
+	MapboxToken string
+}
+
+// Configured reports whether real address search can run.
+func (g Geo) Configured() bool { return g.Provider == "mapbox" && g.MapboxToken != "" }
 
 // EmailLinkDomain is the only domain an email may link to outside local.
 const EmailLinkDomain = "halalgoes.com"
@@ -563,6 +584,36 @@ func Load(getenv func(string) string) (*Config, error) {
 	if cfg.Env == EnvProduction && len(cfg.Email.AllowList) > 0 {
 		l.errf("HG_EMAIL_ALLOWLIST is for non-production environments only: in production it would " +
 			"silently stop email to every customer not on it")
+	}
+
+	cfg.Geo = Geo{MapboxToken: l.optional("HG_MAPBOX_SECRET_TOKEN", "")}
+	// With no token the provider is the fake outside production and
+	// "unavailable" in production: the API still boots, and the three geo
+	// routes answer 503 GEOCODER_UNAVAILABLE until the token is set. The fake
+	// is never an option in production.
+	defaultGeoProvider := "fake"
+	switch {
+	case cfg.Geo.MapboxToken != "":
+		defaultGeoProvider = "mapbox"
+	case cfg.Env == EnvProduction:
+		defaultGeoProvider = "unavailable"
+	}
+	cfg.Geo.Provider = defaultGeoProvider
+	if explicit := l.optional("HG_GEO_PROVIDER", ""); explicit != "" {
+		cfg.Geo.Provider = explicit
+		switch explicit {
+		case "mapbox":
+			if cfg.Geo.MapboxToken == "" {
+				l.errf("HG_GEO_PROVIDER=mapbox requires HG_MAPBOX_SECRET_TOKEN")
+			}
+		case "fake":
+			if cfg.Env == EnvProduction {
+				l.errf("HG_GEO_PROVIDER=fake is refused in production: the fake answers from a built-in " +
+					"catalogue, so customers would be offered addresses that do not exist")
+			}
+		default:
+			l.errf("HG_GEO_PROVIDER: %q is not one of mapbox, fake", explicit)
+		}
 	}
 
 	cfg.Push = Push{ExpoAccessToken: strings.TrimSpace(l.getenv("EXPO_ACCESS_TOKEN"))}

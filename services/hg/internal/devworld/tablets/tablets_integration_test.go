@@ -92,6 +92,14 @@ func TestBeatTouchesOnlyTheDevWorldsLiveRestaurants(t *testing.T) {
 			want = append(want, r.Slug)
 		}
 	}
+	// The state restaurants are live and toggled on, so the beat keeps their
+	// order screens connected: a stale heartbeat would read CLOSED_OFFLINE and
+	// hide the state each exists to show (empty menu, out of range, missing
+	// certificate file). last-light-bakehouse has no weekly hours, so its hours
+	// close it whatever the heartbeat says.
+	for _, r := range devworld.StateRestaurants {
+		want = append(want, r.Slug)
+	}
 	sort.Strings(want)
 	if int(n) != len(touched) {
 		t.Errorf("Beat reported %d rows, %d have a fresh heartbeat", n, len(touched))

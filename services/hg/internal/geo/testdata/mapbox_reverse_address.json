@@ -1,0 +1,27 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "dXJuOm1ieGFkcjpmaXh0dXJlLWRhbmZvcnQtMTI0MA",
+      "geometry": {"type": "Point", "coordinates": [-79.3310, 43.6815]},
+      "properties": {
+        "mapbox_id": "dXJuOm1ieGFkcjpmaXh0dXJlLWRhbmZvcnQtMTI0MA",
+        "feature_type": "address",
+        "name": "1240 Danforth Avenue",
+        "coordinates": {"longitude": -79.3310, "latitude": 43.6815, "accuracy": "rooftop"},
+        "place_formatted": "Toronto, Ontario M4J 1M6, Canada",
+        "full_address": "1240 Danforth Avenue, Toronto, Ontario M4J 1M6, Canada",
+        "context": {
+          "address": {"mapbox_id": "a2", "address_number": "1240", "street_name": "danforth avenue", "name": "1240 Danforth Avenue"},
+          "street": {"mapbox_id": "s2", "name": "danforth avenue"},
+          "postcode": {"mapbox_id": "p3", "name": "M4J 1M6"},
+          "place": {"mapbox_id": "pl1", "name": "Toronto"},
+          "region": {"mapbox_id": "r1", "name": "Ontario", "region_code": "ON", "region_code_full": "CA-ON"},
+          "country": {"mapbox_id": "c1", "name": "Canada", "country_code": "CA", "country_code_alpha_3": "CAN"}
+        }
+      }
+    }
+  ],
+  "attribution": "© 2026 Mapbox and its suppliers. All rights reserved."
+}

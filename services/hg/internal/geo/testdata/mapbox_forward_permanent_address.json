@@ -1,0 +1,27 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "dXJuOm1ieGFkcjpmaXh0dXJlLWhhcmJvdXItODg",
+      "geometry": {"type": "Point", "coordinates": [-79.3806, 43.6405]},
+      "properties": {
+        "mapbox_id": "dXJuOm1ieGFkcjpmaXh0dXJlLWhhcmJvdXItODg",
+        "feature_type": "address",
+        "name": "88 Harbour Street",
+        "coordinates": {"longitude": -79.3806, "latitude": 43.6405, "accuracy": "rooftop"},
+        "place_formatted": "Toronto, Ontario M5J 0C3, Canada",
+        "full_address": "88 Harbour Street, Toronto, Ontario M5J 0C3, Canada",
+        "context": {
+          "address": {"mapbox_id": "a1", "address_number": "88", "street_name": "harbour street", "name": "88 Harbour Street"},
+          "street": {"mapbox_id": "s1", "name": "harbour street"},
+          "postcode": {"mapbox_id": "p1", "name": "M5J 0C3"},
+          "place": {"mapbox_id": "pl1", "name": "Toronto"},
+          "region": {"mapbox_id": "r1", "name": "Ontario", "region_code": "ON", "region_code_full": "CA-ON"},
+          "country": {"mapbox_id": "c1", "name": "Canada", "country_code": "CA", "country_code_alpha_3": "CAN"}
+        }
+      }
+    }
+  ],
+  "attribution": "© 2026 Mapbox and its suppliers. All rights reserved."
+}

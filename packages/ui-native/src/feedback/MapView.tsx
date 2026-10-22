@@ -1,34 +1,41 @@
 /**
- * `MapView` — 02-components.md §26, the `Map` entry.
+ * `MapView` — 02-components.md §26, the `Map` entry, drawn with `@rnmapbox/maps`: the library the
+ * customer and rider apps already depend on (it is an optional peer of this package).
  *
- * A deliberately thin wrapper over `react-native-maps` that exposes only what the specs need:
- * a restaurant pin, a customer pin, a rider position, and a route line. The underlying API is not
- * re-exported and not passed through — no `provider`, no `region`, no `children`, no
- * `onRegionChangeComplete`. A screen that needs something else asks for it to be added here, so
- * the four apps cannot each grow their own private map dialect.
+ * A deliberately thin wrapper that exposes only what the specs need: a restaurant pin, a customer
+ * pin, a rider position, and a route line. The underlying API is not re-exported and not passed
+ * through. A screen that needs something else asks for it to be added here, so the apps cannot
+ * each grow their own private map dialect. (`MapPinPicker` is the draggable-pin sibling for
+ * address entry.)
  *
  * The rules that make this component non-obvious, all from the specs:
  *
  *  - **The map is never the only way to know where the order is.** `summary` is a required prop
  *    and is the actual accessible content; the map itself is hidden from assistive technology
- *    (04-accessibility.md, 02-components.md §26). If tiles fail, or the native module is not
- *    installed at all, the summary and `fallbackDetail` are what render.
+ *    (04-accessibility.md, 02-components.md §26). If tiles fail, the SDK is not linked in this
+ *    build (no download token), or there is no public token, the summary and `fallbackDetail`
+ *    render with a "Map unavailable" note — never a crash and never a bare grey box
+ *    (`internal/maps.ts` is the guard, the same one the apps use).
  *  - **`stale` freezes the rider marker.** No position for 45 s means the last known point stays
  *    exactly where it is. It must not drift or interpolate (customer spec §0.4), so this component
  *    holds the last non-stale coordinate and never animates a marker between positions.
  *  - **`permission-denied` is not an error.** It is an explanation plus a route to settings.
- *  - **Camera moves never fight a user's pan**, so `follow` only re-centres when it changes or when
- *    the followed point changes, and never while the user is interacting.
+ *  - **Camera moves never fight a user's pan**: the camera is only handed a new target when the
+ *    followed point (or the set of pins) changes, never on re-render.
+ *  - Pins are the `color.map.*` tokens with a casing in the raised-surface role, so they read on
+ *    both the light and dark map. The rider's green is the registered map-pin exception to "solid
+ *    green is halal only": it carries no shield and makes no claim.
  */
-import { useEffect, useMemo, useRef } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { useMemo, useRef, useState } from 'react';
+import { View, Text } from 'react-native';
 import type { ReactNode } from 'react';
 import type { ViewStyle } from 'react-native';
 
 import { useTheme, type, palette, radius } from './internal/theme';
 import { Skeleton, renderAction } from './internal/primitives';
 import { Banner } from './Banner';
-import { resolveNativeMaps } from './internal/maps';
+import { resolveMapbox } from './internal/maps';
+import { MapPin, MapRiderArrow, boundsOf, lineShape } from './internal/mapParts';
 
 /** Structurally compatible with the contract's `GeoPoint`. */
 export interface MapPoint {
@@ -73,6 +80,11 @@ export interface MapViewProps {
   state?: MapState;
   height?: number;
   /**
+   * The public Mapbox token. Defaults to `EXPO_PUBLIC_MAPBOX_TOKEN`, read at run time. With none
+   * (or with no Mapbox SDK linked in this build) the map is not drawn and the text panel is.
+   */
+  accessToken?: string;
+  /**
    * Addresses and ETA. Rendered under the map always, and on its own when the map cannot draw —
    * this is what makes "never the only way to know" true rather than aspirational.
    */
@@ -84,23 +96,9 @@ export interface MapViewProps {
   testID?: string;
 }
 
-const MAP_COLORS = palette.map as Record<string, string>;
 
-function regionFor(points: readonly MapPoint[]) {
-  if (points.length === 0) return null;
-  const lats = points.map((p) => p.latitude);
-  const lngs = points.map((p) => p.longitude);
-  const minLat = Math.min(...lats);
-  const maxLat = Math.max(...lats);
-  const minLng = Math.min(...lngs);
-  const maxLng = Math.max(...lngs);
-  return {
-    latitude: (minLat + maxLat) / 2,
-    longitude: (minLng + maxLng) / 2,
-    latitudeDelta: Math.max((maxLat - minLat) * 1.6, 0.01),
-    longitudeDelta: Math.max((maxLng - minLng) * 1.6, 0.01),
-  };
-}
+const MAP_COLORS = palette.map as Record<string, string>;
+const PAD = { paddingTop: 40, paddingBottom: 40, paddingLeft: 40, paddingRight: 40 };
 
 export function MapView({
   summary,
@@ -113,6 +111,7 @@ export function MapView({
   interactive = true,
   state = 'ready',
   height = 240,
+  accessToken,
   fallbackDetail,
   onOpenSettings,
   onRetry,
@@ -120,42 +119,32 @@ export function MapView({
   testID = 'MapView',
 }: MapViewProps) {
   const theme = useTheme();
-  const maps = resolveNativeMaps();
+  const { mapbox } = resolveMapbox(accessToken);
+  const [tileFailed, setTileFailed] = useState(false);
 
-  /* The frozen rider position. While `stale`, the last good point is what renders — the marker
+  /* The frozen rider position. While `stale`, the last good point is what renders: the marker
    * does not move, and it certainly does not interpolate toward a guess. */
   const lastGoodRider = useRef<MapRider | null>(null);
   if (state !== 'stale' && rider) lastGoodRider.current = rider;
   const shownRider = state === 'stale' ? lastGoodRider.current : (rider ?? null);
 
-  const points = useMemo(() => {
-    const p: MapPoint[] = [];
-    if (restaurant) p.push(restaurant);
-    if (customer) p.push(customer);
-    if (shownRider) p.push(shownRider);
-    return p;
-  }, [restaurant, customer, shownRider]);
-
-  const mapRef = useRef<any>(null);
-  const followTarget = follow === 'rider' ? shownRider : null;
-
-  useEffect(() => {
-    const ref = mapRef.current;
-    if (!ref || !maps) return;
-    if (follow === 'none') return;
-    if (follow === 'rider' && followTarget && typeof ref.animateCamera === 'function') {
-      ref.animateCamera({ center: { latitude: followTarget.latitude, longitude: followTarget.longitude } });
-      return;
+  const riderLat = shownRider?.latitude;
+  const riderLng = shownRider?.longitude;
+  const camera = useMemo(() => {
+    const pts: MapPoint[] = [];
+    if (restaurant) pts.push(restaurant);
+    if (customer) pts.push(customer);
+    if (follow === 'rider' && riderLat !== undefined && riderLng !== undefined) {
+      return { centerCoordinate: [riderLng, riderLat], zoomLevel: 15, animationMode: 'easeTo', animationDuration: 600 };
     }
-    if (follow === 'fit-all' && points.length > 1 && typeof ref.fitToCoordinates === 'function') {
-      ref.fitToCoordinates(points, {
-        edgePadding: { top: 48, bottom: 48, left: 48, right: 48 },
-        animated: true,
-      });
+    if (riderLat !== undefined && riderLng !== undefined) pts.push({ latitude: riderLat, longitude: riderLng });
+    const b = boundsOf(pts);
+    if (follow === 'none' || !b) {
+      return pts[0] ? { defaultSettings: { centerCoordinate: [pts[0].longitude, pts[0].latitude], zoomLevel: 14 } } : {};
     }
-    // `points` is intentionally not a dependency: re-fitting on every position tick would fight a
-    // user's pan, which 02-components.md §26 forbids.
-  }, [follow, followTarget?.latitude, followTarget?.longitude, maps]);
+    if (pts.length === 1) return { centerCoordinate: [pts[0]!.longitude, pts[0]!.latitude], zoomLevel: 14 };
+    return { bounds: { ...b, ...PAD }, animationDuration: 600 };
+  }, [follow, restaurant?.latitude, restaurant?.longitude, customer?.latitude, customer?.longitude, riderLat, riderLng]);
 
   const banner =
     state === 'stale' ? (
@@ -192,7 +181,7 @@ export function MapView({
     );
   }
 
-  if (state === 'error' || !maps) {
+  if (state === 'error' || tileFailed || !mapbox) {
     return (
       <View testID={`${testID}-fallback`} style={[{ gap: theme.target.spacing * 2 }, style]}>
         <Banner
@@ -202,7 +191,7 @@ export function MapView({
           testID={`${testID}-banner`}
         />
         <TextPanel summary={summary} detail={fallbackDetail} testID={testID} />
-        {onRetry ? renderAction({ label: 'Try the map again', onPress: onRetry }, { variant: 'tertiary', size: 'sm' }) : null}
+        {onRetry ? renderAction({ label: 'Try the map again', onPress: () => { setTileFailed(false); onRetry(); } }, { variant: 'tertiary', size: 'sm' }) : null}
       </View>
     );
   }
@@ -223,8 +212,9 @@ export function MapView({
     );
   }
 
-  const { MapView: NativeMap, Marker, Polyline } = maps;
-  const initialRegion = regionFor(points);
+  const { MapView: NativeMap, Camera, MarkerView, ShapeSource, LineLayer } = mapbox;
+  const casing = theme.color.surface.raised;
+  const lineStyle = (color: string, width: number) => ({ lineColor: color, lineWidth: width, lineCap: 'round', lineJoin: 'round' });
 
   return (
     <View testID={testID} style={[{ gap: theme.target.spacing * 2 }, style]}>
@@ -236,37 +226,49 @@ export function MapView({
         style={{ height, borderRadius: radius.md, overflow: 'hidden' }}
       >
         <NativeMap
-          ref={mapRef}
-          style={StyleSheet.absoluteFill}
-          initialRegion={initialRegion ?? undefined}
+          style={{ flex: 1 }}
+          styleURL={mapbox.StyleURL.Street}
           scrollEnabled={interactive}
           zoomEnabled={interactive}
           rotateEnabled={false}
           pitchEnabled={false}
-          toolbarEnabled={false}
+          compassEnabled={false}
+          scaleBarEnabled={false}
+          onDidFailLoadingMap={() => setTileFailed(true)}
           testID={`${testID}-native`}
         >
+          <Camera {...camera} />
           {travelled && travelled.length > 1 ? (
-            <Polyline coordinates={travelled} strokeWidth={4} strokeColor={MAP_COLORS.routeTravelled} />
+            <ShapeSource id="hg-travelled" shape={lineShape(travelled)}>
+              <LineLayer id="hg-travelled-line" style={lineStyle(MAP_COLORS.routeTravelled!, 5)} />
+            </ShapeSource>
           ) : null}
           {route && route.length > 1 ? (
-            <Polyline coordinates={route} strokeWidth={5} strokeColor={MAP_COLORS.routeActive} />
+            <ShapeSource id="hg-route" shape={lineShape(route)}>
+              <LineLayer id="hg-route-casing" style={lineStyle(casing, 9)} />
+              <LineLayer id="hg-route-line" aboveLayerID="hg-route-casing" style={lineStyle(MAP_COLORS.routeActive!, 5)} />
+            </ShapeSource>
           ) : null}
           {restaurant ? (
-            <Marker coordinate={restaurant} pinColor={MAP_COLORS.pinRestaurant} title="Restaurant" />
+            <MarkerView id="hg-restaurant" coordinate={[restaurant.longitude, restaurant.latitude]} allowOverlap>
+              <MapPin color={MAP_COLORS.pinRestaurant!} casing={casing} testID={`${testID}-restaurant`} />
+            </MarkerView>
           ) : null}
           {customer ? (
-            <Marker coordinate={customer} pinColor={MAP_COLORS.pinCustomer} title="Delivery address" />
+            <MarkerView id="hg-customer" coordinate={[customer.longitude, customer.latitude]} allowOverlap>
+              <MapPin color={MAP_COLORS.pinCustomer!} casing={casing} testID={`${testID}-customer`} />
+            </MarkerView>
           ) : null}
           {shownRider ? (
-            <Marker
-              coordinate={{ latitude: shownRider.latitude, longitude: shownRider.longitude }}
-              pinColor={MAP_COLORS.pinRider}
-              title="Rider"
-              // A bearing arrow, not an animated position. Freezing is the point.
-              rotation={shownRider.headingDeg ?? 0}
-              flat
-            />
+            <MarkerView id="hg-rider" coordinate={[shownRider.longitude, shownRider.latitude]} allowOverlap>
+              {/* A bearing arrow, not an animated position. Freezing is the point. */}
+              <MapRiderArrow
+                color={MAP_COLORS.pinRider!}
+                casing={casing}
+                headingDeg={shownRider.headingDeg ?? null}
+                testID={`${testID}-rider`}
+              />
+            </MarkerView>
           ) : null}
         </NativeMap>
       </View>

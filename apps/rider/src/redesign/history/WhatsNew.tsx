@@ -7,6 +7,9 @@
  * accepted with the notes open opens the trip flow, so the sheet closes without being marked
  * seen and comes back on Home after the delivery (HW WhatsNew-offer-accepted).
  *
+ * Storage that cannot be read shows nothing here (the version seen is unknown); the page below
+ * stays reachable from Account.
+ *
  * "Got it", the close button, a swipe, a scrim tap and Android Back all mark the newest version
  * shown as seen (HW WhatsNew-dismissed). Button primary xl in the sticky footer, as drawn: the
  * board's note asks for primary (the system gap says secondary fails 3:1 on dark rider surfaces).
@@ -21,7 +24,7 @@ import { useOptionalSession } from '../session/Session';
 import { dayDate } from '../documents/data';
 import { LiveStatus } from '../earnings/parts';
 import { WHATS_NEW } from './copy';
-import { appVersion, loadReleaseNotes, markSeen, released, unseen, useSeen, type ReleaseVersion } from './whatsNew';
+import { appVersion, loadReleaseNotes, markSeen, released, unseen, useSeen, type ReleaseNote, type ReleaseVersion } from './whatsNew';
 
 function useText() {
   const theme = useTheme();
@@ -32,14 +35,20 @@ function useNotes() {
   return useApiQuery('history-release-notes', loadReleaseNotes, { refetchOnForeground: false });
 }
 
-function Notes({ notes }: { notes: readonly string[] }): React.ReactElement {
+function Notes({ notes }: { notes: readonly ReleaseNote[] }): React.ReactElement {
   const text = useText();
   return (
-    <View style={{ gap: space['2'] }}>
+    <View style={{ gap: space['3'] }}>
       {notes.map((n) => (
-        <Text key={n} style={text('body.lg')}>
-          {`• ${n}`}
-        </Text>
+        <View key={n.title} style={{ flexDirection: 'row', gap: space['2'] }}>
+          <Text accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={text('body.lg')}>
+            {'•'}
+          </Text>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={text('label.lg')}>{n.title}</Text>
+            <Text style={text('body.lg', true)}>{n.body}</Text>
+          </View>
+        </View>
       ))}
     </View>
   );
@@ -58,7 +67,7 @@ export function WhatsNewLayer(): React.ReactElement | null {
   const me = session?.me;
   const onDelivery = !me || me.active_assignment_id != null || me.availability_state === 'ON_DELIVERY';
   const away = !session || session.decision.mode !== 'tabs' || nav.flow !== null || nav.tab !== 'home';
-  if (!seen.loaded || onDelivery || away || show.length === 0) return null;
+  if (!seen.loaded || !seen.canAutoShow || onDelivery || away || show.length === 0) return null;
 
   const newest = show[0]!.version;
   const close = () => markSeen(newest);
