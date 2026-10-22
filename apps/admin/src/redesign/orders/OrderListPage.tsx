@@ -30,12 +30,11 @@ import {
   DateInput,
   EmptyState,
   ErrorState,
-  FilterBar,
   Icon,
   Input,
   MultiSelect,
   Price,
-  Select,
+  SegmentedControl,
   Skeleton,
   type DataGridColumn,
 } from '../ds';
@@ -385,96 +384,116 @@ export function OrderListPage({ mode }: { mode: 'orders' | 'disputes' }) {
   const asOf = loadedAt && load === 'ready' ? (changes.size > 0 ? ORDERS.asOfChanged(formatTime(loadedAt), changes.size) : ORDERS.asOf(formatTime(loadedAt))) : '';
 
   return (
-    <section aria-label={disputes ? 'Disputes page' : 'Orders page'} className="flex min-h-0 flex-1 flex-col gap-3 p-3">
+    <section aria-label={disputes ? 'Disputes page' : 'Orders page'} className="flex min-h-0 flex-1 flex-col gap-3 px-6 py-4">
       {!online ? <Banner tone="warning" title={ORDERS.offlineTitle} description={ORDERS.offline(noun)} announce="status" /> : null}
 
-      <FilterBar
-        label={disputes ? 'Dispute filters' : 'Order filters'}
-        active={filtered}
-        onClear={clearAll}
-        end={
-          <span className="flex items-center gap-2 text-body-sm text-fg-secondary">
-            <span aria-live="polite">{countText}</span>
-            {asOf ? <span>{asOf}</span> : null}
-            <Button variant="tertiary" size="sm" iconStart="refresh" disabled={!online || load === 'loading' || refreshing} onPress={() => void refresh()}>
-              {ORDERS.refresh}
-            </Button>
-          </span>
-        }
-      >
-        <Input
-          label={ORDERS.codeLabel}
-          value={codeDraft}
-          placeholder="HG-8F3K2Q"
-          helperText={ORDERS.codeHelp}
-          errorText={codeCheck.kind === 'invalid' ? codeCheck.message : null}
-          onValueChange={(v) => {
-            setCodeDraft(v);
-            const check = checkOrderCode(v);
-            if (check.kind === 'valid') setFilters({ ...filters, code: check.code });
-            else if (check.kind === 'empty') setFilters({ ...filters, code: '' });
-          }}
-          style={{ width: 300 }}
-        />
-        {disputes ? null : (
-          <>
-            <Select
-              label="View"
-              value={running ? 'running' : 'all'}
-              options={[
-                { value: 'all', label: 'All orders' },
-                { value: 'running', label: 'Still running' },
-              ]}
-              onValueChange={(v) => setFilters({ ...filters, states: v === 'running' ? [...RUNNING_STATES] : [] })}
-              style={{ width: 180 }}
+      {/* As `ORD/OrdersGrid` draws it: one outlined card holding the filters in a row, "More filters"
+          opening a second row inside it; below it the table's header row (caption, count, the
+          All orders / Still running switch, when the list was read, Refresh). */}
+      <div className="rounded-lg border border-line-decorative bg-surface-raised px-4 py-3">
+        <div role="group" aria-label={disputes ? 'Dispute filters' : 'Order filters'} data-testid="FilterBar" className="flex flex-col gap-2">
+          <div className="flex items-start gap-3">
+            <Input
+              label={ORDERS.codeLabel}
+              variant="search"
+              value={codeDraft}
+              placeholder="HG-8F3K2Q"
+              helperText={ORDERS.codeHelp}
+              errorText={codeCheck.kind === 'invalid' ? codeCheck.message : null}
+              onValueChange={(v) => {
+                setCodeDraft(v);
+                const check = checkOrderCode(v);
+                if (check.kind === 'valid') setFilters({ ...filters, code: check.code });
+                else if (check.kind === 'empty') setFilters({ ...filters, code: '' });
+              }}
+              style={{ width: 240 }}
             />
-            <MultiSelect
-              label="State"
-              placeholder="All states"
-              value={[...filters.states]}
-              options={STATE_KEYS.map((s) => ({ value: s, label: ORDER_STATE[s].label }))}
-              formatSummary={(sel) => (running ? `${RUNNING_STATES.length} states selected` : sel.length === 0 ? 'All states' : sel.length === 1 ? sel[0]!.label : `${sel.length} states selected`)}
-              onValueChange={(v) => setFilters({ ...filters, states: v as OrderState[] })}
-            />
-            <Button
-              variant="tertiary"
-              iconEnd={moreOpen ? 'minus' : 'chevron-down'}
-              aria-expanded={moreOpen}
-              aria-controls="orders-more-filters"
-              onPress={() => setMoreOpen((o) => !o)}
-            >
-              {moreOpen ? ORDERS.fewerFilters : ORDERS.moreFilters}
-            </Button>
-          </>
-        )}
-      </FilterBar>
-
-      {!disputes && moreOpen ? (
-        <div id="orders-more-filters" className="flex flex-wrap items-start gap-3">
-          <Input
-            label={ORDERS.restaurantLabel}
-            value={filters.restaurantId}
-            helperText={ORDERS.restaurantHelp}
-            errorText={restaurantBad ? ORDERS.notAnId : null}
-            onValueChange={(v) => setFilters({ ...filters, restaurantId: v.trim() })}
-            style={{ width: 380 }}
-          />
-          <Input
-            label={ORDERS.accountLabel}
-            value={filters.accountId}
-            helperText={ORDERS.accountHelp}
-            errorText={accountBad ? ORDERS.notAnId : null}
-            onValueChange={(v) => setFilters({ ...filters, accountId: v.trim() })}
-            style={{ width: 380 }}
-          />
-          <DateInput label="Placed from" value={filters.placedFrom} helperText="Like 2026-09-28" onValueChange={(v) => setFilters({ ...filters, placedFrom: v })} />
-          <DateInput label="Placed to" value={filters.placedTo} helperText="Includes the whole day" onValueChange={(v) => setFilters({ ...filters, placedTo: v })} />
-          <p className="flex max-w-[280px] items-start gap-1 text-body-sm text-fg-secondary">
-            <Icon name="info" size="sm" />
-            {ORDERS.searchNote}
-          </p>
+            {disputes ? (
+              <Input label="State" value="Disputed" readOnly helperText="Fixed for this view" style={{ width: 180 }} />
+            ) : (
+              <MultiSelect
+                label="State"
+                placeholder="All 14 states"
+                helperText="One or more states"
+                value={[...filters.states]}
+                options={STATE_KEYS.map((s) => ({ value: s, label: ORDER_STATE[s].label }))}
+                formatSummary={(sel) => (running ? `${RUNNING_STATES.length} states selected` : sel.length === 0 ? 'All 14 states' : sel.length === 1 ? sel[0]!.label : `${sel.length} states selected`)}
+                onValueChange={(v) => setFilters({ ...filters, states: v as OrderState[] })}
+                className="w-[210px]"
+              />
+            )}
+            <DateInput label="Placed from" value={filters.placedFrom} helperText="Like 2026-09-28" onValueChange={(v) => setFilters({ ...filters, placedFrom: v })} className="w-40" />
+            <DateInput label="Placed to" value={filters.placedTo} helperText="Includes the whole day" onValueChange={(v) => setFilters({ ...filters, placedTo: v })} className="w-40" />
+            {disputes ? null : (
+              <div className="pt-6">
+                <Button
+                  variant="tertiary"
+                  iconEnd={moreOpen ? 'minus' : 'chevron-down'}
+                  aria-expanded={moreOpen}
+                  aria-controls="orders-more-filters"
+                  onPress={() => setMoreOpen((o) => !o)}
+                >
+                  {moreOpen ? ORDERS.fewerFilters : ORDERS.moreFilters}
+                </Button>
+              </div>
+            )}
+            {filtered ? (
+              <div className="pt-6">
+                <Button variant="ghost" size="md" onPress={() => clearAll()}>
+                  Clear filters
+                </Button>
+              </div>
+            ) : null}
+          </div>
+          {!disputes && moreOpen ? (
+            <div id="orders-more-filters" role="group" aria-label="More filters" className="flex items-start gap-3 border-t border-line-decorative pt-2">
+              <Input
+                label={ORDERS.restaurantLabel}
+                value={filters.restaurantId}
+                helperText={ORDERS.restaurantHelp}
+                errorText={restaurantBad ? ORDERS.notAnId : null}
+                onValueChange={(v) => setFilters({ ...filters, restaurantId: v.trim() })}
+                style={{ width: 300 }}
+              />
+              <Input
+                label={ORDERS.accountLabel}
+                value={filters.accountId}
+                helperText={ORDERS.accountHelp}
+                errorText={accountBad ? ORDERS.notAnId : null}
+                onValueChange={(v) => setFilters({ ...filters, accountId: v.trim() })}
+                style={{ width: 320 }}
+              />
+              <p className="flex max-w-[280px] items-start gap-1 pt-6 text-body-sm text-fg-secondary">
+                <Icon name="info" size="sm" />
+                {ORDERS.searchNote}
+              </p>
+            </div>
+          ) : null}
         </div>
-      ) : null}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <h2 className="m-0 text-heading-sm font-semibold text-fg-primary">{disputes ? ORDERS.captionDisputes : running ? ORDERS.captionRunning : ORDERS.caption}</h2>
+        {disputes ? null : (
+          <SegmentedControl
+            label="Show"
+            size="md"
+            value={running ? 'running' : 'all'}
+            options={[
+              { value: 'all', label: 'All orders' },
+              { value: 'running', label: 'Still running' },
+            ]}
+            onValueChange={(v) => setFilters({ ...filters, states: v === 'running' ? [...RUNNING_STATES] : [] })}
+          />
+        )}
+        <span aria-live="polite" className="ms-auto text-body-sm text-fg-secondary">
+          {countText}
+          {asOf ? ` · ${asOf}` : ''}
+        </span>
+        <Button variant="ghost" size="md" iconStart="refresh" disabled={!online || load === 'loading' || refreshing} onPress={() => void refresh()}>
+          {ORDERS.refresh}
+        </Button>
+      </div>
       {running && !disputes ? <p className="text-body-sm text-fg-secondary">{ORDERS.runningNote}</p> : null}
 
       <div className="min-h-0 flex-1 overflow-hidden rounded-md border border-line-decorative bg-surface-raised">
