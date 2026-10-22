@@ -74,9 +74,14 @@ export interface CancelSheetProps {
   /** The server answered that the window is closed. */
   onWindowClosed: () => void;
   onGetHelp: () => void;
+  /**
+   * A line above the helper that says where the customer goes next, when cancelling is a step on the
+   * way to ordering again ("After you cancel, we'll put your items back in your cart. ...").
+   */
+  intro?: string;
 }
 
-export function CancelSheet({ order, open, accepted, onClose, onCancelled, onWindowClosed, onGetHelp }: CancelSheetProps): React.ReactElement {
+export function CancelSheet({ order, open, accepted, onClose, onCancelled, onWindowClosed, onGetHelp, intro }: CancelSheetProps): React.ReactElement {
   const theme = useTheme();
   const body = useTypeStyle('body.md');
   const [reason, setReason] = React.useState<Reason | null>(null);
@@ -168,6 +173,11 @@ export function CancelSheet({ order, open, accepted, onClose, onCancelled, onWin
       <View style={styles.sheet}>
         {phase === 'failed' ? (
           <Banner variant="warning" title={CANCEL_COPY.failedTitle} description={CANCEL_COPY.failedBody} testID="Cancel-failed" />
+        ) : null}
+        {intro ? (
+          <Text style={[body, { color: theme.color.text.primary }]} testID="Cancel-intro">
+            {intro}
+          </Text>
         ) : null}
         <Text style={[body, { color: theme.color.text.secondary }]}>{helper}</Text>
         <RadioGroup

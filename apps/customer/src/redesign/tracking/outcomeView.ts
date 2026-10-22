@@ -31,6 +31,8 @@ export const isOutcomeState = (state: string): boolean => OUTCOME_STATES.has(sta
 export type OutcomeAction =
   /** Re-adds each line of the order to the cart; the server prices them again. */
   | 'putBack'
+  /** Opens the card sheet whose primary puts the items back with another card chosen (payment failed). */
+  | 'chooseCard'
   | 'findRestaurant'
   | 'restaurantMenu'
   | 'checkAddress'
@@ -257,7 +259,7 @@ function cancelled(order: Order, payment: Payment | null, noCharge: boolean): Ou
         ...base,
         title: "We couldn't take payment",
         lead: [`${name} accepted, but your bank refused the charge, so we cancelled the order${at(order)} before it was cooked.`],
-        actions: ['putBack', 'backToOrders'],
+        actions: ['chooseCard', 'backToOrders'],
         actionNote: "We'll check each item and its price again.",
       };
     case 'PAYMENT_EXPIRED':
@@ -417,7 +419,7 @@ export function outcomeOf({ order, payment, refunds, timeline }: OutcomeInput): 
         lead: [sentence([(code && FAILED_LEAD[code]) || FAILED_DEFAULT, noCharge && 'Nothing was charged.'])],
         money: 'card',
         timeline: false,
-        actions: ['putBack', 'backToOrders'],
+        actions: ['chooseCard', 'backToOrders'],
         actionNote: "We'll put your items back in your cart and check the price again.",
       };
     }
