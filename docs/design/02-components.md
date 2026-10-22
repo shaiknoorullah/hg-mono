@@ -483,6 +483,8 @@ There is **no** `value: number` prop and **no** `formatted: string` prop. A comp
 - **error** — tile failure falls back to a text panel with the addresses and the ETA. **The map is never the only way to know where the order is.**
 **Accessibility.** The map is `accessibilityElementsHidden` / `aria-hidden` and is **always accompanied by an equivalent text summary** that is the actual accessible content: "Rider is 1.2 km away, about 6 minutes." Follow-mode is a labelled toggle. Camera moves use `spring.gentle` and never fight a user's pan.
 
+**Native build (`MapView`, `MapPinPicker` in `@hg/ui-native`).** Drawn with `@rnmapbox/maps`, the library both apps already depend on, which is an optional peer of the package. `summary` is a required prop. `state` is `loading` · `ready` · `stale` · `degraded` · `permission-denied` · `error`; the caller derives `stale` and `degraded` and passes `permission-denied` with `onOpenSettings`. The text panel with a "Map unavailable" note (the `error` look) also replaces the map when the Mapbox SDK is not linked in the build (no download token), when there is no public token, or when the SDK reports that tiles failed to load. It is never a crash and never a bare grey box. `MapPinPicker` is the address-entry sibling: a draggable pin (and tap-to-place) whose final coordinate goes to `onChange`; without a map it shows only its summary and the screen's own move buttons place the pin.
+
 ---
 
 ## Tier 4 — Navigation and structure (6)

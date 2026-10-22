@@ -32,6 +32,8 @@ export type {
 
 export { MapView } from './MapView';
 export type { MapViewProps, MapPoint, MapRider, MapFollow, MapState } from './MapView';
+export { MapPinPicker } from './MapPinPicker';
+export type { MapPinPickerProps, MapPinMoveSource } from './MapPinPicker';
 
 /**
  * The order-state mapping is public on purpose: the restaurant and admin web surfaces need the
