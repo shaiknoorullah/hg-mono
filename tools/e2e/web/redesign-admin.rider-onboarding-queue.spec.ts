@@ -120,7 +120,7 @@ test.describe('redesigned admin · rider applications queue (mock)', () => {
 
   test('the list does not load', async ({ page }) => {
     await openQueue(page, { list: 'error' });
-    await expect(page.getByText('Rider applications didn’t load')).toBeVisible();
+    await expect(page.getByText("Rider applications didn't load")).toBeVisible();
     await capture(page, { 1440: 'admin/rider-onboarding/QueueError' });
   });
 
@@ -144,7 +144,7 @@ test.describe('redesigned admin · rider applications queue (mock)', () => {
     await openQueue(page, { list: FIVE });
     await expect(grid(page).getByText('Fatima Noor')).toBeVisible();
     await page.context().setOffline(true);
-    await expect(page.getByText('You’re offline. Take next is paused.')).toBeVisible();
+    await expect(page.getByText("You're offline. Take next is paused.")).toBeVisible();
     await capture(page, { 1440: 'admin/rider-onboarding/QueueOffline' });
   });
 
@@ -188,7 +188,7 @@ test.describe('redesigned admin · rider applications queue (mock)', () => {
     await openQueue(page, { list: FIVE, take: 'error' });
     await expect(grid(page).getByText('Fatima Noor')).toBeVisible();
     await page.getByRole('button', { name: 'Take next' }).click();
-    await expect(page.getByText('Take next didn’t work. Nothing was claimed.')).toBeVisible();
+    await expect(page.getByText("Take next didn't work. Nothing was claimed.")).toBeVisible();
     await capture(page, { 1440: 'admin/rider-onboarding/QueueTakeNextFailed' });
   });
 
