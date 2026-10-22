@@ -8,20 +8,22 @@
  * - **Get help** shows from the restaurant's acceptance (preparing to arrived), as the contract's
  *   rule for reporting before delivery says. A route that asks for the sheet (`sheet: 'getHelp'`,
  *   from Orders and Receipt) opens it for any order state.
- * - An order that has ended is drawn by `OutcomeScreen`. A delivered or completed order still falls
- *   back to the legacy tracking screen until its own screen is built, with Get help available.
+ * - An order that has ended is drawn by `OutcomeScreen`; a delivered or completed one by
+ *   `DeliveredScreen`, which has its own Get help button.
+ * - While the payment recovery page is up (a bank check, a declined card) it carries its own cancel
+ *   button, so this footer's is hidden.
  */
 import * as React from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { TrackingScreen as LegacyTrackingScreen } from '../../screens/TrackingScreen';
 import { GetHelpSheet } from '../help/GetHelpSheet';
 import { helpKindOf, type RefundReasonCode } from '../help/helpModel';
-import { Button } from '../ds';
-import { LegacyBridge } from '../navigation/LegacyBridge';
+import { Button, EmptyState } from '../ds';
 import { useNav } from '../navigation/context';
 import type { OrderCustomerView, OrderTracking } from '../orders/ordersApi';
 import { CancelSheet, CancelWindowClosed } from './CancelSheet';
+import { DeliveredScreen } from './DeliveredScreen';
+import { isDeliveredState } from './deliveredView';
 import { OutcomeScreen } from './OutcomeScreen';
 import { isOutcomeState } from './outcomeView';
 import { isWaitingLayout } from './trackingView';
@@ -42,16 +44,19 @@ export function OrderActions({
   order,
   tracking,
   reload,
+  hideCancel = false,
 }: {
   order: OrderCustomerView;
   tracking: OrderTracking | null;
   reload: () => void;
+  /** The payment recovery page is showing and has its own cancel button. */
+  hideCancel?: boolean;
 }): React.ReactElement | null {
   const help = useHelp(order);
   const [cancelOpen, setCancelOpen] = React.useState(false);
   const [closed, setClosed] = React.useState(false);
 
-  const canCancel = isWaitingLayout(order.state) && order.can_cancel === true;
+  const canCancel = !hideCancel && isWaitingLayout(order.state) && order.can_cancel === true;
   const showHelp = helpKindOf(order.state) === 'before';
   const accepted = cancelOpen && order.can_cancel === false;
 
@@ -111,10 +116,18 @@ export function EndedOrder({ order }: { order: OrderCustomerView }): React.React
     <View style={styles.fill}>
       {isOutcomeState(order.state) ? (
         <OutcomeScreen order={order} />
+      ) : isDeliveredState(order.state) ? (
+        <DeliveredScreen order={order} onGetHelp={() => help.setOpen(true)} />
       ) : (
-        <LegacyBridge nav={nav} route={{ name: 'tracking', orderId: order.id }}>
-          <LegacyTrackingScreen orderId={order.id} />
-        </LegacyBridge>
+        // A state this build does not know (the contract grew one): say so rather than guess.
+        <EmptyState
+          variant="page"
+          headingLevel={1}
+          title="We can't show this order here yet"
+          description="Your order is safe. Update the app to see it, or find it in Orders."
+          primaryAction={{ label: 'See your orders', onPress: () => nav.selectTab('orders') }}
+          testID="Tracking-unknownState"
+        />
       )}
       <GetHelpSheet order={order} tracking={null} open={help.open} onClose={() => help.setOpen(false)} onReport={help.onReport} />
     </View>

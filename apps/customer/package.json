@@ -17,6 +17,7 @@
     "@expo-google-fonts/plus-jakarta-sans": "^0.4.2",
     "@expo/metro-runtime": "~6.1.2",
     "@hg/api-client": "workspace:*",
+    "@hg/release-notes": "workspace:*",
     "@hg/ui-native": "workspace:*",
     "@rn-primitives/portal": "1.5.3",
     "@rn-primitives/slot": "1.5.2",

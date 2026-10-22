@@ -377,16 +377,13 @@ describe('shell chrome', () => {
     expect(nav().getAttribute('data-collapsed')).toBeNull();
   });
 
-  it('draws What’s new as the board does, unavailable until its panel exists, and an icon slot on every item', () => {
+  it('draws What’s new as the board does, a button that controls its panel, and an icon slot on every item', () => {
     renderApp('/account');
-    const whatsNew = screen.getByRole('button', { name: 'What’s new' });
-    expect(whatsNew.getAttribute('aria-disabled')).toBe('true');
+    const whatsNew = screen.getByRole('button', { name: /^What’s new/ });
+    expect(whatsNew.getAttribute('aria-disabled')).toBeNull();
     expect(whatsNew.getAttribute('aria-expanded')).toBe('false');
-    const panelId = whatsNew.getAttribute('aria-controls')!;
-    expect(document.getElementById(panelId)).toBeTruthy();
-    expect(document.getElementById(whatsNew.getAttribute('aria-describedby')!)!.textContent).toBe(
-      'What’s new comes in a later update.',
-    );
+    // The panel is built in `../../whatsnew`; its tests cover what opens.
+    expect(document.getElementById(whatsNew.getAttribute('aria-controls')!)).toBeTruthy();
     // Every nav item has a glyph or an empty slot of the same size, so the labels line up.
     for (const link of within(nav()).getAllByRole('link')) {
       expect(link.querySelector('[data-icon], [data-icon-slot]')).toBeTruthy();
@@ -441,15 +438,24 @@ describe('shell chrome', () => {
     expect(document.activeElement).toBe(open);
   });
 
-  it('draws the rail as the board does: icons only, each item still named and titled', () => {
+  it('rail labels are caption size and wrap inside the 80px rail instead of spilling out', () => {
     renderApp('/riders/7c1d4f2a-0b3e-4c5d-8e6f-1a2b3c4d5e09', 'ADMIN');
     const labels = [...nav().querySelectorAll<HTMLElement>('[data-rail-label]')];
     expect(labels.map((l) => l.textContent)).toEqual(expect.arrayContaining(['Certificates', 'Restaurant']));
     for (const label of labels) {
-      // Not painted (the board draws no text in the rail), but still in the accessibility tree.
-      expect(label.className).toContain('sr-only');
-      expect(label.closest('a')!.getAttribute('title')).toBeTruthy();
+      expect(label.className).toContain('max-w-[72px]');
+      expect(label.className).toContain('[overflow-wrap:anywhere]');
+      expect(label.closest('a')!.className).toContain('text-caption');
     }
+  });
+
+  it('draws the current item as an inverted tile: filled, chrome-coloured, bold, never outlined', () => {
+    renderApp('/riders/7c1d4f2a-0b3e-4c5d-8e6f-1a2b3c4d5e09', 'ADMIN');
+    const current = nav().querySelector<HTMLElement>('a[aria-current="page"]')!;
+    expect(current.className).toContain('bg-fg-on-accent');
+    expect(current.className).toContain('text-surface-chrome');
+    expect(current.className).toContain('font-bold');
+    expect(current.className).not.toMatch(/\bborder/);
   });
 });
 
