@@ -6,6 +6,7 @@
  */
 import { View } from 'react-native';
 
+/** A WGS84 point, structurally the contract's `GeoPoint`. */
 export interface LatLng {
   latitude: number;
   longitude: number;
@@ -22,6 +23,7 @@ export function boundsOf(points: readonly LatLng[]): { ne: [number, number]; sw:
   };
 }
 
+/** A GeoJSON `LineString` feature through `points`, the shape a `ShapeSource` takes. */
 export function lineShape(points: readonly LatLng[]) {
   return {
     type: 'Feature' as const,

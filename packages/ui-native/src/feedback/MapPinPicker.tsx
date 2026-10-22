@@ -29,6 +29,7 @@ import { MapPin, type LatLng } from './internal/mapParts';
 /** How the pin last moved. */
 export type MapPinMoveSource = 'drag' | 'tap';
 
+/** Props of `MapPinPicker`. The caller owns the pin: it passes `value` and receives `onChange`. */
 export interface MapPinPickerProps {
   /** The pin. `null` until an address is picked or the user taps the map. */
   value: LatLng | null;
@@ -58,6 +59,7 @@ function coordinatesOf(event: unknown): LatLng | null {
   return { latitude: c[1], longitude: c[0] };
 }
 
+/** A draggable address pin on the Mapbox map, with a text-panel fallback. See the module comment. */
 export function MapPinPicker({
   value,
   onChange,

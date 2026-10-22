@@ -34,6 +34,7 @@ export interface MapboxModule {
 /** Why a map cannot be drawn; `null` from `resolveMapbox` means it can. */
 export type MapUnavailableReason = 'module-unlinked' | 'no-token';
 
+/** The answer of `resolveMapbox`: the module to draw with, or why there is none. */
 export interface MapboxResolution {
   mapbox: MapboxModule | null;
   /** Set when `mapbox` is null. */
