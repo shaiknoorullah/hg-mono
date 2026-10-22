@@ -14,28 +14,26 @@ import (
 func quietLog() *slog.Logger { return slog.New(slog.NewTextHandler(io.Discard, nil)) }
 
 // The fake geocoder serves only where there is no Mapbox token and the
-// environment is not production.
+// environment is not production; production without a token gets the provider
+// that answers 503, whatever name the config carries.
 func TestNewGeoProviderSelection(t *testing.T) {
 	cases := []struct {
 		name     string
 		env      config.Environment
 		geo      config.Geo
 		wantName string
-		wantErr  bool
 	}{
-		{"local without a token gets the fake", config.EnvLocal, config.Geo{Provider: "fake"}, "fake", false},
-		{"staging without a token gets the fake", config.EnvStaging, config.Geo{Provider: "fake"}, "fake", false},
-		{"a token gets mapbox", config.EnvStaging, config.Geo{Provider: "mapbox", MapboxToken: "sk.not-a-real-token"}, "mapbox", false},
-		{"production with a token gets mapbox", config.EnvProduction, config.Geo{Provider: "mapbox", MapboxToken: "sk.not-a-real-token"}, "mapbox", false},
-		{"production without a token refuses", config.EnvProduction, config.Geo{Provider: "fake"}, "", true},
+		{"local without a token gets the fake", config.EnvLocal, config.Geo{Provider: "fake"}, "fake"},
+		{"staging without a token gets the fake", config.EnvStaging, config.Geo{Provider: "fake"}, "fake"},
+		{"a token gets mapbox", config.EnvStaging, config.Geo{Provider: "mapbox", MapboxToken: "sk.not-a-real-token"}, "mapbox"},
+		{"production with a token gets mapbox", config.EnvProduction, config.Geo{Provider: "mapbox", MapboxToken: "sk.not-a-real-token"}, "mapbox"},
+		{"production without a token is unavailable", config.EnvProduction, config.Geo{Provider: "unavailable"}, "unavailable"},
+		{"production never gets the fake", config.EnvProduction, config.Geo{Provider: "fake"}, "unavailable"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			p, err := newGeoProvider(&config.Config{Env: tc.env, Geo: tc.geo}, quietLog())
-			if (err != nil) != tc.wantErr {
-				t.Fatalf("err = %v, wantErr %v", err, tc.wantErr)
-			}
-			if err == nil && p.Name() != tc.wantName {
+			p := newGeoProvider(&config.Config{Env: tc.env, Geo: tc.geo}, quietLog())
+			if p.Name() != tc.wantName {
 				t.Errorf("provider = %q, want %q", p.Name(), tc.wantName)
 			}
 		})

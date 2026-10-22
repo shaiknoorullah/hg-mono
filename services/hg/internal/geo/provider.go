@@ -3,6 +3,7 @@ package geo
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/contract"
 )
@@ -57,3 +58,32 @@ type Provider interface {
 	// Reverse returns the nearest Canadian address to the pin, or ErrNoMatch.
 	Reverse(ctx context.Context, p Point) (contract.GeocodedAddress, error)
 }
+
+// UnavailableProvider is the provider of a deployment with no Mapbox token that
+// must not use the fake (production). Every call fails with ErrUnavailable, so
+// the routes answer 503 GEOCODER_UNAVAILABLE and the clients fall back to the
+// manual form and the map pin.
+type UnavailableProvider struct{}
+
+// NewUnavailable builds the provider that is never available.
+func NewUnavailable() *UnavailableProvider { return &UnavailableProvider{} }
+
+// Name implements Provider.
+func (*UnavailableProvider) Name() string { return "unavailable" }
+
+// Suggest implements Provider.
+func (*UnavailableProvider) Suggest(context.Context, SuggestRequest) ([]contract.AddressSuggestion, error) {
+	return nil, errNotConfigured
+}
+
+// Place implements Provider.
+func (*UnavailableProvider) Place(context.Context, string) (contract.GeocodedAddress, error) {
+	return contract.GeocodedAddress{}, errNotConfigured
+}
+
+// Reverse implements Provider.
+func (*UnavailableProvider) Reverse(context.Context, Point) (contract.GeocodedAddress, error) {
+	return contract.GeocodedAddress{}, errNotConfigured
+}
+
+var errNotConfigured = fmt.Errorf("%w: no Mapbox token is configured (HG_MAPBOX_SECRET_TOKEN)", ErrUnavailable)

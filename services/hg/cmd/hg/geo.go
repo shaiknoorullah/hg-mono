@@ -11,20 +11,25 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/geo"
 )
 
-// newGeoProvider picks the address-search provider. config.Load has already
-// refused production without a Mapbox token and refused the fake there; the
-// check here is the same rule once more, so a change to the config rules
-// cannot put the fake in front of customers without this failing too.
-func newGeoProvider(cfg *config.Config, log *slog.Logger) (geo.Provider, error) {
+// newGeoProvider picks the address-search provider. With a token it is Mapbox.
+// Without one it is the fake outside production, and in production the
+// "unavailable" provider: the API still boots and the three geo routes answer
+// 503 GEOCODER_UNAVAILABLE until HG_MAPBOX_SECRET_TOKEN is set. Production
+// never gets the fake: config.Load refuses HG_GEO_PROVIDER=fake there, and this
+// function ignores the configured name and returns "unavailable" for any
+// production run without a token.
+func newGeoProvider(cfg *config.Config, log *slog.Logger) geo.Provider {
 	if cfg.Geo.Configured() {
 		log.Info("geo provider: mapbox")
-		return geo.NewMapbox(cfg.Geo.MapboxToken, nil), nil
+		return geo.NewMapbox(cfg.Geo.MapboxToken, nil)
 	}
 	if cfg.Env == config.EnvProduction {
-		return nil, errors.New("geo: no Mapbox token in production (HG_MAPBOX_SECRET_TOKEN); the fake geocoder is not allowed there")
+		log.Error("geo provider: address search is unavailable until HG_MAPBOX_SECRET_TOKEN is set; " +
+			"the geo routes answer 503 GEOCODER_UNAVAILABLE")
+		return geo.NewUnavailable()
 	}
 	log.Warn("geo provider: FAKE geocoder (HG_MAPBOX_SECRET_TOKEN unset) - address search answers from a built-in Toronto catalogue, never real places")
-	return geo.NewFake(), nil
+	return geo.NewFake()
 }
 
 // geoLimiter implements geo.Limiter over auth's Redis fixed-window limiter. A

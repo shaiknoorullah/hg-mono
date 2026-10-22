@@ -201,3 +201,22 @@ func TestFakeNeverClaimsToBeMapbox(t *testing.T) {
 		t.Errorf("Name = %q; logs rely on provider=fake to tell a fake from the real thing", got)
 	}
 }
+
+// With no token in production the provider is never available: every call is
+// ErrUnavailable, which the handler turns into 503 GEOCODER_UNAVAILABLE.
+func TestUnavailableProviderAlwaysFails(t *testing.T) {
+	p := geo.NewUnavailable()
+	ctx := context.Background()
+	if _, err := p.Suggest(ctx, geo.SuggestRequest{Query: "danforth", Bias: downtown}); !errors.Is(err, geo.ErrUnavailable) {
+		t.Errorf("Suggest = %v, want ErrUnavailable", err)
+	}
+	if _, err := p.Place(ctx, "fake:1"); !errors.Is(err, geo.ErrUnavailable) {
+		t.Errorf("Place = %v, want ErrUnavailable", err)
+	}
+	if _, err := p.Reverse(ctx, downtown); !errors.Is(err, geo.ErrUnavailable) {
+		t.Errorf("Reverse = %v, want ErrUnavailable", err)
+	}
+	if p.Name() != "unavailable" {
+		t.Errorf("Name = %q", p.Name())
+	}
+}

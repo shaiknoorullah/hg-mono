@@ -196,7 +196,6 @@ func TestLoadRequiresPresignBaseURLOutsideLocal(t *testing.T) {
 	// Also required outside local (TestLoadRequiresTrustedProxiesOutsideLocal);
 	// set here so this test sees only the presign rule.
 	env["HG_TRUSTED_PROXY_CIDRS"] = "172.16.0.0/12"
-	env["HG_MAPBOX_SECRET_TOKEN"] = "sk.not-a-real-token" // required in production (TestLoadGeoSettings)
 
 	if _, err := Load(getenvFrom(env)); err == nil || !strings.Contains(err.Error(), "HG_MINIO_PRESIGN_BASE_URL") {
 		t.Fatalf("production booted without HG_MINIO_PRESIGN_BASE_URL (err: %v)", err)
@@ -412,8 +411,7 @@ func TestLoadRequiresTrustedProxiesOutsideLocal(t *testing.T) {
 			// Also required outside local (TestLoadRequiresPresignBaseURLOutsideLocal);
 			// set here so this test sees only the trusted-proxy rule.
 			env["HG_MINIO_PRESIGN_BASE_URL"] = "https://files.halalgoes.com"
-			env["HG_MAPBOX_SECRET_TOKEN"] = "sk.not-a-real-token" // required in production (TestLoadGeoSettings)
-
+	
 			_, err := Load(getenvFrom(env))
 			if err == nil {
 				t.Fatal("HG_TRUSTED_PROXY_CIDRS unset was accepted outside local")
@@ -456,7 +454,6 @@ func TestLoadEmailSettings(t *testing.T) {
 		env["HG_CORS_ALLOWED_ORIGINS"] = "https://app.halalgoes.com"
 		env["HG_TRUSTED_PROXY_CIDRS"] = "172.16.0.0/12"
 		env["HG_MINIO_PRESIGN_BASE_URL"] = "https://files.halalgoes.com"
-		env["HG_MAPBOX_SECRET_TOKEN"] = "sk.not-a-real-token" // required in production (TestLoadGeoSettings)
 		return env
 	}
 
@@ -556,9 +553,9 @@ func TestCSRFCookieDomain(t *testing.T) {
 }
 
 // TestLoadGeoSettings pins the address-search rules: the fake geocoder is the
-// default only where there is no Mapbox token, it is refused in production, and
-// production will not boot without a token. A real token is never needed
-// outside production.
+// default only where there is no Mapbox token outside production, it is refused
+// in production, and production without a token still boots with address search
+// unavailable (503 GEOCODER_UNAVAILABLE) until the token is set.
 func TestLoadGeoSettings(t *testing.T) {
 	// provider names the loaded provider, or "<none>" when Load refused.
 	provider := func(c *Config) string {
@@ -607,8 +604,8 @@ func TestLoadGeoSettings(t *testing.T) {
 		env["HG_MINIO_PRESIGN_BASE_URL"] = "https://files.halalgoes.com"
 		return env
 	}
-	if _, err := Load(getenvFrom(prod())); err == nil || !strings.Contains(err.Error(), "HG_MAPBOX_SECRET_TOKEN") {
-		t.Errorf("production without a token booted: err = %v", err)
+	if cfg, err := Load(getenvFrom(prod())); err != nil || cfg.Geo.Provider != "unavailable" || cfg.Geo.Configured() {
+		t.Errorf("production without a token: provider = %q, err = %v; want it to boot with provider unavailable", provider(cfg), err)
 	}
 	env = prod()
 	env["HG_GEO_PROVIDER"] = "fake"

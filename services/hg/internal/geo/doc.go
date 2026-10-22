@@ -6,7 +6,9 @@
 // reaches a client (docs/decisions/README.md, "Where map address search comes
 // from"). The Provider interface is the seam: MapboxProvider is the real one;
 // FakeProvider is a deterministic stand-in for local, dev and test runs that
-// have no token, and the API refuses to start in production without one
+// have no token. In production with no token the provider is
+// UnavailableProvider: the API still starts and the routes answer 503
+// GEOCODER_UNAVAILABLE until the token is set; production never uses the fake
 // (internal/config).
 //
 // Suggestions are temporary Mapbox results, which Mapbox's terms do not allow

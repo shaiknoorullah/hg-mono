@@ -102,7 +102,7 @@ x-api-env: &api-env
 
   # Address search (internal/geo): the location picker's suggestions, place
   # details and reverse geocoding, forwarded to Mapbox. With no token the API
-  # uses a built-in fake outside production and refuses to start in production.
+  # uses a built-in fake outside production; in production address search answers 503 until it is set.
   HG_MAPBOX_SECRET_TOKEN: ${HG_MAPBOX_SECRET_TOKEN:-}
   HG_GEO_PROVIDER: ${HG_GEO_PROVIDER:-}
 

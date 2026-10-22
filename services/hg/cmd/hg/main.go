@@ -676,11 +676,7 @@ func run() error {
 	// details and reverse geocoding, forwarded to Mapbox with the server-side
 	// secret. With no token outside production it is the deterministic dev
 	// fake; config.Load already refused production without a token.
-	geoProvider, err := newGeoProvider(cfg, log)
-	if err != nil {
-		return err
-	}
-	geo.Routes(router, geo.NewHandler(geoProvider, geoLimiter{auth.NewRateLimiter(st.Cache().Client, log)}, log))
+	geo.Routes(router, geo.NewHandler(newGeoProvider(cfg, log), geoLimiter{auth.NewRateLimiter(st.Cache().Client, log)}, log))
 
 	// B2 — Account self-service (C-03, P-24, P-25): profile, devices, notifications.
 	account.Routes(router, account.NewHandler(accountRepo))
