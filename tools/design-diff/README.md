@@ -291,12 +291,22 @@ and asks `android/capture-server.mjs` (started by `tools/e2e/run.sh` for each fl
 running the flow still passes and the diff reports `NO LAYOUT`.
 
 A capture never fails the journey it measures, so the only account of why one is missing is what the
-server logged. It therefore keeps what `adb` said: Node's message for a failed command is
-`Command failed: adb …` and nothing else, with the reason on the error's `stderr`, which is read and
-appended rather than dropped. It also requires `uiautomator dump` to say it wrote the file, because
-on several Android versions that command prints `ERROR: could not get idle state.` and still exits 0
-— taken as success, it would copy back whatever file the device still held, which is the previous
-screen, and compare it as this one.
+server logged, so it is made to say as much as it can.
+
+It runs the dump inside a device shell that always exits 0 and prints the command's own output and
+exit code (`uiautomator dump … 2>&1; echo "rc=$?"`). Reading the host process is not enough: `adb
+shell` reports the remote command's status but not what it said, and every capture in CI failed with
+`Command failed: adb … uiautomator dump` and nothing on either stream. It also requires the dump to
+say it wrote the file, because on several Android versions that command prints
+`ERROR: could not get idle state.` and still exits 0 — taken as success, it would copy back whatever
+file the device still held, which is the previous screen, and compare it as this one. Node's error
+`stderr` is kept too, for the commands that do use it.
+
+The first failure in a run also prints `adb forward --list` once. Maestro drives the device over a
+gRPC service in its driver app, on a port it forwards with adb, and that driver already holds the
+hierarchy — it logs `View hierarchy received in 36 ms` in the same second a dump fails. Whether the
+host can reach that port is the open question in
+[#1026](https://github.com/shaiknoorullah/hg-mono/issues/1026). Neither addition can fail a capture.
 
 **Which customer boards are captured.** Of the customer app's 568 boards, 19 are named by a flow
 (`grep -rn "SHOT: design--" tools/e2e/native/customer`); the other 549 are listed with a reason in
