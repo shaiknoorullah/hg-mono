@@ -31,7 +31,10 @@ export const sidebarVariants = cva('flex h-full shrink-0 flex-col', {
       ],
       light: 'border-e border-line-decorative bg-surface-base/85 text-fg-primary backdrop-blur-xl',
     },
-    collapsed: { true: 'w-20', false: 'w-66' },
+    // Outer box widths (border-box): 72 collapsed, the owner's decision on 22 Oct
+    // (https://github.com/shaiknoorullah/hg-mono/issues/970), and 264 expanded unless the console
+    // sets its own through `SideNav`'s `expandedWidth` (the restaurant console: 232).
+    collapsed: { true: 'w-18', false: 'w-66' },
   },
   defaultVariants: { tone: 'chrome', collapsed: false },
 });

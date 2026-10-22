@@ -67,7 +67,8 @@ export const UNPAIRABLE = [
   [/^account\/AddressForm(-.*)?$/, 'The address form (search, details, edit, delete, make default). No flow opens it. The map under the pin is a placeholder until the app has a draggable-pin map (https://github.com/shaiknoorullah/hg-mono/issues/1023), so a capture would not match the boards that draw the map.'],
   [/^account\/AddressSwitcher$/, 'The board draws four saved addresses and a hand-off note in place of the Home list behind the sheet. The sheet\'s height follows the customer\'s address count, which the flow does not set.'],
   [/^account\/AddressSwitcher-(error|loading|none|switched|switchfail)$/, 'A failed or pending address read, a customer with no address, or the Home header after a switch. The flow opens the sheet once, with addresses.'],
-  [/^account\/(AppSettings|NotificationSettings|EmailVerify|WhatsNew)(-.*)?$|^account\/Legal-terms[a-z-]*$/, 'No flow opens this screen (app settings, notification settings, the email-link screen, What\'s new, Terms and privacy).'],
+  [/^account\/WhatsNew(-.*)?$/, 'The What\'s new page (Account, then What\'s new) and the sheet shown once after an update. No flow opens either. The sheet needs a stored last-seen version, which the app cannot keep yet, and a dev build is version 0.0.0, so the page reads as empty where the boards draw the notes of versions 1.2.0 and 1.1.0.'],
+  [/^account\/(AppSettings|NotificationSettings|EmailVerify)(-.*)?$|^account\/Legal-terms[a-z-]*$/, 'No flow opens this screen (app settings, notification settings, the email-link screen, Terms and privacy).'],
 
   // --- discover and order --------------------------------------------------------------------------
   [/^discover-order\/Address-picker$/, 'Superseded: the app builds the address switcher from account/AddressSwitcher (the screen file says so), not from this older drawing.'],
