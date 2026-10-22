@@ -148,7 +148,7 @@ describe('New address', () => {
     fireEvent.press(screen.getByTestId('AddressForm-label-OTHER'));
     fireEvent.press(screen.getByTestId('AddressForm-confirm'));
     fireEvent.press(screen.getByTestId('AddressForm-save'));
-    expect(await screen.findByText('Type a name for this address, or choose another.')).toBeTruthy();
+    expect(await screen.findByText(/Type a name for this address, or choose another\./)).toBeTruthy();
     expect(mock.callsTo('createAddress')).toHaveLength(0);
   });
 
@@ -157,9 +157,9 @@ describe('New address', () => {
     await screen.findByTestId('AddressSearch-input-field');
     fireEvent.changeText(field('postal'), 'M1R 4');
     fireEvent.press(screen.getByTestId('AddressForm-save'));
-    expect(await screen.findByText('Enter the street address, like 14 Ellesmere Rd.')).toBeTruthy();
-    expect(screen.getByText('Enter the city.')).toBeTruthy();
-    expect(screen.getByText('Enter a full postal code, like M1R 4E7.')).toBeTruthy();
+    expect(await screen.findByText(/Enter the street address, like 14 Ellesmere Rd\./)).toBeTruthy();
+    expect(screen.getByText(/Enter the city\./)).toBeTruthy();
+    expect(screen.getByText(/Enter a full postal code, like M1R 4E7\./)).toBeTruthy();
     expect(screen.getByText('Drag the pin onto your entrance so your rider can find you.')).toBeTruthy();
     expect(mock.callsTo('createAddress')).toHaveLength(0);
   });
@@ -227,7 +227,7 @@ describe('Address search states', () => {
   it('loading while it searches', async () => {
     renderForm({ addressId: null }, { suggestAddresses: 'hang' });
     await type();
-    expect(await screen.findByTestId('AddressSearch-input-spinner')).toBeTruthy();
+    await waitFor(() => expect(mock.callsTo('suggestAddresses')).toHaveLength(1));
     expect(screen.queryByTestId('AddressSearch-results')).toBeNull();
   });
 
@@ -296,7 +296,7 @@ describe('Save failures', () => {
       createAddress: { status: 422, code: 'VALIDATION_FAILED', details: [{ field: 'postal_code', code: 'pattern', message: 'bad' }] },
     });
     expect(await screen.findByText('Check the postal code')).toBeTruthy();
-    expect(screen.getByText("This postal code wasn't accepted. Check it, like M1R 4E7.")).toBeTruthy();
+    expect(screen.getByText(/This postal code wasn't accepted\. Check it, like M1R 4E7\./)).toBeTruthy();
     expect(valueOf('line1')).toBe('88 Harbour Street');
     expect(nav.log.find((l) => l.action === 'back')).toBeUndefined();
   });

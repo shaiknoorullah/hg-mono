@@ -7,14 +7,16 @@ import { HgApiError, HgTransportError, unwrap } from '@hg/api-client';
 import type { ErrorEnvelope } from '@hg/api-client';
 
 import { api } from '../../api/client';
+import { newSessionToken } from './addressRules';
 import type { Address, AddressInput, AddressSuggestion, AddressUpdateInput, GeocodedAddress, GeoPoint } from './addressRules';
 
 export async function getAddress(addressId: string): Promise<Address> {
   return (await unwrap(api.GET('/v1/addresses/{addressId}', { params: { path: { addressId } } }))).data as Address;
 }
 
-export async function createAddress(body: AddressInput): Promise<Address> {
-  return (await unwrap(api.POST('/v1/addresses', { body }))).data as Address;
+/** `createAddress` requires an Idempotency-Key; a fresh one per call. */
+export async function createAddress(body: AddressInput, idempotencyKey: string = newSessionToken()): Promise<Address> {
+  return (await unwrap(api.POST('/v1/addresses', { params: { header: { 'Idempotency-Key': idempotencyKey } }, body }))).data as Address;
 }
 
 export async function updateAddress(addressId: string, body: AddressUpdateInput): Promise<Address> {
