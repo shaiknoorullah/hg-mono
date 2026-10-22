@@ -10,6 +10,11 @@
 # The hierarchy comes from tools/design-diff/android/capture-server.mjs, which run.sh starts for
 # every flow. With it not running the screenshot is still taken and the flow still passes; the diff
 # then reports the capture as NO LAYOUT, not as a pass.
+#
+# Maestro refuses a flow file with no config section ("Config Section Required"), subflows included,
+# so the header stays even though the steps below never use appId.
+appId: ${APP_ID}
+---
 - takeScreenshot: ${SHOT}
 - runScript:
     file: design-capture.js
