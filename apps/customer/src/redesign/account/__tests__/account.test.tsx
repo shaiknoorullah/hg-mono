@@ -137,21 +137,22 @@ describe('Account (A1)', () => {
     expect(await screen.findByTestId('Account-deletion')).toHaveTextContent(email ? new RegExp(email.replace('.', '\\.')) : /call us/);
   });
 
-  it("opens Addresses, Notification settings, How we check, What's new and Terms", async () => {
+  it("opens Addresses, Notification settings, App settings, How we check, What's new and Terms", async () => {
     const nav = renderAccount();
     await screen.findByTestId('Account-profile');
     fireEvent.press(screen.getByTestId('Account-addresses'));
     fireEvent.press(screen.getByTestId('Account-notificationSettings'));
+    fireEvent.press(screen.getByTestId('Account-appSettings'));
     fireEvent.press(screen.getByTestId('Account-howWeCheck'));
     fireEvent.press(screen.getByTestId('Account-whatsNew'));
     fireEvent.press(screen.getByTestId('Account-terms'));
-    expect(nav.log.map((l) => l.route?.name)).toEqual(['addresses', 'notificationSettings', 'howWeCheck', 'whatsNew', 'terms']);
+    expect(nav.log.map((l) => l.route?.name)).toEqual(['addresses', 'notificationSettings', 'appSettings', 'howWeCheck', 'whatsNew', 'terms']);
   });
 
   it('draws no row for a page that is not built', async () => {
     renderAccount();
     await screen.findByTestId('Account-profile');
-    for (const missing of ['Payment methods', 'Refunds', 'App settings']) expect(screen.queryByText(missing)).toBeNull();
+    for (const missing of ['Payment methods', 'Refunds']) expect(screen.queryByText(missing)).toBeNull();
   });
 });
 

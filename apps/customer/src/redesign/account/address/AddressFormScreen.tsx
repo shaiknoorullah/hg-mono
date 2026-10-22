@@ -52,6 +52,7 @@ import { formatTime } from '../../lib/time';
 import { useNav } from '../../navigation/context';
 import { listOrdersPage } from '../../orders/ordersApi';
 import { listAddresses } from '../accountApi';
+import { currentPosition, openLocationSettings, useLocationState } from '../locationPermission';
 import { createAddress, deleteAddress, getAddress, reverseGeocode, setDefaultAddress, updateAddress } from './addressApi';
 import { showAddressNotice } from './addressNotice';
 import {
@@ -191,6 +192,9 @@ export function AddressFormScreen({ addressId, first = false }: AddressFormScree
   const [saving, setSaving] = React.useState(false);
   const [finding, setFinding] = React.useState(false);
   const [geoNote, setGeoNote] = React.useState<GeoFailure | null>(null);
+  const location = useLocationState();
+  const [locating, setLocating] = React.useState(false);
+  const [noPosition, setNoPosition] = React.useState(false);
   const [settingDefault, setSettingDefault] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
   const [gone, setGone] = React.useState(false);
@@ -278,12 +282,12 @@ export function AddressFormScreen({ addressId, first = false }: AddressFormScree
     setNotServedByServer(false);
   };
 
-  const useSpot = async () => {
-    if (!draft.pin || finding) return;
+  /** Look the address up for `point` (`reverseGeocode`) and fill the fields; a failure becomes the note under the map. */
+  const lookUp = async (point: GeoPoint) => {
     setFinding(true);
     setGeoNote(null);
     try {
-      const g = await reverseGeocode(draft.pin);
+      const g = await reverseGeocode(point);
       if (!mounted.current) return;
       setDraft((d) => ({ ...applyGeocoded(d, g, { movePin: false }), confirmed: false }));
       setErrors((e) => ({ ...e, line1: undefined, city: undefined, postal: undefined, confirm: undefined }));
@@ -291,6 +295,39 @@ export function AddressFormScreen({ addressId, first = false }: AddressFormScree
       if (mounted.current) setGeoNote(geoFailure(e));
     } finally {
       if (mounted.current) setFinding(false);
+    }
+  };
+
+  const useSpot = async () => {
+    if (!draft.pin || finding) return;
+    await lookUp(draft.pin);
+  };
+
+  /**
+   * "Use my current location": the phone's permission (asked once, while using the app), where the
+   * phone is, then the same lookup as "Use this spot". The pin moves to the phone's position first,
+   * so a failed lookup still leaves the pin where the customer is.
+   */
+  const useCurrentLocation = async () => {
+    if (locating || finding) return;
+    setLocating(true);
+    setNoPosition(false);
+    setGeoNote(null);
+    try {
+      const state = location.state === 'notAsked' ? await location.turnOn() : location.state;
+      if (state !== 'allowed') return;
+      let point: GeoPoint;
+      try {
+        point = await currentPosition();
+      } catch {
+        if (mounted.current) setNoPosition(true);
+        return;
+      }
+      if (!mounted.current) return;
+      setPin(point);
+      await lookUp(point);
+    } finally {
+      if (mounted.current) setLocating(false);
     }
   };
 
@@ -582,6 +619,12 @@ export function AddressFormScreen({ addressId, first = false }: AddressFormScree
               lookupDisabled={!online}
               onPinChange={setPin}
               onUseSpot={useSpot}
+              onUseLocation={useCurrentLocation}
+              locating={locating}
+              locationDisabled={location.state === null || location.state === 'denied'}
+              locationNote={
+                location.state === 'denied' ? <LocationOffNote /> : noPosition ? <NoPositionNote /> : undefined
+              }
               search={
                 isEdit ? undefined : (
                   <AddressSearch
@@ -924,6 +967,31 @@ export function AddressFormScreen({ addressId, first = false }: AddressFormScree
         testID="AddressForm-unsavedDialog"
       />
     </View>
+  );
+}
+
+/** Location is off for the app (board `AddressForm-locdenied`): addresses still work, and the phone's settings are one tap away. */
+function LocationOffNote(): React.ReactElement {
+  return (
+    <Banner
+      variant="info"
+      title="Location is off for HalalGoes"
+      description="You can still add this address: search for it or use Move pin. The pin starts in central Toronto."
+      action={{ label: 'Open phone settings', onPress: openLocationSettings }}
+      testID="AddressForm-locationOff"
+    />
+  );
+}
+
+/** The phone is allowed to share its location but gave none (services off, no fix, or too slow). */
+function NoPositionNote(): React.ReactElement {
+  return (
+    <Banner
+      variant="warning"
+      title="We couldn't find where you are"
+      description="Check that location is on for your phone and try again, or search for the address."
+      testID="AddressForm-noPosition"
+    />
   );
 }
 
