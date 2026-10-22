@@ -137,7 +137,7 @@ describe('Account (A1)', () => {
     expect(await screen.findByTestId('Account-deletion')).toHaveTextContent(email ? new RegExp(email.replace('.', '\\.')) : /call us/);
   });
 
-  it('opens Addresses, Notification settings, How we check, What's new and Terms', async () => {
+  it("opens Addresses, Notification settings, How we check, What's new and Terms", async () => {
     const nav = renderAccount();
     await screen.findByTestId('Account-profile');
     fireEvent.press(screen.getByTestId('Account-addresses'));

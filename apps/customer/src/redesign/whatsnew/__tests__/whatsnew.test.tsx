@@ -226,6 +226,8 @@ describe.each(['light', 'dark'] as const)('What\'s new page (%s)', (scheme) => {
   it('a file that cannot be read is the empty state, with the store listing', async () => {
     setReleaseNotesSource(() => ({ nope: true }));
     const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(true as never);
+    // The spy is shared across the light and dark runs: count only this test's calls.
+    open.mockClear();
     renderRedesign(<WhatsNewScreen />, { nav: navSpy({ name: 'whatsNew' }), scheme });
     expect(screen.getByText(WHATS_NEW.empty.title)).toBeTruthy();
     expect(screen.getByText(WHATS_NEW.empty.youHave('1.2.0'))).toBeTruthy();
