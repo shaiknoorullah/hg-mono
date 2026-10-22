@@ -1,7 +1,7 @@
 ---
 covers:
   - services/hg/migrations/**
-reviewed: 2026-10-16
+reviewed: 2026-10-22
 ---
 
 # HalalGoes — database schema
@@ -34,6 +34,9 @@ account; reset then sets the shared password and enrols each authenticator.
 address beside Home.
 `030_restaurant_staff.sql` adds bismillah-grill's manager and staff logins and two
 dated hours overrides.
+`040_redesign_personas.sql` adds the customer and rider personas the redesigned
+apps test against (suspended, banned and flagged customers; payout, history,
+suspended and flagged riders) and writes no order or money row.
 
 ## Running
 
