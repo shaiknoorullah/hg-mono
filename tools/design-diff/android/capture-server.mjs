@@ -63,11 +63,20 @@ export function buildFromDumpsys(out) {
 async function capture({ dir, name, appId, serial }) {
   const adb = serial ? ['-s', serial] : [];
   const remote = '/sdcard/hg-design-capture.xml';
-  // `uiautomator dump` does not always fail by exiting non-zero: on several Android versions it
-  // prints "ERROR: could not get idle state." and exits 0, which would leave the last run's file on
-  // the device and copy it back as though it were this screen. So the dump is required to say it
-  // wrote the file, and the device's own word for that is the misspelling it has always printed.
-  const said = await shell(adb, 'uiautomator', 'dump', remote);
+  // The dump runs inside a device shell that always exits 0 and prints the command's own output and
+  // exit code. Two reasons, and the second is why it is worth the indirection:
+  //
+  // - `uiautomator dump` does not always fail by exiting non-zero. On several Android versions it
+  //   prints "ERROR: could not get idle state." and exits 0, which would leave the last run's file
+  //   on the device and copy it back as though it were this screen. So the dump is required to say
+  //   it wrote the file, and the device's own word for that is the misspelling it has always
+  //   printed.
+  // - Run directly, every capture in CI has failed with `Command failed: adb … uiautomator dump`
+  //   and nothing else — no stderr, no stdout, so nothing to go on. `adb shell` reports the remote
+  //   command's status but not what it said on the way out, and Node's error carries only what the
+  //   local process wrote. Folding `2>&1` and the exit code into the device's own stdout is what
+  //   makes the reason legible at all (https://github.com/shaiknoorullah/hg-mono/issues/1026).
+  const said = await shell(adb, 'sh', '-c', `uiautomator dump ${remote} 2>&1; echo "rc=$?"`);
   if (!/dumped to/i.test(said)) throw new Error(`uiautomator dump did not write ${remote}: ${said || 'it said nothing'}`);
   const { stdout: xml } = await adbRun(adb, ['exec-out', 'cat', remote]);
   const [model, id, wm, pkg] = await Promise.all([
@@ -84,6 +93,29 @@ async function capture({ dir, name, appId, serial }) {
   writeFileSync(path.join(dir, `${name}.capture.json`), JSON.stringify({ device: `${model} (${id})`, ...(appBuild ? { appBuild } : {}), ...(density ? { density } : {}), capturedAt: new Date().toISOString() }, null, 1) + '\n');
 }
 
+let forwardsLogged = false;
+
+/**
+ * Prints the host's adb port forwards, once per run, the first time a capture fails.
+ *
+ * Maestro drives the device through a gRPC service inside its own driver app, over a port it
+ * forwards with adb, and that driver already holds the view hierarchy — it logs "View hierarchy
+ * received in 36 ms" in the same second a capture's `uiautomator dump` fails. Whether the host can
+ * reach that port decides how a capture gets a hierarchy at all
+ * (https://github.com/shaiknoorullah/hg-mono/issues/1026), and one line in a failing run's log
+ * answers it without an emulator here. Never fails the capture: this is a note, not a step.
+ */
+async function logForwardsOnce() {
+  if (forwardsLogged) return;
+  forwardsLogged = true;
+  try {
+    const { stdout } = await run('adb', ['forward', '--list']);
+    console.error(`capture-server: adb forward --list → ${stdout.trim() || '(nothing forwarded)'}`);
+  } catch (e) {
+    console.error(`capture-server: could not list adb forwards: ${e.message}`);
+  }
+}
+
 export function serve({ dir, port, serial, defaultAppId }) {
   return createServer((req, res) => {
     let body = '';
@@ -98,6 +130,7 @@ export function serve({ dir, port, serial, defaultAppId }) {
         reply(200, `wrote ${name}`);
       } catch (e) {
         console.error(`capture-server: ${e.message}`);
+        await logForwardsOnce();
         reply(500, e.message);
       }
     });
