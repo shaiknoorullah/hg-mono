@@ -573,6 +573,14 @@ jobs:
         if: always()
         run: node tools/design-diff/src/job-summary.mjs --results "$E2E_OUT/design-diff" >>"$GITHUB_STEP_SUMMARY" || true
 
+      # The same findings in the log, because the artifact is not reachable from everywhere: pulling
+      # a 28 MB download to read four lines about one board has taken minutes and sometimes returned
+      # nothing. `gh run view --log | grep <board>` answers in seconds, which is what makes a
+      # board-by-board loop affordable.
+      - name: The boards that are not passing, in words
+        if: always()
+        run: node tools/design-diff/src/findings.mjs --results "$E2E_OUT/design-diff" --out "$E2E_OUT/design-diff/findings.txt" || true
+
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:

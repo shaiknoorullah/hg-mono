@@ -55,7 +55,7 @@ table to the job summary and uploads the HTML report as the `design-diff` artifa
 ([tools/design-diff/README.md](../design-diff/README.md)). It is its own job because it needs no
 emulator, no stack and no APKs, and a 20-minute emulator run should not wait on rendering boards.
 
-It compares with `--no-strict`: the diff exits 1 on any failing board and no board passes yet, so a
+It also prints every failing board in words into the job log, so one board can be read with `gh run view --log | grep` instead of downloading the artifact. It compares with `--no-strict`: the diff exits 1 on any failing board and no board passes yet, so a
 gate there would be red before the first board is fixed and would block every merge. A crash still
 fails the job. The regression gate — a board that passed on `main` failing on a pull request — comes
 once there is something to protect ([#1034](https://github.com/shaiknoorullah/hg-mono/issues/1034)),
