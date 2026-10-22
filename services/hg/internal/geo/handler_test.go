@@ -21,7 +21,7 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 )
 
-const sessionToken = "7f2b8f2e-6e0d-4a43-9a0b-5d6a8f4f9a11"
+const sessionToken = "00000000-0000-4000-8000-00000000a001"
 
 // headerAuth is the test authenticator: X-Test-Account-ID and X-Test-Roles make
 // the principal, and no header is an anonymous caller.
@@ -444,7 +444,7 @@ func TestReverseGeocodeValidation(t *testing.T) {
 
 func TestProviderFailureIs503WithoutTheProvidersWords(t *testing.T) {
 	r := newRig(t)
-	r.prov.err = errors.New("geo: provider unavailable: mapbox answered 403 for token sk.leak")
+	r.prov.err = errors.New("geo: provider unavailable: mapbox answered 403 for token fixture-leak")
 	for _, path := range []string{
 		suggestPath("&q=harbour"),
 		"/v1/geo/places/fake:1?session_token=" + sessionToken,
@@ -454,7 +454,7 @@ func TestProviderFailureIs503WithoutTheProvidersWords(t *testing.T) {
 		if resp.StatusCode != http.StatusServiceUnavailable || decodeErr(t, body).Error.Code != "GEOCODER_UNAVAILABLE" {
 			t.Errorf("%s: %d %s, want 503 GEOCODER_UNAVAILABLE", path, resp.StatusCode, body)
 		}
-		if strings.Contains(string(body), "sk.leak") || strings.Contains(string(body), "mapbox") {
+		if strings.Contains(string(body), "fixture-leak") || strings.Contains(string(body), "mapbox") {
 			t.Errorf("%s: the provider's error reached the client: %s", path, body)
 		}
 	}

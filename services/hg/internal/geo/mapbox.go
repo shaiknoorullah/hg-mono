@@ -387,8 +387,8 @@ func (f v6Feature) address() (contract.GeocodedAddress, bool) {
 		Province:   prov,
 		PostalCode: f.postalCode(kind),
 		Country:    contract.GeocodedAddressCountryCA,
-		Latitude:   pt.Latitude,
-		Longitude:  pt.Longitude,
+		Latitude:   float32(pt.Latitude),
+		Longitude:  float32(pt.Longitude),
 		Formatted:  formatted,
 	}, true
 }

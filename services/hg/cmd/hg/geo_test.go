@@ -25,8 +25,8 @@ func TestNewGeoProviderSelection(t *testing.T) {
 	}{
 		{"local without a token gets the fake", config.EnvLocal, config.Geo{Provider: "fake"}, "fake"},
 		{"staging without a token gets the fake", config.EnvStaging, config.Geo{Provider: "fake"}, "fake"},
-		{"a token gets mapbox", config.EnvStaging, config.Geo{Provider: "mapbox", MapboxToken: "sk.not-a-real-token"}, "mapbox"},
-		{"production with a token gets mapbox", config.EnvProduction, config.Geo{Provider: "mapbox", MapboxToken: "sk.not-a-real-token"}, "mapbox"},
+		{"a token gets mapbox", config.EnvStaging, config.Geo{Provider: "mapbox", MapboxToken: "fixture-mapbox-token"}, "mapbox"},
+		{"production with a token gets mapbox", config.EnvProduction, config.Geo{Provider: "mapbox", MapboxToken: "fixture-mapbox-token"}, "mapbox"},
 		{"production without a token is unavailable", config.EnvProduction, config.Geo{Provider: "unavailable"}, "unavailable"},
 		{"production never gets the fake", config.EnvProduction, config.Geo{Provider: "fake"}, "unavailable"},
 	}

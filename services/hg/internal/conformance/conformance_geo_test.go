@@ -28,7 +28,7 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 )
 
-const geoSessionToken = "7f2b8f2e-6e0d-4a43-9a0b-5d6a8f4f9a11"
+const geoSessionToken = "00000000-0000-4000-8000-00000000a001"
 
 // downableProvider is the fake until down is set, then a provider that is out.
 type downableProvider struct {

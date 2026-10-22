@@ -573,7 +573,7 @@ func TestLoadGeoSettings(t *testing.T) {
 	}
 
 	env := validEnv()
-	env["HG_MAPBOX_SECRET_TOKEN"] = "sk.not-a-real-token"
+	env["HG_MAPBOX_SECRET_TOKEN"] = "fixture-mapbox-token"
 	cfg, err = Load(getenvFrom(env))
 	if err != nil || cfg.Geo.Provider != "mapbox" || !cfg.Geo.Configured() {
 		t.Fatalf("token set: provider = %q, err = %v; want mapbox", provider(cfg), err)
@@ -609,12 +609,12 @@ func TestLoadGeoSettings(t *testing.T) {
 	}
 	env = prod()
 	env["HG_GEO_PROVIDER"] = "fake"
-	env["HG_MAPBOX_SECRET_TOKEN"] = "sk.not-a-real-token"
+	env["HG_MAPBOX_SECRET_TOKEN"] = "fixture-mapbox-token"
 	if _, err := Load(getenvFrom(env)); err == nil || !strings.Contains(err.Error(), "HG_GEO_PROVIDER=fake") {
 		t.Errorf("production accepted the fake geocoder: err = %v", err)
 	}
 	env = prod()
-	env["HG_MAPBOX_SECRET_TOKEN"] = "sk.not-a-real-token"
+	env["HG_MAPBOX_SECRET_TOKEN"] = "fixture-mapbox-token"
 	if cfg, err := Load(getenvFrom(env)); err != nil || cfg.Geo.Provider != "mapbox" {
 		t.Errorf("production with a token: provider = %q, err = %v", provider(cfg), err)
 	}

@@ -17,7 +17,7 @@ var downtown = geo.Point{Latitude: 43.6532, Longitude: -79.3832}
 func suggest(t *testing.T, q string, fromClient bool) []contract.AddressSuggestion {
 	t.Helper()
 	got, err := geo.NewFake().Suggest(context.Background(), geo.SuggestRequest{
-		Query: q, Bias: downtown, BiasFromClient: fromClient, SessionToken: "7f2b8f2e-6e0d-4a43-9a0b-5d6a8f4f9a11",
+		Query: q, Bias: downtown, BiasFromClient: fromClient, SessionToken: "00000000-0000-4000-8000-00000000a001",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -68,7 +68,7 @@ func TestFakeAgreesWithTheSeededRestaurantPoints(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if addr.Latitude != r.Lat || addr.Longitude != r.Lng || *addr.PostalCode != r.PostalCode {
+		if addr.Latitude != float32(r.Lat) || addr.Longitude != float32(r.Lng) || *addr.PostalCode != r.PostalCode {
 			t.Errorf("%s: fake has %v,%v %s; devworld has %v,%v %s",
 				r.Line1, addr.Latitude, addr.Longitude, *addr.PostalCode, r.Lat, r.Lng, r.PostalCode)
 		}

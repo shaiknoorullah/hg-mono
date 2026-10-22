@@ -132,8 +132,8 @@ func (p fakePlace) address() contract.GeocodedAddress {
 		Kind:      p.kind,
 		Province:  p.province,
 		Country:   contract.GeocodedAddressCountryCA,
-		Latitude:  p.lat,
-		Longitude: p.lng,
+		Latitude:  float32(p.lat),
+		Longitude: float32(p.lng),
 		Formatted: p.formatted(),
 		City:      nonEmpty(p.city, 100),
 	}

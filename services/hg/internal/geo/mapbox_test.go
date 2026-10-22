@@ -16,7 +16,7 @@ import (
 
 // secretToken is a made-up token: the tests prove it reaches Mapbox and nothing
 // else.
-const secretToken = "sk.test-secret-token-not-real"
+const secretToken = "fixture-mapbox-token-for-tests"
 
 // The Mapbox answers in testdata/ are written by hand from the documented
 // Geocoding v6 response shape (https://docs.mapbox.com/api/search/geocoding/).
@@ -64,12 +64,19 @@ func str(p *string) string {
 	return *p
 }
 
+// near compares a contract coordinate (float32) with the float64 the fixture
+// holds, within the precision a float32 keeps at this magnitude.
+func near(got float32, want float64) bool {
+	d := float64(got) - want
+	return d < 1e-5 && d > -1e-5
+}
+
 var bias = Point{Latitude: 43.6532, Longitude: -79.3832}
 
 func TestSuggestAsksMapboxForTemporaryCanadianAutocomplete(t *testing.T) {
 	p, st := newStub(t, 200, fixture(t, "mapbox_forward_autocomplete.json"))
 	_, err := p.Suggest(context.Background(), SuggestRequest{
-		Query: "88 harbour", Bias: bias, BiasFromClient: true, SessionToken: "7f2b8f2e-6e0d-4a43-9a0b-5d6a8f4f9a11",
+		Query: "88 harbour", Bias: bias, BiasFromClient: true, SessionToken: "00000000-0000-4000-8000-00000000a001",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -196,7 +203,7 @@ func TestPlaceResolvesASuggestionWithPermanentGeocoding(t *testing.T) {
 		Latitude: 43.6405, Longitude: -79.3806, Formatted: "88 Harbour Street, Toronto, Ontario M5J 0C3",
 	}
 	if got.Kind != want.Kind || got.Province != want.Province || got.Country != want.Country ||
-		got.Latitude != want.Latitude || got.Longitude != want.Longitude || got.Formatted != want.Formatted {
+		!near(got.Latitude, 43.6405) || !near(got.Longitude, -79.3806) || got.Formatted != want.Formatted {
 		t.Errorf("got %+v, want %+v", got, want)
 	}
 	if str(got.Line1) != "88 Harbour Street" || str(got.City) != "Toronto" || str(got.PostalCode) != "M5J 0C3" || got.Name != nil {
@@ -259,7 +266,7 @@ func TestReverseAsksForAPermanentCanadianAddress(t *testing.T) {
 			t.Errorf("query %s = %q, want %q", k, st.query().Get(k), v)
 		}
 	}
-	if str(got.Line1) != "1240 Danforth Avenue" || got.Latitude != 43.6815 || got.Longitude != -79.3310 ||
+	if str(got.Line1) != "1240 Danforth Avenue" || !near(got.Latitude, 43.6815) || !near(got.Longitude, -79.3310) ||
 		str(got.PostalCode) != "M4J 1M6" || got.Formatted != "1240 Danforth Avenue, Toronto, Ontario M4J 1M6" {
 		t.Errorf("got %+v", got)
 	}
