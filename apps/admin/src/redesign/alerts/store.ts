@@ -42,6 +42,11 @@ export interface ReplayState {
  *   only thing a person can do.
  * - `reauth`: `reauth_required`, or the socket closed `4401`. The session ended. Retrying cannot
  *   work; the person signs in again, then the connection is restarted.
+ * - `fatal`: the socket closed `4400` (a malformed frame or an unknown field) or `4403` (the origin
+ *   is not allowed), both marked do not retry. Our fault, nothing the person did, and nothing they
+ *   can undo. Kept apart from the connection's own "refused five times" state because that one may
+ *   work on the sixth attempt and this one never will
+ *   ([#1010](https://github.com/shaiknoorullah/hg-mono/issues/1010)).
  *
  * The other two `subscribe_error` codes (`not_found`, `subscription_limit`) have no board and are
  * not recorded here.
@@ -49,7 +54,8 @@ export interface ReplayState {
 export type AlertsFailure =
   | { readonly kind: 'forbidden' }
   | { readonly kind: 'invalid-channel' }
-  | { readonly kind: 'reauth'; readonly at: Date };
+  | { readonly kind: 'reauth'; readonly at: Date }
+  | { readonly kind: 'fatal'; readonly code: number; readonly at: Date };
 
 export interface AlertsState {
   readonly rows: readonly AlertRow[];
@@ -105,8 +111,10 @@ export function applyAlertEvent(event: RealtimeEnvelope): void {
 
 /** A replay finished. The first one is the backfill; a later one is a reconnect's catch-up. */
 export function applyReplay(signal: { fromSeq: number; truncated: boolean }, now: Date = new Date()): void {
-  // A replay only follows a successful subscribe, so a recorded refusal is over.
-  const refused = state.failure?.kind === 'forbidden' || state.failure?.kind === 'invalid-channel';
+  // A replay only follows a successful subscribe, so a recorded refusal is over. `fatal` is cleared
+  // for the same reason: the socket it was recorded on is open again, which disproves it. `reauth`
+  // is not, because its dialog is what asks the person to sign in and must stay until they do.
+  const refused = state.failure?.kind === 'forbidden' || state.failure?.kind === 'invalid-channel' || state.failure?.kind === 'fatal';
   const failure = refused ? null : state.failure;
   if (state.replay.phase === 'pending') {
     emit({
@@ -126,8 +134,11 @@ export function applyReplay(signal: { fromSeq: number; truncated: boolean }, now
 export function setAlertsConnection(connection: RealtimeStatus, now: Date = new Date()): void {
   if (state.connection === connection) return;
   const wasOpen = state.connection === 'open';
-  // An open socket ends a lost sign-in. A refused subscribe stays until a replay shows it worked.
-  const failure = connection === 'open' && state.failure?.kind === 'reauth' ? null : state.failure;
+  // An open socket ends a lost sign-in, and ends a refused connection: the close it was recorded
+  // from is plainly over. A refused *subscribe* is different and stays until a replay shows it
+  // worked, because the socket being open is what lets the subscribe be refused in the first place.
+  const ended = state.failure?.kind === 'reauth' || state.failure?.kind === 'fatal';
+  const failure = connection === 'open' && ended ? null : state.failure;
   emit({ ...state, connection, failure, lostAt: wasOpen && connection !== 'open' ? now : state.lostAt });
 }
 

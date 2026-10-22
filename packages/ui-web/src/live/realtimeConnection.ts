@@ -70,6 +70,23 @@ export interface ReauthInfo {
   via: 'frame' | 'close';
 }
 
+/**
+ * The server closed the socket for a reason no retry can change: `4400` (a malformed frame or an
+ * unknown field) or `4403` (the origin is not allowed). `contracts/websocket.md` marks both do not
+ * retry, and both are a fault on our side rather than anything the person did or can undo.
+ *
+ * This is told apart from giving up after several refusals because the two want different words and
+ * different buttons: a refusal that happened five times may work on the sixth, so offering a retry
+ * is honest; these cannot, so offering one hands someone a button that cannot succeed
+ * (https://github.com/shaiknoorullah/hg-mono/issues/1010).
+ */
+export interface FatalCloseInfo {
+  /** The close code, `4400` or `4403`. */
+  code: number;
+  /** When this client learned of it (epoch ms). */
+  at: number;
+}
+
 /** Options for `RealtimeConnection.subscribe`. */
 export interface SubscribeOptions {
   /**
@@ -133,6 +150,11 @@ export interface RealtimeConnectionOptions {
    * again once the person has signed in.
    */
   onReauthRequired?: (info: ReauthInfo) => void;
+  /**
+   * Called when the server closed the socket `4400` or `4403`. The connection has already stopped
+   * retrying; a caller that shows a retry after this is offering a button that cannot work.
+   */
+  onFatalClose?: (info: FatalCloseInfo) => void;
   /** Injected for tests. Defaults to the global `WebSocket`. */
   createSocket?: (url: string) => SocketLike;
   /** Injected for tests. */
@@ -350,7 +372,14 @@ export class RealtimeConnection {
         return;
       }
       if (FATAL_CLOSE.has(ev.code)) {
+        // Retrying is over, so nothing is scheduled and the attempt count is cleared: a caller that
+        // reads `retry` must not see a pending attempt and call this a reconnection in progress.
+        clearTimeout(this.#retryTimer);
+        this.#nextAt = null;
+        this.#attempt = 0;
+        this.#cause = null;
         this.#setStatus('offline');
+        this.#opts.onFatalClose?.({ code: ev.code, at: Date.now() });
         return;
       }
       this.#cause = 'socket';

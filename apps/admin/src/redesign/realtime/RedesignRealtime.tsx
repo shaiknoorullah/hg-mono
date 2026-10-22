@@ -91,6 +91,10 @@ export function RedesignRealtime({ children, role, enabled = true, createSocket 
       getAccessToken={getToken}
       // The server wants a new sign-in (`reauth_required`, or close 4401): live alerts ask for it.
       onReauthRequired={(info) => setAlertsFailure({ kind: 'reauth', at: new Date(info.at) })}
+      // Closed 4400 or 4403, which the contract marks do not retry: say so instead of showing the
+      // "refused five times" screen and its Try again, which cannot work here
+      // (https://github.com/shaiknoorullah/hg-mono/issues/1010).
+      onFatalClose={(info) => setAlertsFailure({ kind: 'fatal', code: info.code, at: new Date(info.at) })}
       enabled={enabled}
       {...(createSocket ? { createSocket } : {})}
     >

@@ -130,6 +130,7 @@ describe('RealtimeConnection: refusals the server gives, and what can put each r
   let sockets: FakeSocket[];
   let tickets: number;
   let reauth: unknown[];
+  let fatal: unknown[];
   let mint: () => Promise<{ ticket: string; websocket_url: string }>;
   let conn: RealtimeConnection;
 
@@ -138,6 +139,7 @@ describe('RealtimeConnection: refusals the server gives, and what can put each r
     sockets = [];
     tickets = 0;
     reauth = [];
+    fatal = [];
     mint = async () => ({ ticket: `t${++tickets}`, websocket_url: 'placeholder' });
     conn = new RealtimeConnection({
       client: 'admin-web',
@@ -149,6 +151,7 @@ describe('RealtimeConnection: refusals the server gives, and what can put each r
         return s;
       },
       onReauthRequired: (info) => reauth.push(info),
+      onFatalClose: (info) => fatal.push(info),
       random: () => 0,
     });
   });
@@ -185,6 +188,28 @@ describe('RealtimeConnection: refusals the server gives, and what can put each r
     expect(sockets).toHaveLength(1);
     expect(tickets).toBe(1);
   });
+
+  // 4400 and 4403 are marked do not retry in contracts/websocket.md, section 1.5. A caller shows a
+  // retry from the attempt count, so what matters is not only that nothing is dialled again but
+  // that no attempt is left pending to read: otherwise the page says "reconnecting" forever and
+  // offers a button that cannot work (https://github.com/shaiknoorullah/hg-mono/issues/1010).
+  for (const code of [4400, 4403]) {
+    it(`a ${code} close stops for good, reports itself, and leaves no attempt pending`, async () => {
+      conn.subscribe('admin:ops', () => undefined);
+      conn.start();
+      await vi.advanceTimersByTimeAsync(0);
+      sockets[0]!.open();
+      sockets[0]!.drop(code);
+      expect(fatal).toEqual([{ code, at: expect.any(Number) }]);
+      expect(reauth).toEqual([]);
+      expect(conn.status).toBe('offline');
+      // Nothing is scheduled, and nothing a caller could mistake for a reconnection in progress.
+      expect(conn.retry).toMatchObject({ attempt: 0, nextAt: null });
+      await vi.advanceTimersByTimeAsync(10 * 60_000);
+      expect(sockets).toHaveLength(1);
+      expect(tickets).toBe(1);
+    });
+  }
 
   it('a 4401 close asks for a sign-in too, and a later reconnectNow mints a fresh ticket', async () => {
     conn.subscribe('admin:ops', () => undefined);

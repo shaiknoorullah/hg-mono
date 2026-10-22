@@ -139,9 +139,14 @@ export default function AlertsRoute() {
       ? 'forbidden'
       : failure?.kind === 'invalid-channel'
         ? 'invalid-channel'
-        : connection === 'failed' && retry.cause === 'ticket'
-          ? 'ticket'
-          : null;
+        : // A do-not-retry close is checked before the attempt count, because it is the reason the
+          // attempts stopped; read the other way round it would show "refused five times" and a
+          // Try again that cannot work.
+          failure?.kind === 'fatal'
+          ? 'fatal'
+          : connection === 'failed' && retry.cause === 'ticket'
+            ? 'ticket'
+            : null;
   const now = useNow(1000, connection === 'reconnecting');
   const waitSeconds = retry.nextAt === null ? null : Math.max(0, Math.ceil((retry.nextAt - now) / 1000));
   const lostAt = alerts.lostAt ? formatTimeWithSeconds(alerts.lostAt) : null;
@@ -332,6 +337,7 @@ export default function AlertsRoute() {
   const failedSlot = panel ? (
     <FailurePanel
       kind={panel}
+      closeCode={failure?.kind === 'fatal' ? failure.code : null}
       onAction={() => {
         if (panel === 'invalid-channel') window.location.reload();
         else controls.reconnectNow();

@@ -13,6 +13,7 @@ export { RealtimeConnection, resolveSocketUrl } from './realtimeConnection.js';
 export type {
   ChannelHandler,
   ChannelSignal,
+  FatalCloseInfo,
   ReauthInfo,
   RealtimeConnectionOptions,
   RealtimeStatus,
