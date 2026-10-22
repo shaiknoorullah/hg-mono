@@ -13,8 +13,10 @@
 #   E2E_MODE=mock            `pnpm mock` on http://localhost:4010, started here when not running
 #
 # A redesign build is made only for an app with redesign specs (tools/e2e/web/redesign-<app>.*.spec.ts),
-# or for both apps with E2E_REDESIGN=1; E2E_REDESIGN=0 never builds one. The ports are in the
-# API's CORS list (tools/e2e/stack/up.sh); the mock allows any origin. tools/e2e/README.md.
+# or for both apps with E2E_REDESIGN=1; E2E_REDESIGN=0 never builds one. E2E_APPS names the apps
+# to build and serve (default "restaurant admin"): the captures job runs one app per job and has
+# no use for the other's builds. The ports are in the API's CORS list (tools/e2e/stack/up.sh); the
+# mock allows any origin. tools/e2e/README.md.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -78,7 +80,15 @@ serve() {
   return 1
 }
 
-serve restaurant 4173 legacy
-serve admin 4174 legacy
-if wants_redesign restaurant; then serve restaurant 4175 redesign; fi
-if wants_redesign admin; then serve admin 4176 redesign; fi
+# Whether E2E_APPS names the app.
+wants_app() {
+  case " ${E2E_APPS:-restaurant admin} " in
+    *" $1 "*) return 0 ;;
+  esac
+  return 1
+}
+
+if wants_app restaurant; then serve restaurant 4173 legacy; fi
+if wants_app admin; then serve admin 4174 legacy; fi
+if wants_app restaurant && wants_redesign restaurant; then serve restaurant 4175 redesign; fi
+if wants_app admin && wants_redesign admin; then serve admin 4176 redesign; fi

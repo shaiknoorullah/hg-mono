@@ -3,12 +3,12 @@
  * Props follow the canvases' drawing (`ASS/AdminSidebar`, `ORD/AdminNavCollapsed`, manifest §1).
  *
  * The admin's primary navigation on the dark forest chrome (`bg-surface-chrome`,
- * `text-fg-on-accent`). Expanded it is 264px; collapsed it is a 72px rail that keeps a short
- * text label under every item, so nothing depends on a hover tooltip. As `ASS/AdminSidebar`
+ * `text-fg-on-accent`). Expanded it is 264px; collapsed it is a 72px rail that by default keeps a short
+ * text label under every item, so nothing depends on a hover tooltip (`railLabels={false}` draws icons only, as the orders boards do). As `ASS/AdminSidebar`
  * draws it, a rail item is 76px wide and its label is caption size, at most 72px, centred, and
  * may break anywhere rather than spill past the rail ("Certificates", "Restaurant"). The current page is a
- * FILLED tile (inverted: on-accent fill, chrome label, bold icon, bold label) with
- * `aria-current="page"`, never a left border. A count is folded into the item's accessible
+ * FILLED tile (the owner's inverted-tile rule: on-accent fill, chrome label, bold icon, bold label) with
+ * `aria-current="page"`, never a border or side bar. A count is folded into the item's accessible
  * name ("Restaurant applications, 4 waiting"); no count shows until one is known, and zero
  * shows nothing. Every target is at least 44px and the focus ring is drawn for the chrome.
  */
@@ -52,6 +52,12 @@ export interface SideNavProps {
   groups: SideNavGroup[];
   /** Rail (72px) when true; full (264px) when false. */
   collapsed: boolean;
+  /**
+   * Collapsed rail: a short label under each icon (default, `ASS/AdminSidebar`, the alerts and
+   * staff boards) or icons only (`ORD/AdminNav`, the orders boards). Both keep the full name for
+   * assistive technology.
+   */
+  railLabels?: boolean;
   /** Shows the collapse toggle when set. */
   onCollapsedChange?: (collapsed: boolean) => void;
   /** Accessible name of the <nav>. Default "Main". */
@@ -109,6 +115,7 @@ function CountPill({ item, rail }: { item: SideNavItem; rail: boolean }) {
 export function SideNav({
   groups,
   collapsed,
+  railLabels = true,
   onCollapsedChange,
   label = 'Main',
   header,
@@ -154,7 +161,7 @@ export function SideNav({
 
       {/* The item list scrolls in its own region above the footer; the rail is spaced tighter so
           every item fits a 1024x768 window without scrolling. */}
-      <div id={listId} className={cx('flex min-h-0 flex-1 flex-col overflow-y-auto', collapsed ? 'gap-1.5 px-0.5 py-2' : 'gap-3 px-3 py-3')}>
+      <div id={listId} className={cx('flex min-h-0 flex-1 flex-col overflow-y-auto', collapsed ? (railLabels ? 'gap-1.5 px-0.5 py-2' : 'gap-3 px-3 py-2') : 'gap-3 px-3 py-3')}>
         {groups.map((group) => {
           const headingId = `${listId}-${group.key}`;
           return (
@@ -168,7 +175,7 @@ export function SideNav({
                 </p>
               ) : null}
               {collapsed && group.heading ? <hr aria-hidden="true" className="mx-3 mt-0 mb-0.5 border-line-decorative opacity-40" /> : null}
-              <ul className="flex flex-col gap-1">
+              <ul className="flex flex-col gap-2">
                 {group.items.map((item) => {
                   const current = Boolean(item.current);
                   return (
@@ -178,6 +185,7 @@ export function SideNav({
                         aria-current={current ? 'page' : undefined}
                         aria-label={sideNavItemName(item)}
                         data-nav-key={item.key}
+                        title={collapsed && !railLabels ? item.label : undefined}
                         onClick={(event) => {
                           if (!onNavigate) return;
                           if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -187,12 +195,17 @@ export function SideNav({
                         className={cx(
                           'relative flex min-h-11 rounded-md no-underline',
                           FOCUS_ON_CHROME,
+                          // The current item is an inverted tile on the chrome (owner rule, 1 Oct 2026): filled
+                          // with the on-accent colour, label and icon in the chrome colour, bold. Never an
+                          // outline, a border or a side bar. The rail shows icons only.
                           collapsed
-                            ? 'min-h-12 flex-col items-center justify-center gap-0.5 px-0.5 py-1 text-center text-caption'
+                            ? railLabels
+                              ? 'min-h-12 flex-col items-center justify-center gap-0.5 px-0.5 py-1 text-center text-caption'
+                              : 'items-center justify-center px-3'
                             : 'items-center gap-3 px-3 py-2 text-body-md',
                           current
-                            ? 'bg-fg-on-accent text-surface-chrome font-semibold'
-                            : 'text-fg-on-accent hover:bg-[var(--hg-state-hover-overlay)]',
+                            ? 'bg-fg-on-accent font-bold text-surface-chrome'
+                            : 'font-medium text-fg-on-accent hover:bg-[var(--hg-state-hover-overlay)]',
                         )}
                       >
                         {item.icon ? (
@@ -205,9 +218,11 @@ export function SideNav({
                           data-rail-label={collapsed || undefined}
                           className={cx(
                             collapsed
-                              ? 'w-full max-w-[72px] text-center leading-tight [overflow-wrap:anywhere]'
+                              ? railLabels
+                                ? 'w-full max-w-[72px] text-center leading-tight [overflow-wrap:anywhere]'
+                                : 'sr-only'
                               : 'min-w-0 flex-1',
-                            collapsed && (current ? 'font-bold' : 'font-medium'),
+                            collapsed && railLabels && (current ? 'font-bold' : 'font-medium'),
                           )}
                         >
                           {collapsed ? item.shortLabel : item.label}

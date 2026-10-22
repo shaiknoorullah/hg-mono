@@ -24,6 +24,7 @@
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { setImmediate as nextTurn } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { BROWSER_APPS, browserMismatch, provenanceProblem } from './browser.mjs';
 import { CONVENTION, CONVENTION_NOTE, DEFAULTS, MISMATCH_FIELD, compare } from './compare.mjs';
@@ -182,7 +183,7 @@ export function nativeDensity(sidecar, screenshotWidthPx, ref) {
   return { value: screenshotWidthPx / ref.w, source: 'screenshot width over board width (the capture recorded no density)' };
 }
 
-function main() {
+async function main() {
   const o = args(process.argv.slice(2));
   const manifest = JSON.parse(readFileSync(path.join(o.refs, 'manifest.json'), 'utf8'));
   const map = o.map ? JSON.parse(readFileSync(o.map, 'utf8')) : {};
@@ -193,6 +194,13 @@ function main() {
 
   const pairs = [];
   for (const c of captures) {
+    // One turn of the event loop per pair, so the images the last pair decoded are freed. Node frees
+    // a Buffer's memory only on a turn of the event loop, and this loop never gave it one: on the
+    // GitHub runner it grew about 19 MB a pair until the 16 GB machine ran out, about 700 pairs in,
+    // and the job was cancelled with no error (run 39809562532, #1074). Measured locally, the same
+    // read-compare-write loop grew 80 MB an iteration synchronously, also with `global.gc()` after
+    // each, and stayed flat at 160 MB with this one await.
+    await nextTurn();
     if (c.pairing === null) {
       pairs.push({ id: c.rel, app: c.owner, area: null, board: null, capture: c.rel, title: null, verdict: 'UNCOVERED', reason: c.problem });
       console.log(`${'UNCOVERED'.padEnd(12)} ${''.padStart(8)}    ${c.rel}  ${c.problem}`);
@@ -311,10 +319,8 @@ function main() {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  try {
-    main();
-  } catch (e) {
+  main().catch((e) => {
     console.error(`diff: ${e.message}`);
     process.exit(2);
-  }
+  });
 }

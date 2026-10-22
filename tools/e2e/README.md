@@ -36,7 +36,9 @@ The full list of journeys still to cover is the harness plan in
 failed payout, an expired certificate, a refused upload — so the specs that capture them are written
 against the mock and skip when `E2E_MODE` is real. The `flows` job runs the real stack, so a
 `captures` job runs the redesign projects in **mock** mode and uploads what they take. It needs no
-compose stack, no Go and no APKs, runs in parallel, and `serve.sh` starts `pnpm mock` itself. Until
+compose stack, no Go and no APKs, runs in parallel, and `serve.sh` starts `pnpm mock` itself. It runs
+as one job per console, `captures (restaurant)` and `captures (admin)`, each building and serving only
+its own app (`E2E_APPS`) and uploading `design-captures-mock-<app>`; `design-diff` merges the two. Until
 it existed, the first run that produced verdicts compared **4** boards where the one run done by
 hand compared **143** ([#1049](https://github.com/shaiknoorullah/hg-mono/issues/1049)).
 
@@ -408,7 +410,7 @@ job has a timeout:
 | A push to a PR labelled `e2e-full` | as a nightly run | 35 to 60 |
 | Run workflow, `flows: web` | plan 1, flows 15 | 16 |
 | Each redesign build, once an app has redesign specs or flows | web: about 1 more per app in `flows`; Android: one more APK build, 15 (1 from the cache), and its flows | +1 to +30 |
-| The design captures, beside `flows` on every `e2e` or `e2e-full` run | `captures` (the redesign specs in mock mode, both consoles) about 30, with a 60-minute limit until it runs as one job per app | in parallel with `flows`, so about +0 to +15 to the run |
+| The design captures, beside `flows` on every `e2e` or `e2e-full` run | `captures (restaurant)` and `captures (admin)` (the redesign specs in mock mode, one job per console, side by side) about 27 each, with a 45-minute limit | in parallel with `flows`, so about +0 to +10 to the run |
 
 A month of nightly runs on a busy `main` is about 1,000 to 1,800 minutes of run time, which costs
 nothing here. To spend less time, label only the pull requests that change an app's flows, or run

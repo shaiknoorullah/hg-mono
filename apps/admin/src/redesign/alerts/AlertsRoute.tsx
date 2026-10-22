@@ -40,6 +40,7 @@ import {
 import { useQueueDepth, type QueueCounts } from '../realtime/queueDepth';
 import { onCallContact, RUNBOOK_URL, telHref } from '../system/onCall';
 import { AlertDetail } from './AlertDetail';
+import { usePageBar } from '../app/pageTitle';
 import { ALERTS } from './copy';
 import { FailurePanel, type PanelKind } from './FailurePanel';
 import { ReauthDialog } from './ReauthDialog';
@@ -115,6 +116,7 @@ export default function AlertsRoute() {
   const queue = useQueueDepth();
   const controls = useRealtimeControls();
   const session = useSyncExternalStore(subscribeSession, getSession, getSession);
+  usePageBar(ALERTS.barSubtitle);
   const role = staffRoleOf(session.principal);
   const kind: KindFilter = parseKindFilter(params.get('kind'));
   const openSeq = seqParam && /^\d+$/.test(seqParam) ? Number(seqParam) : null;
