@@ -13,6 +13,7 @@ import { clearNextCard, peekNextCard } from '../../checkout/nextCard';
 import { setNowOverride } from '../../lib/now';
 import { formatTime } from '../../lib/time';
 import { mockApi, payloadOf, type MockAnswer, type MockApi } from '../../test/mockApi';
+import { ok, list, order, payment } from '../../test/answers';
 import { navSpy, renderRedesign } from '../../test/render';
 import { keysOf, MONEY_KEY } from '../../test/requests';
 import { TrackingScreen } from '../TrackingScreen';
@@ -21,14 +22,9 @@ jest.mock('../../../payments/pay', () => ({ payWithSheet: jest.fn() }));
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { payWithSheet } = require('../../../payments/pay') as { payWithSheet: jest.Mock };
 
-type Order = Schema['OrderCustomerView'];
 type Payment = Schema['OrderPayment'];
 type Method = Schema['PaymentMethod'];
 
-const ok = (data: unknown): MockAnswer => ({ status: 200, body: { data } });
-const list = (data: unknown[]): MockAnswer => ({ status: 200, body: { data, meta: { next_cursor: null, has_more: false } } });
-const order = (scenario: string, patch: Partial<Order> = {}): Order => ({ ...payloadOf<Order>(scenario), ...patch });
-const payment = (scenario: string, patch: Partial<Payment> = {}): Payment => ({ ...payloadOf<Payment>(scenario), ...patch });
 const DECLINED = (): Payment =>
   payment('payment_requires_payment_method', {
     card_brand: 'visa',

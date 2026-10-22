@@ -11,6 +11,7 @@ import { cents, type Schema } from '@hg/api-client';
 import { formatPrice } from '../../ds';
 import { formatTime } from '../../lib/time';
 import { mockApi, payloadOf, type MockAnswer, type MockApi } from '../../test/mockApi';
+import { ok, list, order } from '../../test/answers';
 import { navSpy, renderRedesign } from '../../test/render';
 import { TrackingScreen } from '../TrackingScreen';
 
@@ -18,9 +19,6 @@ type Order = Schema['OrderCustomerView'];
 type Refund = Schema['Refund'];
 type Payment = Schema['OrderPayment'];
 
-const ok = (data: unknown): MockAnswer => ({ status: 200, body: { data } });
-const list = (data: unknown[]): MockAnswer => ({ status: 200, body: { data, meta: { next_cursor: null, has_more: false } } });
-const order = (scenario: string, patch: Partial<Order> = {}): Order => ({ ...payloadOf<Order>(scenario), ...patch });
 const refund = (scenario: string, patch: Partial<Refund> = {}): Refund => ({ ...payloadOf<Refund>(scenario), ...patch });
 const money = (c: number) => formatPrice(cents(c));
 
