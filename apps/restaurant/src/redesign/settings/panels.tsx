@@ -150,18 +150,18 @@ export function EditPanel({ group, profile, onClose, onSaved }: { group: EditGro
         {group === 'names' ? (
           <>
             <p className="m-0 text-body-md text-fg-secondary">HalalGoes uses the owner's name when we contact you. Customers don't see it.</p>
-            <Input id="owner_first_name" label="Owner first name" value={v.owner_first_name ?? ''} onChange={(x: string) => set('owner_first_name', x)} {...opt(errors['owner_first_name'])} />
-            <Input id="owner_last_name" label="Owner last name" value={v.owner_last_name ?? ''} onChange={(x: string) => set('owner_last_name', x)} {...opt(errors['owner_last_name'])} />
+            <Input id="owner_first_name" label="Owner first name" value={v.owner_first_name ?? ''} onValueChange={(x: string) => set('owner_first_name', x)} {...opt(errors['owner_first_name'])} />
+            <Input id="owner_last_name" label="Owner last name" value={v.owner_last_name ?? ''} onValueChange={(x: string) => set('owner_last_name', x)} {...opt(errors['owner_last_name'])} />
           </>
         ) : null}
         {group === 'contact' ? (
           <>
-            <Input id="phone" variant="tel" label="Business phone" helperText="HalalGoes calls this number about orders and your account." value={v.phone ?? ''} onChange={(x: string) => set('phone', x)} {...opt(errors['phone_e164'])} />
-            <Input id="public_phone" variant="tel" label="Phone customers can call (optional)" value={v.public_phone ?? ''} onChange={(x: string) => set('public_phone', x)} {...opt(errors['public_phone_e164'])} />
+            <Input id="phone" variant="tel" label="Business phone" helperText="HalalGoes calls this number about orders and your account." value={v.phone ?? ''} onValueChange={(x: string) => set('phone', x)} {...opt(errors['phone_e164'])} />
+            <Input id="public_phone" variant="tel" label="Phone customers can call (optional)" value={v.public_phone ?? ''} onValueChange={(x: string) => set('public_phone', x)} {...opt(errors['public_phone_e164'])} />
           </>
         ) : null}
         {group === 'kitchen' ? (
-          <Input id="prep" variant="numeric" label="Usual preparation time, in minutes" helperText="New orders use this time. Orders already accepted keep theirs." value={v.avg_prep_minutes ?? ''} onChange={(x: string) => set('avg_prep_minutes', x.replace(/\D/g, ''))} {...opt(errors['avg_prep_minutes'])} />
+          <Input id="prep" variant="numeric" label="Usual preparation time, in minutes" helperText="New orders use this time. Orders already accepted keep theirs." value={v.avg_prep_minutes ?? ''} onValueChange={(x: string) => set('avg_prep_minutes', x.replace(/\D/g, ''))} {...opt(errors['avg_prep_minutes'])} />
         ) : null}
       </form>
     </Shell>
@@ -236,8 +236,8 @@ export function PasswordPanel({ onClose, onChanged }: { onClose: () => void; onC
             {PASSWORD_COPY.failed}
           </p>
         ) : null}
-        <Input id="current_password" variant="password" label="Current password" value={current} onChange={(x: string) => setCurrent(x)} {...opt(errors.current)} />
-        <Input id="new_password" variant="password" label="New password" helperText="At least 12 characters. Any characters are fine; we refuse passwords known from data breaches." value={next} onChange={(x: string) => setNext(x)} {...opt(errors.next)} />
+        <Input id="current_password" variant="password" label="Current password" value={current} onValueChange={(x: string) => setCurrent(x)} {...opt(errors.current)} />
+        <Input id="new_password" variant="password" label="New password" helperText="At least 12 characters. Any characters are fine; we refuse passwords known from data breaches." value={next} onValueChange={(x: string) => setNext(x)} {...opt(errors.next)} />
         <p className="m-0 text-body-sm text-fg-secondary">Changing it signs you out on every other device, including a kitchen tablet that takes orders. Sign in there again straight away so new orders reach it.</p>
       </form>
     </Shell>

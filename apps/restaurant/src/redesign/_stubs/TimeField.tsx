@@ -8,7 +8,7 @@
  * say "Enter a time like 11:00 am.").
  */
 import { useEffect, useState } from 'react';
-import { Input } from '@hg/ui-web/primitives';
+import { Input } from '@hg/ui-web/ds';
 import { formatClock, isClock, parseClock } from '../format/time';
 
 export interface TimeFieldProps {
@@ -49,7 +49,7 @@ export function TimeField({ label, value, onChange, errorText, helperText, readO
         readOnly={readOnly}
         disabled={disabled}
         required={required}
-        onChange={(next: string) => {
+        onValueChange={(next: string) => {
           setText(next);
           onChange(parseClock(next) ?? next.trim());
         }}

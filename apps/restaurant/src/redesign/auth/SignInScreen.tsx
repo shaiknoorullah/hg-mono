@@ -9,7 +9,7 @@
  * `return_to`, else `getRestaurantOnboardingStatus` (DONE → /orders, anything else →
  * /onboarding). The client never works out an onboarding step itself.
  */
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import type { Schema } from '@hg/api-client';
 import { client, keepSession, resetSignedOut } from '../data/client';
@@ -125,8 +125,6 @@ export function SignInScreen() {
   const [failures, setFailures] = useState(0);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [resending, setResending] = useState(false);
-  const emailRef = useRef<HTMLInputElement>(null);
-  const passwordRef = useRef<HTMLInputElement>(null);
 
   const waiting = (problem?.kind === 'too-many' || problem?.kind === 'locked' || problem?.kind === 'busy') && problem.wait !== null;
 
@@ -141,8 +139,8 @@ export function SignInScreen() {
   }, [announce]);
 
   useEffect(() => {
-    if (fieldErrors.email) emailRef.current?.focus();
-    else if (fieldErrors.password) passwordRef.current?.focus();
+    if (fieldErrors.email) document.getElementById('signin-email')?.focus();
+    else if (fieldErrors.password) document.getElementById('signin-password')?.focus();
   }, [fieldErrors]);
 
   async function routeAfterSignIn() {
@@ -347,24 +345,24 @@ export function SignInScreen() {
   const fields = (
     <>
       <Input
-        ref={emailRef}
+        id="signin-email"
         label={SIGN_IN.email}
         variant="email"
         autoComplete="username"
         value={email}
-        onChange={(v) => {
+        onValueChange={(v) => {
           setEmail(v);
           if (fieldErrors.email) setFieldErrors((f) => ({ ...f, email: undefined }));
         }}
         errorText={fieldErrors.email}
       />
       <Input
-        ref={passwordRef}
+        id="signin-password"
         label={SIGN_IN.password}
         variant="password"
         autoComplete="current-password"
         value={password}
-        onChange={(v) => {
+        onValueChange={(v) => {
           setPassword(v);
           if (fieldErrors.password) setFieldErrors((f) => ({ ...f, password: undefined }));
         }}

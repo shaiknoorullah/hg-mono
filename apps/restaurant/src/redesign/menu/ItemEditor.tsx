@@ -787,12 +787,13 @@ export function ItemEditor(props: ItemEditorProps) {
           <Input
             id="price-input"
             label="Price"
-            variant="numeric"
+            // Text, not the DS "numeric" variant: that strips everything but digits, and a price has a point.
+            variant="text"
             inputMode="decimal"
             prefix="$"
             required
             value={form.price}
-            onChange={(v) => set('price', v)}
+            onValueChange={(v) => set('price', v)}
             readOnly={fieldsDisabled}
             helperText="Between $0.50 and $500.00. Orders already placed keep their price."
             errorText={fieldErrors['price-input']}
@@ -804,7 +805,7 @@ export function ItemEditor(props: ItemEditorProps) {
               variant="numeric"
               suffix="min"
               value={form.prep}
-              onChange={(v) => set('prep', v)}
+              onValueChange={(v) => set('prep', v)}
               readOnly={fieldsDisabled}
               helperText="1 to 120 minutes"
               errorText={fieldErrors['prep-input']}
@@ -814,7 +815,7 @@ export function ItemEditor(props: ItemEditorProps) {
               label="Position in category"
               variant="numeric"
               value={form.position}
-              onChange={(v) => set('position', v)}
+              onValueChange={(v) => set('position', v)}
               readOnly={fieldsDisabled}
               helperText="1 shows first"
               errorText={fieldErrors['position-input']}
@@ -874,7 +875,7 @@ export function ItemEditor(props: ItemEditorProps) {
               maxLength={80}
               characterCount
               value={form.name}
-              onChange={(v) => set('name', v)}
+              onValueChange={(v) => set('name', v)}
               readOnly={fieldsDisabled}
               errorText={fieldErrors['name-input']}
               aria-describedby={flagged.includes('name') ? 'name-flag' : undefined}

@@ -137,7 +137,7 @@ export function CategoryPanel({ onClose, onCreated, onLocked, existingIds }: Cat
           maxLength={60}
           characterCount
           value={name}
-          onChange={(v) => {
+          onValueChange={(v) => {
             setName(v);
             setTakenName(null);
             setMissing(false);

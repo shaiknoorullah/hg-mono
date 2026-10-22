@@ -6,7 +6,7 @@
  * 256 UTF-8 bytes), no composition rules, checked here first so a short password never spends the
  * link. `resetPassword` signs out every session and issues none: Done goes to sign in.
  */
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { isWellFormedToken, passwordTooLong, PASSWORD_MIN, useLinkToken } from '@hg/ui-web/email-links';
 import { setSession } from '../../lib/api';
@@ -31,10 +31,9 @@ export function ResetPasswordScreen() {
   const [fieldError, setFieldError] = useState<string | undefined>();
   const [problem, setProblem] = useState<Problem | null>(null);
   const [failures, setFailures] = useState(0);
-  const fieldRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (fieldError) fieldRef.current?.focus();
+    if (fieldError) document.getElementById('reset-password')?.focus();
   }, [fieldError, failures]);
 
   const waiting = problem?.kind === 'rate' && problem.wait !== null;
@@ -134,14 +133,14 @@ export function ResetPasswordScreen() {
           </InlineAlert>
         ) : null}
         <Input
-          ref={fieldRef}
+          id="reset-password"
           label={RESET.password}
           helperText={RESET.help}
           variant="password"
           autoComplete="new-password"
           value={password}
           readOnly={saving}
-          onChange={(v) => {
+          onValueChange={(v) => {
             setPassword(v);
             if (fieldError) setFieldError(undefined);
           }}
