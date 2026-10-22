@@ -154,7 +154,7 @@ export function SideNav({
 
       {/* The item list scrolls in its own region above the footer; the rail is spaced tighter so
           every item fits a 1024x768 window without scrolling. */}
-      <div id={listId} className={cx('flex min-h-0 flex-1 flex-col overflow-y-auto', collapsed ? 'gap-1.5 px-0.5 py-2' : 'gap-3 px-3 py-3')}>
+      <div id={listId} className={cx('flex min-h-0 flex-1 flex-col overflow-y-auto', collapsed ? 'gap-3 px-3 py-2' : 'gap-3 px-3 py-3')}>
         {groups.map((group) => {
           const headingId = `${listId}-${group.key}`;
           return (
@@ -168,7 +168,7 @@ export function SideNav({
                 </p>
               ) : null}
               {collapsed && group.heading ? <hr aria-hidden="true" className="mx-3 mt-0 mb-0.5 border-line-decorative opacity-40" /> : null}
-              <ul className="flex flex-col gap-1">
+              <ul className="flex flex-col gap-2">
                 {group.items.map((item) => {
                   const current = Boolean(item.current);
                   return (
@@ -178,6 +178,7 @@ export function SideNav({
                         aria-current={current ? 'page' : undefined}
                         aria-label={sideNavItemName(item)}
                         data-nav-key={item.key}
+                        title={collapsed ? item.label : undefined}
                         onClick={(event) => {
                           if (!onNavigate) return;
                           if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -187,12 +188,13 @@ export function SideNav({
                         className={cx(
                           'relative flex min-h-11 rounded-md no-underline',
                           FOCUS_ON_CHROME,
-                          collapsed
-                            ? 'min-h-12 flex-col items-center justify-center gap-0.5 px-0.5 py-1 text-center text-caption'
-                            : 'items-center gap-3 px-3 py-2 text-body-md',
+                          // As `ORD/AdminNav` draws it: the current item is outlined in the chrome's own
+                          // text colour (never filled, never a side bar), bold; the rail shows icons only.
+                          'border',
+                          collapsed ? 'items-center justify-center px-3' : 'items-center gap-3 px-3 py-2 text-body-md',
                           current
-                            ? 'bg-fg-on-accent text-surface-chrome font-semibold'
-                            : 'text-fg-on-accent hover:bg-[var(--hg-state-hover-overlay)]',
+                            ? 'border-fg-on-accent font-bold text-fg-on-accent'
+                            : 'border-transparent font-medium text-fg-on-accent hover:bg-[var(--hg-state-hover-overlay)]',
                         )}
                       >
                         {item.icon ? (
@@ -203,12 +205,7 @@ export function SideNav({
                         <span
                           aria-hidden="true"
                           data-rail-label={collapsed || undefined}
-                          className={cx(
-                            collapsed
-                              ? 'w-full max-w-[72px] text-center leading-tight [overflow-wrap:anywhere]'
-                              : 'min-w-0 flex-1',
-                            collapsed && (current ? 'font-bold' : 'font-medium'),
-                          )}
+                          className={collapsed ? 'sr-only' : 'min-w-0 flex-1'}
                         >
                           {collapsed ? item.shortLabel : item.label}
                         </span>
