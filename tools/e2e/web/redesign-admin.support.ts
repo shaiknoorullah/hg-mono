@@ -85,3 +85,48 @@ export async function signInAndOpen(page: Page, role: StaffRole, hash: string): 
     window.location.hash = h;
   }, hash);
 }
+
+// ── shared by the scenes that answer the queue, take-next and decision calls with `page.route` ──
+
+const serverError = (route: Route) =>
+  route.fulfill({ status: 500, json: { error: { code: 'INTERNAL_ERROR', message: 'boom', request_id: 'req_e2e' } } });
+const unanswered = () => new Promise<void>(() => undefined);
+
+/** Records the signed-in reviewer's account id in `me.id` from the sign-in answer, for "claimed by you". */
+export function trackAccountId(page: Page, me: { id: string }): void {
+  page.on('response', async (res) => {
+    if (res.url().endsWith('/v1/auth/login') && res.request().method() === 'POST') {
+      try {
+        me.id = (await res.json()).data.principal.account_id;
+      } catch {
+        /* the sign-in failed; the test says so */
+      }
+    }
+  });
+}
+
+export type Failure = 'error' | 'never' | 'forbidden' | 'notfound' | 'session';
+
+/** Answers a call the way `kind` says; `session` is the 401 the scene's console treats as an ended session. */
+export function answerFailure(kind: Failure, route: Route, session: { code: string; message: string }): Promise<void> {
+  const refuse = (status: number, code: string, message: string) => route.fulfill({ status, json: { error: { code, message, request_id: 'req_e2e' } } });
+  if (kind === 'error') return serverError(route);
+  if (kind === 'never') return unanswered();
+  if (kind === 'forbidden') return refuse(403, 'FORBIDDEN', 'No access.');
+  if (kind === 'session') return refuse(401, session.code, session.message);
+  return refuse(404, 'NOT_FOUND', 'Not found.');
+}
+
+/** Take next: the claimed application (`value`), nothing to take, or how the call goes wrong. */
+export function answerTakeNext(route: Route, how: 'error' | 'never' | undefined, value: unknown): Promise<void> {
+  if (how === 'error') return serverError(route);
+  if (how === 'never') return unanswered();
+  return route.fulfill({ json: { data: value ?? null } });
+}
+
+/** The queue's next page, reached by its cursor: its rows, or how the call goes wrong. */
+export function answerMorePage(route: Route, more: unknown[] | 'error' | 'never' | undefined): Promise<void> {
+  if (more === 'error') return serverError(route);
+  if (more === 'never') return unanswered();
+  return route.fulfill({ json: { data: more ?? [], meta: { next_cursor: null, has_more: false } } });
+}

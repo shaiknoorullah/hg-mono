@@ -1,6 +1,8 @@
 import { expect, type Page, type Route } from '@playwright/test';
 
-import { routeLogin, signIn, type StaffRole } from './redesign-admin.support';
+import { answerFailure, answerMorePage, answerTakeNext, routeLogin, signIn, trackAccountId, type Failure, type StaffRole } from './redesign-admin.support';
+
+export type { Failure };
 
 /**
  * The scenes the rider onboarding specs draw (redesign-admin.rider-onboarding*.spec.ts): a rider
@@ -155,7 +157,6 @@ export function summaryOf(app: Json, over: Json = {}): Json {
 
 /** What a scene's call answers: a body, the way it goes wrong, or a function of the reviewer's id. */
 export type Answer<T> = T | ((me: string) => T);
-export type Failure = 'error' | 'never' | 'forbidden' | 'notfound' | 'session';
 
 export interface Scene {
   role?: StaffRole;
@@ -199,23 +200,9 @@ export async function arrive(page: Page, scene: Scene = {}): Promise<Me> {
   const now = scene.now ?? NOW;
   await page.clock.setFixedTime(new Date(now));
   await routeLogin(page, scene.role ?? 'ADMIN');
-  page.on('response', async (res) => {
-    if (res.url().endsWith('/v1/auth/login') && res.request().method() === 'POST') {
-      try {
-        me.id = (await res.json()).data.principal.account_id;
-      } catch {
-        /* the sign-in failed; the test says so */
-      }
-    }
-  });
+  trackAccountId(page, me);
 
-  const failure = (kind: Failure, route: Route) => {
-    if (kind === 'error') return failing(route);
-    if (kind === 'never') return never();
-    if (kind === 'forbidden') return route.fulfill({ status: 403, json: envelope('FORBIDDEN', 'No access.') });
-    if (kind === 'session') return route.fulfill({ status: 401, json: envelope('UNAUTHENTICATED', 'Session ended.') });
-    return route.fulfill({ status: 404, json: envelope('NOT_FOUND', 'Not found.') });
-  };
+  const failure = (kind: Failure, route: Route) => answerFailure(kind, route, { code: 'UNAUTHENTICATED', message: 'Session ended.' });
 
   await page.route(/\/v1\/admin\/rider-applications/, async (route) => {
     const req = route.request();
@@ -223,21 +210,14 @@ export async function arrive(page: Page, scene: Scene = {}): Promise<Me> {
     const path = url.pathname;
     if (path.endsWith('/take-next')) {
       const t = scene.take;
-      if (t === 'error') return failing(route);
-      if (t === 'never') return never();
-      if (t === undefined) return route.fulfill({ json: { data: null } });
-      return route.fulfill({ json: { data: resolve(t, me.id) } });
+      return answerTakeNext(route, t === 'error' || t === 'never' ? t : undefined, t === 'error' || t === 'never' || t === undefined ? null : resolve(t, me.id));
     }
     if (path.endsWith('/decision')) {
       if (scene.decision) return scene.decision(route, me.id);
       return route.fallback();
     }
     if (/\/rider-applications$/.test(path)) {
-      if (url.searchParams.get('cursor')) {
-        if (scene.more === 'error') return failing(route);
-        if (scene.more === 'never') return never();
-        return route.fulfill({ json: { data: scene.more ?? [], meta: { next_cursor: null, has_more: false } } });
-      }
+      if (url.searchParams.get('cursor')) return answerMorePage(route, scene.more);
       const l = scene.list;
       if (typeof l === 'string') return failure(l, route);
       if (scene.listFor) {

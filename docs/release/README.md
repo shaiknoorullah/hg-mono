@@ -4,7 +4,7 @@ covers:
   - scripts/release/**
   - apps/customer/app.config.js
   - apps/rider/app.config.js
-reviewed: 2026-10-16
+reviewed: 2026-10-22
 ---
 
 # Releasing the apps
@@ -209,6 +209,14 @@ is `scripts/release/mapbox.cjs`, read by each app's `app.config.js` (the plugin)
 `react-native.config.js` (autolinking), for the customer and rider apps alike. The plugin reads the
 token from the environment while Gradle runs, so it is never written into a config file, a
 generated file or the JS bundle. `node scripts/release/` tests run it both ways.
+
+Two more native modules are linked into both apps' builds: `@react-native-async-storage/async-storage`
+(small preferences: the last What's new version a phone was shown) and `expo-location`. Their
+versions match across the apps (`2.2.0` and `~19.0.8`). The customer app asks only for location
+while the app is open, to start the address map where the customer is: its `app.config.js` passes
+the `expo-location` plugin `isAndroidBackgroundLocationEnabled: false` and
+`isIosBackgroundLocationEnabled: false`, so the build carries no background location. The rider app
+keeps its own "always" permission for dispatch. The `e2e-full` APK build is what proves they link.
 
 For a local `eas build`, the customer's `eas.json` `preview` and `production` profiles set
 `EXPO_PUBLIC_API_BASE_URL` to the placeholder `https://api.halalgoes.com`. To point a build at
