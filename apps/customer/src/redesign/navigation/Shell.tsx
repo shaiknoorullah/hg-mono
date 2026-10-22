@@ -5,7 +5,7 @@
  * - A forced route (S5) replaces everything, with no bottom navigation.
  * - Signed in: four tabs, Home · Search · Orders · Account (no bell), each with its own stack. The
  *   bottom navigation shows on tab roots only; the Orders tab carries the count of active orders.
- * - Deep links open on the tab they belong to.
+ * - Deep links open on the tab they belong to. The email-confirmation link also opens signed out.
  */
 import * as React from 'react';
 import { BackHandler, Linking, StyleSheet, View } from 'react-native';
@@ -15,6 +15,7 @@ import { unwrap } from '@hg/api-client';
 import { LoginGate } from '../../../App';
 import { BottomNav, Icon, Toast, tokens, useTheme, type BottomNavItem } from '../ds';
 import { api } from '../api/client';
+import { EmailVerifyScreen } from '../account/EmailVerifyScreen';
 import { BlockedScreen } from '../session/BlockedScreen';
 import { useForcedRoute } from '../session/forced';
 import { clearWelcome, useSession } from '../session/session';
@@ -185,6 +186,16 @@ export function Shell(): React.ReactElement {
   }, []);
 
   if (forced) return <BlockedScreen forced={forced} />;
+
+  // The emailed confirmation link opened before sign-in (board `EmailVerify-signedout`): confirm the
+  // email, then hand over to sign-in. The link is dropped so signing in does not replay it.
+  if (session.phase === 'signin' && pendingLink?.name === 'emailVerify') {
+    return (
+      <SafeAreaView style={[styles.fill, { backgroundColor: theme.color.surface.base }]} testID="RedesignSignedOutLink">
+        <EmailVerifyScreen token={pendingLink.token} onSignIn={() => setPendingLink(null)} />
+      </SafeAreaView>
+    );
+  }
 
   if (session.phase === 'signin' || session.phase === 'verifying') {
     return (
