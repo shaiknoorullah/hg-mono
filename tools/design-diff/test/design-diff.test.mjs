@@ -614,3 +614,25 @@ test('Maestro hierarchy: a real device capture becomes a layout record in dp', a
   assert.throws(() => parseMaestroHierarchy({ children: [{ attributes: {} }] }), /no node with bounds/);
   assert.throws(() => parseMaestroHierarchy('null'), /not a Maestro hierarchy/);
 });
+
+// snapshotLayout runs in the page through `page.evaluate`, which serialises the function and
+// nothing around it: a helper defined at module scope would be a ReferenceError in the browser and
+// would only show up on a CI run. This pins the two things that matter about the box key — that it
+// steps over the designers' notes, and that it can still be serialised.
+test('the box key ignores hidden notes, and snapshotLayout stays self-contained', async () => {
+  const { snapshotLayout } = await import('../src/page-scripts.mjs');
+  const src = String(snapshotLayout);
+
+  assert.match(src, /const shownText = /, 'the helper is inside the function page.evaluate serialises');
+  assert.ok(!/\bshownText\b/.test(src.slice(0, src.indexOf('const shownText'))), 'nothing refers to it before it exists');
+  assert.match(src, /data-design-note/, 'the key steps over the notes');
+  assert.ok(!/squash\(el\.textContent\)\.slice\(0, 80\)/.test(src), 'the key is not textContent: that returns hidden text too');
+
+  // The helper's own logic, on the shape it walks: text nodes are kept, a marked element's whole
+  // subtree is stepped over, and an unmarked element's text is kept.
+  const t = (v) => ({ nodeType: 3, nodeValue: v });
+  const e = (children, note = false) => ({ nodeType: 1, childNodes: children, hasAttribute: (a) => note && a === 'data-design-note' });
+  const shownText = new Function(`${src.slice(src.indexOf('const shownText'), src.indexOf('const boxes'))} return shownText;`)();
+  assert.equal(shownText(e([t('Sign in'), e([t('Proposed component: AppBar')], true)])), 'Sign in');
+  assert.equal(shownText(e([t('a'), e([t('b')]), t('c')])), 'abc');
+});
