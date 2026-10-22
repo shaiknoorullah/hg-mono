@@ -1,6 +1,8 @@
 /**
  * Sign-in and account access copy (canvas SI, WP2 spec), verbatim. The boards mix straight and
- * curly apostrophes; the app normalises to the house style `’` and changes no words.
+ * curly apostrophes; each string here keeps the apostrophe style of its own board
+ * (https://github.com/shaiknoorullah/hg-mono/issues/1077), so the pixel diff finds no glyph to
+ * differ on.
  */
 
 export const CONTEXT_LABEL = 'Restaurant partner';
@@ -11,7 +13,7 @@ export const SUPPORT = {
   /** "…on {phone}, {hours}." */
   sentenceAfter: (hours: string) => `, ${hours}.`,
   lockedFooter: 'Partner support: ',
-  unavailableTitle: 'Partner support isn’t available right now',
+  unavailableTitle: "Partner support isn't available right now",
   unavailableBody: 'Try again later. What you’ve already sent stays on record.',
   callButton: 'Call partner support',
 };
@@ -40,27 +42,27 @@ export const SIGN_IN = {
   invalidBody: 'Check both and try again. Forgot your password? Reset it by email below.',
   unverifiedTitle: 'Confirm your email to sign in',
   unverifiedBody: (email: string) =>
-    `We sent a confirmation link to ${email} when you registered. Links work for 24 hours. Signing in won’t work until you’ve opened it.`,
+    `We sent a confirmation link to ${email} when you registered. Links work for 24 hours. Signing in won't work until you've opened it.`,
   sendNewLink: 'Send a new link',
   tooManyTitle: 'Too many attempts from this device',
   tooManyBody: 'Wait a moment, then try again. What you typed is kept.',
   lockedTitle: 'Sign-in is paused for this account',
   lockedBody:
-    'There were too many unsuccessful attempts, so we’ve paused sign-in for a while to protect it. Call partner support to get back in now, or wait and try again. Forgotten your password? ',
+    "There were too many unsuccessful attempts, so we've paused sign-in for a while to protect it. Call partner support to get back in now, or wait and try again. Forgotten your password? ",
   /** Ref-SupportUnavailable: the "Call partner support" sentence goes with the button. */
   lockedBodyNoSupport:
     'There were too many unsuccessful attempts, so we’ve paused sign-in for a while to protect it. Wait and try again. Forgotten your password? ',
-  offlineTitle: 'We couldn’t reach HalalGoes',
-  offlineBody: 'Check this device’s internet connection, then try again. What you typed is kept.',
+  offlineTitle: "We couldn't reach HalalGoes",
+  offlineBody: "Check this device's internet connection, then try again. What you typed is kept.",
   /** 503 / 5xx / MFA_REQUIRED / unknown: the Offline layout, "try again in a moment" (manifest §1.1). */
   busyTitle: 'HalalGoes couldn’t sign you in just now',
   busyBody: 'Something went wrong on our side. What you typed is kept. Try again in a moment.',
-  expiredTitle: 'You’ve been signed out',
+  expiredTitle: "You've been signed out",
   expiredIntro: 'Sign in again to keep receiving orders.',
-  expiredAlertTitle: 'New orders can’t reach this screen',
+  expiredAlertTitle: "New orders can't reach this screen",
   ordersAtRisk: (minutes: string) =>
-    `New orders can’t reach this screen until you sign in. Orders that arrive now will time out after ${minutes}, and two missed orders in a row stop new orders.`,
-  acceptedSafe: 'Orders you’ve already accepted are not affected.',
+    `New orders can't reach this screen until you sign in. Orders that arrive now will time out after ${minutes}, and two missed orders in a row stop new orders.`,
+  acceptedSafe: "Orders you've already accepted are not affected.",
   reuseTitle: 'We signed you out on every device',
   reuseIntro: 'Sign in again on each device to keep receiving orders.',
   reuseAlertTitle: 'Every session ended, including kitchen tablets',
@@ -68,7 +70,7 @@ export const SIGN_IN = {
     `Something looked like a copied sign-in, so we ended every session. Sign in again on each one. If you didn’t expect this, call partner support on ${phone} after signing in.`,
   reuseBodyNoSupport:
     'Something looked like a copied sign-in, so we ended every session. Sign in again on each one. If you didn’t expect this, contact HalalGoes after signing in.',
-  notRestaurantTitle: 'This isn’t a restaurant account',
+  notRestaurantTitle: "This isn't a restaurant account",
   notRestaurantBody: (email: string) =>
     `${email} signed in, but it has no restaurant on HalalGoes. It may be a customer or rider account. Restaurant partners sign in with the email they registered the restaurant with.`,
   differentEmail: 'Sign in with a different email',
@@ -84,14 +86,14 @@ export const ACCOUNT_CARDS: Record<
     icon: 'lock',
     title: 'This account is locked',
     body: (email) =>
-      `For your security, only partner support can unlock ${email}. They’ll check who you are first. Resetting your password won’t unlock it.`,
+      `For your security, only partner support can unlock ${email}. They'll check who you are first. Resetting your password won't unlock it.`,
     bodyNoSupport: () => 'For your security, it can only be unlocked by HalalGoes.',
   },
   suspended: {
     icon: 'lock',
     title: 'Your sign-in account is suspended',
     body: (email) =>
-      `You can’t sign in with ${email} while it is suspended. This is about your own sign-in, not the restaurant. Partner support can tell you why and what you can do next.`,
+      `You can't sign in with ${email} while it is suspended. This is about your own sign-in, not the restaurant. Partner support can tell you why and what you can do next.`,
   },
   banned: {
     icon: 'lock',
@@ -100,8 +102,8 @@ export const ACCOUNT_CARDS: Record<
   },
   'not-active': {
     icon: 'lock',
-    title: 'This account isn’t active',
-    body: (email) => `${email} exists but isn’t active yet. Partner support can tell you what’s needed.`,
+    title: "This account isn't active",
+    body: (email) => `${email} exists but isn't active yet. Partner support can tell you what's needed.`,
   },
   deactivated: {
     icon: 'info',
@@ -118,19 +120,19 @@ export const ACCOUNT_CARDS: Record<
 
 export const UPDATE = {
   title: 'This page needs an update',
-  body: 'Your setup has moved to a step this version of the page doesn’t know yet. Refresh to load the latest version. Nothing you’ve done is lost.',
+  body: "Your setup has moved to a step this version of the page doesn't know yet. Refresh to load the latest version. Nothing you've done is lost.",
   refresh: 'Refresh',
 };
 
 export const REGISTER = {
   title: 'Register your restaurant',
-  intro: 'Create the owner account. After you confirm your email, you’ll add your business details and documents.',
+  intro: "Create the owner account. After you confirm your email, you'll add your business details and documents.",
   name: 'Restaurant name',
-  nameHelp: 'The name customers know you by. You’ll add the legal name later.',
+  nameHelp: "The name customers know you by. You'll add the legal name later.",
   email: 'Work email',
-  emailHelp: 'We’ll send a confirmation link here.',
+  emailHelp: "We'll send a confirmation link here.",
   password: 'Password',
-  passwordHelp: 'At least 12 characters. Use a password you don’t use anywhere else.',
+  passwordHelp: "At least 12 characters. Use a password you don't use anywhere else.",
   terms: 'Read the partner terms',
   termsUpdated: 'Read the updated partner terms',
   termsVersion: (v: string) => `Version ${v}`,
@@ -161,9 +163,9 @@ export const REGISTER = {
   termsChangedTitle: 'The partner terms have changed',
   termsChangedBody:
     'They were updated while this page was open. Read the new version and accept it to create your account. Everything else you entered is kept.',
-  netTitle: 'Your account wasn’t created',
+  netTitle: "Your account wasn't created",
   netBody:
-    'We couldn’t reach HalalGoes, or something went wrong on our side. What you typed is kept. Check your connection and try again. Trying again won’t create a second account.',
+    "We couldn't reach HalalGoes, or something went wrong on our side. What you typed is kept. Check your connection and try again. Trying again won't create a second account.",
 };
 
 export const CHECK_EMAIL = {
@@ -174,36 +176,36 @@ export const CHECK_EMAIL = {
   noEmail: 'Open the link we sent to your email to continue setting up your restaurant.',
   wrongBefore: 'Wrong email? ',
   wrongLink: 'Register again with the right one',
-  help: 'The link works for 24 hours. Can’t find it? Check your spam folder, or send a new link.',
+  help: "The link works for 24 hours. Can't find it? Check your spam folder, or send a new link.",
   send: 'Send a new link',
   onItsWay: 'A new link is on its way. Earlier links no longer work, so use the newest email.',
   sendAnotherPrefix: 'You can send another in ',
-  dailyTitle: 'You’ve asked for 5 links today',
-  dailyBody: 'That’s the daily limit. Use the newest email you have, or call partner support.',
+  dailyTitle: "You've asked for 5 links today",
+  dailyBody: "That's the daily limit. Use the newest email you have, or call partner support.",
   dailyBodyNoSupport: 'That’s the daily limit. Use the newest email you have.',
   dailyLabel: 'until tomorrow’s limit resets',
-  offlineTitle: 'We couldn’t send a new link',
-  offlineBody: 'This device seems to be offline. The link we sent earlier still works. Try again when you’re back online.',
+  offlineTitle: "We couldn't send a new link",
+  offlineBody: "This device seems to be offline. The link we sent earlier still works. Try again when you're back online.",
 };
 
 export const VERIFY = {
   workingTitle: 'Confirming your email',
-  workingBody: 'This only takes a moment. You’ll go straight to setting up your restaurant.',
+  workingBody: "This only takes a moment. You'll go straight to setting up your restaurant.",
   workingStatus: 'Confirming your email…',
   expiredTitle: 'This link has expired',
-  expiredBody: 'Confirmation links work for 24 hours. Enter your email and we’ll send a new one.',
+  expiredBody: "Confirmation links work for 24 hours. Enter your email and we'll send a new one.",
   email: 'Email',
   send: 'Send a new link',
   alreadyBefore: 'Already confirmed your email? ',
   signIn: 'Sign in',
-  sendErrorTitle: 'We couldn’t send a new link',
+  sendErrorTitle: "We couldn't send a new link",
   sendErrorBody: 'Check your connection and try again. Nothing else changed.',
   tryAgain: 'Try again',
   usedTitle: 'This link has already been used',
   /** The board's "…setting up {business name}." — the name is unknown on this page. */
   usedBody: 'Your email is confirmed. Sign in to carry on setting up your restaurant.',
-  errorTitle: 'We couldn’t confirm your email',
-  errorBody: 'We couldn’t reach HalalGoes. Check your connection and try again. Your link still works.',
+  errorTitle: "We couldn't confirm your email",
+  errorBody: "We couldn't reach HalalGoes. Check your connection and try again. Your link still works.",
   doneTitle: 'Your email is confirmed',
   doneBody: 'Sign in to carry on setting up your restaurant.',
   emailError: 'Enter a full email address, like name@restaurant.ca.',

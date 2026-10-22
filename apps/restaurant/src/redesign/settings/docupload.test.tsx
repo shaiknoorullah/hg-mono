@@ -93,7 +93,7 @@ describe('upload another document', () => {
     fireEvent.change(screen.getByLabelText('Valid until'), { target: { value: '2100-11-12' } });
     fireEvent.click(screen.getByRole('button', { name: /Save document/ }));
     const note = await screen.findByTestId('renew-too-early');
-    expect(note.textContent).toContain('HalalGoes can’t take a renewal yet');
+    expect(note.textContent).toContain("HalalGoes can't take a renewal yet");
     expect(note.textContent).toContain('You can upload it from 13 September 2099, 60 days before your current certificate expires on 12 November 2099.');
     expect(screen.queryByTestId('renew-refused')).toBeNull();
     expect((screen.getByLabelText('Valid until') as HTMLInputElement).value).toBe('2100-11-12');

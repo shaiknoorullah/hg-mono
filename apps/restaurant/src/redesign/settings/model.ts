@@ -80,9 +80,9 @@ export function accountView(state: AccountState | undefined, halalHides: boolean
     case 'SUSPENDED':
       return { label: 'Suspended', text: 'No new orders and no payouts while it lasts.', tone: 'warning' };
     case 'BANNED':
-      return { label: 'Banned', text: 'This account can’t take orders.', tone: 'neutral' };
+      return { label: 'Banned', text: "This account can't take orders.", tone: 'neutral' };
     case 'DEACTIVATED':
-      return { label: 'Deactivated', text: 'This account can’t take orders.', tone: 'neutral' };
+      return { label: 'Deactivated', text: "This account can't take orders.", tone: 'neutral' };
     case 'CLOSED':
       return { label: 'Closed', text: 'This account is closed.', tone: 'neutral' };
     default:
@@ -188,7 +188,7 @@ export function halalSectionView(halal: Schema['HalalBadge'] | null | undefined,
     }
     default:
       // Absent or unrecognised: silence is never consent on a halal claim.
-      return { ...base, renewal: null, tone: 'missing', badge: null, summary: 'Status couldn’t load', title: 'We couldn’t read your halal status', body: 'Nothing is claimed until it loads. Try again in a moment, or call support.', canUpload: false, uploadReason: null, missing: true };
+      return { ...base, renewal: null, tone: 'missing', badge: null, summary: "Status couldn't load", title: 'We couldn’t read your halal status', body: 'Nothing is claimed until it loads. Try again in a moment, or call support.', canUpload: false, uploadReason: null, missing: true };
   }
 }
 
@@ -247,7 +247,7 @@ export function currentDocuments(docs: readonly KycDocument[]): KycDocument[] {
 }
 
 export function documentsSummary(docs: readonly KycDocument[] | null, failed: boolean): string {
-  if (failed) return 'Couldn’t load';
+  if (failed) return "Couldn't load";
   if (!docs) return 'Loading';
   const rows = currentDocuments(docs);
   if (rows.length === 0) return 'No documents on record';

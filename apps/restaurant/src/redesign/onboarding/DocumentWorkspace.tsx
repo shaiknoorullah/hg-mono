@@ -199,7 +199,7 @@ export function DocumentWorkspace({ variant }: { variant: WorkspaceVariant }) {
         <InlineAlert
           tone={needNow.tone === 'slate' ? 'neutral' : needNow.tone}
           icon={needNow.tone === 'slate' ? 'clock' : needNow.tone === 'warning' ? 'warning' : 'info'}
-          title={anyExpired ? expiredBannerTitle(anyExpired) : 'What’s needed now'}
+          title={anyExpired ? expiredBannerTitle(anyExpired) : "What’s needed now"}
           testId="needed-now"
         >
           <span>{needNow.text}</span>
@@ -522,11 +522,14 @@ function DetailPane({ variant, row, draft, api, headingRef, download, onDownload
         <section className="flex flex-col gap-3 rounded-[12px] border border-feedback-warning-border bg-feedback-warning-tint p-4 text-feedback-warning-tint-text" data-testid="rejection-block" aria-label={`Why ${meta.lc} was not approved`}>
           <div className="flex flex-col gap-1">
             <strong className="text-label-lg">{rv.label}</strong>
-            {doc.reviewed_at ? <span className="text-body-sm">Reviewed {longDate(doc.reviewed_at)}</span> : null}
+            {doc.reviewed_at && !doc.review_note ? <span className="text-body-sm">Reviewed {longDate(doc.reviewed_at)}</span> : null}
           </div>
           {doc.review_note ? (
             <div className="flex flex-col gap-1">
-              <span className="text-label-md">{REVIEW.reviewerNote}</span>
+              <span className="text-label-md">
+                {REVIEW.reviewerNote}
+                {doc.reviewed_at ? `, ${longDate(doc.reviewed_at)}` : ''}
+              </span>
               <p className="m-0 text-body-md" data-testid="review-note">
                 {doc.review_note}
               </p>
@@ -574,7 +577,7 @@ function SupportAction({ support, primary = false }: { support: ReturnType<typeo
   return (
     <div className="flex flex-col gap-1">
       <Button variant={primary ? 'primary' : 'tertiary'} size="md" href={`tel:${support.tel}`}>
-        {REVIEW.callSupport}: {support.display}
+        {`${REVIEW.callSupport}: ${support.display}`}
       </Button>
       {support.hours ? <span className="text-body-sm">{support.hours}</span> : null}
     </div>

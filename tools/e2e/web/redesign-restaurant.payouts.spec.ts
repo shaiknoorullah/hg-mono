@@ -140,7 +140,7 @@ test.describe('redesigned restaurant · payout account (mock)', () => {
 
   test('the payout account does not load', async ({ page }) => {
     await open(page, '/payouts', { connect: 'error' });
-    await expect(page.getByText('Couldn’t load your payout account')).toBeVisible();
+    await expect(page.getByText("Couldn't load your payout account")).toBeVisible();
     await capture(page, { 1440: 'restaurant/payouts/Payouts-ConnectError' });
   });
 
@@ -180,7 +180,7 @@ test.describe('redesigned restaurant · payout account (mock)', () => {
 
   test("Stripe's exact list in the panel", async ({ page }) => {
     await open(page, '/payouts', { connect: 'connect_status_past_due' });
-    await page.getByRole('button', { name: 'See Stripe’s exact list' }).first().click();
+    await page.getByRole('button', { name: "See Stripe's exact list" }).first().click();
     await expect(page.getByTestId('stripe-list-panel')).toBeVisible();
     await capture(page, { 1440: 'restaurant/payouts/Payouts-SetupList' });
   });

@@ -256,7 +256,7 @@ export function HistoryPage() {
               density="comfortable"
               stickyHeader
               loading={list.status === 'loading'}
-              error={list.status === 'error' ? { code: 'NETWORK', message: 'Couldn’t load your payouts. Your money isn’t affected.', onRetry: () => void loadFirst(false) } : null}
+              error={list.status === 'error' ? { code: 'NETWORK', message: "Couldn't load your payouts. Your money isn't affected; this is only the list.", onRetry: () => void loadFirst(false) } : null}
               className="rounded-none border-0"
               emptyState={
                 <EmptyState
@@ -325,7 +325,7 @@ export function HistoryPage() {
             </div>
           ) : lookupFailed ? (
             <div role="alert" className="flex flex-col items-start gap-3" data-testid="payout-load-error">
-              <h3 className="m-0 text-heading-sm">Couldn’t load this payout. Your money isn’t affected.</h3>
+              <h3 className="m-0 text-heading-sm">Couldn't load this payout. Your money isn't affected.</h3>
               <p className="m-0 text-body-md">Check your connection and try again. The payout history beside this panel stays as it was.</p>
               <Button variant="tertiary" size="md" onPress={() => void loadMore()}>
                 Try again
@@ -333,7 +333,7 @@ export function HistoryPage() {
             </div>
           ) : notFound ? (
             <div role="alert" className="flex flex-col items-start gap-3" data-testid="payout-not-found">
-              <h3 className="m-0 text-heading-sm">We couldn’t find this payout</h3>
+              <h3 className="m-0 text-heading-sm">We couldn't find this payout</h3>
               <p className="m-0 text-body-md">The link may be for another restaurant. Your payouts are not affected.</p>
               <div className="flex gap-2">
                 <Button variant="primary" size="md" onPress={() => show(null)}>
@@ -388,7 +388,7 @@ function PayoutRows({
   if (status === 'error') {
     return (
       <div role="alert" className="flex flex-col items-start gap-2 p-4" data-testid="payouts-table" data-state="error">
-        <strong className="text-label-lg">Couldn’t load your payouts. Your money isn’t affected.</strong>
+        <strong className="text-label-lg">Couldn't load your payouts. Your money isn't affected; this is only the list.</strong>
         <Button variant="tertiary" size="md" onPress={onRetry}>
           Try again
         </Button>

@@ -69,7 +69,7 @@ describe('Settings: this device', () => {
     const section = await open();
     expect(within(section).queryByTestId('sound-off-warning')).toBeNull();
     fireEvent.click(within(section).getByRole('switch', { name: /Order sound/ }));
-    expect(within(section).getByTestId('sound-off-warning').textContent).toMatch(/You won’t hear new orders\. They still appear in the strip/);
+    expect(within(section).getByTestId('sound-off-warning').textContent).toMatch(/You won't hear new orders\. They still appear in the strip/);
     expect(getDevicePrefs().soundOff).toBe(true);
     expect(JSON.parse(window.localStorage.getItem('hg.restaurant.device')!)).toMatchObject({ soundOff: true });
     expect(within(screen.getByTestId('settings-nav')).getByText('Order sound off')).toBeTruthy();
@@ -122,9 +122,9 @@ describe('Settings: this device', () => {
   it('a browser that cannot keep the screen on disables the switch and says what to do instead', async () => {
     delete (navigator as unknown as { wakeLock?: unknown }).wakeLock;
     const section = await open();
-    expect(within(section).getByTestId('no-wake-lock').textContent).toMatch(/can’t keep the screen on\. Set your device to stay awake/);
+    expect(within(section).getByTestId('no-wake-lock').textContent).toMatch(/can't keep the screen on\. Set your device to stay awake/);
     expect(within(section).getByRole('switch', { name: /Keep the screen on/ }).hasAttribute('disabled')).toBe(true);
-    expect(within(screen.getByTestId('settings-nav')).getByText('Sound on · screen can’t stay on')).toBeTruthy();
+    expect(within(screen.getByTestId('settings-nav')).getByText("Sound on · screen can't stay on")).toBeTruthy();
   });
 
   it('letting the screen dim is saved for this browser', async () => {

@@ -68,7 +68,7 @@ export function PayoutDetail({
           <p className="m-0 text-body-md">
             {fail.recorded
               ? 'This amount went back into your balance and will be included in a later payout once your bank details are fixed.'
-              : 'Contact support and we’ll find out and tell you what to do. The money went back into your balance and is paid in a later payout.'}
+              : "Contact support and we'll find out and tell you what to do. The money went back into your balance and is paid in a later payout."}
           </p>
           <p className="m-0 text-body-md">This payout keeps showing Failed. The later payout that includes this amount says so.</p>
           {fail.recorded ? (
@@ -87,7 +87,7 @@ export function PayoutDetail({
       {hold ? (
         <section aria-labelledby="why-held" className="flex flex-col gap-2 rounded-md border border-feedback-warning-border bg-feedback-warning-tint p-3" data-testid="why-held">
           <h3 id="why-held" className="m-0 text-heading-sm">
-            Why it’s on hold
+            Why it's on hold
           </h3>
           <p className="m-0 text-body-md" data-testid="hold-reason" data-recorded={hold.recorded}>
             {hold.text}
@@ -121,7 +121,7 @@ export function PayoutDetail({
               ) : (
                 <span className="flex flex-col">
                   <span>Not given</span>
-                  <span className="text-body-sm font-normal text-fg-secondary">HalalGoes didn’t send a count for this payout. The amount is still exact.</span>
+                  <span className="text-body-sm font-normal text-fg-secondary">HalalGoes didn't send a count for this payout. The amount is still exact.</span>
                 </span>
               ),
           },
@@ -150,7 +150,7 @@ function SetupBlock({ connect, timezone, busy, onFinish }: { connect: ConnectSta
         </Button>
       </div>
       {groups.length > 0 ? (
-        <Disclosure summary="Stripe’s exact list">
+        <Disclosure summary="Stripe's exact list">
           <div className="flex flex-col gap-2">
             <span className="text-body-sm text-fg-secondary">Stripe explains each item when you open it. The Stripe reference is for HalalGoes support.</span>
             {groups.map((g) => (

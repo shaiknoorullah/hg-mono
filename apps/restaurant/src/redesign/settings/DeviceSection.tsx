@@ -23,7 +23,7 @@ const NOTIFICATION: Record<NotificationsState, { tone: NonNullable<BadgeProps['v
   blocked: {
     tone: 'warning',
     label: 'Blocked in this browser',
-    text: 'To allow them, open this site’s settings in your browser (the icon beside the address) and set Notifications to Allow. Then reload this page.',
+    text: "To allow them, open this site's settings in your browser (the icon beside the address) and set Notifications to Allow. Then reload this page.",
   },
   unsupported: { tone: 'neutral', appearance: 'outline', label: 'Not available', text: 'This browser can’t show notifications. New orders still ring and appear in the strip at the top of every page.' },
 };
@@ -45,7 +45,7 @@ export function DeviceSection() {
       <div className={card}>
         <div className="flex flex-col gap-1">
           <h3 className="m-0 text-heading-lg">On this browser</h3>
-          <p className="m-0 text-body-md text-fg-secondary">Keep this screen open and on while you’re accepting orders. These settings belong to this browser only.</p>
+          <p className="m-0 text-body-md text-fg-secondary">Keep this screen open and on while you're accepting orders. These settings belong to this browser only.</p>
         </div>
 
         <div className={row} data-testid="device-sound">
@@ -59,7 +59,7 @@ export function DeviceSection() {
           {prefs.soundOff ? (
             <span role="status" className="inline-flex items-center gap-1.5 text-label-md text-feedback-warning-tint-text" data-testid="sound-off-warning">
               <GlyphIcon name="warning" size="sm" className="text-feedback-warning-icon" />
-              You won’t hear new orders. They still appear in the strip at the top of every page. Turn the sound on while you’re accepting orders.
+              You won't hear new orders. They still appear in the strip at the top of every page. Turn the sound on while you're accepting orders.
             </span>
           ) : null}
           <div className="flex flex-wrap items-center gap-3">
@@ -105,7 +105,7 @@ export function DeviceSection() {
           />
           {!wakeSupported ? (
             <span className="text-body-sm text-fg-secondary" data-testid="no-wake-lock">
-              This browser can’t keep the screen on. Set your device to stay awake while it’s plugged in.
+              This browser can't keep the screen on. Set your device to stay awake while it's plugged in.
             </span>
           ) : null}
         </div>
