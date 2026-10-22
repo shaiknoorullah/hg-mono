@@ -63,20 +63,18 @@ describe('the redesign shell (WP0)', () => {
     mock.restore();
     mock = mockApi({ verifyEmail: { status: 204, body: null } });
     const token = 'a'.repeat(40);
-    const initial = jest.spyOn(Linking, 'getInitialURL').mockResolvedValue(`hgcustomer://verify-email?token=${token}`);
-    try {
-      renderRedesign(<Shell />);
-      expect(await screen.findByText('Your email is confirmed')).toBeTruthy();
-      expect(screen.getByText('Sign in with your mobile number to keep ordering.')).toBeTruthy();
-      expect(mock.callsTo('verifyEmail')).toHaveLength(1);
-      // The page does not read a profile: there is no session to read it with.
-      expect(mock.callsTo('getCustomerProfile')).toHaveLength(0);
-      fireEvent.press(screen.getByText('Sign in'));
-      expect(await screen.findByTestId('RedesignSignedOut')).toBeTruthy();
-      expect(mock.callsTo('verifyEmail')).toHaveLength(1);
-    } finally {
-      initial.mockRestore();
-    }
+    // The preset's getInitialURL is already a jest.fn: queue one answer rather than spying (restoring a
+    // spy on it would leave later tests with a function that returns nothing).
+    (Linking.getInitialURL as jest.Mock).mockResolvedValueOnce(`hgcustomer://verify-email?token=${token}`);
+    renderRedesign(<Shell />);
+    expect(await screen.findByText('Your email is confirmed')).toBeTruthy();
+    expect(screen.getByText('Sign in with your mobile number to keep ordering.')).toBeTruthy();
+    expect(mock.callsTo('verifyEmail')).toHaveLength(1);
+    // The page does not read a profile: there is no session to read it with.
+    expect(mock.callsTo('getCustomerProfile')).toHaveLength(0);
+    fireEvent.press(screen.getByText('Sign in'));
+    expect(await screen.findByTestId('RedesignSignedOut')).toBeTruthy();
+    expect(mock.callsTo('verifyEmail')).toHaveLength(1);
   });
 
   it('boots to Home with Home · Search · Orders · Account when signed in, and the tabs switch', async () => {
