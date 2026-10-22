@@ -22,6 +22,7 @@ const (
 	hoursAllDay      = "all-day"      // 00:00–23:59 every day: open whenever someone tests
 	hoursAfternoon   = "afternoon"    // 12:00–23:59 every day
 	hoursClosedToday = "closed-today" // 11:00–22:00, no row for the reset day: closed by hours
+	hoursNone        = "none"         // no weekly hours at all: closed by its hours at every time
 )
 
 // CatalogueRestaurant is one restaurant of the catalogue.
@@ -52,6 +53,11 @@ type CatalogueRestaurant struct {
 	CertDays int
 	// Body picks one of the accepted issuing bodies, by name order.
 	Body int
+	// CertFileMissing seeds the certificate's stored object with no file behind
+	// it (its key is outside the prefix SeedDocumentFiles uploads to), so the
+	// "View certificate" link is minted and the object store then answers
+	// "no such key". Only the state restaurants use it.
+	CertFileMissing bool
 
 	Hero       string // photo key of the hero image
 	Palette    int    // colour scheme for the generated logo and fallbacks
