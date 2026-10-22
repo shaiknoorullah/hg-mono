@@ -144,3 +144,9 @@ export async function openStaff(page_: Page, hash: string, scene: StaffScene = {
   }, hash);
 }
 
+
+/** Only the signed-in super admin (`StaffOnlyYou`, `InviteSecondSuper`). */
+export const onlyYou = (): StaffUser[] => [sevenAccounts()[0]!];
+
+/** The seven and the active admin without two-step sign-in the detail board opens. */
+export const sevenAndNoor = (): StaffUser[] => [...sevenAccounts(), edgeRows().find((r) => r.id === ID.noor)!];
