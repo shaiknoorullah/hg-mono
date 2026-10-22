@@ -61,6 +61,17 @@ once there is something to protect ([#1034](https://github.com/shaiknoorullah/hg
 and native captures join it once they have a view hierarchy
 ([#1026](https://github.com/shaiknoorullah/hg-mono/issues/1026)).
 
+**What it costs, and what has not been explained.** The comparison is about a second a pair, and the
+pair count only rises: 681 when the mock capture pass landed, 823 a day later, against roughly 2,600
+boards. Its `timeout-minutes` is **90** — headroom, not a measurement: the job has never been read
+to completion. One run stopped at 23 minutes with `The operation was canceled` and **no failing
+step**, after printing a verdict about once a second and then going silent for 92 seconds. The
+declared timeout, the run being cancelled, a newer run superseding it, pairs holding decoded images
+and the V8 heap were each checked and ruled out, so the cause is still open: the job now prints
+`df -h` and `free -m` either side of the comparison, and the next capture-heavy run should say which
+of disk or memory runs out
+([#1034](https://github.com/shaiknoorullah/hg-mono/issues/1034)).
+
 A run on a pull request reads no secret. No run needs one: the API runs with `HG_ENV=local`, so it
 uses its fake payment client (no Stripe keys) and writes phone sign-in codes to its own log
 instead of texting them. No flow sends an SMS or charges a card.
