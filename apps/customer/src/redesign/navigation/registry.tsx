@@ -55,8 +55,7 @@ export const REDESIGNED: Registry = {
   // WP10/WP11: Account (with its edit sheet and sign-out), Saved addresses, Notification settings,
   // App settings (location permission and appearance), the email-link page, What's new (opened
   // from Account; the once-after-an-update sheet is Home's) and the address form (search, details,
-  // edit, delete, default; its map pin step is a placeholder until the native map exists, issue
-  // #1023).
+  // edit, delete, default; its pin step is the design system's draggable-pin map).
   account: () => <AccountScreen />,
   addresses: () => <RedesignedAddressesScreen />,
   addressForm: (r) => <RedesignedAddressFormScreen addressId={r.addressId} first={r.first} />,
