@@ -207,6 +207,15 @@ drawing is not the approved design are flagged first, so nobody moves an app tow
 known to be wrong; a board whose own script failed in the design runtime (its `errors` in the
 manifest) is flagged as not trustworthy; the uploaded images missing offline are listed per area.
 
+## The regression gate
+
+`passing.json` lists every board that has passed on `main`. In CI, after the report, `gate`
+(`src/gate.mjs`) fails the `design-diff` job when any listed board is not `PASS` in the run: it
+fails, was not compared, or has no capture at all (a capture spec that broke counts). The diff
+itself stays `--no-strict`, so the hundreds of boards not passing yet block nothing; only a board
+that has passed can. Boards that pass and are not listed are printed in the job log, to be added in
+the pull request that makes them pass. Removing one needs its reason in that pull request.
+
 ## Phone captures
 
 A board is the app's content only. A phone capture comes from an emulator whose content area is
@@ -258,6 +267,7 @@ the board's size, and loses Android's status and navigation bars before the comp
 | `src/report.mjs`, `src/png.mjs` | The HTML report; PNG helpers |
 | `src/job-summary.mjs` | A run's verdicts as one Markdown table, areas worst first, for a CI job summary |
 | `src/findings.mjs` | The failing boards in words, for a CI job log: why each one is not passing, and where |
+| `src/gate.mjs`, `passing.json` | The regression gate: the boards that have passed on `main`, and the CI step that fails a run in which one of them does not pass |
 | `src/names.mjs`, `src/insets.mjs` | The capture names; the phone profiles and their bars |
 | `src/capture-size.mjs` | A board's size from its `canvas.json`, and the viewport a web capture is taken at: a board taller than the window at the same width is captured at its own height, because the consoles scroll inside a fixed-height frame and `fullPage` would stop at the window; and whether a capture is taken at all: only at the board's own width (`widthMismatch`) |
 | `src/vendor-fonts.mjs`, `third-party/` | React and the fonts the boards load, and their licences |
