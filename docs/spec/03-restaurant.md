@@ -1859,8 +1859,10 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   range. History reads `GET /v1/restaurant/orders` (`listRestaurantOrders`) filtered by terminal
   `state`, which returns `OrderRestaurantView`.
 
-  *(Today there is no history view at all — the orders table is a live list with no pagination, no
-  date filter and no status filter.)*
+  *(Redesign: the Past orders page at `/orders/history` (October 2026) reads this operation with one
+  status chip per past state, cursor paging and a read-only panel for one order. Date range, search,
+  export, per-status counts and the reasons for a decline, a cancellation or a dispute outcome are
+  not on the restaurant's order view yet, so that page does not draw them.)*
 
   > **DECISION REQUIRED — retention and PII minimisation in order history**: how long is order history kept and how much customer data stays in it? · **Proposed default**: orders queryable for **7 years** (Canadian business-record retention); customer PII inside them minimised after **90 days** to first name + last initial and the first three postal characters; KYC documents retained 7 years after account closure; ticket attachments 2 years; notifications 90 days. · **Why**: business-record retention and PIPEDA data-minimisation pull in opposite directions, and this split satisfies both without asking the restaurant to choose. *(D-21)*
 

@@ -110,7 +110,7 @@ describe('new-order strip', () => {
     const preparing = { ...fixture('restaurant_order_preparing'), code: 'P9X1' };
     const completed = { ...pending('C0M1', 100), state: 'COMPLETED' };
     const api = installFakeApi(routesFor([live, preparing, completed]));
-    await renderRedesign('/orders/history');
+    await renderRedesign('/payouts/history');
     await findTile('A7K2');
     expect(tileOf('P9X1')).toBeNull();
     expect(tileOf('C0M1')).toBeNull();
@@ -130,7 +130,7 @@ describe('new-order strip', () => {
         },
       }),
     );
-    await renderRedesign('/orders/history');
+    await renderRedesign('/payouts/history');
     expect(await screen.findByRole('status', { name: 'Loading new orders' })).toBeTruthy();
     release();
     expect(await screen.findByText('No new orders')).toBeTruthy();
@@ -141,7 +141,7 @@ describe('new-order strip', () => {
   it('draws a live tile: code, earnings, summary, note, and the 72 px orange Accept', async () => {
     const o = pending('A7K2', 132, { customer: { display_name: 'Aisha K.', phone_masked: '+1 416 ••• 0123' } });
     installFakeApi(routesFor([o]));
-    await renderRedesign('/orders/history');
+    await renderRedesign('/payouts/history');
     const tile = await findTile('A7K2');
     expect(tile.getAttribute('aria-label')).toMatch(/^New order A7K2, 2 minutes \d+ seconds? left, \$79\.87$/);
     expect(tile.getAttribute('aria-keyshortcuts')).toBe('A D Enter');
@@ -160,7 +160,7 @@ describe('new-order strip', () => {
   it('puts the soonest deadline first and a fourth order behind "+1 more"', async () => {
     const orders = [pending('A7K2', 132), pending('B3M9', 40), pending('C8T4', 15), pending('D2P6', 170)];
     installFakeApi(routesFor(orders));
-    await renderRedesign('/orders/history');
+    await renderRedesign('/payouts/history');
     await findTile('C8T4');
     const labels = [...document.querySelectorAll('[data-offer-tile]')].map((t) => t.getAttribute('aria-label')!.split(',')[0]);
     expect(labels).toEqual(['New order C8T4', 'New order B3M9', 'New order A7K2']);
@@ -180,7 +180,7 @@ describe('keyboard: keys act only on the focused tile', () => {
   it('A with focus on the page, in a text field or on a button does not accept; on the tile it does', async () => {
     const o = pending('A7K2', 132);
     const api = installFakeApi(routesFor([o], { [`POST /v1/restaurant/orders/${o.id}/accept`]: accepted(o) }));
-    await renderRedesign('/orders/history');
+    await renderRedesign('/payouts/history');
     const tile = await findTile('A7K2');
 
     key(document.body, 'a');
@@ -214,7 +214,7 @@ describe('keyboard: keys act only on the focused tile', () => {
   it('D opens decline and Enter opens the order, for the focused tile', async () => {
     const o = pending('A7K2', 132);
     installFakeApi(routesFor([o]));
-    await renderRedesign('/orders/history');
+    await renderRedesign('/payouts/history');
     const tile = await findTile('A7K2');
     act(() => tile.focus());
     key(tile, 'Enter');
@@ -234,7 +234,7 @@ describe('keyboard: keys act only on the focused tile', () => {
     const api = installFakeApi(
       routesFor([o], { [`POST /v1/restaurant/orders/${o.id}/accept`]: 'error_offer_expired' }),
     );
-    await renderRedesign('/orders/history');
+    await renderRedesign('/payouts/history');
     const tile = await findTile('A7K2');
     act(() => tile.focus());
     key(tile, 'a');
@@ -256,7 +256,7 @@ describe('accept', () => {
     const o = pending('B3M9', 100);
     const route = `POST /v1/restaurant/orders/${o.id}/accept`;
     const api = installFakeApi(routesFor([o], { [route]: { status: 503, body: errorBody('SERVICE_UNAVAILABLE') } }));
-    await renderRedesign('/orders/history');
+    await renderRedesign('/payouts/history');
     const tile = await findTile('B3M9');
     fireEvent.click(within(tile).getByRole('button', { name: 'Accept order B3M9, ready in 20 minutes' }));
     expect(await within(tile).findByText('Couldn’t confirm. Still waiting for you.')).toBeTruthy();
@@ -284,7 +284,7 @@ describe('accept', () => {
         },
       }),
     );
-    await renderRedesign('/orders/history');
+    await renderRedesign('/payouts/history');
     const tile = await findTile('A7K2');
     fireEvent.click(within(tile).getByRole('button', { name: /^Accept order A7K2/ }));
     expect(await within(tile).findByText('Confirming with HalalGoes. Don’t tap again.')).toBeTruthy();
@@ -296,7 +296,7 @@ describe('accept', () => {
   it('409 CAPTURE_FAILED keeps a danger "Cancelled" tile until removed', async () => {
     const o = pending('A7K2', 120);
     installFakeApi(routesFor([o], { [`POST /v1/restaurant/orders/${o.id}/accept`]: 'error_capture_failed' }));
-    await renderRedesign('/orders/history');
+    await renderRedesign('/payouts/history');
     const tile = await findTile('A7K2');
     fireEvent.click(within(tile).getByRole('button', { name: /^Accept order A7K2/ }));
     expect(await screen.findByText('Payment didn’t go through')).toBeTruthy();
@@ -311,7 +311,7 @@ describe('accept', () => {
     const o = pending('A7K2', 120);
     const route = `POST /v1/restaurant/orders/${o.id}/accept`;
     const api = installFakeApi(routesFor([o], { [route]: accepted(o) }));
-    await renderRedesign(`/orders/history?panel=offer&order=${o.id}`);
+    await renderRedesign(`/payouts/history?panel=offer&order=${o.id}`);
     const panel = await screen.findByRole('complementary', { name: 'Order A7K2 details' });
     await within(panel).findByText('Phone number and full address appear after you accept.');
     expect(within(panel).queryByText(/•••/)).toBeNull();
@@ -337,7 +337,7 @@ describe('decline', () => {
   it('needs a reason: nothing preselected, Keep order first, the group error moves focus', async () => {
     const o = pending('A7K2', 120);
     const api = installFakeApi(routesFor([o]));
-    await renderRedesign(`/orders/history?panel=decline&order=${o.id}`);
+    await renderRedesign(`/payouts/history?panel=decline&order=${o.id}`);
     const panel = await screen.findByRole('complementary', { name: 'Order A7K2 details' });
     await waitFor(() => expect(document.activeElement).toBe(within(panel).getByRole('button', { name: 'Keep order' })));
     const radios = within(panel).getAllByRole('radio');
@@ -362,7 +362,7 @@ describe('decline', () => {
     const o = pending('A7K2', 120);
     const route = `POST /v1/restaurant/orders/${o.id}/reject`;
     const api = installFakeApi(routesFor([o], { [route]: { status: 503, body: errorBody('SERVICE_UNAVAILABLE') } }));
-    await renderRedesign(`/orders/history?panel=decline&order=${o.id}`);
+    await renderRedesign(`/payouts/history?panel=decline&order=${o.id}`);
     const panel = await screen.findByRole('complementary', { name: 'Order A7K2 details' });
     expect(within(panel).queryByRole('textbox')).toBeNull();
     fireEvent.click(within(panel).getByRole('radio', { name: 'Something else' }));
@@ -403,7 +403,7 @@ describe('decline', () => {
     const biryani = o.lines[0].menu_item_id as string;
     const put = `PUT /v1/restaurant/menu/items/${biryani}/availability`;
     const api = installFakeApi(routesFor([o], { [reject]: 'restaurant_order_rejected', [put]: 'error_menu_locked' }));
-    await renderRedesign(`/orders/history?panel=decline&order=${o.id}`);
+    await renderRedesign(`/payouts/history?panel=decline&order=${o.id}`);
     const panel = await screen.findByRole('complementary', { name: 'Order A7K2 details' });
     fireEvent.click(within(panel).getByRole('radio', { name: 'An item is unavailable' }));
     expect(within(panel).getByRole('group', { name: 'Which items are unavailable?' })).toBeTruthy();
@@ -422,7 +422,7 @@ describe('decline', () => {
   it('409 OFFER_EXPIRED on decline shows "Too late to decline" and the timed-out tile', async () => {
     const o = pending('A7K2', 120);
     installFakeApi(routesFor([o], { [`POST /v1/restaurant/orders/${o.id}/reject`]: 'error_offer_expired' }));
-    await renderRedesign(`/orders/history?panel=decline&order=${o.id}`);
+    await renderRedesign(`/payouts/history?panel=decline&order=${o.id}`);
     const panel = await screen.findByRole('complementary', { name: 'Order A7K2 details' });
     fireEvent.click(within(panel).getByRole('radio', { name: 'Kitchen is too busy' }));
     fireEvent.click(within(panel).getByRole('button', { name: 'Decline order, order A7K2' }));
@@ -453,7 +453,7 @@ async function withSocket(orders: Order[], overrides: Record<string, Handler> = 
   let sock: FakeRealtimeSocket | null = null;
   setRealtimeSocketFactoryForTests((url) => (sock = new FakeRealtimeSocket(url)));
   const api = installFakeApi(routesFor(orders, { 'POST /v1/realtime/ticket': 'realtime_ticket', ...overrides }));
-  await renderRedesign('/orders/history');
+  await renderRedesign('/payouts/history');
   await waitFor(() => expect(sock).not.toBeNull());
   act(() => sock!.open());
   return { api, sock: () => sock! };
@@ -530,7 +530,7 @@ describe('realtime', () => {
   it('polls the pending list every 10 s while the socket is not open', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const api = installFakeApi(routesFor([]));
-    await renderRedesign('/orders/history');
+    await renderRedesign('/payouts/history');
     await screen.findByText('No new orders');
     const before = api.callsTo('GET /v1/restaurant/orders').length;
     const o = pending('N3W1', 150);
@@ -637,25 +637,25 @@ describe('strip around the board', () => {
   it('rule line and empty card follow the open state', async () => {
     const o = pending('A7K2', 120);
     installFakeApi(routesFor([o], { 'GET /v1/restaurant/availability': 'restaurant_open_state_paused' }));
-    await renderRedesign('/orders/history');
+    await renderRedesign('/payouts/history');
     expect(await screen.findByText('Paused. These arrived before the pause and still need an answer.')).toBeTruthy();
     cleanup();
     installFakeApi(routesFor([], { 'GET /v1/restaurant/availability': 'restaurant_open_state_paused' }));
-    await renderRedesign('/orders/history');
+    await renderRedesign('/payouts/history');
     expect(await screen.findByText('Paused until 2:32 pm')).toBeTruthy();
     expect(screen.getByText('New orders resume at 2:32 pm. Orders in progress still need finishing.')).toBeTruthy();
     // The status bar (live board) has its own Resume now; this one is the strip's empty card.
     expect(within(screen.getByTestId('new-order-strip')).getByRole('button', { name: 'Resume now' })).toBeTruthy();
     cleanup();
     installFakeApi(routesFor([pending('B3M9', 100)], { 'GET /v1/restaurant/availability': 'restaurant_open_state_closed_toggle' }));
-    await renderRedesign('/orders/history');
+    await renderRedesign('/payouts/history');
     expect(await screen.findByText('Arrived before you turned orders off. Each keeps its full 3 minutes.')).toBeTruthy();
   });
 
   it('with an offer open in the panel the strip is one compact row; Show all closes the panel', async () => {
     const [a, b] = [pending('A7K2', 120), pending('B3M9', 40)];
     installFakeApi(routesFor([a, b]));
-    await renderRedesign(`/orders/history?panel=offer&order=${a.id}`);
+    await renderRedesign(`/payouts/history?panel=offer&order=${a.id}`);
     expect(await screen.findByText('2 new orders waiting')).toBeTruthy();
     expect(screen.getByText('A7K2 is open in the panel. Also waiting: B3M9 (timer shown).')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Show all 2 new orders' }));
@@ -780,7 +780,7 @@ describe('a removal never puts focus on another live order', () => {
   it('after the user’s own accept, focus moves on to the next order', async () => {
     const [a, b] = [pending('A7K2', 120), pending('B3M9', 150)];
     installFakeApi(routesFor([a, b], { [ACCEPT(a)]: accepted(a) }));
-    await renderRedesign('/orders/history');
+    await renderRedesign('/payouts/history');
     const tile = await findTile('A7K2');
     act(() => tile.focus());
     key(tile, 'a');
@@ -798,7 +798,7 @@ describe('an accept whose response is lost', () => {
         [`GET /v1/restaurant/orders/${o.id}`]: accepted(o),
       }),
     );
-    await renderRedesign('/orders/history');
+    await renderRedesign('/payouts/history');
     const tile = await findTile('A7K2');
     fireEvent.click(within(tile).getByRole('button', { name: /^Accept order A7K2/ }));
     expect(await screen.findByText('A7K2 accepted · ready by 2:51 pm')).toBeTruthy();
@@ -830,7 +830,7 @@ describe('an accept whose response is lost', () => {
   it('an accept-failed order is re-read at its deadline: accepted is never called a timeout', async () => {
     const o = pending('A7K2', 2);
     const api = installFakeApi(routesFor([o], { [ACCEPT(o)]: { status: 503, body: errorBody('SERVICE_UNAVAILABLE') } }));
-    await renderRedesign('/orders/history');
+    await renderRedesign('/payouts/history');
     const tile = await findTile('A7K2');
     fireEvent.click(within(tile).getByRole('button', { name: /^Accept order A7K2/ }));
     expect(await within(tile).findByText('Couldn’t confirm. Still waiting for you.')).toBeTruthy();
@@ -843,7 +843,7 @@ describe('an accept whose response is lost', () => {
   it('locks the prep time once an accept has gone out under its key', async () => {
     const o = pending('A7K2', 120);
     const api = installFakeApi(routesFor([o], { [ACCEPT(o)]: { status: 503, body: errorBody('SERVICE_UNAVAILABLE') } }));
-    await renderRedesign(`/orders/history?panel=offer&order=${o.id}`);
+    await renderRedesign(`/payouts/history?panel=offer&order=${o.id}`);
     const panel = await screen.findByRole('complementary', { name: 'Order A7K2 details' });
     fireEvent.click(await within(panel).findByRole('button', { name: 'Accept order A7K2, ready in 20 minutes' }));
     expect(await within(panel).findByText('We couldn’t confirm this order')).toBeTruthy();
