@@ -1,7 +1,7 @@
 import { expect, type Page, type Route } from '@playwright/test';
 
 import { expectDesignFor, type BoardFor } from './design';
-import { routeLogin, signIn, type StaffRole } from './redesign-admin.support';
+import { answerFailure, answerMorePage, answerTakeNext, routeLogin, signIn, trackAccountId, type Failure, type StaffRole } from './redesign-admin.support';
 import { at, failing, fixture, never, type Json } from './redesign-admin.rider-onboarding.scene';
 
 /**
@@ -69,7 +69,6 @@ export interface Ctx {
 }
 
 export type Answer<T> = T | ((c: Ctx) => T);
-export type Failure = 'error' | 'never' | 'forbidden' | 'notfound' | 'session';
 
 export interface Scene {
   role?: StaffRole;
@@ -126,23 +125,9 @@ export async function arrive(page: Page, scene: Scene = {}): Promise<{ id: strin
   const ctx = (id = ''): Ctx => ({ me: me.id, id, base });
   await page.clock.setFixedTime(new Date(now));
   await routeLogin(page, scene.role ?? 'ADMIN');
-  page.on('response', async (res) => {
-    if (res.url().endsWith('/v1/auth/login') && res.request().method() === 'POST') {
-      try {
-        me.id = (await res.json()).data.principal.account_id;
-      } catch {
-        /* the sign-in failed; the test says so */
-      }
-    }
-  });
+  trackAccountId(page, me);
 
-  const failure = (kind: Failure, route: Route) => {
-    if (kind === 'error') return failing(route);
-    if (kind === 'never') return never();
-    if (kind === 'forbidden') return refuse(route, 403, 'FORBIDDEN', 'No access.');
-    if (kind === 'session') return refuse(route, 401, 'SESSION_EXPIRED', 'This session has expired. Please sign in again.');
-    return refuse(route, 404, 'NOT_FOUND', 'Not found.');
-  };
+  const failure = (kind: Failure, route: Route) => answerFailure(kind, route, { code: 'SESSION_EXPIRED', message: 'This session has expired. Please sign in again.' });
 
   await page.route(/\/v1\/admin\/restaurant-applications/, async (route) => {
     const req = route.request();
@@ -150,21 +135,14 @@ export async function arrive(page: Page, scene: Scene = {}): Promise<{ id: strin
     const path = url.pathname;
     if (path.endsWith('/take-next')) {
       const t = scene.take;
-      if (t === 'error') return failing(route);
-      if (t === 'never') return never();
-      if (t === undefined) return route.fulfill({ json: { data: null } });
-      return route.fulfill({ json: { data: resolve(t, ctx()) } });
+      return answerTakeNext(route, t === 'error' || t === 'never' ? t : undefined, t === 'error' || t === 'never' || t === undefined ? null : resolve(t, ctx()));
     }
     if (path.endsWith('/decision')) {
       if (scene.decide) return scene.decide(route, ctx(path.split('/').at(-2)));
       return route.fallback();
     }
     if (/\/restaurant-applications$/.test(path)) {
-      if (url.searchParams.get('cursor')) {
-        if (scene.more === 'error') return failing(route);
-        if (scene.more === 'never') return never();
-        return route.fulfill({ json: { data: scene.more ?? [], meta: { next_cursor: null, has_more: false } } });
-      }
+      if (url.searchParams.get('cursor')) return answerMorePage(route, scene.more);
       const l = scene.list;
       if (typeof l === 'string') return failure(l, route);
       if (scene.listFor) return route.fulfill({ json: { data: scene.listFor(url.searchParams, ctx()), meta: { next_cursor: null, has_more: false } } });
