@@ -17,7 +17,8 @@ const past = () => ({
   completed: fixture('restaurant_order_completed'),
   delivered: fixture('restaurant_order_delivered'),
   resolved: fixture('restaurant_order_resolved'),
-  rejected: fixture('restaurant_order_rejected'),
+  // The contract's rejected and resolved fixtures share the code HG-REED-8X; a list holds both, so the test gives this one its own.
+  rejected: { ...fixture('restaurant_order_rejected'), code: 'HG-REJD-8X' },
   cancelled: fixture('restaurant_order_cancelled'),
   cancelledAfter: fixture('restaurant_order_cancelled_after_accept'),
   disputed: fixture('restaurant_order_disputed'),
