@@ -5,7 +5,7 @@ covers:
   - services/hg/migrations/devworld/**
   - apps/restaurant/.claude/skills/**
   - docs/playbooks/**
-reviewed: 2026-10-16
+reviewed: 2026-10-22
 ---
 
 # Dev world — seeded personas, live scenarios, journey simulation, playbooks
@@ -122,6 +122,8 @@ Reset also seeds 14 live, certified restaurants within 8 km of both the Danforth
 
 The account states no longer have to be seeded in SQL. Since migration `00044`, an admin session can produce them live: `applyRestaurantAccountAction`, `applyRiderAccountAction` and `applyCustomerAccountAction` suspend, reinstate, delist, deactivate or ban, with their effects on orders under way, sessions and notices ([admin account actions, #253](https://github.com/shaiknoorullah/hg-mono/issues/253)). A scenario for them (not built yet, [#858](https://github.com/shaiknoorullah/hg-mono/issues/858)) would be one such call, made with the seeded admin's two-step sign-in.
 
+Four more listed restaurants, kept apart from the 14 (`catalogue_states.go`, not a catalogue promise), give the customer app states the marketplace does not: `last-light-bakehouse` (no weekly hours, closed at any time), `rouge-valley-roti` (out of range of all three of amina's addresses), `blank-slate-grill` (open, empty menu) and `lost-paper-diner` (its certificate has no file in storage). Their owners sign in as `<slug>@seed.hg`, and the simulated tablets keep their heartbeat fresh like the catalogue's.
+
 ### 5.2 `bismillah-grill` depth
 
 - **Menu** — 3 categories; one item per review state the portal shows (APPROVED, PENDING_REVIEW, REJECTED with `UNSUBSTANTIATED_HALAL_CLAIM`, DRAFT); one item per availability state (AVAILABLE, OUT_OF_STOCK, HIDDEN); at least one item with variants and add-ons so order lines carry them.
@@ -138,6 +140,9 @@ The account states no longer have to be seeded in SQL. Since migration `00044`, 
 | `nour` | CUSTOMER, phone `+15550100102`, no saved address | the empty address book |
 | `rider-sim` | RIDER, ACTIVE, Connect enabled, phone `+15550100151` | the journey's rider |
 | `rider-sim-2` | RIDER, ACTIVE, bicycle, Connect stand-in, offline, phone `+15550100155` | the second rider of the offer scenarios |
+| `customer-suspended`, `customer-banned`, `customer-flagged` | CUSTOMER, phones `+15550100103` to `+15550100105`: `SUSPENDED`, `BANNED`, `ACTIVE` | the account-state screens; `customer-flagged` is the account `customer-suspend` and `customer-reinstate` act on. `+15550100110` is kept with no account for the first-run sign-in |
+| `rider-payout`, `rider-history` | RIDER, ACTIVE, bicycle, phones `+15550100156`, `+15550100157` (`rider-payout` has a Connect stand-in) | `rider-earnings` and `rider-history` give them settled and platform-cancelled deliveries through the API (the journey takes a `Rider` option) |
+| `rider-suspended`, `rider-flagged` | RIDER, bicycle, phones `+15550100158` (`SUSPENDED`), `+15550100159` (`ACTIVE`) | the suspended screens; `rider-suspend` and `rider-reinstate` act on `rider-flagged` |
 | `admin-seed` | SUPER_ADMIN, email + password + TOTP | admin-decision scenarios |
 | `ops-admin`, `support-seed` | ADMIN and SUPPORT_AGENT, email + password + TOTP | the staff role matrix: after a reset all three staff roles sign in to the admin console, and `verify` checks each one's role and authenticator ([#677](https://github.com/shaiknoorullah/hg-mono/issues/677)) |
 

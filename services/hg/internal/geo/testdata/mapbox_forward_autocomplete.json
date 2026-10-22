@@ -1,0 +1,95 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "dXJuOm1ieGFkcjpmaXh0dXJlLWhhcmJvdXItODg",
+      "geometry": {"type": "Point", "coordinates": [-79.3806, 43.6405]},
+      "properties": {
+        "mapbox_id": "dXJuOm1ieGFkcjpmaXh0dXJlLWhhcmJvdXItODg",
+        "feature_type": "address",
+        "name": "88 Harbour Street",
+        "coordinates": {"longitude": -79.3806, "latitude": 43.6405, "accuracy": "rooftop"},
+        "place_formatted": "Toronto, Ontario M5J 0C3, Canada",
+        "full_address": "88 Harbour Street, Toronto, Ontario M5J 0C3, Canada",
+        "context": {
+          "address": {"mapbox_id": "a1", "address_number": "88", "street_name": "harbour street", "name": "88 Harbour Street"},
+          "street": {"mapbox_id": "s1", "name": "harbour street"},
+          "postcode": {"mapbox_id": "p1", "name": "m5j0c3"},
+          "place": {"mapbox_id": "pl1", "name": "Toronto"},
+          "region": {"mapbox_id": "r1", "name": "Ontario", "region_code": "ON", "region_code_full": "CA-ON"},
+          "country": {"mapbox_id": "c1", "name": "Canada", "country_code": "CA", "country_code_alpha_3": "CAN"}
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "dXJuOm1ieHN0cjpmaXh0dXJlLWRhbmZvcnRo",
+      "geometry": {"type": "Point", "coordinates": [-79.3340, 43.6798]},
+      "properties": {
+        "mapbox_id": "dXJuOm1ieHN0cjpmaXh0dXJlLWRhbmZvcnRo",
+        "feature_type": "street",
+        "name": "Danforth Avenue",
+        "coordinates": {"longitude": -79.3340, "latitude": 43.6798},
+        "place_formatted": "Toronto, Ontario, Canada",
+        "full_address": "",
+        "context": {
+          "place": {"mapbox_id": "pl1", "name": "Toronto"},
+          "region": {"mapbox_id": "r1", "name": "Ontario", "region_code": "ON", "region_code_full": "CA-ON"},
+          "country": {"mapbox_id": "c1", "name": "Canada", "country_code": "CA", "country_code_alpha_3": "CAN"}
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "dXJuOm1ieGFkcjpmaXh0dXJlLWJ1ZmZhbG8",
+      "geometry": {"type": "Point", "coordinates": [-78.8784, 42.8864]},
+      "properties": {
+        "mapbox_id": "dXJuOm1ieGFkcjpmaXh0dXJlLWJ1ZmZhbG8",
+        "feature_type": "address",
+        "name": "88 Harbour Street",
+        "coordinates": {"longitude": -78.8784, "latitude": 42.8864},
+        "place_formatted": "Buffalo, New York 14202, United States",
+        "full_address": "88 Harbour Street, Buffalo, New York 14202, United States",
+        "context": {
+          "postcode": {"mapbox_id": "p2", "name": "14202"},
+          "place": {"mapbox_id": "pl2", "name": "Buffalo"},
+          "region": {"mapbox_id": "r2", "name": "New York", "region_code": "NY", "region_code_full": "US-NY"},
+          "country": {"mapbox_id": "c2", "name": "United States", "country_code": "US", "country_code_alpha_3": "USA"}
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "dXJuOm1ieHBsYWNlOmZpeHR1cmUtbW9udHJlYWw",
+      "geometry": {"type": "Point", "coordinates": [-73.5673, 45.5019]},
+      "properties": {
+        "mapbox_id": "dXJuOm1ieHBsYWNlOmZpeHR1cmUtbW9udHJlYWw",
+        "feature_type": "place",
+        "name": "Montréal",
+        "coordinates": {"longitude": -73.5673, "latitude": 45.5019},
+        "place_formatted": "Québec, Canada",
+        "context": {
+          "region": {"mapbox_id": "r3", "name": "Québec", "region_code": "QC", "region_code_full": "CA-QC"},
+          "country": {"mapbox_id": "c1", "name": "Canada", "country_code": "CA", "country_code_alpha_3": "CAN"}
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "dXJuOm1ieHJlZ2lvbjpmaXh0dXJlLW9udGFyaW8",
+      "geometry": {"type": "Point", "coordinates": [-85.0, 50.0]},
+      "properties": {
+        "mapbox_id": "dXJuOm1ieHJlZ2lvbjpmaXh0dXJlLW9udGFyaW8",
+        "feature_type": "region",
+        "name": "Ontario",
+        "coordinates": {"longitude": -85.0, "latitude": 50.0},
+        "place_formatted": "Canada",
+        "context": {
+          "country": {"mapbox_id": "c1", "name": "Canada", "country_code": "CA", "country_code_alpha_3": "CAN"}
+        }
+      }
+    }
+  ],
+  "attribution": "© 2026 Mapbox and its suppliers. All rights reserved."
+}

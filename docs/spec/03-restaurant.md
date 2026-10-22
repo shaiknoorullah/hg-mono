@@ -3,7 +3,7 @@ covers:
   - apps/restaurant/**
   - services/hg/internal/restaurant/**
   - services/hg/internal/catalog/**
-reviewed: 2026-10-17
+reviewed: 2026-10-22
 ---
 
 # HalalGoes — RESTAURANT domain specification
@@ -15,7 +15,7 @@ microservices, no serverless.
 `apps/restaurant` mobile app is **not** in this spec — see "Global out of scope".
 **Devices**: desktop and landscape tablets from 1024×768 up, light theme only; no portrait or phone
 layouts, but below 1024 px a page still has to reflow to one column with no sideways scrolling down to
-320 px, the width of a 1280 px screen at 400% zoom (the payouts pages do; the console frame's rail and header bar are drawn on the dark forest chrome surface, as every board draws them, [#977](https://github.com/shaiknoorullah/hg-mono/issues/977). Below 768 px the console frame swaps its rail for an "Open navigation" button and a drawer, shows the orders strip as one row and opens panels full screen, as the phone boards draw them; the service status bar is not drawn at phone width and only wraps, [#954](https://github.com/shaiknoorullah/hg-mono/issues/954)) ([devices at launch](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), [dark theme](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
+320 px, the width of a 1280 px screen at 400% zoom (the payouts pages do; the console frame's rail and header bar are drawn on the dark forest chrome surface, as every board draws them, [#977](https://github.com/shaiknoorullah/hg-mono/issues/977). The rail is 72 px wide collapsed and 232 px expanded, the owner's decision of 22 Oct 2026 ([#970](https://github.com/shaiknoorullah/hg-mono/issues/970)). Below 768 px the console frame swaps its rail for an "Open navigation" button and a drawer, shows the orders strip as one row and opens panels full screen, as the phone boards draw them; the service status bar is not drawn at phone width and only wraps, [#954](https://github.com/shaiknoorullah/hg-mono/issues/954)) ([devices at launch](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), [dark theme](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
 **Market**: Canada. Currency CAD. Language en-CA (fr-CA deferred to V3).
 
 ---
@@ -1859,8 +1859,10 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   range. History reads `GET /v1/restaurant/orders` (`listRestaurantOrders`) filtered by terminal
   `state`, which returns `OrderRestaurantView`.
 
-  *(Today there is no history view at all — the orders table is a live list with no pagination, no
-  date filter and no status filter.)*
+  *(Redesign: the Past orders page at `/orders/history` (October 2026) reads this operation with one
+  status chip per past state, cursor paging and a read-only panel for one order. Date range, search,
+  export, per-status counts and the reasons for a decline, a cancellation or a dispute outcome are
+  not on the restaurant's order view yet, so that page does not draw them.)*
 
   > **DECISION REQUIRED — retention and PII minimisation in order history**: how long is order history kept and how much customer data stays in it? · **Proposed default**: orders queryable for **7 years** (Canadian business-record retention); customer PII inside them minimised after **90 days** to first name + last initial and the first three postal characters; KYC documents retained 7 years after account closure; ticket attachments 2 years; notifications 90 days. · **Why**: business-record retention and PIPEDA data-minimisation pull in opposite directions, and this split satisfies both without asking the restaurant to choose. *(D-21)*
 

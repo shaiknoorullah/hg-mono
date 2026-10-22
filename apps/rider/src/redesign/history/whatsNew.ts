@@ -1,28 +1,37 @@
 /**
- * R43 What's new: the release notes shipped in the app (`release-notes.json`, #97/#100) and the
- * last version this device has seen.
+ * R43 What's new: the release notes shipped in the app (`src/release-notes.json`, #97/#100) and
+ * the last version this device has seen.
  *
  * HW n-whatsnew: shown once after an update, for every version since the last one seen on this
  * device; a new device with no saved version shows only the latest release. Got it, close, swipe,
  * scrim tap and Back all count as seen; the app closing or an offer covering it does not.
  *
- * The last-seen version sits behind a two-method store (`data/storage.ts`'s `KeyValueStore`).
- * AsyncStorage is not a dependency yet (only the DS track adds dependencies), so the store is
- * memory: the notes come back once per app launch until it lands. A store that throws (no
- * persisted storage, a broken read) never breaks the app: the read counts as "new device" and
- * the version is remembered in memory for the rest of the run.
+ * The file is the shape the restaurant and admin consoles use too, newest first, so the
+ * versioned-releases work (#97) can generate all of them:
+ *
+ *     [{ "version": "1.0.0", "date": "2026-10-22", "notes": [{ "title": "...", "body": "..." }] }]
+ *
+ * The last-seen version is kept per device in the phone's small-preferences storage
+ * (`data/storage.ts`'s `asyncStorageStore`) behind a two-method `KeyValueStore`. When that storage
+ * cannot be read the app cannot tell what was seen, so the sheet does not open by itself (it would
+ * repeat on every launch); What's new stays in Account.
  */
 import * as React from 'react';
 import Constants from 'expo-constants';
 
-import { memoryStore, type KeyValueStore } from '../data/storage';
-import bundledNotes from './release-notes.json';
+import { asyncStorageStore, memoryStore, type KeyValueStore } from '../data/storage';
+import bundledNotes from '../../release-notes.json';
+
+export interface ReleaseNote {
+  title: string;
+  body: string;
+}
 
 export interface ReleaseVersion {
   version: string;
   /** `YYYY-MM-DD`, or null when the file has none for it. */
   date: string | null;
-  notes: string[];
+  notes: ReleaseNote[];
 }
 
 export const SEEN_KEY = 'hg.rider.whatsNew.lastSeen';
@@ -66,17 +75,28 @@ export function unseen(all: readonly ReleaseVersion[], current: string, lastSeen
 
 /* ------------------------------------------------------------------ the file */
 
-/** Throws on a file that is not the expected shape (HW WhatsNew-error: "local file unreadable"). */
+/**
+ * Throws on a file that is not a list (HW WhatsNew-error: "local file unreadable"). One malformed
+ * version or note is skipped rather than hiding the rest; a version with no readable note is
+ * dropped. A file wrapped as `{ default: [...] }` (a JSON module) is unwrapped.
+ */
 export function parseNotes(raw: unknown): ReleaseVersion[] {
-  const versions = (raw as { versions?: unknown } | null)?.versions;
-  if (!Array.isArray(versions)) throw new Error('release-notes.json: no versions');
-  return versions.map((v) => {
-    const r = v as { version?: unknown; date?: unknown; notes?: unknown };
-    if (typeof r.version !== 'string' || !Array.isArray(r.notes) || r.notes.some((n) => typeof n !== 'string')) {
-      throw new Error('release-notes.json: a version is malformed');
-    }
-    return { version: r.version, date: typeof r.date === 'string' ? r.date : null, notes: r.notes as string[] };
-  });
+  const inner = (raw as { default?: unknown } | null)?.default;
+  const list = Array.isArray(inner) ? inner : raw;
+  if (!Array.isArray(list)) throw new Error('release-notes.json: not a list');
+  const out: ReleaseVersion[] = [];
+  for (const item of list) {
+    const r = item as { version?: unknown; date?: unknown; notes?: unknown } | null;
+    if (!r || typeof r.version !== 'string' || !/^\d+\.\d+\.\d+/.test(r.version) || !Array.isArray(r.notes)) continue;
+    const notes = r.notes
+      .map((n): ReleaseNote | null => {
+        const note = n as { title?: unknown; body?: unknown } | null;
+        return note && typeof note.title === 'string' && typeof note.body === 'string' ? { title: note.title, body: note.body } : null;
+      })
+      .filter((n): n is ReleaseNote => n !== null);
+    if (notes.length > 0) out.push({ version: r.version, date: typeof r.date === 'string' ? r.date : null, notes });
+  }
+  return out.sort((a, b) => compareVersions(b.version, a.version));
 }
 
 const bundled = (): unknown => bundledNotes;
@@ -91,14 +111,16 @@ export async function loadReleaseNotes(): Promise<ReleaseVersion[]> {
 
 interface SeenState {
   loaded: boolean;
+  /** The last-seen version could be read, so the sheet may open by itself. */
+  canAutoShow: boolean;
   /** The newest version marked seen, now. */
   lastSeen: string | null;
   /** What was saved when the app started (the page's "New" marks). */
   atLaunch: string | null;
 }
 
-let store: KeyValueStore = memoryStore();
-let state: SeenState = { loaded: false, lastSeen: null, atLaunch: null };
+let store: KeyValueStore = asyncStorageStore();
+let state: SeenState = { loaded: false, canAutoShow: false, lastSeen: null, atLaunch: null };
 let loading: Promise<void> | null = null;
 const listeners = new Set<() => void>();
 
@@ -111,14 +133,15 @@ function load(): void {
   if (state.loaded || loading) return;
   loading = (async () => {
     let saved: string | null = null;
+    let readable = true;
     try {
       saved = await store.getItem(SEEN_KEY);
     } catch {
-      saved = null; // no persisted storage: a new device, for this run
+      readable = false; // storage failed: show nothing by itself, still reachable from Account
     }
     // A version marked seen while the read was in flight wins over the stored one.
     const lastSeen = state.lastSeen && (!saved || compareVersions(state.lastSeen, saved) > 0) ? state.lastSeen : saved;
-    emit({ loaded: true, lastSeen, atLaunch: saved });
+    emit({ loaded: true, canAutoShow: readable, lastSeen, atLaunch: saved });
     loading = null;
   })();
 }
@@ -131,7 +154,7 @@ export function markSeen(version: string): void {
     try {
       await store.setItem(SEEN_KEY, version);
     } catch {
-      // Remembered in memory for this run; the notes come back on the next launch.
+      // Remembered in memory for this run; the sheet comes back on the next launch.
     }
   })();
 }
@@ -159,7 +182,7 @@ export function setReleaseNotesSource(next: (() => unknown) | null): void {
 
 export function resetWhatsNew(): void {
   store = memoryStore();
-  state = { loaded: false, lastSeen: null, atLaunch: null };
+  state = { loaded: false, canAutoShow: false, lastSeen: null, atLaunch: null };
   loading = null;
   source = bundled;
 }

@@ -56,6 +56,7 @@ import { getNow, useNow } from '../lib/now';
 import { errorCodeOf, useQuery } from '../lib/query';
 import { formatTime } from '../lib/time';
 import { useNav } from '../navigation/context';
+import { WhatsNewOnHome } from '../whatsnew/WhatsNewSheet';
 import { ACTIVE_STATE_WORDS, IN_PROGRESS_WORDS, useActiveOrder, type ActiveOrderView } from '../tracking/useActiveOrder';
 import { chooseAddress, getChosenAddressId } from './deliveryAddress';
 import {
@@ -311,6 +312,9 @@ export function HomeScreen(): React.ReactElement {
       </ScrollView>
 
       <CartBar testID="Home-cartBar" />
+
+      {/* Shown once after an update; waits while an order is open or the switcher is up (#702). */}
+      <WhatsNewOnHome held={activeOrder !== null || sheetOpen} />
 
       <AddressSwitcher
         open={sheetOpen}

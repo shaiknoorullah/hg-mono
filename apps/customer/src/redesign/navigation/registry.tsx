@@ -29,6 +29,7 @@ import { AccountScreen } from '../account/AccountScreen';
 import { AddressesScreen as RedesignedAddressesScreen } from '../account/AddressesScreen';
 import { EmailVerifyScreen } from '../account/EmailVerifyScreen';
 import { NotificationSettingsScreen } from '../account/NotificationSettingsScreen';
+import { WhatsNewScreen } from '../whatsnew/WhatsNewScreen';
 import { AddressStepScreen } from '../signin/AddressStepScreen';
 import { SignInScreen } from '../signin/SignInScreen';
 import { TermsScreen } from '../signin/TermsScreen';
@@ -50,12 +51,14 @@ export const REDESIGNED: Registry = {
   browse: (r) => <BrowseScreen sort={r.sort} openNow={r.openNow} />,
   search: () => <SearchScreen />,
   // WP10/WP11: Account (with its edit sheet and sign-out), Saved addresses, Notification settings
-  // and the email-link page. App settings, What's new and the address form are not built yet and
-  // still fall back to legacy or to Account.
+  // and the email-link page, and What's new (opened from Account; the once-after-an-update sheet
+  // is Home's). App settings and the address form are not built yet and still fall back to legacy
+  // or to Account.
   account: () => <AccountScreen />,
   addresses: () => <RedesignedAddressesScreen />,
   notificationSettings: () => <NotificationSettingsScreen />,
   emailVerify: (r) => <EmailVerifyScreen token={r.token} />,
+  whatsNew: () => <WhatsNewScreen />,
   // WP4: restaurant page (with its certification sheet) and the certificate viewer.
   restaurant: (r) => <RedesignedRestaurantScreen restaurantId={r.restaurantId} />,
   certificate: (r) => <CertificateScreen restaurantId={r.restaurantId} />,

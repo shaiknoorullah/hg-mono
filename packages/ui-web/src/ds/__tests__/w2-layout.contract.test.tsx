@@ -141,6 +141,17 @@ describe('SideNav', () => {
     expect(onToggle).toHaveBeenCalledWith(false);
   });
 
+  it('is 72px collapsed and 264px expanded, and takes the expanded width from the console', () => {
+    const { rerender } = render(<SideNav groups={groups} collapsed />);
+    expect(screen.getByRole('navigation').className).toMatch(/\bw-18\b/);
+    rerender(<SideNav groups={groups} collapsed={false} />);
+    expect(screen.getByRole('navigation').className).toMatch(/\bw-66\b/);
+    rerender(<SideNav groups={groups} collapsed={false} expandedWidth={232} />);
+    expect(screen.getByRole('navigation').style.width).toBe('232px');
+    rerender(<SideNav groups={groups} collapsed expandedWidth={232} />);
+    expect(screen.getByRole('navigation').style.width).toBe('');
+  });
+
   it('reads a disabled item’s reason and ignores activation', () => {
     const onSelect = vi.fn();
     render(<SideNav groups={[{ key: 'g', items: [{ key: 's', label: 'Staff', disabled: true, disabledReason: 'Only an admin can manage staff', onSelect }] }]} />);
@@ -398,10 +409,10 @@ describe('app requests (#675 restaurant, #699 admin)', () => {
     expect(onCollapsedChange).toHaveBeenCalledWith(true);
   });
 
-  it('SideNav rail: 80px wide, labels wrap under the icon instead of truncating', () => {
+  it('SideNav rail: 72px wide, labels wrap under the icon instead of truncating', () => {
     render(<SideNav groups={groups} activeKey="orders" collapsed />);
     const nav = screen.getByRole('navigation', { name: 'Main' });
-    expect(nav.className).toMatch(/\bw-20\b/);
+    expect(nav.className).toMatch(/\bw-18\b/);
     const label = within(screen.getByRole('link', { name: 'Live orders, 3 new' })).getByText('Orders');
     expect(label.className).toMatch(/max-w-18/);
     expect(label.className).not.toMatch(/\btruncate\b/);

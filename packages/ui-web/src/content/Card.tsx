@@ -34,11 +34,17 @@ export interface CardProps {
 const VARIANT_CLASS: Readonly<Record<CardVariant, string>> = {
   // Dark themes ignore shadow and step the surface instead; both forms are in the token, and
   // the theme picks (`01-foundations.md` §6).
-  elevated: 'bg-surface-raised shadow-e1',
+  //
+  // Every variant has a 1px border, transparent where no line is drawn, as the Claude Design Card
+  // has it (https://claude.ai/artifact/1GwGVZz8Ju9wcz4HfCnzbv): an elevated card and an outlined one
+  // are the same size, and a board's content sits 1px in from the card's edge. Without it every
+  // card's contents land 1px up and left of the board's and the card is 2px short
+  // (https://github.com/shaiknoorullah/hg-mono/issues/878).
+  elevated: 'bg-surface-raised border border-transparent shadow-e1',
   outlined: 'bg-surface-raised border border-line-decorative',
-  filled: 'bg-surface-subtle',
+  filled: 'bg-surface-subtle border border-transparent',
   interactive:
-    'bg-surface-raised shadow-e1 hover:shadow-e2 active:scale-[0.99] cursor-pointer text-start',
+    'bg-surface-raised border border-transparent shadow-e1 hover:shadow-e2 active:scale-[0.99] cursor-pointer text-start',
 };
 
 const RADIUS_CLASS: Readonly<Record<CardRadius, string>> = {

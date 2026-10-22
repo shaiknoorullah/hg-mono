@@ -789,9 +789,15 @@ func (h *Handler) ListRestaurantOrders(w http.ResponseWriter, r *http.Request) {
 		}
 		limit = n
 	}
-	// state is a comma-separated list of OrderState (style: form, explode: false).
+	// state is a list of OrderState. The contract writes it comma-separated (style: form,
+	// explode: false), but the generated client (openapi-fetch's default) repeats the parameter
+	// (state=A&state=B), so both forms are read; reading only the first value showed the legacy
+	// Live orders queue only its RESTAURANT_PENDING orders.
 	var states []string
-	if v := r.URL.Query().Get("state"); v != "" {
+	for _, v := range r.URL.Query()["state"] {
+		if v == "" {
+			continue
+		}
 		for _, s := range strings.Split(v, ",") {
 			if !contract.OrderState(s).Valid() {
 				httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,

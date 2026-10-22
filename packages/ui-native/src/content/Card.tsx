@@ -66,11 +66,20 @@ export function Card({
           borderWidth: 1,
           borderColor: theme.color.border.decorative,
         };
+      // A transparent 1px border, as the Claude Design Card has it
+      // (https://claude.ai/artifact/1GwGVZz8Ju9wcz4HfCnzbv), so every variant is the size of an
+      // outlined card and its contents sit where the board draws them
+      // (https://github.com/shaiknoorullah/hg-mono/issues/878).
       case 'filled':
-        return { backgroundColor: theme.color.surface.subtle };
+        return { backgroundColor: theme.color.surface.subtle, borderWidth: 1, borderColor: 'transparent' };
       case 'elevated':
       case 'interactive':
-        return { backgroundColor: theme.color.surface.raised, ...elevation(theme, '1') };
+        return {
+          backgroundColor: theme.color.surface.raised,
+          borderWidth: 1,
+          borderColor: 'transparent',
+          ...elevation(theme, '1'),
+        };
     }
   })();
 

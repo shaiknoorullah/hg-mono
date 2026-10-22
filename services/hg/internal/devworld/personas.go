@@ -29,6 +29,13 @@ type Identity struct {
 	Phone        string
 }
 
+// UnregisteredPhone is the local sign-in number no seed ever gives an account,
+// for the first-run sign-in of a customer who has never been here. It is in the
+// fixed-code range (+15550100100 to +15550100199, code 000000). Signing in with
+// it creates the account; make dev-reset takes it away again. Verify checks that
+// a fresh world has no account on it.
+const UnregisteredPhone = "+15550100110"
+
 // World is the persona list reset recreates. Ids stay the same across resets.
 var World = []Identity{
 	{Slug: "admin-seed", AccountID: "a0000000-0000-4000-8000-000000000001", Email: AdminEmail},
@@ -36,11 +43,18 @@ var World = []Identity{
 	{Slug: "ops-admin", AccountID: "a0000000-0000-4000-8000-000000000003", Email: "ops-admin@seed.hg"},
 	{Slug: "amina", AccountID: "a0000000-0000-4000-8000-000000000101", Phone: "+15550100101"},
 	{Slug: "nour", AccountID: "a0000000-0000-4000-8000-000000000102", Phone: "+15550100102"},
+	{Slug: "customer-suspended", AccountID: "a0000000-0000-4000-8000-000000000103", Phone: "+15550100103"},
+	{Slug: "customer-banned", AccountID: "a0000000-0000-4000-8000-000000000104", Phone: "+15550100104"},
+	{Slug: "customer-flagged", AccountID: "a0000000-0000-4000-8000-000000000105", Phone: "+15550100105"},
 	{Slug: "rider-sim", AccountID: "a0000000-0000-4000-8000-000000000151", Phone: "+15550100151"},
 	{Slug: "rider-docs", AccountID: "a0000000-0000-4000-8000-000000000152", Phone: "+15550100152"},
 	{Slug: "rider-rejected", AccountID: "a0000000-0000-4000-8000-000000000153", Phone: "+15550100153"},
 	{Slug: "rider-registered", AccountID: "a0000000-0000-4000-8000-000000000154", Phone: "+15550100154"},
 	{Slug: "rider-sim-2", AccountID: "a0000000-0000-4000-8000-000000000155", Phone: "+15550100155"},
+	{Slug: "rider-payout", AccountID: "a0000000-0000-4000-8000-000000000156", Phone: "+15550100156"},
+	{Slug: "rider-history", AccountID: "a0000000-0000-4000-8000-000000000157", Phone: "+15550100157"},
+	{Slug: "rider-suspended", AccountID: "a0000000-0000-4000-8000-000000000158", Phone: "+15550100158"},
+	{Slug: "rider-flagged", AccountID: "a0000000-0000-4000-8000-000000000159", Phone: "+15550100159"},
 	{Slug: "fresh", AccountID: "a0000000-0000-4000-8000-000000000201", RestaurantID: "b0000000-0000-4000-8000-000000000201", Email: "fresh@seed.hg"},
 	{Slug: "profile", AccountID: "a0000000-0000-4000-8000-000000000202", RestaurantID: "b0000000-0000-4000-8000-000000000202", Email: "profile@seed.hg"},
 	{Slug: "docs-todo", AccountID: "a0000000-0000-4000-8000-000000000203", RestaurantID: "b0000000-0000-4000-8000-000000000203", Email: "docs-todo@seed.hg"},

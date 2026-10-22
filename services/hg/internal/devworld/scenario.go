@@ -68,6 +68,12 @@ var ScenarioNames = []string{
 	"refund-decisions",
 	"halal-lapse",
 	"halal-renew",
+	"rider-suspend",
+	"rider-reinstate",
+	"customer-suspend",
+	"customer-reinstate",
+	"rider-earnings",
+	"rider-history",
 }
 
 // scenarioSummaries is what `devworld scenario list` prints beside each name:
@@ -106,6 +112,12 @@ var scenarioSummaries = map[string]string{
 	"payout-run":             "admin-seed runs the weekly payout for bismillah-grill (NOTHING_DUE until its week closes)",
 	"halal-lapse":            "the certificate expiry job runs as of two days ahead; expiring-halal reads EXPIRED and is delisted (local only, dev-reset undoes it)",
 	"halal-renew":            "after halal-lapse: the owner attaches a new certificate and admin-seed approves it; expiring-halal is CERTIFIED and LIVE again",
+	"rider-suspend":          "admin-seed suspends rider-flagged (SUSPENDED); new offers stop, a rider on a delivery finishes it",
+	"rider-reinstate":        "admin-seed reinstates rider-flagged (ACTIVE) and the rider is told they can go online again",
+	"customer-suspend":       "admin-seed suspends customer-flagged (SUSPENDED); the customer cannot sign in",
+	"customer-reinstate":     "admin-seed reinstates customer-flagged (ACTIVE) and the customer can sign in again",
+	"rider-earnings":         "rider-payout delivers an order that settles: earning entries in the ledger, no payout yet (a payout run pays after the week closes)",
+	"rider-history":          "rider-history has a delivered assignment and one the platform cancelled after it accepted (CANCELLED_BY_PLATFORM)",
 	"order-history":          "amina has four past orders in every end state (cancelled by her, rejected, deadline-cancelled, completed) and no active order",
 }
 
@@ -184,6 +196,18 @@ func RunScenario(ctx context.Context, baseURL, name string) error {
 		return scenarioHalalLapse(ctx, baseURL)
 	case "halal-renew":
 		return scenarioHalalRenew(ctx, baseURL)
+	case "rider-suspend":
+		return scenarioAccountAction(ctx, baseURL, riderSuspend)
+	case "rider-reinstate":
+		return scenarioAccountAction(ctx, baseURL, riderReinstate)
+	case "customer-suspend":
+		return scenarioAccountAction(ctx, baseURL, customerSuspend)
+	case "customer-reinstate":
+		return scenarioAccountAction(ctx, baseURL, customerReinstate)
+	case "rider-earnings":
+		return scenarioRiderEarnings(ctx, baseURL)
+	case "rider-history":
+		return scenarioRiderHistory(ctx, baseURL)
 	default:
 		return fmt.Errorf("devworld: unknown scenario %q", name)
 	}
