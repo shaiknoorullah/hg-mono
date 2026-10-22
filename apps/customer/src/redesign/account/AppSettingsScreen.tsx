@@ -23,6 +23,7 @@ import { useNav } from '../navigation/context';
 import { openLocationSettings, useLocationState, type LocationState } from './locationPermission';
 import { SettingsRow } from './SettingsRow';
 
+/** The page's words, as the boards write them. */
 export const APP_SETTINGS_COPY = {
   title: 'App settings',
   location: 'Location',
@@ -42,6 +43,7 @@ export const LOCATION_ROW: Record<LocationState, { sub: string; action: string; 
   denied: { sub: 'Turned off in your phone settings', action: 'Open phone settings', variant: 'primary' },
 };
 
+/** App settings: location permission, appearance, and the way to Notification settings. */
 export function AppSettingsScreen(): React.ReactElement {
   const theme = useTheme();
   const nav = useNav();
