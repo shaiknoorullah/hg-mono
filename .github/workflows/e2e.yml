@@ -336,16 +336,7 @@ jobs:
           arch: x86_64
           target: google_apis
           profile: pixel_6
-          # 6 GiB because at 3 GiB a design capture's `uiautomator dump` was killed every time: the
-          # device's own shell reported `Killed` and `rc=137`, which is SIGKILL and says the dump
-          # was killed, not who killed it. Memory is the first thing to rule out, since the dump
-          # starts a JVM on top of the app under test and Maestro's driver. If the kill survives
-          # this, `android/kill-evidence.sh` has the logcat and dmesg lines that name the killer
-          # (https://github.com/shaiknoorullah/hg-mono/issues/1026). Every native capture has been
-          # NO LAYOUT and no native board has ever been measured because of it. The runner has
-          # 16 GiB, shared with the compose stack and the web servers, so this is raised as far as
-          # is comfortable rather than as far as it goes.
-          ram-size: 6144M
+          ram-size: 3072M
           disk-size: 4096M
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
           disable-animations: true
@@ -353,9 +344,14 @@ jobs:
           # "isn't responding" dialog (the launcher, under load) must never cover the app under
           # test, so error dialogs are hidden first; more memory keeps the launcher responsive.
           #
+          # `logcat -G 16M` grows the ring buffer before the flows start, which needs neither root
+          # nor a restart. The default is small and ReactNativeJS and Maestro's driver are both
+          # noisy, so a kill early in a 20-minute run would otherwise have scrolled away long before
+          # kill-evidence.sh reads the buffer at the end.
+          #
           # The design boards are 390 dp wide and a Pixel 6 is 411 dp, so the size and density are set
           # first and the measured size is printed in this log (tools/e2e/android/design-size.sh).
-          script: adb shell settings put global hide_error_dialogs 1 && bash tools/e2e/android/design-size.sh && { bash tools/e2e/run.sh; rc=$?; bash tools/e2e/android/kill-evidence.sh || true; exit $rc; }
+          script: adb shell settings put global hide_error_dialogs 1 && bash tools/e2e/android/design-size.sh && adb logcat -G 16M && { bash tools/e2e/run.sh; rc=$?; bash tools/e2e/android/kill-evidence.sh || true; exit $rc; }
 
       - name: Collect the stack's logs
         if: always()

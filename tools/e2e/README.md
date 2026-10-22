@@ -269,13 +269,13 @@ board by that name, and judges it (a web capture pixel by pixel, a native one by
   device-lab AVD) before `run.sh` and fails the job unless it reads back. The `design-size:` line in the `flows` job's
   log is the measured size, and it has read `390.00 x 844.00 dp` since
   [#1024](https://github.com/shaiknoorullah/hg-mono/pull/1024). Trust a native capture's verdict only when that line does.
-  The emulator is given **6 GiB**, not the action's smaller default: at 3 GiB a capture's
-  `uiautomator dump` was killed every time — the device reported `Killed` and `rc=137`, which is
-  SIGKILL — and every native capture came out with no hierarchy
-  ([#1026](https://github.com/shaiknoorullah/hg-mono/issues/1026)). `rc=137` says the dump was
-  killed, not who killed it; memory is the first thing ruled out, because the dump starts a JVM on
-  top of the app and Maestro's driver. When a capture fails, [`android/kill-evidence.sh`](android/kill-evidence.sh)
-  saves the logcat and `dmesg` lines that name the killer.
+  A capture's `uiautomator dump` is killed every time — the device reports `Killed` and `rc=137`,
+  which is SIGKILL — so **every native capture has no hierarchy and no native board has ever been
+  measured** ([#1026](https://github.com/shaiknoorullah/hg-mono/issues/1026)). `rc=137` names the
+  signal, not the sender. **Memory is not the sender:** at 6 GiB the dump was killed just the same,
+  with 4.1 GiB free, no OOM kill in `dmesg`, and no `am_kill` naming it. After the flows,
+  [`android/kill-evidence.sh`](android/kill-evidence.sh) prints the kill lines, the kernel log and
+  one more dump taken with nothing else driving the device, into both the job log and the artifact.
   The customer boards that no flow captures, each with its reason, are in
   [`native/customer-boards.mjs`](native/customer-boards.mjs); `pnpm e2e:boards:check` fails on a capture named for a
   board that does not exist, and (with `origin/claude/redesign-canvases` fetched) on a board that is neither captured nor

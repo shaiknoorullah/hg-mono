@@ -44,6 +44,22 @@ file="$out/kill-evidence.txt"
   else
     echo '(adb root was refused, so the kernel log could not be read)'
   fi
+  echo
+  echo "=== the same dump, now that the flows are over and Maestro is not driving ==="
+  # The controlled half of the question. During a flow the dump is killed; here nothing else holds
+  # the device. Succeeds here and fails during → something about a flow being in progress, and the
+  # automation connection is the candidate, since Maestro's driver holds UiAutomation throughout.
+  # Fails here too → the dump is broken on this image regardless, and the flows are a red herring.
+  after=$(adb shell 'uiautomator dump /sdcard/hg-after-flows.xml 2>&1; echo "rc=$?"' 2>&1)
+  echo "$after"
+  case "$after" in
+    *"dumped to"*) echo "VERDICT: the dump works when no flow is running." ;;
+    *) echo "VERDICT: the dump fails even with nothing else driving the device." ;;
+  esac
 } >"$file" 2>&1 || true
 
+# Into the job log as well as the artifact. The artifact is ~28 MB and downloading it to read a few
+# lines has taken minutes and sometimes failed outright, while `gh run view --log | grep` answers in
+# seconds. Evidence nobody can read quickly does not get read.
 echo "kill-evidence: wrote $file"
+cat "$file"
