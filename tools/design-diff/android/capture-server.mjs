@@ -76,7 +76,13 @@ async function capture({ dir, name, appId, serial }) {
   //   command's status but not what it said on the way out, and Node's error carries only what the
   //   local process wrote. Folding `2>&1` and the exit code into the device's own stdout is what
   //   makes the reason legible at all (https://github.com/shaiknoorullah/hg-mono/issues/1026).
-  const said = await shell(adb, 'sh', '-c', `uiautomator dump ${remote} 2>&1; echo "rc=$?"`);
+  //
+  // The script is quoted for the DEVICE's shell, not just passed as one argument: `adb shell` joins
+  // whatever it is given into a single command line, so argument boundaries do not survive. Passed
+  // unquoted, the device runs `sh -c uiautomator` with `dump` and the path demoted to positional
+  // parameters, and answers with `uiautomator`'s usage message and `rc=0` — a failure invented by
+  // the probe, hiding the one being looked for.
+  const said = await shell(adb, 'sh', '-c', `'uiautomator dump ${remote} 2>&1; echo "rc=$?"'`);
   if (!/dumped to/i.test(said)) throw new Error(`uiautomator dump did not write ${remote}: ${said || 'it said nothing'}`);
   const { stdout: xml } = await adbRun(adb, ['exec-out', 'cat', remote]);
   const [model, id, wm, pkg] = await Promise.all([

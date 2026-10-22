@@ -522,13 +522,15 @@ case "$*" in
   *"dumpsys package"*) printf "versionCode=3\\nversionName=0.9.1\\n" ;;
   # What a device really prints, misspelling and all. The server requires it, because this command
   # also fails by printing an error and exiting 0.
-  *"uiautomator dump"*) echo "UI hierchary dumped to: /sdcard/hg-design-capture.xml" ;;
+  *"uiautomator dump"*) echo "$*" >"$CS_ARGS_OUT" ; echo "UI hierchary dumped to: /sdcard/hg-design-capture.xml" ;;
   *) : ;;
 esac
 `);
   chmodSync(path.join(bin, 'adb'), 0o755);
+  const argsOut = path.join(dir, 'adb-args.txt');
   const oldPath = process.env.PATH;
   process.env.PATH = `${bin}${path.delimiter}${oldPath}`;
+  process.env.CS_ARGS_OUT = argsOut;
   const out = path.join(dir, 'shots');
   const server = serve({ dir: out, port: 0, serial: null, defaultAppId: 'com.halalgoes.customer.dev' });
   await new Promise((r) => server.once('listening', r));
@@ -540,6 +542,11 @@ esac
     const sidecar = JSON.parse(readFileSync(path.join(out, 'design--home--Board.capture.json'), 'utf8'));
     assert.deepEqual([sidecar.device, sidecar.appBuild, sidecar.density], ['Pixel_7 (emulator-5554)', '0.9.1 (3)', 3]);
     assert.match(readFileSync(path.join(out, 'design--home--Board.hierarchy.xml'), 'utf8'), /Deliver to/);
+    // `adb shell` joins its arguments into one command line for the device, so the script has to
+    // carry its own quotes. Unquoted, the device runs `sh -c uiautomator` with the rest demoted to
+    // positional parameters and answers with a usage message — a failure the probe invented, hiding
+    // the one it was added to find. This asserts the device sees the whole script as one word.
+    assert.match(readFileSync(argsOut, 'utf8'), /sh -c 'uiautomator dump \S+ 2>&1; echo "rc=\$\?"'/);
   } finally {
     server.close();
     process.env.PATH = oldPath;
