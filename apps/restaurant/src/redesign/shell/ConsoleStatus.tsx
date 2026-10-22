@@ -25,7 +25,7 @@ export function ConsoleStatus({ route, onRetry }: { route: ConsoleRoute; onRetry
     return (
       <div className="flex h-dvh items-center justify-center p-6">
         <ErrorState
-          title="This isn’t a restaurant account"
+          title="This isn't a restaurant account"
           description="Sign in with the email and password you registered your restaurant with."
           onRetry={() => window.location.assign('/login')}
           retryLabel="Sign in with another account"

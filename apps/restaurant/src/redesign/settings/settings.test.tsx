@@ -80,7 +80,7 @@ describe('Business profile', () => {
     const api = installFakeApi(routes({ 'GET /v1/restaurant/profile': { body: profile }, 'PUT /v1/restaurant/profile': async (req: Request) => ({ body: { ...profile, ...(await req.json()) } }) }));
     await renderRedesign('/settings/profile');
     fireEvent.click(await screen.findByRole('button', { name: 'Edit owner name' }));
-    const first = await screen.findByLabelText('Owner’s first name');
+    const first = await screen.findByLabelText('Owner first name');
     fireEvent.change(first, { target: { value: 'Zainab' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(api.callsTo('PUT /v1/restaurant/profile')).toHaveLength(1));
@@ -115,7 +115,7 @@ describe('Change password', () => {
     fireEvent.change(await screen.findByLabelText('Current password'), { target: { value: 'wrong-old-password' } });
     fireEvent.change(screen.getByLabelText('New password'), { target: { value: 'a-long-new-password' } });
     fireEvent.click(within(screen.getByTestId('password-panel')).getByRole('button', { name: 'Change password' }));
-    expect(await screen.findByText('That isn’t your current password. Check it and try again.')).toBeTruthy();
+    expect(await screen.findByText("That isn't your current password. Check it and try again.")).toBeTruthy();
     expect(api.callsTo('POST /v1/auth/password/change')).toHaveLength(1);
     expect(api.callsTo('POST /v1/auth/refresh')).toHaveLength(0);
   });

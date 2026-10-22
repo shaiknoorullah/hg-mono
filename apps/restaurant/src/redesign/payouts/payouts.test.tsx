@@ -45,7 +45,7 @@ describe('payout history', () => {
     let n = 0;
     installFakeApi(routes({ 'GET /v1/restaurant/payouts': () => (++n === 1 ? { status: 500, body: errorBody('INTERNAL') } : list(fixture('restaurant_payout_history'))) }));
     await renderRedesign('/payouts/history');
-    expect(await screen.findByText(/Couldn’t load your payouts/)).toBeTruthy();
+    expect(await screen.findByText(/Couldn't load your payouts/)).toBeTruthy();
     expect(screen.getByRole('columnheader', { name: 'Period' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: /try again/i }));
     expect(await screen.findAllByText('Paid')).toBeTruthy();
@@ -138,7 +138,7 @@ describe('one payout', () => {
   it('says it could not find a payout once the list has ended', async () => {
     installFakeApi(routes({ 'GET /v1/restaurant/payouts': list(every()) }));
     await renderRedesign('/payouts/history?payout=00000000-0000-4000-8000-000000000000');
-    expect(await screen.findByText('We couldn’t find this payout')).toBeTruthy();
+    expect(await screen.findByText("We couldn't find this payout")).toBeTruthy();
   });
 
   it('moves a row when the server says its state changed, and tells the open panel', async () => {
@@ -205,7 +205,7 @@ describe('payout account', () => {
     const banner = await screen.findByTestId('banner-held');
     expect(banner.textContent).toContain('Stripe needs 1 thing from you before it can pay you');
     expect(banner.textContent).toContain('You can keep taking orders');
-    fireEvent.click(within(banner).getByRole('button', { name: 'See Stripe’s exact list' }));
+    fireEvent.click(within(banner).getByRole('button', { name: "See Stripe's exact list" }));
     expect((await screen.findByTestId('stripe-list-panel')).textContent).toContain('individual.verification.document');
   });
 
@@ -230,7 +230,7 @@ describe('payout account', () => {
     let n = 0;
     installFakeApi(routes({ 'GET /v1/connect/status': () => (++n <= 2 ? { status: 500, body: errorBody('INTERNAL') } : { body: fixture('connect_status_pending_verification') }) }));
     await renderRedesign('/payouts');
-    expect(await screen.findByText('Couldn’t load your payout account')).toBeTruthy();
+    expect(await screen.findByText("Couldn't load your payout account")).toBeTruthy();
     expect(screen.getByText(/orders keep coming in/)).toBeTruthy();
   });
 

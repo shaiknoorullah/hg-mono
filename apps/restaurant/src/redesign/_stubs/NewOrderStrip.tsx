@@ -415,7 +415,7 @@ export function NewOrderStrip({ status, rule, tiles, empty, compact, now, isDesk
               onClick={() => showOverflow(1)}
               className="hg-focus flex h-[166px] w-[88px] shrink-0 flex-col items-center justify-center gap-1 rounded-lg border-[1.5px] border-line-interactive bg-surface-raised text-[15px] font-bold"
             >
-              +{hiddenAfter} more
+              {`+${hiddenAfter} more`}
             </button>
           ) : null}
         </div>

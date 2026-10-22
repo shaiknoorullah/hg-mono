@@ -139,7 +139,6 @@ export function ResetPasswordScreen() {
           helperText={RESET.help}
           variant="password"
           autoComplete="new-password"
-          size="lg"
           value={password}
           readOnly={saving}
           onChange={(v) => {

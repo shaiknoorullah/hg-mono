@@ -40,7 +40,7 @@ describe('check your email', () => {
     expect(within(card).getByRole('heading', { level: 1, name: 'Check your email' })).toBeTruthy();
     expect(card.textContent).toContain('Open the link we sent to samir@zaytoungrill.ca to continue setting up Zaytoun Grill.');
     expect(screen.getByRole('link', { name: 'Register again with the right one' }).getAttribute('href')).toBe('/register');
-    expect(screen.getByText('The link works for 24 hours. Can’t find it? Check your spam folder, or send a new link.')).toBeTruthy();
+    expect(screen.getByText("The link works for 24 hours. Can't find it? Check your spam folder, or send a new link.")).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Back to sign in' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Send a new link' }));
     expect(await screen.findByText('A new link is on its way. Earlier links no longer work, so use the newest email.')).toBeTruthy();
@@ -57,8 +57,8 @@ describe('check your email', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Send a new link' }));
     const alert = await screen.findByTestId('InlineAlert');
     expect(alert.getAttribute('role')).toBe('status');
-    expect(within(alert).getByText('You’ve asked for 5 links today')).toBeTruthy();
-    expect(within(alert).getByText('That’s the daily limit. Use the newest email you have, or call partner support.')).toBeTruthy();
+    expect(within(alert).getByText("You've asked for 5 links today")).toBeTruthy();
+    expect(within(alert).getByText("That's the daily limit. Use the newest email you have, or call partner support.")).toBeTruthy();
     expect(screen.getByRole('timer', { name: 'until tomorrow’s limit resets' }).textContent).toBe('24:00:00');
   });
 
@@ -91,7 +91,7 @@ describe('check your email', () => {
     const alert = await screen.findByTestId('InlineAlert');
     expect(alert.getAttribute('role')).toBe('alert');
     await waitFor(() => expect(document.activeElement).toBe(alert));
-    expect(within(alert).getByText('We couldn’t send a new link')).toBeTruthy();
+    expect(within(alert).getByText("We couldn't send a new link")).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Send a new link' }).getAttribute('aria-disabled')).toBeNull();
   });
 });
@@ -170,7 +170,7 @@ describe('verify email', () => {
     fireEvent.submit(screen.getByLabelText(/^Email/).closest('form')!);
     const alert = await screen.findByTestId('InlineAlert');
     expect(alert.getAttribute('data-tone')).toBe('danger');
-    expect(within(alert).getByText('We couldn’t send a new link')).toBeTruthy();
+    expect(within(alert).getByText("We couldn't send a new link")).toBeTruthy();
     await waitFor(() => expect(document.activeElement).toBe(alert));
     expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
     expect((screen.getByLabelText(/^Email/) as HTMLInputElement).value).toBe('samir@zaytoungrill.ca');
@@ -182,8 +182,8 @@ describe('verify email', () => {
     );
     openLink('/verify-email', TOKEN);
     await renderPublic('/verify-email');
-    expect(await screen.findByRole('heading', { name: 'We couldn’t confirm your email' })).toBeTruthy();
-    expect(screen.getByText('We couldn’t reach HalalGoes. Check your connection and try again. Your link still works.')).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: "We couldn't confirm your email" })).toBeTruthy();
+    expect(screen.getByText("We couldn't reach HalalGoes. Check your connection and try again. Your link still works.")).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(await screen.findByRole('heading', { name: 'Your email is confirmed' })).toBeTruthy();
     const calls = api.callsTo('POST /v1/auth/email/verify');

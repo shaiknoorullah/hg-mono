@@ -39,7 +39,7 @@ export const stripeNavigation = {
 type Problem = null | 'create' | 'link' | 'step-na' | 'expired';
 
 const KEEP_TAKING_ORDERS = 'You can keep taking orders. What you earn is kept on record and paid out once Stripe has what it needs.';
-const OPENS_STRIPE = 'Opens Stripe. You come back here when you’re done.';
+const OPENS_STRIPE = "Opens Stripe. You come back here when you're done.";
 
 export function AccountPage() {
   const { profile, core, timezone } = useConsole();
@@ -103,7 +103,7 @@ export function AccountPage() {
   );
   const listButton = (
     <Button variant="tertiary" size="md" onPress={() => openPanel('list')}>
-      See Stripe’s exact list
+      See Stripe's exact list
     </Button>
   );
 
@@ -115,7 +115,7 @@ export function AccountPage() {
             <span>
               {restricted === 'banned'
                 ? 'No payouts are created while this account is banned. Earnings already on record stay on record. Contact support about them.'
-                : 'No payouts are created while your account is suspended. Earnings keep adding up and are paid when it’s reinstated.'}
+                : "No payouts are created while your account is suspended. Earnings keep adding up and are paid when it's reinstated."}
             </span>
             <div className="pt-1">
               <Button variant="tertiary" size="md" onPress={() => openPanel('support')}>
@@ -134,7 +134,7 @@ export function AccountPage() {
                 {busy ? 'Setting up with Stripe' : 'Set up payouts with Stripe'}
               </Button>
               <span className="text-body-sm text-fg-secondary">
-                {notApproved ? 'Your restaurant is still being checked. We’ll let you know when you can set this up.' : busy ? 'Creating your payout account. Stripe opens in a moment.' : OPENS_STRIPE}
+                {notApproved ? "Your restaurant is still being checked. We'll let you know when you can set this up." : busy ? 'Creating your payout account. Stripe opens in a moment.' : OPENS_STRIPE}
               </span>
             </div>
           </InlineAlert>
@@ -216,7 +216,7 @@ export function AccountPage() {
               </div>
             ) : status.status === 'error' ? (
               <div role="alert" className="flex flex-col items-start gap-2" data-testid="account-error">
-                <strong className="text-label-lg">Couldn’t load your payout account</strong>
+                <strong className="text-label-lg">Couldn't load your payout account</strong>
                 <span className="text-body-md text-fg-secondary">Your payouts themselves are not affected, and orders keep coming in.</span>
                 <Button variant="tertiary" size="md" onPress={status.reload}>
                   Try again
@@ -281,8 +281,8 @@ export function AccountPage() {
 
       {panel === 'list' && connect ? (
         <DetailPanel
-          title="Stripe’s exact list"
-          label="Stripe’s exact list"
+          title="Stripe's exact list"
+          label="Stripe's exact list"
           closeLabel="Close Stripe’s list"
           onClose={() => openPanel(null)}
           width="task"

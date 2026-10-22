@@ -363,14 +363,14 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         id={`${id}-label`}
         htmlFor={id}
         className={cx(
-          'text-label-md text-fg-secondary',
+          'text-label-md leading-normal tracking-normal text-fg-secondary',
           (labelHidden || hideLabel) && 'sr-only',
           disabled && 'opacity-(--hg-state-disabled-opacity)',
         )}
       >
         {label}
         {required ? (
-          <span aria-hidden="true" className="text-feedback-danger-text">
+          <span aria-hidden="true" className="text-brand-700">
             {' *'}
           </span>
         ) : null}
@@ -438,7 +438,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
       )}
 
       {helperText && !invalid ? (
-        <p id={helperId} className="text-body-sm text-fg-tertiary">
+        <p id={helperId} className="text-caption text-fg-tertiary">
           {helperText}
         </p>
       ) : null}
@@ -448,7 +448,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         <p
           id={errorId}
           role="alert"
-          className="flex items-center gap-1 text-body-sm text-feedback-danger-text"
+          className="flex items-center gap-1 text-caption text-feedback-danger-text"
         >
           <AlertCircle aria-hidden="true" size={16} className="shrink-0" />
           {errorText}

@@ -2,7 +2,7 @@
 covers:
   - .github/workflows/e2e.yml
   - tools/e2e/**
-reviewed: 2026-10-22
+reviewed: 2026-10-23
 ---
 
 # End-to-end flows
@@ -53,13 +53,16 @@ those three twice.
 `restaurant` and `admin` board from `claude/redesign-canvases` on the same Chromium build the
 captures were taken on, compares the captures with the boards they name, writes a per-area verdict
 table to the job summary and uploads the HTML report as the `design-diff` artifact
-([tools/design-diff/README.md](../design-diff/README.md)). It is its own job because it needs no
+([tools/design-diff/README.md](../design-diff/README.md)). That artifact holds every pair's images
+(over 900 MB at ~1,100 pairs), so the pairs under 3 % also go into `design-diff-near` (about 11 MB):
+`gh run download <run> -n design-diff-near` to look at the boards closest to passing. It is its own job because it needs no
 emulator, no stack and no APKs, and a 20-minute emulator run should not wait on rendering boards.
 
-It also prints every failing board in words into the job log, so one board can be read with `gh run view --log | grep` instead of downloading the artifact. It compares with `--no-strict`: the diff exits 1 on any failing board and no board passes yet, so a
-gate there would be red before the first board is fixed and would block every merge. A crash still
-fails the job. The regression gate — a board that passed on `main` failing on a pull request — comes
-once there is something to protect ([#1034](https://github.com/shaiknoorullah/hg-mono/issues/1034)),
+It also prints every failing board in words into the job log, so one board can be read with `gh run view --log | grep` instead of downloading the artifact. It compares with `--no-strict`: the diff exits 1 on any failing board and most boards do not pass yet, so a
+gate there would block every merge. A crash still fails the job, and so does the **regression gate**:
+a board listed in `tools/design-diff/passing.json` (one that has passed on `main`) that is not
+`PASS` in the run ([design-diff README](../design-diff/README.md#the-regression-gate),
+[#1034](https://github.com/shaiknoorullah/hg-mono/issues/1034)),
 and native captures join it once they have a view hierarchy
 ([#1026](https://github.com/shaiknoorullah/hg-mono/issues/1026)).
 

@@ -9,7 +9,7 @@
  * either; the way back is partner support.
  */
 import { useEffect, useState, type ReactNode } from 'react';
-import { Button, HalalBadge, InlineAlert } from '../ds';
+import { Button, GlyphIcon, HalalBadge, InlineAlert } from '../ds';
 import { client } from '../data/client';
 import { attempt } from '../auth/api';
 import { useOnboarding } from './context';
@@ -120,13 +120,13 @@ export function PausedAccount({ kind }: { kind: 'SUSPENDED' | 'DEACTIVATED' }) {
   const name = ctx.businessName;
   if (kind === 'SUSPENDED') {
     return (
-      <Pane icon={<span aria-hidden="true">⏸</span>} banner={ENDS.suspendedBanner(name)} bannerBody={reason ?? ENDS.suspendedFallback} title={ENDS.suspendedTitle} right={<SupportCard />}>
+      <Pane icon={<GlyphIcon name="lock" size="md" />} banner={ENDS.suspendedBanner(name)} bannerBody={reason ?? ENDS.suspendedFallback} title={ENDS.suspendedTitle} right={<SupportCard />}>
         <p className="m-0 text-body-md text-fg-primary">{ENDS.suspendedBody(name)}</p>
       </Pane>
     );
   }
   return (
-    <Pane icon={<span aria-hidden="true">ⓘ</span>} banner={ENDS.deactivatedBanner(name)} bannerBody={ENDS.deactivatedBannerBody} title={ENDS.deactivatedTitle} right={<SupportCard />}>
+    <Pane icon={<GlyphIcon name="info" size="md" />} banner={ENDS.deactivatedBanner(name)} bannerBody={ENDS.deactivatedBannerBody} title={ENDS.deactivatedTitle} right={<SupportCard />}>
       <p className="m-0 text-body-md text-fg-primary">{ENDS.deactivatedBody}</p>
     </Pane>
   );
@@ -141,7 +141,7 @@ export function LapsedCertificate() {
   const [renewing, setRenewing] = useState(false);
   return (
     <Pane
-      icon={<span aria-hidden="true">◷</span>}
+      icon={<GlyphIcon name="clock" size="md" />}
       banner={ENDS.lapsedBanner}
       bannerBody={ENDS.lapsedBannerBody(body, date)}
       title={ENDS.lapsedTitle}

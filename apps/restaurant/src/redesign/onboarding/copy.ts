@@ -1,6 +1,7 @@
 /**
  * Onboarding copy (canvas ON, restaurant onboarding), verbatim from the boards. The boards mix straight and
- * curly apostrophes; the app writes `’` throughout and changes no words. Reviewer notes and the
+ * curly apostrophes; each string keeps the apostrophe style of its own board
+ * (https://github.com/shaiknoorullah/hg-mono/issues/1077). Reviewer notes and the
  * file check's reasons are never in this file: they are shown exactly as the server sent them.
  */
 
@@ -19,11 +20,11 @@ export const RAIL = {
 
 export const FRAME = {
   loading: 'Loading your setup…',
-  loadErrorTitle: 'We couldn’t load your setup',
+  loadErrorTitle: "We couldn't load your setup",
   loadErrorBody: 'Your progress is saved with HalalGoes. Check your connection and try again.',
   tryAgain: 'Try again',
   unknownTitle: 'This page needs an update',
-  unknownBody: 'Your setup has moved to a step this version of the page doesn’t know yet. Refresh to load the latest version. Nothing you’ve done is lost.',
+  unknownBody: "Your setup has moved to a step this version of the page doesn't know yet. Refresh to load the latest version. Nothing you've done is lost.",
   refresh: 'Refresh',
   supportLabel: 'Partner support',
   neededNow: 'What’s needed now',
@@ -147,7 +148,7 @@ export const REVIEW = {
   uploadNew: 'Upload new file',
   callSupport: 'Call partner support',
   uploadFresh: 'Upload a fresh copy from your certifying body',
-  supportUnavailable: 'Partner support isn’t available right now. Try again later.',
+  supportUnavailable: "Partner support isn't available right now. Try again later.",
   historyReplaced: (v: number, file: string | null, why: string) => `Version ${v}${file ? ` · ${file}` : ''} · Replaced${why ? ` · Not approved: ${why}` : ''}`,
   sendFailedTitle: 'Your documents weren’t sent',
   sendFailedBody: 'We couldn’t reach HalalGoes, or something went wrong on our side. Nothing you added is lost. Sending again is safe.',
@@ -256,7 +257,7 @@ export const RENEW = {
   cancelKeep: 'Keep uploading',
   cancelGo: 'Cancel upload',
   // The server turned a renewal away because uploads are not open yet (settings board `Renew-TooEarly`).
-  tooEarlyTitle: 'HalalGoes can’t take a renewal yet',
+  tooEarlyTitle: "HalalGoes can't take a renewal yet",
   tooEarlyBody: (opens: string, expires: string) => `You can upload it from ${opens}, 60 days before your current certificate expires on ${expires}.`,
   tooEarlyBodyPlain: 'You can upload it again closer to the date your current certificate expires. Your file and details are kept.',
 };
@@ -298,7 +299,7 @@ export const ENDS = {
   reason: 'Reason',
   note: 'Reviewer’s note',
   questions: 'Questions about this decision?',
-  supportUnavailable: 'Partner support isn’t available right now. Try again later.',
+  supportUnavailable: "Partner support isn't available right now. Try again later.",
   suspendedBanner: (name: string) => `${name || 'Your restaurant'} is suspended`,
   suspendedFallback: 'Setup is paused until partner support lifts the suspension.',
   suspendedTitle: 'Setup is paused',

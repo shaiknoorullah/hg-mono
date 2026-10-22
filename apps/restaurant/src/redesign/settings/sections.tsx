@@ -85,9 +85,9 @@ export function HalalSection({ view, profile, onRenew, onSupport }: { view: Hala
             </>
           ) : (
             <>
-              <p className="m-0 text-label-lg">Your renewed certificate wasn’t accepted</p>
+              <p className="m-0 text-label-lg">Your renewed certificate wasn't accepted</p>
               {view.renewal.note ? <p className="m-0 text-body-md text-fg-secondary">Reviewer’s note: “{view.renewal.note}”</p> : null}
-              <p className="m-0 text-body-md text-fg-secondary">Upload a corrected certificate.</p>
+              <p className="m-0 text-body-md text-fg-secondary">Upload a corrected certificate</p>
             </>
           )}
         </div>
@@ -283,7 +283,7 @@ export function DocumentsSection({ docs, denied, canUpload = false, onUpload }: 
   } else if (docs.status === 'error' || !docs.data) {
     body = (
       <div role="alert" className="flex flex-col items-start gap-2" data-testid="documents-error">
-        <p className="m-0 text-heading-sm">Couldn’t load your documents</p>
+        <p className="m-0 text-heading-sm">Couldn't load your documents</p>
         <p className="m-0 text-body-md text-fg-secondary">Your documents haven’t changed. Check your connection and try again.</p>
         <Button variant="primary" size="lg" onPress={() => docs.reload()}>
           Try again

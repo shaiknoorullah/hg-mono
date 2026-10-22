@@ -189,7 +189,7 @@ test.describe('redesigned restaurant settings · halal certification (mock)', ()
 
   test('the settings do not load', async ({ page }) => {
     await open(page, '/settings/halal', { profileCall: 'error' });
-    await expect(page.getByText('Couldn’t load your settings')).toBeVisible();
+    await expect(page.getByText("Couldn't load your settings")).toBeVisible();
     await capture(page, 'restaurant/settings/Settings-Error');
   });
 });
@@ -775,7 +775,7 @@ test.describe('redesigned restaurant settings · sign-in and security (mock)', (
 
   test('the current password is wrong', async ({ page }) => {
     await change(page, 'wrong');
-    await expect(panel(page).getByText('That isn’t your current password. Check it and try again.')).toBeVisible();
+    await expect(panel(page).getByText("That isn't your current password. Check it and try again.")).toBeVisible();
     await capture(page, 'restaurant/settings/Security-PasswordError');
   });
 

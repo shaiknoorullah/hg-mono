@@ -188,7 +188,7 @@ test.describe('restaurant redesign · sign in (mock)', () => {
     await page.goto('/login');
     await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct horse battery');
     await page.getByLabel(/^Password/).press('Enter');
-    await expect(page.getByTestId('InlineAlert')).toContainText('We couldn’t reach HalalGoes');
+    await expect(page.getByTestId('InlineAlert')).toContainText("We couldn't reach HalalGoes");
     await expect(page.getByTestId('InlineAlert')).toBeFocused();
     await check(page, info, 'offline');
     await page.unroute('**/v1/auth/login');
@@ -200,7 +200,7 @@ test.describe('restaurant redesign · sign in (mock)', () => {
 
   test('SessionExpired and ReuseDetected boards from the shell’s Sign in again', async ({ page }, info) => {
     await page.goto('/login?signed_out=expired&return_to=%2Forders');
-    await expect(page.getByRole('heading', { name: 'You’ve been signed out' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: "You've been signed out" })).toBeVisible();
     await expect(page.getByTestId('InlineAlert')).toContainText('will time out after 3 minutes');
     await check(page, info, 'session-expired');
     await page.goto('/login?signed_out=reuse-detected');
@@ -212,7 +212,7 @@ test.describe('restaurant redesign · sign in (mock)', () => {
     await page.goto('/login');
     await fillSignIn(page, 'amina@example.ca', 'correct horse battery');
     await page.getByLabel(/^Password/).press('Enter');
-    await expect(page.getByRole('heading', { name: 'This isn’t a restaurant account' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: "This isn't a restaurant account" })).toBeVisible();
     await check(page, info, 'not-restaurant');
     await page.getByRole('button', { name: 'Sign in with a different email' }).click();
     await expect(page.getByLabel(/^Email/)).toHaveValue('');
@@ -221,7 +221,7 @@ test.describe('restaurant redesign · sign in (mock)', () => {
   for (const [code, status, title, state] of [
     ['ACCOUNT_LOCKED', 423, 'This account is locked', 'locked-permanent'],
     ['ACCOUNT_SUSPENDED', 403, 'Your sign-in account is suspended', 'suspended'],
-    ['ACCOUNT_NOT_ACTIVE', 403, 'This account isn’t active', 'not-active'],
+    ['ACCOUNT_NOT_ACTIVE', 403, "This account isn't active", 'not-active'],
   ] as const) {
     test(`Account card: ${code}`, async ({ page }, info) => {
       await page.route('**/v1/auth/login', error(code, status));
@@ -280,7 +280,7 @@ test.describe('restaurant redesign · sign in (mock)', () => {
     mode = 'net';
     await page.getByRole('checkbox', { name: 'I have read and accept the partner terms' }).click();
     await page.getByRole('button', { name: 'Create account' }).click();
-    await expect(page.getByTestId('InlineAlert')).toContainText('Your account wasn’t created');
+    await expect(page.getByTestId('InlineAlert')).toContainText("Your account wasn't created");
     await check(page, info, 'register-net-error');
 
     mode = 'rate';
@@ -323,7 +323,7 @@ test.describe('restaurant redesign · sign in (mock)', () => {
     await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct horse battery');
     await page.getByLabel(/^Password/).press('Enter');
     await page.getByRole('button', { name: 'Send a new link' }).click();
-    await expect(page.getByText('You’ve asked for 5 links today')).toBeVisible();
+    await expect(page.getByText("You've asked for 5 links today")).toBeVisible();
     await check(page, info, 'check-email-daily');
     await page.unroute('**/v1/auth/email/resend');
     await page.route('**/v1/auth/email/resend', (route) => route.abort('internetdisconnected'));
@@ -331,7 +331,7 @@ test.describe('restaurant redesign · sign in (mock)', () => {
     await page.evaluate(() => window.history.replaceState(null, '', '/check-email'));
     await page.reload();
     await page.getByRole('button', { name: 'Send a new link' }).click();
-    await expect(page.getByTestId('InlineAlert')).toContainText('We couldn’t send a new link');
+    await expect(page.getByTestId('InlineAlert')).toContainText("We couldn't send a new link");
     await check(page, info, 'check-email-offline');
   });
 
@@ -366,13 +366,13 @@ test.describe('restaurant redesign · sign in (mock)', () => {
     await check(page, info, 'verify-expired');
     await page.getByLabel(/^Email/).fill('samir@zaytoungrill.ca');
     await page.getByLabel(/^Email/).press('Enter');
-    await expect(page.getByTestId('InlineAlert')).toContainText('We couldn’t send a new link');
+    await expect(page.getByTestId('InlineAlert')).toContainText("We couldn't send a new link");
     await check(page, info, 'verify-expired-error');
 
     await page.unroute('**/v1/auth/email/verify');
     await page.route('**/v1/auth/email/verify', (route) => route.abort('internetdisconnected'));
     await page.goto(`/verify-email?token=${token}`);
-    await expect(page.getByRole('heading', { name: 'We couldn’t confirm your email' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: "We couldn't confirm your email" })).toBeVisible();
     await check(page, info, 'verify-error');
   });
 

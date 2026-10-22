@@ -351,28 +351,24 @@ export function SignInScreen() {
         label={SIGN_IN.email}
         variant="email"
         autoComplete="username"
-        size="lg"
         value={email}
         onChange={(v) => {
           setEmail(v);
           if (fieldErrors.email) setFieldErrors((f) => ({ ...f, email: undefined }));
         }}
         errorText={fieldErrors.email}
-        required
       />
       <Input
         ref={passwordRef}
         label={SIGN_IN.password}
         variant="password"
         autoComplete="current-password"
-        size="lg"
         value={password}
         onChange={(v) => {
           setPassword(v);
           if (fieldErrors.password) setFieldErrors((f) => ({ ...f, password: undefined }));
         }}
         errorText={fieldErrors.password}
-        required
       />
     </>
   );

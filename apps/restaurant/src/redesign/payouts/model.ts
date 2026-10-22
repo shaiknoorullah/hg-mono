@@ -294,8 +294,8 @@ export function detailView(p: Payout, timeZone: string): DetailView {
 }
 
 /** `hold_reason` is the server's own words, shown verbatim; only a missing one has app copy. */
-export const HOLD_FALLBACK = 'No reason has been recorded for this hold yet. Contact support and we’ll find out what’s needed.';
-export const FAIL_FALLBACK = 'We don’t know yet why this failed.';
+export const HOLD_FALLBACK = "No reason has been recorded for this hold yet. Contact support and we'll find out what's needed.";
+export const FAIL_FALLBACK = "We don't know yet why this failed.";
 
 export function holdText(p: Payout): { text: string; recorded: boolean } {
   const r = p.hold_reason?.trim();

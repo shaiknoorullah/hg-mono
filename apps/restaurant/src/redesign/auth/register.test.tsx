@@ -37,9 +37,9 @@ describe('register', () => {
     installFakeApi(routes('restaurant_registration'));
     await renderPublic('/register');
     expect(await screen.findByRole('heading', { level: 1, name: 'Register your restaurant' })).toBeTruthy();
-    expect(screen.getByText('The name customers know you by. You’ll add the legal name later.')).toBeTruthy();
-    expect(screen.getByText('We’ll send a confirmation link here.')).toBeTruthy();
-    expect(screen.getByText('At least 12 characters. Use a password you don’t use anywhere else.')).toBeTruthy();
+    expect(screen.getByText("The name customers know you by. You'll add the legal name later.")).toBeTruthy();
+    expect(screen.getByText("We'll send a confirmation link here.")).toBeTruthy();
+    expect(screen.getByText("At least 12 characters. Use a password you don't use anywhere else.")).toBeTruthy();
     expect(screen.getByLabelText(/^Work email/).getAttribute('autocomplete')).toBe('email');
     expect(screen.getByLabelText(/^Password/).getAttribute('autocomplete')).toBe('new-password');
     expect(await screen.findByText('Version 2026-05-01')).toBeTruthy();
@@ -104,7 +104,7 @@ describe('register', () => {
     await fill();
     submit();
     const alert = await screen.findByTestId('InlineAlert');
-    expect(within(alert).getByText('Your account wasn’t created')).toBeTruthy();
+    expect(within(alert).getByText("Your account wasn't created")).toBeTruthy();
     await waitFor(() => expect(document.activeElement).toBe(alert));
     // Values kept, box still ticked.
     expect(screen.getByRole('checkbox', { name: 'I have read and accept the partner terms' }).getAttribute('aria-checked')).toBe('true');
@@ -151,7 +151,7 @@ describe('register', () => {
     expect(summary.getAttribute('data-tone')).toBe('danger');
     expect(within(summary).getByText('1 thing needs changing before we can create your account')).toBeTruthy();
     expect(within(summary).getByRole('link', { name: 'Restaurant name' })).toBeTruthy();
-    expect(screen.queryByText('Your account wasn’t created')).toBeNull();
+    expect(screen.queryByText("Your account wasn't created")).toBeNull();
     expect(screen.getByText('HalalGoes couldn’t accept this name. Check it, or try a shorter one.')).toBeTruthy();
     expect(api.callsTo(REGISTER)).toHaveLength(1);
   });
