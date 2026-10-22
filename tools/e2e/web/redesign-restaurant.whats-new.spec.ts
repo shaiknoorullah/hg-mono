@@ -117,7 +117,7 @@ test.describe('redesigned restaurant · what’s new panel (mock)', () => {
     await declareUnpairable(
       page,
       'restaurant/settings/WhatsNew-FirstRun',
-      'the board draws the "Get set up" checklist (order sound, notifications, payouts), a different feature from the release notes; the app shows only the latest release’s notes on a first device, as the canvas note says',
+      'the board draws the "Get set up" checklist (order sound, notifications, payouts), a different feature from the release notes; the app shows only the latest release’s notes on a first device, as the canvas note says (the checklist is tracked in https://github.com/shaiknoorullah/hg-mono/issues/1055)',
     );
   });
 });
