@@ -379,7 +379,7 @@ jobs:
           #
           # The design boards are 390 dp wide and a Pixel 6 is 411 dp, so the size and density are set
           # first and the measured size is printed in this log (tools/e2e/android/design-size.sh).
-          script: adb shell settings put global hide_error_dialogs 1 && bash tools/e2e/android/design-size.sh && adb logcat -G 16M && { bash tools/e2e/run.sh; rc=$?; bash tools/e2e/android/kill-evidence.sh || true; node tools/e2e/native/check-hierarchies.mjs || rc=1; exit $rc; }
+          script: adb shell settings put global hide_error_dialogs 1 && bash tools/e2e/android/design-size.sh && bash tools/e2e/android/measure-insets.sh && adb logcat -G 16M && { bash tools/e2e/run.sh; rc=$?; bash tools/e2e/android/kill-evidence.sh || true; node tools/e2e/native/check-hierarchies.mjs || rc=1; exit $rc; }
 
       - name: Collect the stack's logs
         if: always()
@@ -637,6 +637,60 @@ jobs:
           free -m | head -2
           du -sh "$E2E_OUT/design-diff" "$E2E_OUT/design-refs" "$E2E_OUT/design-captures" 2>/dev/null || true
 
+      # The phone apps' captures, compared the same way once the web ones are done. They exist only
+      # when the `flows` job ran the native flows (e2e-full, nightly, dispatch), and arrive in the
+      # e2e-screenshots-and-traces artifact under screenshots/<app>/. On an `e2e`-label run there are
+      # none, and everything below is skipped without rendering a board.
+      #
+      # Staged into a folder of their own, customer and rider only: screenshots/ also holds the web
+      # apps' flow screenshots, and the folder's name is how a native capture says which app it is.
+      - name: Find the native captures
+        id: native
+        if: always()
+        run: |
+          mkdir -p "$E2E_OUT/design-captures-native"
+          for app in customer rider; do
+            if [ -d "$E2E_OUT/screenshots/$app" ]; then cp -R "$E2E_OUT/screenshots/$app" "$E2E_OUT/design-captures-native/$app"; fi
+          done
+          n=$(find "$E2E_OUT/design-captures-native" -name 'design--*.png' 2>/dev/null | wc -l)
+          echo "native design captures: $n"
+          echo "present=$([ "$n" -gt 0 ] && echo true || echo false)" >>"$GITHUB_OUTPUT"
+          echo "insets: $(tr -d '\n ' <"$E2E_OUT/insets.json" 2>/dev/null || true)"
+
+      # Boards of the two phone apps, into their own directory so the web references are untouched.
+      - name: Render the native boards
+        if: always() && steps.native.outputs.present == 'true'
+        run: >-
+          pnpm --filter @hg/design-diff exec node src/render-refs.mjs
+          --repo "$GITHUB_WORKSPACE" --out "$E2E_OUT/design-refs-native" --apps customer,rider --concurrency 6
+
+      # Judged on layout geometry and colour, not pixels (tools/design-diff/README.md, "Native
+      # boards"). The bars are cut by the insets the flows job measured on the emulator, else the
+      # stock phone-390 profile; the density comes from each capture's own sidecar.
+      # continue-on-error: the web verdicts above are already in, and a native crash should be
+      # visible without turning them red.
+      - name: Compare the native captures with their boards
+        id: native-diff
+        if: always() && steps.native.outputs.present == 'true'
+        continue-on-error: true
+        run: |
+          if [ -s "$E2E_OUT/insets.json" ]; then cut=(--insets "$E2E_OUT/insets.json"); else cut=(--profile phone-390); fi
+          echo "cutting the bars with: ${cut[*]}"
+          pnpm --filter @hg/design-diff exec node src/diff.mjs --no-strict "${cut[@]}" \
+            --refs "$E2E_OUT/design-refs-native" --captures "$E2E_OUT/design-captures-native" --out "$E2E_OUT/design-diff-native"
+
+      - name: Write the native report
+        if: always() && steps.native.outputs.present == 'true'
+        run: pnpm --filter @hg/design-diff exec node src/report.mjs --results "$E2E_OUT/design-diff-native" || true
+
+      - name: Native summary
+        if: always() && steps.native.outputs.present == 'true'
+        run: node tools/design-diff/src/job-summary.mjs --results "$E2E_OUT/design-diff-native" --title "Design fidelity, native (customer, rider)" >>"$GITHUB_STEP_SUMMARY" || true
+
+      - name: The native boards that are not passing, in words
+        if: always() && steps.native.outputs.present == 'true'
+        run: node tools/design-diff/src/findings.mjs --results "$E2E_OUT/design-diff-native" --out "$E2E_OUT/design-diff-native/findings.txt" || true
+
       - name: Write the report
         if: always()
         run: pnpm --filter @hg/design-diff exec node src/report.mjs --results "$E2E_OUT/design-diff" || true
@@ -660,5 +714,7 @@ jobs:
           path: |
             ${{ env.E2E_OUT }}/design-diff
             ${{ env.E2E_OUT }}/design-refs/manifest.json
+            ${{ env.E2E_OUT }}/design-diff-native
+            ${{ env.E2E_OUT }}/design-refs-native/manifest.json
           if-no-files-found: warn
           retention-days: 14
