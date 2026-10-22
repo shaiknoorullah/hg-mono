@@ -295,6 +295,25 @@ jobs:
           pnpm install --frozen-lockfile
           pnpm --filter @hg/e2e exec playwright install --with-deps chromium
 
+      # The design boards and the captures compared with them must be drawn by ONE Chromium build
+      # (tools/design-diff/src/browser.mjs, CHROMIUM_BUILD = 1223). The pinned Playwright 1.50.1
+      # ships build 1155, which cannot parse `var(--icon-md)` in an SVG geometry attribute and so
+      # fails to render 35 of the 55 restaurant/sign-in boards (#842). Until one Playwright is
+      # pinned repo-wide, the build is fetched from the release that carries it — 1.60.0 is the
+      # version whose bundled Chromium is revision 1223 — and resolveBrowser() then finds it
+      # without an override, for the web captures here and for the reference renderer.
+      #
+      # Checked, not assumed: without this, CI captures recorded `"browser": "playwright default"`
+      # and `"chromium": "133.0.6943.16"`, so every pair would have been BROWSER MISMATCH and no
+      # board could be measured in CI at all.
+      - name: Install the Chromium build the design boards are drawn with
+        run: |
+          npx -y playwright@1.60.0 install --with-deps chromium
+          test -d "$HOME/.cache/ms-playwright/chromium-1223" || {
+            echo "::error::playwright@1.60.0 did not provide Chromium build 1223; design-diff cannot compare a board with a capture from another build"
+            exit 1
+          }
+
       - name: Install Maestro
         if: env.E2E_FLOWS == 'all'
         run: |

@@ -8,6 +8,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/contract"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/handover"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 )
@@ -1640,57 +1641,79 @@ func (r *Repo) getMenuItemByID(ctx context.Context, restaurantID, itemID string)
 	return &item, nil
 }
 
-// ListOrders returns the restaurant's orders, paginated (newest first).
-// Each item is the full OrderRestaurantView (the same shape as GetOrder).
-func (r *Repo) ListOrders(ctx context.Context, restaurantID string, limit int, afterID *string) ([]OrderRestaurantView, bool, error) {
-	if limit <= 0 || limit > 50 {
+// ListOrders returns the restaurant's orders, one keyset page at a time.
+//
+// states filters by order state (empty means every state). Ordering follows
+// the contract (listRestaurantOrders): when the filter is exactly
+// RESTAURANT_PENDING the most urgent comes first (deadline_at ascending);
+// otherwise newest first (placed_at descending). Both break ties on id, so a
+// page boundary never drops or repeats a row. curKey/curID is the decoded
+// cursor of the previous page's last row; the returned cursor encodes this
+// page's last row, or is nil on the last page.
+func (r *Repo) ListOrders(ctx context.Context, restaurantID string, states []string, limit int, curKey *time.Time, curID *string) ([]OrderRestaurantView, *string, bool, error) {
+	if limit <= 0 || limit > 100 {
 		limit = 20
+	}
+	urgentFirst := len(states) == 1 && states[0] == string(contract.OrderStateRESTAURANTPENDING)
+	key, dir, cmp := "placed_at", "DESC", "<"
+	if urgentFirst {
+		key, dir, cmp = "deadline_at", "ASC", ">"
 	}
 	args := []any{restaurantID}
 	where := `restaurant_id = $1`
-	if afterID != nil {
-		args = append(args, *afterID)
-		where += fmt.Sprintf(` AND placed_at < (SELECT placed_at FROM "order" WHERE id=$%d)`, len(args))
+	if len(states) > 0 {
+		args = append(args, states)
+		where += fmt.Sprintf(` AND state = ANY($%d::order_state[])`, len(args))
+	}
+	if curKey != nil && curID != nil {
+		args = append(args, *curKey, *curID)
+		where += fmt.Sprintf(` AND (%s, id) %s ($%d, $%d::uuid)`, key, cmp, len(args)-1, len(args))
 	}
 	args = append(args, limit+1)
 	q := fmt.Sprintf(`
-		SELECT id::text
+		SELECT id::text, %[1]s
 		  FROM "order"
-		 WHERE %s
-		 ORDER BY placed_at DESC LIMIT $%d`, where, len(args))
+		 WHERE %[2]s
+		 ORDER BY %[1]s %[3]s, id %[3]s LIMIT $%[4]d`, key, where, dir, len(args))
 
 	rows, err := r.db.Query(ctx, q, args...)
 	if err != nil {
-		return nil, false, err
+		return nil, nil, false, err
 	}
 	defer rows.Close()
 	var ids []string
+	var keys []time.Time
 	for rows.Next() {
 		var id string
-		if err := rows.Scan(&id); err != nil {
-			return nil, false, err
+		var k time.Time
+		if err := rows.Scan(&id, &k); err != nil {
+			return nil, nil, false, err
 		}
 		ids = append(ids, id)
+		keys = append(keys, k)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, false, err
+		return nil, nil, false, err
 	}
 	rows.Close()
 
 	hasMore := len(ids) > limit
+	var next *string
 	if hasMore {
 		ids = ids[:limit]
+		c := encodeStaffCursor(keys[limit-1], ids[limit-1])
+		next = &c
 	}
 
 	out := make([]OrderRestaurantView, 0, len(ids))
 	for _, id := range ids {
 		v, err := r.GetOrder(ctx, restaurantID, id)
 		if err != nil {
-			return nil, false, err
+			return nil, nil, false, err
 		}
 		out = append(out, *v)
 	}
-	return out, hasMore, nil
+	return out, next, hasMore, nil
 }
 
 // GetOrder returns a restaurant's order by ID (ownership enforced in SQL).
