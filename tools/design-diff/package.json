@@ -7,7 +7,8 @@
   "exports": {
     "./page-scripts": "./src/page-scripts.mjs",
     "./names": "./src/names.mjs",
-    "./browser": "./src/browser.mjs"
+    "./browser": "./src/browser.mjs",
+    "./capture-size": "./src/capture-size.mjs"
   },
   "scripts": {
     "render-refs": "node src/render-refs.mjs",
