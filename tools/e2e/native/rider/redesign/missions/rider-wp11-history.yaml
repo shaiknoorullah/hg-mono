@@ -36,10 +36,10 @@ explore: >
   away → Use this photo: the API log shows POST /v1/uploads, the PUT, confirm and POST
   /v1/riders/me/documents with expires_on, and the screen reads "Send your new insurance" with
   Send for review disabled (submitRiderDocuments after approval is Needs API).
-  (6) What's new: build once more with APP_VERSION=1.4.0 (dev env) and relaunch: on Home, offline
-  and not on a delivery, the What's new sheet shows "New in version 1.4.0"; Got it closes it; it
-  returns on the next launch (memory storage until AsyncStorage lands, an open problem). Start a
-  delivery (`make dev-journey ... auto=none`) before relaunching: the sheet does not open over the
-  trip.
+  (6) What's new: build once more with APP_VERSION=1.0.0 (dev env) and relaunch: on Home, offline
+  and not on a delivery, the What's new sheet shows "New in version 1.0.0"; Got it closes it; it
+  does not return on the next launch (the version is kept on the phone). Clear the app's storage
+  to see it again. Start a delivery (`make dev-journey ... auto=none`) before relaunching: the
+  sheet does not open over the trip. Account › What's new always opens the page.
   (7) Light mode (`adb shell cmd uimode night no`) and font_scale 1.0: screenshot Deliveries, the
   delivery and a document. Nothing is solid green, no state is red, no halal badge anywhere.

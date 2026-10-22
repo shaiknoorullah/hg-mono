@@ -127,7 +127,7 @@ export const BLOCKED_COPY: Record<ForcedKind, BlockedCopy> = {
 /** Added to the body only when the 403 came from the checkout call itself (`SI/Blocked-midcheckout`). */
 export const MID_CHECKOUT_LINE = "That order wasn't placed.";
 
-const STORE_URL = Platform.select({
+export const STORE_URL = Platform.select({
   android: 'market://details?id=com.halalgoes.customer',
   default: 'https://apps.apple.com/app/halalgoes',
 });

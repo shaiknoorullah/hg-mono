@@ -14,10 +14,9 @@
  * (Call support or its closed and unavailable forms, How we check halal certificates, Terms and
  * privacy), the deletion-by-request paragraph, Sign out and the app version.
  *
- * Not built, and why: Payment methods and Refunds (no board draws the pages they open), App
- * settings (needs a location-permission module the app does not ship), What's new (no release
- * notes bundle yet). Their rows are left out rather than leading nowhere; the tracking issue
- * lists them.
+ * Not built, and why: Payment methods and Refunds (no board draws the pages they open) and App
+ * settings (needs a location-permission module the app does not ship). Their rows are left out
+ * rather than leading nowhere; the tracking issue lists them. What's new is built (`../whatsnew`).
  *
  * Sign out always works on this phone: the session is cleared at once and the server is told
  * best-effort, so the board's "We couldn't sign you out" never occurs here (`api/auth.ts`).
@@ -67,6 +66,8 @@ import {
   type ResendLimit,
 } from './rules';
 import { SettingsGroup, SettingsRow } from './SettingsRow';
+import { WHATS_NEW } from '../whatsnew/copy';
+import { appVersion } from '../whatsnew/releaseNotes';
 
 export const ACCOUNT_COPY = {
   title: 'Account',
@@ -218,6 +219,13 @@ export function AccountScreen(): React.ReactElement {
             icon="info"
             onPress={() => nav.push({ name: 'howWeCheck' })}
             testID="Account-howWeCheck"
+          />
+          {/* The board leaves the icon slot empty: `gift` is not in the design system's icon set. */}
+          <SettingsRow
+            title={WHATS_NEW.title}
+            subline={WHATS_NEW.rowSubline(appVersion())}
+            onPress={() => nav.push({ name: 'whatsNew' })}
+            testID="Account-whatsNew"
           />
           <SettingsRow title="Terms and privacy" onPress={() => nav.push({ name: 'terms' })} testID="Account-terms" />
         </SettingsGroup>
