@@ -615,6 +615,35 @@ test('Maestro hierarchy: a real device capture becomes a layout record in dp', a
   assert.throws(() => parseMaestroHierarchy('null'), /not a Maestro hierarchy/);
 });
 
+// The findings listing a CI log carries, so a board can be looked up without downloading anything.
+// The case that matters is a board UNDER the percentage and still failing: it fails on the blob
+// rule, which the percentage alone hides, and that is where the first passes come from.
+test('findings: a board under the percentage still says why it fails', async () => {
+  const { listing, whyNotPassing } = await import('../src/findings.mjs');
+  const thresholds = { maxMismatchPct: 0.1, maxRegionPx: 4 };
+
+  const why = whyNotPassing({ sharedHeightMismatchPct: 0.045, regionsOverLimit: 2, largestRegion: { x: 612, y: 338, w: 11, h: 6, px: 54 } }, thresholds);
+  assert.equal(why.length, 1, 'under the percentage, so only the blob is named');
+  assert.match(why[0], /2 patches .* larger than the 4 px allowed/);
+  assert.match(why[0], /11 x 6 dp at 612, 338/, 'where to look, not only that it is wrong');
+
+  const results = {
+    comparison: { mismatchField: 'sharedHeightMismatchPct' },
+    thresholds,
+    pairs: [
+      { id: 'a/b/Low', verdict: 'FAIL', sharedHeightMismatchPct: 0.045, regionsOverLimit: 1, largestRegion: { x: 1, y: 2, w: 9, h: 9, px: 81 }, layout: { findings: [{ text: 'Copy differs.' }] } },
+      { id: 'a/b/High', verdict: 'FAIL', sharedHeightMismatchPct: 9.4, shortfall: 2300, layout: { findings: [] } },
+      { id: 'a/b/Fine', verdict: 'PASS', sharedHeightMismatchPct: 0.01 },
+    ],
+  };
+  const text = listing(results, { limit: 6 });
+  assert.match(text, /2 boards are not passing/);
+  assert.ok(text.indexOf('a/b/High') < text.indexOf('a/b/Low'), 'worst first');
+  assert.ok(!text.includes('a/b/Fine'), 'a passing board is not in the list');
+  assert.match(text, /shorter than its board/);
+  assert.match(text, /Copy differs\./);
+});
+
 // snapshotLayout runs in the page through `page.evaluate`, which serialises the function and
 // nothing around it: a helper defined at module scope would be a ReferenceError in the browser and
 // would only show up on a CI run. This pins the two things that matter about the box key — that it

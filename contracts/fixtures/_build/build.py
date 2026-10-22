@@ -22,6 +22,7 @@ import yaml  # noqa: E402
 
 import dom_account_actions  # noqa: E402
 import dom_admin_order_states  # noqa: E402
+import dom_capture_states  # noqa: E402
 import dom_catalogue  # noqa: E402
 import dom_errors  # noqa: E402
 import dom_geo  # noqa: E402
@@ -59,6 +60,7 @@ def main() -> int:
     dom_redesign.build(reg, synth)
     dom_redesign_2.build(reg, synth)
     dom_admin_order_states.build(reg, synth)  # after dom_orders: reuses its admin order projection
+    dom_capture_states.build(reg, synth)  # after dom_admin_order_states: copies two of its fixtures
     dom_account_actions.build(reg, synth)
 
     write_vocabulary(reg)
