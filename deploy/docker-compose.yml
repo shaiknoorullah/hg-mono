@@ -100,6 +100,12 @@ x-api-env: &api-env
   HG_RESTAURANT_WEB_URL: ${HG_RESTAURANT_WEB_URL:-http://localhost:5183}
   HG_ADMIN_WEB_URL: ${HG_ADMIN_WEB_URL:-http://localhost:5175}
 
+  # Address search (internal/geo): the location picker's suggestions, place
+  # details and reverse geocoding, forwarded to Mapbox. With no token the API
+  # uses a built-in fake outside production and refuses to start in production.
+  HG_MAPBOX_SECRET_TOKEN: ${HG_MAPBOX_SECRET_TOKEN:-}
+  HG_GEO_PROVIDER: ${HG_GEO_PROVIDER:-}
+
   # Push (internal/notify, issue #58). Off unless HG_PUSH_ENABLED=true; off,
   # every push is recorded as not sent and the in-app inbox is the record.
   HG_PUSH_ENABLED: ${HG_PUSH_ENABLED:-false}

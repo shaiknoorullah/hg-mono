@@ -45,6 +45,7 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/devworld/tablets"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/dispatch"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/files"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/geo"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/halalexpiry"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/handoff"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/handover"
@@ -670,6 +671,17 @@ func run() error {
 
 	// B2 — Customer delivery addresses (internal/addresses, P-30).
 	addresses.Routes(router, addresses.NewHandler(addresses.NewRepo(st.DB().Pool)))
+
+	// Address search (internal/geo): the location picker's suggestions, place
+	// details and reverse geocoding, forwarded to Mapbox with the server-side
+	// secret. With no token outside production it is the deterministic dev
+	// fake; config.Load already refused production without a token.
+	geoProvider, err := newGeoProvider(cfg, log)
+	if err != nil {
+		return err
+	}
+	geo.Routes(router, geo.NewHandler(geoProvider, geoLimiter{auth.NewRateLimiter(st.Cache().Client, log)}, log))
+
 	// B2 — Account self-service (C-03, P-24, P-25): profile, devices, notifications.
 	account.Routes(router, account.NewHandler(accountRepo))
 	// The revocation deny set refreshes from Postgres every 10 s (P-04).
