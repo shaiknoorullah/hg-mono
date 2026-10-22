@@ -203,6 +203,12 @@ func verifyTo(ctx context.Context, dsn string, out io.Writer) error {
 	}
 	problems = append(problems, rstaffProblems...)
 
+	redesignProblems, err := verifyRedesign(ctx, conn, out)
+	if err != nil {
+		return err
+	}
+	problems = append(problems, redesignProblems...)
+
 	if adminHash == "" {
 		problems = append(problems, "admin password hash missing")
 	} else if ok, err := PasswordMatches(ctx, adminHash); err != nil {
