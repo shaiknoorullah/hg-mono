@@ -32,6 +32,22 @@ The full list of journeys still to cover is the harness plan in
 | A pull request with the **`e2e` label** | The web flows only, on every push while the label is on. No APK build and no emulator: those take the longest ([below](#what-it-costs)). Without the label no job starts |
 | A pull request with the **`e2e-full` label** | Every flow, emulator included, on every push while the label is on. The by-hand run for a pull request: a workflow can only be started from the Actions tab once it is on `main`. Remove the label when done |
 
+**Beside the flows, `captures`.** The boards draw states the real stack cannot produce on demand — a
+failed payout, an expired certificate, a refused upload — so the specs that capture them are written
+against the mock and skip when `E2E_MODE` is real. The `flows` job runs the real stack, so a
+`captures` job runs the redesign projects in **mock** mode and uploads what they take. It needs no
+compose stack, no Go and no APKs, runs in parallel, and `serve.sh` starts `pnpm mock` itself. Until
+it existed, the first run that produced verdicts compared **4** boards where the one run done by
+hand compared **143** ([#1049](https://github.com/shaiknoorullah/hg-mono/issues/1049)).
+
+A failing capture spec does not fail that job: a spec that failed took no capture, which the diff
+already reports as a board without one, and that is the number to read. A crash still fails it.
+
+Real-mode captures are written to `design-captures-real` and are **not** compared. Three boards are
+declared by both a real-mode and a mock-mode spec, measured, and nothing dedupes by board
+([#1028](https://github.com/shaiknoorullah/hg-mono/issues/1028)), so comparing both would count
+those three twice.
+
 **After the flows, `design-diff`.** Whenever the `flows` job succeeds, a second job renders every
 `restaurant` and `admin` board from `claude/redesign-canvases` on the same Chromium build the
 captures were taken on, compares the captures with the boards they name, writes a per-area verdict
