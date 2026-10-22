@@ -16,18 +16,21 @@
  *   promote another): a banner asks the customer to choose one. This is read from the data, so it
  *   shows however the default went missing.
  *
- * Not built here: the delete-confirmation toasts of boards `-deletedlast` and `-deletednodefault`
- * belong to the address form (deleting happens there, and the form is not rebuilt yet).
+ * The delete toasts of boards `-deletedlast`, `-deleteddefault` and `-deletednodefault`: deleting
+ * happens in the address form (`address/AddressFormScreen`), which is closed by the time the list
+ * shows, so it leaves the toast in `address/addressNotice` and this page shows it once. Its text
+ * comes from the refreshed list, not from what the form assumed.
  */
 import * as React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { AppBar, Badge, Banner, Button, Card, EmptyState, ErrorState, Icon, Skeleton, radius, space, useTheme, useTypeStyle } from '../ds';
+import { AppBar, Badge, Banner, Button, Card, EmptyState, ErrorState, Icon, Skeleton, Toast, radius, space, useTheme, useTypeStyle } from '../ds';
 import { useConnectivity } from '../lib/connectivity';
 import { useQuery } from '../lib/query';
 import { formatTime } from '../lib/time';
 import { useNav } from '../navigation/context';
 import { listAddresses } from './accountApi';
+import { clearAddressNotice, useAddressNotice } from './address/addressNotice';
 import { ADDRESS_LIMIT, addressRow, defaultFirst, type Address } from './rules';
 
 export const ADDRESSES_COPY = {
@@ -48,6 +51,9 @@ export function AddressesScreen(): React.ReactElement {
   const small = useTypeStyle('body.sm');
   const { online } = useConnectivity();
   const { query, reload } = useQuery(listAddresses, []);
+  const notice = useAddressNotice();
+  // Shown once: leaving the list drops it.
+  React.useEffect(() => clearAddressNotice, []);
 
   const add = () => nav.push({ name: 'addressForm', addressId: null });
   const addresses = query.kind === 'ready' ? query.data : [];
@@ -137,6 +143,11 @@ export function AddressesScreen(): React.ReactElement {
         back={{ onPress: nav.back, previousTitle: 'Account' }}
       />
       <ScrollView contentContainerStyle={[styles.content, { paddingHorizontal: theme.density.gutter }]}>{body}</ScrollView>
+      {notice ? (
+        <View pointerEvents="box-none" style={[styles.toastDock, { paddingHorizontal: theme.density.gutter }]}>
+          <Toast variant="neutral" title={notice.title} description={notice.description} onDismiss={clearAddressNotice} testID="Addresses-notice" />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -174,5 +185,6 @@ const styles = StyleSheet.create({
   stack: { gap: space['4'] },
   card: { flexDirection: 'row', alignItems: 'center', gap: space['3'] },
   cardText: { flex: 1, minWidth: 0, gap: 2 },
+  toastDock: { position: 'absolute', left: 0, right: 0, bottom: 96 },
   titleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: space['2'] },
 });

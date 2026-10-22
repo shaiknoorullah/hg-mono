@@ -30,9 +30,10 @@ export const PASSWORD = 'DevAdmin!2026-e2e';
 
 /**
  * Serves `login` from the mock, rewriting the principal's roles to `role`. With `mfa`, the first
- * attempt without a `totp_code` is answered by the mock's `MFA_REQUIRED` fixture.
+ * attempt without a `totp_code` is answered by the mock's `MFA_REQUIRED` fixture. With `accountId`,
+ * the principal is that account, so a list holding the row with that id shows it as "You".
  */
-export async function routeLogin(page: Page, role: StaffRole, opts: { mfa?: boolean } = {}): Promise<string[]> {
+export async function routeLogin(page: Page, role: StaffRole, opts: { mfa?: boolean; accountId?: string } = {}): Promise<string[]> {
   const sent: string[] = [];
   await page.route('**/v1/auth/login', async (route: Route) => {
     const request = route.request();
@@ -47,8 +48,9 @@ export async function routeLogin(page: Page, role: StaffRole, opts: { mfa?: bool
       return route.fulfill({ response });
     }
     const response = await route.fetch();
-    const json = (await response.json()) as { data: { principal: { roles: { role: string }[] } } };
+    const json = (await response.json()) as { data: { principal: { account_id: string; roles: { role: string }[] } } };
     json.data.principal.roles = [{ ...json.data.principal.roles[0], role, scope_type: 'GLOBAL' } as { role: string }];
+    if (opts.accountId) json.data.principal.account_id = opts.accountId;
     return route.fulfill({ response, json });
   });
   return sent;
