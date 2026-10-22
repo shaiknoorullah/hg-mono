@@ -59,8 +59,20 @@ function keyOf(node) {
  * @returns {{ w: number, h: number, texts: object[], boxes: object[], source: string }}
  */
 export function snapshotFromHierarchy(xml, { density, cut = null }) {
+  return snapshotFromRoots(parseHierarchy(xml), { density, cut, source: 'uiautomator' });
+}
+
+/**
+ * The same, from an already-parsed tree, so a hierarchy that did not come from `uiautomator dump`
+ * is measured by exactly this code rather than by a second copy of it. Maestro's own hierarchy is
+ * read this way (maestro-hierarchy.mjs): a capture cannot run `uiautomator dump`, because it is
+ * killed while a flow is in progress (https://github.com/shaiknoorullah/hg-mono/issues/1026).
+ *
+ * @param {object[]} roots  nodes as `parseHierarchy` returns them
+ * @param {{ density: number, cut?: { top: number, bottom: number } | null, source?: string }} o
+ */
+export function snapshotFromRoots(roots, { density, cut = null, source = 'uiautomator' }) {
   if (!(density > 0)) throw new Error('density (device px per dp) is needed to turn a hierarchy into dp');
-  const roots = parseHierarchy(xml);
   const top = cut?.top ?? 0;
   const screen = { w: Math.max(...roots.map((n) => n.x1)), h: Math.max(...roots.map((n) => n.y1)) };
   const bottom = screen.h - (cut?.bottom ?? 0);
@@ -79,5 +91,5 @@ export function snapshotFromHierarchy(xml, { density, cut = null }) {
     n.children.forEach(walk);
   };
   roots.forEach(walk);
-  return { w: dp(screen.w), h: dp(bottom - top), texts, boxes, source: 'uiautomator' };
+  return { w: dp(screen.w), h: dp(bottom - top), texts, boxes, source };
 }

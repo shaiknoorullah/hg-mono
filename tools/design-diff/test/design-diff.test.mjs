@@ -580,3 +580,37 @@ esac
     process.env.PATH = oldPath;
   }
 });
+
+// Maestro's own view hierarchy, which is where a design capture's layout has to come from: a
+// capture runs inside a flow, and `uiautomator dump` is killed while a flow is in progress
+// (https://github.com/shaiknoorullah/hg-mono/issues/1026). The fixture is a real capture from a real
+// device at 390 x 844 dp — run 39713415048, the step that failed — not a hand-written shape, which
+// is what the comparator's own tolerances were first written against.
+test('Maestro hierarchy: a real device capture becomes a layout record in dp', async () => {
+  const { snapshotFromMaestro, parseMaestroHierarchy, packageOf } = await import('../src/maestro-hierarchy.mjs');
+  const raw = readFileSync(path.join(import.meta.dirname, 'fixtures/maestro-hierarchy-390x844.json'), 'utf8');
+
+  // The package is recovered from the resource id, because Maestro records no `package` attribute.
+  // A React Native test id is not a package and must not be read as one.
+  assert.equal(packageOf('com.android.systemui:id/clock'), 'com.android.systemui');
+  assert.equal(packageOf('Code-input-cell-0'), null);
+  assert.equal(packageOf(''), null);
+
+  // The outer wrappers carry no bounds at all; they are descended through, not measured. Both
+  // windows survive: the app, and the status bar Maestro includes.
+  const roots = parseMaestroHierarchy(raw);
+  assert.deepEqual(roots.map((r) => [r.x0, r.y0, r.x1, r.y1]), [[0, 0, 1170, 2532], [0, 0, 1170, 72]]);
+
+  const snap = snapshotFromMaestro(raw, { density: 3, cut: { top: 72, bottom: 0 } });
+  assert.equal(snap.source, 'maestro');
+  assert.equal(snap.w, 390, 'the boards are 390 dp wide and so is the device');
+  assert.equal(snap.h, 820, '(2532 - 72) / 3');
+  assert.ok(snap.texts.some((t) => t.text === 'Enter the 6-digit code'), 'the screen’s own copy is read');
+  // The status bar is in Maestro's tree, so it has to be dropped the way the XML path drops it.
+  assert.ok(!snap.texts.some((t) => /wifi|battery/i.test(t.text)), 'no system UI text leaks in');
+  assert.ok(snap.boxes.length > 10, 'painted boxes are measured, not only texts');
+
+  // An empty or wrong-shaped file must not read as an empty screen.
+  assert.throws(() => parseMaestroHierarchy({ children: [{ attributes: {} }] }), /no node with bounds/);
+  assert.throws(() => parseMaestroHierarchy('null'), /not a Maestro hierarchy/);
+});

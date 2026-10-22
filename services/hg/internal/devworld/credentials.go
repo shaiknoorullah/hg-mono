@@ -40,8 +40,8 @@ func ApplyCredentials(ctx context.Context, dsn string) error {
 		return fmt.Errorf("devworld: no persona accepted a password")
 	}
 	// The catalogue's restaurant owners sign in the same way.
-	owners := make([]string, 0, len(Catalogue))
-	for _, r := range Catalogue {
+	owners := make([]string, 0, len(Catalogue)+len(StateRestaurants))
+	for _, r := range AllRestaurants() {
 		if !r.Persona {
 			owners = append(owners, r.OwnerID)
 		}
