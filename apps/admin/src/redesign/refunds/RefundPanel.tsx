@@ -337,7 +337,7 @@ function Review({ order, draft }: { order: Order; draft: RefundDraft }) {
           { label: 'Reason', value: reason?.label ?? '' },
           {
             label: 'Amount',
-            value: draft.scope === 'GOODWILL' && draft.goodwillCents !== null ? <Price cents={draft.goodwillCents} size="md" /> : 'Calculated by the server when you issue it',
+            value: draft.scope === 'GOODWILL' && draft.goodwillCents !== null ? <Price cents={draft.goodwillCents} size="md" /> : 'Calculated by the server when you issue it.',
           },
           { label: 'What happened', value: draft.text.trim() },
           ...(draft.caseId.trim() ? [{ label: 'Case id', value: draft.caseId.trim(), mono: true }] : []),

@@ -247,9 +247,9 @@ export function HalalDecisionPanel({ decision, certificate, application, presetR
               <ul className="flex flex-col gap-1 text-body-md text-fg-primary">
                 {checks.map((c) => (
                   <li key={c.key}>
-                    {checkTitle(c.key)}: {c.result ? RESULT_WORD[c.result] : 'Not recorded'}
-                    {c.computed ? ' (computed)' : ''}
-                    {overrides.some((o) => o.key === c.key) ? `, you overrode the system suggestion (${c.suggestion ? RESULT_WORD[c.suggestion] : ''})` : ''}
+                    {`${checkTitle(c.key)}: ${c.result ? RESULT_WORD[c.result] : 'Not recorded'}${c.computed ? ' (computed)' : ''}${
+                      overrides.some((o) => o.key === c.key) ? `, you overrode the system suggestion (${c.suggestion ? RESULT_WORD[c.suggestion] : ''})` : ''
+                    }`}
                     {overrides.some((o) => o.key === c.key) && c.note ? <blockquote className="ms-3 text-body-sm text-fg-secondary">“{c.note}”</blockquote> : null}
                   </li>
                 ))}

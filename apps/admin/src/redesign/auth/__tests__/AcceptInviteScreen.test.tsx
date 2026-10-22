@@ -44,10 +44,10 @@ describe('AcceptInviteScreen', () => {
   it('no token: the invite link does not work, and nothing is sent', () => {
     openLink(null);
     render();
-    expect(screen.getByRole('heading', { level: 1, name: 'This invite link doesn’t work' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: "This invite link doesn't work" })).toBeTruthy();
     expect(
       screen.getByText(
-        'It may be incomplete or mistyped. Open it again from the invite email. If it still doesn’t work, ask the super admin who invited you for a new one.',
+        "It may be incomplete or mistyped. Open it again from the invite email. If it still doesn't work, ask the super admin who invited you for a new one.",
       ),
     ).toBeTruthy();
     expect(api.calls).toHaveLength(0);
@@ -56,7 +56,7 @@ describe('AcceptInviteScreen', () => {
   it('a malformed token is the same page', () => {
     openLink('abc');
     render();
-    expect(screen.getByRole('heading', { level: 1, name: 'This invite link doesn’t work' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: "This invite link doesn't work" })).toBeTruthy();
   });
 
   describe('with a link', () => {
@@ -115,7 +115,7 @@ describe('AcceptInviteScreen', () => {
       });
       const status = screen.getByRole('status');
       expect(status.textContent).toContain('You’re offline');
-      expect(status.textContent).toContain('What you typed is still here. Continue works again when you’re back online.');
+      expect(status.textContent).toContain("What you typed is still here. Continue works again when you're back online.");
       const button = screen.getByRole('button', { name: 'Continue, available when you’re back online' });
       expect(button.getAttribute('aria-disabled')).toBe('true');
       fireEvent.submit(passwordField().closest('form')!);

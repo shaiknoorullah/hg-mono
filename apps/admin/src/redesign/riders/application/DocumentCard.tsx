@@ -178,7 +178,7 @@ export function DocumentCard(props: Props) {
             {...(rejectWhy ? { accessibilityLabel: `Reject document…, unavailable: ${rejectWhy}` } : {})}
             onPress={onReject}
           >
-            Reject document…
+            Reject document
           </Button>
           <Button
             variant={failing.length > 0 || missing.length > 0 ? 'secondary' : 'primary'}

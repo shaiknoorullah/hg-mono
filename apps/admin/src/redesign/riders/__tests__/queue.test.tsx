@@ -104,7 +104,7 @@ describe('Rider applications queue', () => {
 
     mockApi({ listRiderApplications: { status: 500, body: fixture('error_internal_error') } });
     renderQueue();
-    expect(await screen.findByText('Rider applications didn’t load')).toBeTruthy();
+    expect(await screen.findByText("Rider applications didn't load")).toBeTruthy();
     cleanup();
 
     mockApi({ listRiderApplications: { status: 403, body: fixture('error_forbidden') } });

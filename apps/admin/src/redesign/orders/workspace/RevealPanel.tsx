@@ -104,7 +104,7 @@ export function RevealPanel({ orderId, code, onClose, onRevealed }: RevealPanelP
           </InlineAlert>
         ) : null}
         {phase.kind === 'failed' ? (
-          <InlineAlert tone="danger" blocking title="The address didn’t load">
+          <InlineAlert tone="danger" blocking title="The address didn't load">
             The server didn’t answer. Nothing was revealed. Your reason is kept; press Reveal address to try again.
           </InlineAlert>
         ) : null}

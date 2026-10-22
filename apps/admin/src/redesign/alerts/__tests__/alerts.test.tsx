@@ -70,7 +70,7 @@ describe('Live alerts: states', () => {
     const rows = within(screen.getByRole('grid')).getAllByRole('row').slice(1);
     expect(rows).toHaveLength(4);
     expect(within(rows[0]!).getByText('Reconciliation exception')).toBeTruthy();
-    expect(screen.getByText('That’s everything from the last 7 days.')).toBeTruthy();
+    expect(screen.getByText("That's everything from the last 7 days.")).toBeTruthy();
   });
 
   it('says only "recent" when the replay did not start at the first event, and says older alerts are missing when cut', () => {
@@ -80,8 +80,8 @@ describe('Live alerts: states', () => {
       for (const e of opsEvents()) applyAlertEvent(e);
       applyReplay({ fromSeq: 501, truncated: true });
     });
-    expect(screen.getByText('That’s everything the live connection could replay.')).toBeTruthy();
-    expect(screen.getByText('Older alerts from the last 7 days couldn’t be replayed.')).toBeTruthy();
+    expect(screen.getByText("That's everything the live connection could replay.")).toBeTruthy();
+    expect(screen.getByText("Older alerts from the last 7 days couldn't be replayed.")).toBeTruthy();
     expect(screen.queryByText(/last 7 days\.$/)).toBeNull();
   });
 
@@ -99,7 +99,7 @@ describe('Live alerts: states', () => {
   it('after the connection is refused for good, says so and offers another try, not an empty list', () => {
     renderAlerts();
     act(() => setAlertsConnection('offline'));
-    expect(screen.getByText('Live alerts can’t connect')).toBeTruthy();
+    expect(screen.getByText("Live alerts can't connect")).toBeTruthy();
     expect(screen.getByRole('button', { name: /Try again/ })).toBeTruthy();
     expect(screen.queryByText('No recent alerts')).toBeNull();
   });
@@ -189,7 +189,7 @@ describe('Live alerts: why alerts are not arriving, one screen for each cause th
     expect(screen.getByRole('heading', { name: 'Live alerts didn’t start' })).toBeTruthy();
     expect(screen.getByText('Not connected')).toBeTruthy();
     // The generic "refused 5 times" panel is for a socket that was refused, which this was not.
-    expect(screen.queryByText('Live alerts can’t connect')).toBeNull();
+    expect(screen.queryByText("Live alerts can't connect")).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(controls.reconnectNow).toHaveBeenCalledTimes(1);
   });
@@ -228,7 +228,7 @@ describe('Live alerts: why alerts are not arriving, one screen for each cause th
       expect(screen.getByText('Not connected')).toBeTruthy();
       expect(screen.queryByRole('button', { name: /Try again|Reload the page/ })).toBeNull();
       // Not the "refused 5 times in a row" screen, which would be untrue here and offers a retry.
-      expect(screen.queryByRole('heading', { name: 'Live alerts can’t connect' })).toBeNull();
+      expect(screen.queryByRole('heading', { name: "Live alerts can't connect" })).toBeNull();
       expect(screen.queryByText('Reconnecting')).toBeNull();
       expect(controls.reconnectNow).not.toHaveBeenCalled();
     });
@@ -273,7 +273,7 @@ describe('Live alerts: why alerts are not arriving, one screen for each cause th
     });
     expect(screen.getByRole('dialog', { name: 'Sign in again to keep receiving alerts' })).toBeTruthy();
     expect(screen.getByText('Signed out')).toBeTruthy();
-    expect(screen.queryByText('Live alerts can’t connect')).toBeNull();
+    expect(screen.queryByText("Live alerts can't connect")).toBeNull();
     expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Sign in and resume alerts' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeTruthy();

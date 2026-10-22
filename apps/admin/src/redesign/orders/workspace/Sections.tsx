@@ -42,9 +42,9 @@ export function OrderHeader({ order }: { order: Order }) {
       </div>
       <p className="text-body-md text-fg-primary">{order.restaurant.name}</p>
       <p className="flex flex-wrap items-center gap-2 text-body-sm text-fg-secondary">
-        <span>Restaurant halal status now:</span>
+        <span>Restaurant halal status now</span>
         <HalalCell halal={order.restaurant.halal} where="detail" />
-        <span>The restaurant’s status today. It does not describe this order.</span>
+        <span>The restaurant's status today. It does not describe this order.</span>
       </p>
       <p className="text-body-sm text-fg-secondary">
         Placed {formatLongDate(order.placed_at)} at {formatTime(order.placed_at)} · id {order.id.slice(0, 8)}…{order.id.slice(-4)}
@@ -76,7 +76,7 @@ export function DisputeNote({ order }: { order: Order }) {
   if (order.state !== 'DISPUTED') return null;
   return (
     <InlineAlert tone="warning" title="This order is disputed">
-      Refunding doesn’t close the dispute. It still escalates at its deadline and, after the third, resolves automatically in the customer’s favour. Check the refunds already on this order first.
+      Refunding doesn't close the dispute. It still escalates at its deadline and, after the third, resolves automatically in the customer's favour. Check the refunds already on this order first.
     </InlineAlert>
   );
 }
@@ -86,7 +86,7 @@ export function ResidualAlert({ order }: { order: Order }) {
   const residual = order.internal_money.ledger_residual_cents;
   if (!residual) return null;
   return (
-    <InlineAlert tone="danger" blocking title="Incident: this order’s ledger doesn’t balance">
+    <InlineAlert tone="danger" blocking title="Incident: this order's ledger doesn't balance">
       It is off by <Price cents={residual} size="sm" />. Every finished order must add up to zero. Check with finance before refunding. The ledger is under More detail.
     </InlineAlert>
   );
@@ -358,7 +358,7 @@ export function EventLog({ order }: { order: Order }) {
             <span className="text-fg-secondary">{formatShortDateTime(e.at)}</span>
             <span className="text-fg-primary">{MONEY_EVENT[e.kind]}</span>
             {e.amount_cents != null ? <Price cents={e.amount_cents} size="sm" /> : null}
-            <span className="text-fg-secondary">· {ACTOR[e.actor_kind === 'ACCOUNT' ? 'ADMIN' : 'SYSTEM']}</span>
+            <span className="text-fg-secondary">{ACTOR[e.actor_kind === 'ACCOUNT' ? 'ADMIN' : 'SYSTEM']}</span>
             {e.reason ? <span className="text-fg-secondary">· {e.reason}</span> : null}
           </li>
         ))}

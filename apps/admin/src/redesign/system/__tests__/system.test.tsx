@@ -65,7 +65,7 @@ describe('System status: what the two probes say', () => {
     const report = { data: { ready: true, dependencies: [{ name: 'postgres', ready: true, detail: null }, { name: 'redis', ready: false, detail: null }] } };
     mockApi({ getReadiness: report, getHealth: HEALTH });
     await open();
-    expect(screen.getByText('The readiness report doesn’t add up')).toBeTruthy();
+    expect(screen.getByText("The readiness report doesn't add up")).toBeTruthy();
     expect(screen.queryByText(/signed out/)).toBeNull();
   });
 
@@ -84,7 +84,7 @@ describe('System status: what the two probes say', () => {
     resetStatus();
     mockApi({ getReadiness: { status: 500 }, getHealth: { status: 500 } });
     await open();
-    expect(screen.getByText('The API didn’t answer either check')).toBeTruthy();
+    expect(screen.getByText("The API didn't answer either check")).toBeTruthy();
   });
 
   it('shows a first check as loading, and a re-check keeps the earlier answer until the new one arrives', async () => {

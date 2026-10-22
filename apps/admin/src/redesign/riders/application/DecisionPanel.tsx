@@ -155,7 +155,7 @@ export function DecisionPanel({ kind, application, preset, returnFocusRef, onSwi
   const messageLen = form.message.trim().length;
   const fixes: Array<{ id: string; text: string }> = [];
   if (kind === 'changes' && form.docs.length === 0) fixes.push({ id: 'docs', text: 'Choose at least one document' });
-  if (kind !== 'approve' && !form.reason) fixes.push({ id: 'reason', text: 'Choose a reason' });
+  if (kind !== 'approve' && !form.reason) fixes.push({ id: 'reason', text: 'Choose a reason.' });
   if (messageLen < MESSAGE_MIN) fixes.push({ id: 'message', text: `Write at least ${MESSAGE_MIN} characters to the rider` });
 
   async function submit() {
@@ -360,7 +360,7 @@ export function DecisionPanel({ kind, application, preset, returnFocusRef, onSwi
 
         {kind === 'reject' ? (
           <div className="rounded-md border border-line-decorative bg-surface-subtle p-3">
-            <p className="text-label-lg text-fg-primary">What happens next depends on the reason you choose</p>
+            <p className="text-label-lg text-fg-primary">What happens next depends on the reason you choose.</p>
             <p className="mt-1 text-body-md text-fg-secondary">
               {application.computed_age_years != null && application.computed_age_years < 18
                 ? 'The age rule can’t be overridden: this rider can’t be approved while they are under 18.'
