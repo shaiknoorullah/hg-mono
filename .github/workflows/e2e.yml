@@ -275,6 +275,11 @@ jobs:
         with:
           persist-credentials: false
 
+      # The web captures read each board's size from its canvas.json to capture a tall board at its
+      # own height (tools/e2e/README.md, "Tall boards"); without the ref they fall back to the viewport.
+      - name: Fetch the canvases
+        run: git fetch --depth=1 origin claude/redesign-canvases:refs/remotes/origin/claude/redesign-canvases
+
       - name: Let the emulator use KVM
         if: env.E2E_FLOWS == 'all'
         run: |
@@ -427,6 +432,11 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
+
+      # The web captures read each board's size from its canvas.json to capture a tall board at its
+      # own height (tools/e2e/README.md, "Tall boards"); without the ref they fall back to the viewport.
+      - name: Fetch the canvases
+        run: git fetch --depth=1 origin claude/redesign-canvases:refs/remotes/origin/claude/redesign-canvases
 
       - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0

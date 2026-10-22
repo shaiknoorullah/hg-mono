@@ -31,11 +31,11 @@ test.skip(MODE !== 'mock', 'written against the mock server; run with E2E_MODE=m
  *     `Edit-SavedTax`, `Edit-NamesReviewed`, `Edit-NamesSending`, `Edit-NamesFailed`, `Edit-NamesInvalid`,
  *     `Edit-NamesSent`, `Edit-Conflict`, `Edit-OtherCardInvalid`, `Tablet-SettingsEdit`,
  *     `Settings-HalalRevoked`, `Docs-History`;
- *   - 10 the app has no screen for yet, so there is nothing to capture
- *     ([#883](https://github.com/shaiknoorullah/hg-mono/issues/883)): What's new (`WhatsNew-*`, which
- *     also needs a release-notes operation the contract does not have) and the renewal-approved notice
+ *   - 2 the app has no screen for yet, so there is nothing to capture
+ *     ([#883](https://github.com/shaiknoorullah/hg-mono/issues/883)): the renewal-approved notice
  *     (`Renewal-Approved*`, blocked by [#879](https://github.com/shaiknoorullah/hg-mono/issues/879)).
- *     Built, and captured by their own specs so this file stays as it is: the eight This device boards
+ *     Built, and captured by their own specs so this file stays as it is: the eight What's new boards
+ *     (`WhatsNew-*`) by `redesign-restaurant.whats-new.spec.ts`, the eight This device boards
  *     (`Device-*`, `Settings-Device`) by `redesign-restaurant.device.spec.ts`, and the upload sheets for
  *     the other documents (`Doc-*`), the cancel confirmation and the too-early state of the upload panel
  *     (`Renew-Cancel`, `Renew-TooEarly`) by `redesign-restaurant.documents-upload.spec.ts`.
@@ -857,7 +857,7 @@ test.describe('redesigned restaurant settings · boards that cannot be compared 
     await declareUnpairable(page, 'restaurant/settings/PartRenewalForm', part('the document upload panel body'));
     await declareUnpairable(page, 'restaurant/settings/PartSupport', part('the contact support panel body (identical to the copy in restaurant/payouts)'));
     await declareUnpairable(page, 'restaurant/settings/PartDevice', part('the This device section (identical to the copy in restaurant/payouts)'));
-    await declareUnpairable(page, 'restaurant/settings/PartWhatsNew', part('the release notes list, which the app does not have yet'));
+    await declareUnpairable(page, 'restaurant/settings/PartWhatsNew', part('the release notes list, drawn alone with its modes; the screen boards that compose it (`WhatsNew-*`) are compared instead'));
     await declareUnpairable(page, 'restaurant/settings/PartNotifications', part('the notifications panel body, which the console does not have yet'));
     await declareUnpairable(page, 'restaurant/settings/PartTop', part('the app bar (identical to the copy in restaurant/payouts)'));
     await declareUnpairable(page, 'restaurant/settings/PartRail', part('the side navigation; it is drawn on every page and compared by the shell spec'));
