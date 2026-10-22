@@ -1,6 +1,6 @@
 /**
  * Order tracking against the contract's fixtures: the waiting and live states drawn from fixtures, the halal rules, the delivery code, offline, an open report, loading, error,
- * not found, dark, and the hand-over of states this page does not draw.
+ * not found, dark, and the hand-over of states this page does not draw (the outcome and delivered pages).
  */
 import * as React from 'react';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
@@ -298,10 +298,11 @@ describe('states of the page', () => {
     expect(await screen.findByTestId('Tracking-body')).toBeTruthy();
   });
 
-  it('a delivered order still hands over to the legacy screen', async () => {
+  it('a delivered or completed order hands over to its own page, not the legacy screen', async () => {
     renderTracking({ getOrder: 'order_delivered' });
-    expect(await screen.findByTestId('LegacyTracking')).toBeTruthy();
-    expect(mock.callsTo('getOrderTracking')).toHaveLength(0);
+    expect(await screen.findByTestId('Delivered')).toBeTruthy();
+    expect(screen.queryByTestId('LegacyTracking')).toBeNull();
+    expect(screen.queryByTestId('Tracking-body')).toBeNull();
   });
 
   it('only reads: no request carries a price or a body', async () => {

@@ -500,6 +500,193 @@ def _documents(reg, synth) -> None:
         tags=["edge", "empty", "documents"],
     )
 
+    # The packs the redesigned onboarding screens draw (the four documents the form asks for; the
+    # fifth type, LIABILITY_INSURANCE, is allowed but not required, see
+    # https://github.com/shaiknoorullah/hg-mono/issues/846). Each is a whole pack in one state of
+    # the setup: sent and waiting, partly approved, a certificate that expired while waiting, and
+    # the rejections the "fix documents" step answers. https://github.com/shaiknoorullah/hg-mono/issues/850
+    required = ["BUSINESS_LICENCE", "HALAL_CERTIFICATE", "FOOD_SAFETY", "OWNER_ID"]
+
+    def pack(states: dict[str, str], **per_type: dict[str, Any]) -> list[dict]:
+        return [doc(t, states[t], "restaurant", **per_type.get(t, {})) for t in required]
+
+    all_of = lambda state: {t: state for t in required}  # noqa: E731
+
+    reg.add(
+        "restaurant_document_pack_ready",
+        "documents",
+        "array<KycDocument>",
+        "All four required documents uploaded and saved (SUBMITTED), not yet sent for review: "
+        "4 of 4, the documents step with Send for review as the primary action.",
+        pack(all_of("SUBMITTED")),
+        operations=["listRestaurantDocuments"],
+        tags=["restaurant", "documents"],
+    )
+
+    reg.add(
+        "restaurant_document_pack_in_review",
+        "documents",
+        "array<KycDocument>",
+        "All four required documents sent and waiting for a reviewer (IN_REVIEW): the first round "
+        "of the awaiting-review step.",
+        pack(all_of("IN_REVIEW")),
+        operations=["listRestaurantDocuments"],
+        tags=["restaurant", "documents"],
+    )
+
+    reg.add(
+        "restaurant_document_pack_partly_approved",
+        "documents",
+        "array<KycDocument>",
+        "Business licence and food safety certificate APPROVED; halal certificate and owner ID "
+        "still IN_REVIEW: a live update while the review is part way through.",
+        pack(
+            {
+                "BUSINESS_LICENCE": "APPROVED",
+                "HALAL_CERTIFICATE": "IN_REVIEW",
+                "FOOD_SAFETY": "APPROVED",
+                "OWNER_ID": "IN_REVIEW",
+            }
+        ),
+        operations=["listRestaurantDocuments"],
+        tags=["restaurant", "documents"],
+    )
+
+    reg.add(
+        "restaurant_document_pack_halal_expired",
+        "documents",
+        "array<KycDocument>",
+        "The halal certificate EXPIRED while the pack waited for review; the other three are "
+        "APPROVED. Setup does not move on until a current certificate is uploaded. Never a "
+        "listing state: nothing is listed yet.",
+        pack(
+            {
+                "BUSINESS_LICENCE": "APPROVED",
+                "HALAL_CERTIFICATE": "EXPIRED",
+                "FOOD_SAFETY": "APPROVED",
+                "OWNER_ID": "APPROVED",
+            },
+            HALAL_CERTIFICATE={"valid_until": day(-12)},
+        ),
+        operations=["listRestaurantDocuments"],
+        tags=["restaurant", "documents", "edge"],
+    )
+
+    reg.add(
+        "restaurant_document_pack_food_safety_expired",
+        "documents",
+        "array<KycDocument>",
+        "The food safety certificate EXPIRED while the pack waited for review; the halal "
+        "certificate is still valid and the other documents are APPROVED. Not a halal state.",
+        pack(
+            {
+                "BUSINESS_LICENCE": "APPROVED",
+                "HALAL_CERTIFICATE": "APPROVED",
+                "FOOD_SAFETY": "EXPIRED",
+                "OWNER_ID": "APPROVED",
+            },
+            FOOD_SAFETY={"valid_until": day(-12)},
+        ),
+        operations=["listRestaurantDocuments"],
+        tags=["restaurant", "documents", "edge"],
+    )
+
+    reg.add(
+        "restaurant_document_pack_halal_rejected",
+        "documents",
+        "array<KycDocument>",
+        "The halal certificate was REJECTED (`ILLEGIBLE`, the reviewer's sentence beside it); the "
+        "other three are APPROVED. One document to upload again.",
+        pack(
+            {
+                "BUSINESS_LICENCE": "APPROVED",
+                "HALAL_CERTIFICATE": "REJECTED",
+                "FOOD_SAFETY": "APPROVED",
+                "OWNER_ID": "APPROVED",
+            },
+            HALAL_CERTIFICATE={
+                "rejection_reason_code": "ILLEGIBLE",
+                "review_note": "The scan is too dark to read the certificate number.",
+            },
+        ),
+        operations=["listRestaurantDocuments"],
+        tags=["restaurant", "documents", "error-path"],
+    )
+
+    reg.add(
+        "restaurant_document_pack_two_rejected",
+        "documents",
+        "array<KycDocument>",
+        "Food safety certificate (`EXPIRED`) and owner ID (`INCOMPLETE_PAGES`) REJECTED, the "
+        "halal certificate and business licence APPROVED: the pack `restaurant_onboarding_documents_rejected` "
+        "describes. Two documents to upload again.",
+        pack(
+            {
+                "BUSINESS_LICENCE": "APPROVED",
+                "HALAL_CERTIFICATE": "APPROVED",
+                "FOOD_SAFETY": "REJECTED",
+                "OWNER_ID": "REJECTED",
+            },
+            FOOD_SAFETY={
+                "rejection_reason_code": "EXPIRED",
+                "review_note": "This certificate expired on 2026-02-14.",
+            },
+            OWNER_ID={
+                "rejection_reason_code": "INCOMPLETE_PAGES",
+                "review_note": "Page 2 is missing — we need the side showing the expiry date and "
+                "the issuing authority. Re-upload both sides in one file.",
+            },
+        ),
+        operations=["listRestaurantDocuments"],
+        tags=["restaurant", "documents", "error-path"],
+    )
+
+    reg.add(
+        "restaurant_document_pack_halal_forgery",
+        "documents",
+        "array<KycDocument>",
+        "The halal certificate was REJECTED as `SUSPECTED_FORGERY`; the other three are APPROVED. "
+        "Uploading the same file again cannot fix it: partner support leads.",
+        pack(
+            {
+                "BUSINESS_LICENCE": "APPROVED",
+                "HALAL_CERTIFICATE": "REJECTED",
+                "FOOD_SAFETY": "APPROVED",
+                "OWNER_ID": "APPROVED",
+            },
+            HALAL_CERTIFICATE={
+                "rejection_reason_code": "SUSPECTED_FORGERY",
+                "review_note": "The certificate number does not appear in the issuer's register.",
+            },
+        ),
+        operations=["listRestaurantDocuments"],
+        tags=["restaurant", "documents", "error-path"],
+    )
+
+    reg.add(
+        "restaurant_document_pack_halal_duplicate",
+        "documents",
+        "array<KycDocument>",
+        "The halal certificate was REJECTED as `OTHER` with a reviewer note that says the same "
+        "certificate is held by another restaurant (the contract has no duplicate code yet); the "
+        "other three are APPROVED.",
+        pack(
+            {
+                "BUSINESS_LICENCE": "APPROVED",
+                "HALAL_CERTIFICATE": "REJECTED",
+                "FOOD_SAFETY": "APPROVED",
+                "OWNER_ID": "APPROVED",
+            },
+            HALAL_CERTIFICATE={
+                "rejection_reason_code": "OTHER",
+                "review_note": "This certificate is already registered to another restaurant. "
+                "Call partner support so we can look into it.",
+            },
+        ),
+        operations=["listRestaurantDocuments"],
+        tags=["restaurant", "documents", "error-path"],
+    )
+
     reg.add(
         "rider_document_pack_complete",
         "documents",
