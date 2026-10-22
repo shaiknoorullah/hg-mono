@@ -2,7 +2,7 @@
 covers:
   - apps/admin/**
   - services/hg/internal/admin/**
-reviewed: 2026-10-17
+reviewed: 2026-10-22
 ---
 
 # HalalGoes — ADMIN / SUPER ADMIN / SUPPORT AGENT Specification
@@ -11,6 +11,8 @@ reviewed: 2026-10-17
 sections), `scope/features-restaurant-admin-backend.md`, `fleet/hg-fe-admin-web.md`.
 **Target**: Go modular monolith (Postgres 16 + Redis + [Silo](https://github.com/pgsty/silo), the maintained MinIO fork ([object storage](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)) + Traefik). One admin web app,
 three roles, RBAC-differentiated.
+**Console frame**: the side navigation is a dark forest chrome rail, 72 px wide collapsed and 264 px
+expanded, the owner's decision of 22 Oct 2026 ([#970](https://github.com/shaiknoorullah/hg-mono/issues/970)).
 **Date**: 2026-08-10. **Feature count**: 42 (V1 27 · V2 13 · V3 2).
 
 Everything the SOW leaves vague is constrained here. Where a business rule could not be derived
