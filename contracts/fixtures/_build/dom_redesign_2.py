@@ -2158,8 +2158,8 @@ def _admin_orders(reg, synth) -> None:
     }
     notes = {state: describes for state, (_, _, _, describes) in ORDER_STATES.items()}
     for state in ORDER_STATES:
-        if state in ("COMPLETED", "DISPUTED", "FAILED"):
-            continue  # order_admin_view_completed / _disputed / _failed_no_rider
+        if state in ("COMPLETED", "DISPUTED"):
+            continue  # order_admin_view_completed / _disputed
         over = {"dispatch_history": dispatch(early[state])} if state in early else {}
         view = order_admin_view(synth, state, **over)
         reg.add(
