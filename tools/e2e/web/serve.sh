@@ -28,6 +28,10 @@ mkdir -p "$out/logs"
 case "$mode" in
   mock)
     export API_BASE_URL="${E2E_MOCK_API_URL:-http://localhost:4010}"
+    # The admin live map draws one flat field with no tiles and no token, as its boards do
+    # (apps/admin/src/redesign/orders/workspace/LiveMapPane.tsx). Without it the mock build
+    # has no Mapbox token, the pane stays off, and the 17 live-map captures never ran.
+    export VITE_HG_MAP_FLAT=true
     if ! curl -fsS "$API_BASE_URL/__mock/scenarios" >/dev/null 2>&1; then
       (cd "$root" && nohup pnpm mock >"$out/logs/mock-server.log" 2>&1 &)
       for _ in $(seq 1 60); do
