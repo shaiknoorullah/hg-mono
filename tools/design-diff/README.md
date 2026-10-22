@@ -1,7 +1,7 @@
 ---
 covers:
   - tools/design-diff/**
-reviewed: 2026-10-16
+reviewed: 2026-10-22
 ---
 
 # Design diff
@@ -239,6 +239,12 @@ What the harness does for a native capture:
 - **A view hierarchy is required.** Beside the screenshot, a `.hierarchy.xml` (`uiautomator dump`).
   Without it the pair is `NO LAYOUT`: reported as its own state, and the run fails. Pixels are never
   a fallback.
+
+  **No native capture has one yet**, so every native pair is `NO LAYOUT` and no tolerance here has
+  been measured against a device. `uiautomator dump` needs the one `UiAutomation` connection Android
+  grants, and Maestro's driver holds it for the length of a flow — the one moment a design capture
+  runs. See [#1026](https://github.com/shaiknoorullah/hg-mono/issues/1026), which has the evidence
+  and the ways out; the hierarchy will have to come from the driver rather than from a second client.
 - **With both, the pair is `PASS` or `FAIL` on geometry and colour** (`src/native-geometry.mjs`).
   The pixel figure is kept in `results.json` as `informationalSharedHeightMismatchPct` and never sets a verdict:
   no native board passes on pixels.
@@ -283,6 +289,14 @@ real captures show the spread.
 and asks `android/capture-server.mjs` (started by `tools/e2e/run.sh` for each flow) to write the
 `.hierarchy.xml` and `.capture.json` (device, app build, density) beside it. If the server is not
 running the flow still passes and the diff reports `NO LAYOUT`.
+
+A capture never fails the journey it measures, so the only account of why one is missing is what the
+server logged. It therefore keeps what `adb` said: Node's message for a failed command is
+`Command failed: adb …` and nothing else, with the reason on the error's `stderr`, which is read and
+appended rather than dropped. It also requires `uiautomator dump` to say it wrote the file, because
+on several Android versions that command prints `ERROR: could not get idle state.` and still exits 0
+— taken as success, it would copy back whatever file the device still held, which is the previous
+screen, and compare it as this one.
 
 **Which customer boards are captured.** Of the customer app's 568 boards, 19 are named by a flow
 (`grep -rn "SHOT: design--" tools/e2e/native/customer`); the other 549 are listed with a reason in

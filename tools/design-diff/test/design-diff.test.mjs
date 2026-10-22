@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { chmodSync } from 'node:fs';
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
@@ -520,6 +520,9 @@ case "$*" in
   *get-serialno*) echo "emulator-5554" ;;
   *"wm density"*) echo "Physical density: 480" ;;
   *"dumpsys package"*) printf "versionCode=3\\nversionName=0.9.1\\n" ;;
+  # What a device really prints, misspelling and all. The server requires it, because this command
+  # also fails by printing an error and exiting 0.
+  *"uiautomator dump"*) echo "UI hierchary dumped to: /sdcard/hg-design-capture.xml" ;;
   *) : ;;
 esac
 `);
@@ -539,6 +542,34 @@ esac
     assert.match(readFileSync(path.join(out, 'design--home--Board.hierarchy.xml'), 'utf8'), /Deliver to/);
   } finally {
     server.close();
+    process.env.PATH = oldPath;
+  }
+
+  // `uiautomator dump` can fail by printing an error and still exiting 0 — "could not get idle
+  // state" is the usual one. Taken as success that copies whatever file the device happens to still
+  // hold, which is the previous screen, and compares it as this one. It must fail instead, and the
+  // reason the device gave has to reach the caller: a bare "Command failed" cost a whole round of
+  // diagnosis on https://github.com/shaiknoorullah/hg-mono/issues/966.
+  const badBin = path.join(dir, 'bad-bin');
+  mkdirSync(badBin);
+  writeFileSync(path.join(badBin, 'adb'), `#!/bin/sh
+case "$*" in
+  *"uiautomator dump"*) echo "ERROR: could not get idle state." ; exit 0 ;;
+  *) : ;;
+esac
+`);
+  chmodSync(path.join(badBin, 'adb'), 0o755);
+  process.env.PATH = `${badBin}${path.delimiter}${oldPath}`;
+  const badOut = path.join(dir, 'bad-shots');
+  const badServer = serve({ dir: badOut, port: 0, serial: null, defaultAppId: 'com.halalgoes.customer.dev' });
+  await new Promise((r) => badServer.once('listening', r));
+  try {
+    const res = await fetch(`http://127.0.0.1:${badServer.address().port}/capture`, { method: 'POST', body: JSON.stringify({ name: 'design--home--Board' }) });
+    assert.equal(res.status, 500, 'a dump that only printed an error is not a capture');
+    assert.match(await res.text(), /could not get idle state/, 'the reason the device gave reaches the caller');
+    assert.equal(existsSync(path.join(badOut, 'design--home--Board.hierarchy.xml')), false, 'nothing is written');
+  } finally {
+    badServer.close();
     process.env.PATH = oldPath;
   }
 });
