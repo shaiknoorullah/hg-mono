@@ -483,7 +483,12 @@ jobs:
   # emulator run should not wait on rendering boards.
   design-diff:
     needs: [plan, flows, captures]
-    if: "!cancelled() && needs.flows.result == 'success'"
+    # On the captures, not on the flows. Whether a screen matches its board and whether a journey
+    # works against the real stack are different questions, and the boards' own states are reached
+    # through the mock — so a broken API should not also cost the fidelity verdicts. It did: #1040
+    # made the legacy live-orders queue read one `state` value and the real-stack specs timed out,
+    # which under the old condition would have skipped this job entirely.
+    if: "!cancelled() && needs.captures.result == 'success'"
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
@@ -519,7 +524,11 @@ jobs:
             exit 1
           }
 
+      # The flows' output: native screenshots for when native captures join, and the run's own
+      # record. Nothing compared comes from here any more, so a failed flows job does not stop the
+      # diff.
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        continue-on-error: true
         with:
           name: e2e-screenshots-and-traces
           path: ${{ env.E2E_OUT }}
