@@ -13,7 +13,6 @@ reality:
   - geo-route: tools/e2e/native/routes/restaurant-to-amina.gpx
   - network: edge
   - theme: dark
-  - font-scale: 1.3
 flows: [ "tools/e2e/native/rider/redesign/lab/6b-cant-deliver.yaml" ]
 explore: >
   Set PICKUP_CODE as for rider-wp4-pickup. The flow drops the connection itself (setAirplaneMode)

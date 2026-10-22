@@ -368,6 +368,12 @@ screen does not depend on that data; the rest read as unpairable rather than as 
 really a data difference. Text and layout from the dev world still differ from the boards' sample copy, so a capture
 of a restaurant page fails the "texts present" bar above until the dev world is seeded with the boards' sample restaurant.
 
+**Which rider boards are captured.** Of the rider app's 652 boards, 70 are named by a flow
+(`grep -rn "SHOT: design--" tools/e2e/native/rider`); the other 582 are listed with a reason in
+`tools/e2e/native/rider-boards.mjs`, and `pnpm e2e:boards:check` keeps the two lists whole, as for the customer app.
+The rider boards are drawn in the dark theme, so the rider's captures are taken with the phone dark
+(`tools/e2e/run.sh`, and `theme: dark` in the rider missions); the 45 light boards are unpaired.
+
 **Not verified on a device.** The hierarchy parser and the comparison are tested against a
 hand-written dump in the AOSP `uiautomator` shape (`test/fixtures/native-home.hierarchy.xml`) and
 the capture server against a stand-in `adb`; neither has run against a real emulator or Maestro, as

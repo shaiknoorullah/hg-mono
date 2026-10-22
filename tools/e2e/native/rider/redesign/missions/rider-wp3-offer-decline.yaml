@@ -7,7 +7,7 @@ build:
   note: "Clear the Metro cache when building (EXPO_PUBLIC_* is inlined at transform time; a warm cache from a flag-off build serves the legacy app)."
 setup: [ "make dev-reset", "make dev-scenario s=order-ready" ]
 reality:
-  - theme: light
+  - theme: dark
   - network: edge
 flows: [ "tools/e2e/native/rider/redesign/lab/3c-offer-decline.yaml" ]
 explore: >

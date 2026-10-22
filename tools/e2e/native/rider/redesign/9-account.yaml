@@ -22,8 +22,11 @@ name: rider redesign, account and payouts
     timeout: 30000
 - assertVisible: "Terms and privacy"
 - assertVisible: "Delete account"
-- takeScreenshot: rider-wp9-01-account
-
+- runFlow:
+    file: ../../design-capture.yaml
+    env:
+      SHOT: design--payouts-account--Account-Overview
+      APP_ID: com.halalgoes.rider.dev
 # Account › Payouts (PA/Account-Payouts*): whatever Stripe's state, never the error.
 - tapOn:
     id: "row-payouts"
@@ -32,6 +35,16 @@ name: rider redesign, account and payouts
     timeout: 30000
 - assertNotVisible: "We couldn't check your payouts"
 - takeScreenshot: rider-wp9-02-payouts
+# Stripe's state is the world's, so the board is named only when the screen says which it is.
+- runFlow:
+    when:
+      visible: "Payouts are not set up"
+    commands:
+      - runFlow:
+          file: ../../design-capture.yaml
+          env:
+            SHOT: design--payouts-account--Account-Payouts-NotSetUp
+            APP_ID: com.halalgoes.rider.dev
 - back
 - extendedWaitUntil:
     visible: "Your details"
@@ -48,6 +61,15 @@ name: rider redesign, account and payouts
     visible: "Sign out\\?|You are on a delivery"
     timeout: 10000
 - takeScreenshot: rider-wp9-03-sign-out-confirm
+- runFlow:
+    when:
+      visible: "Sign out\\?"
+    commands:
+      - runFlow:
+          file: ../../design-capture.yaml
+          env:
+            SHOT: design--payouts-account--Account-SignOut
+            APP_ID: com.halalgoes.rider.dev
 - tapOn:
     id: "sign-out-confirm"
 - extendedWaitUntil:

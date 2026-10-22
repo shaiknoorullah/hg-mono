@@ -10,7 +10,11 @@ name: rider redesign, offer expired
     timeout: 45000
 - assertVisible: "You're still online and can get the next one."
 - assertVisible: "If 3 offers in a row expire, we set you offline."
-- takeScreenshot: rider-wp3-04-expired
+- runFlow:
+    file: ../../../design-capture.yaml
+    env:
+      SHOT: design--shift-offers--OfferExpired
+      APP_ID: com.halalgoes.rider.dev
 - tapOn: "Back to waiting"
 - extendedWaitUntil:
     visible: "Waiting for offers"

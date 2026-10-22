@@ -62,6 +62,16 @@ env:
     timeout: 30000
 - assertNotVisible: "We couldn’t load your deliveries"
 - takeScreenshot: rider-wp11-01-deliveries
+# A list with rows has no board of its own (its template is drawn at 200 % text); no rows has.
+- runFlow:
+    when:
+      visible: "No deliveries yet"
+    commands:
+      - runFlow:
+          file: ../../../design-capture.yaml
+          env:
+            SHOT: design--history-whats-new--Deliveries-empty
+            APP_ID: com.halalgoes.rider.dev
 
 # R42 the delivered order: restaurant first, the street only, 12-hour times, no customer.
 - runFlow:
@@ -103,6 +113,15 @@ env:
 - takeScreenshot: rider-wp11-04-documents
 - runFlow:
     when:
+      visible: "No documents on file"
+    commands:
+      - runFlow:
+          file: ../../../design-capture.yaml
+          env:
+            SHOT: design--payouts-account--Account-Documents-Empty
+            APP_ID: com.halalgoes.rider.dev
+- runFlow:
+    when:
       visible: "Driver's licence"
     commands:
       - tapOn: "Driver's licence"
@@ -110,7 +129,11 @@ env:
           visible: "Download a copy"
           timeout: 30000
       - assertVisible: "The download link works for 2 minutes, to keep your document private."
-      - takeScreenshot: rider-wp11-05-document
+      - runFlow:
+          file: ../../../design-capture.yaml
+          env:
+            SHOT: design--payouts-account--Account-DocView
+            APP_ID: com.halalgoes.rider.dev
       - tapOn:
           id: "document-download"
       # The link opens outside the app (the browser or a viewer); come back to it.
@@ -136,5 +159,14 @@ env:
     visible: "You're on version .*|No release notes yet"
     timeout: 15000
 - takeScreenshot: rider-wp11-07-whats-new
+- runFlow:
+    when:
+      visible: "You're on version .*"
+    commands:
+      - runFlow:
+          file: ../../../design-capture.yaml
+          env:
+            SHOT: design--history-whats-new--WhatsNew-page
+            APP_ID: com.halalgoes.rider.dev
 - tapOn: "Back to Account"
 - assertVisible: "Your details"

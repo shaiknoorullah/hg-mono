@@ -14,10 +14,9 @@ setup:
   - "make dev-scenario s=onboard-rider"
 reality:
   - theme: dark
-  - font-scale: 2.0
 flows: [ "tools/e2e/native/rider/redesign/lab/7-apply.yaml" ]
 explore: >
-  The flow runs in dark mode at 200% text: on every screenshot the body scrolls, the footer
+  The flow runs in dark mode at 100% text (it takes design captures, drawn at 100%). Set the font scale to 2.0 afterwards: on every screenshot the body scrolls, the footer
   (Continue, Call support) stays pinned, labels wrap and never clip, and the Day / Month / Year
   fields stay on one row. Then, on the real API with another unused number in +1 555 010
   0160–0199 (code 000000), screenshot each state: (1) Your details with a date of birth under 18

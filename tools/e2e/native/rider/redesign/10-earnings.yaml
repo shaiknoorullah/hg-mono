@@ -33,7 +33,11 @@ name: rider redesign, earnings
     commands:
       - assertVisible: "Your earnings show here after your first delivery.*"
       - assertVisible: "Go to Home"
-      - takeScreenshot: rider-redesign-10-earnings-first-run
+      - runFlow:
+          file: ../../design-capture.yaml
+          env:
+            SHOT: design--earnings--Earnings-first-run
+            APP_ID: com.halalgoes.rider.dev
 - runFlow:
     when:
       visible: "Right now"
@@ -47,15 +51,29 @@ name: rider redesign, earnings
       - extendedWaitUntil:
           visible: "Today"
           timeout: 15000
+      - runFlow:
+          file: ../../design-capture.yaml
+          env:
+            SHOT: design--earnings--Earnings-day
+            APP_ID: com.halalgoes.rider.dev
       - tapOn: "Previous day"
       - extendedWaitUntil:
           visible: "Yesterday"
           timeout: 15000
+      - runFlow:
+          file: ../../design-capture.yaml
+          env:
+            SHOT: design--earnings--Earnings-yesterday
+            APP_ID: com.halalgoes.rider.dev
       - tapOn: "Month"
       - extendedWaitUntil:
           visible: "This month"
           timeout: 15000
-      - takeScreenshot: rider-redesign-10-earnings-month
+      - runFlow:
+          file: ../../design-capture.yaml
+          env:
+            SHOT: design--earnings--Earnings-month
+            APP_ID: com.halalgoes.rider.dev
       - tapOn: "Week"
 
       # R36 Earnings activity, R37 Earnings line.
@@ -94,6 +112,16 @@ name: rider redesign, earnings
           visible: "Past and upcoming payouts|No payouts yet"
           timeout: 15000
       - takeScreenshot: rider-redesign-10-payouts
+      # A rider who has earned but has no payout yet (the board names the first payout, not an empty ledger).
+      - runFlow:
+          when:
+            visible: "Your first payout goes out.*"
+          commands:
+            - runFlow:
+                file: ../../design-capture.yaml
+                env:
+                  SHOT: design--earnings--Payouts-first-payout
+                  APP_ID: com.halalgoes.rider.dev
       - runFlow:
           when:
             visible: "Past and upcoming payouts"

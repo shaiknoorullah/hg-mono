@@ -12,7 +12,6 @@ reality:
   - geo-route: tools/e2e/native/routes/restaurant-to-amina.gpx
   - network: gsm
   - theme: dark
-  - font-scale: 2.0
 flows: [ "tools/e2e/native/rider/redesign/lab/5c-dropoff-offline.yaml" ]
 explore: >
   The flow switches airplane mode itself (setAirplaneMode) at the door and again at Mark as
