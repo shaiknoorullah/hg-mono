@@ -253,7 +253,7 @@ describe('sign in · refusals (branch on error.code)', () => {
 describe('sign in · account-state cards', () => {
   it.each([
     [423, 'ACCOUNT_LOCKED', 'This account is locked', 'For your security, only partner support can unlock samir@zaytoungrill.ca.'],
-    [403, 'ACCOUNT_SUSPENDED', 'Your sign-in account is suspended', 'You can’t sign in with samir@zaytoungrill.ca while it is suspended.'],
+    [403, 'ACCOUNT_SUSPENDED', 'Your sign-in account is suspended', "You can't sign in with samir@zaytoungrill.ca while it is suspended."],
     [403, 'ACCOUNT_BANNED', 'This sign-in account can’t be used', 'samir@zaytoungrill.ca can’t be used on HalalGoes.'],
     [403, 'ACCOUNT_NOT_ACTIVE', "This account isn't active", "samir@zaytoungrill.ca exists but isn't active yet."],
     [403, 'ACCOUNT_DEACTIVATED', 'This account has been closed', 'samir@zaytoungrill.ca can no longer be used to sign in.'],
