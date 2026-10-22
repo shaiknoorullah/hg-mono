@@ -3,7 +3,7 @@
  * module the rider app keeps its last-seen version in (`apps/rider/src/redesign/data/storage.ts`
  * `asyncStorageStore`); the customer app needs only the two methods `LastSeenStore` has.
  *
- * The native module is loaded on first use, so an environment without it (a test, a build that
+ * The module is loaded on first use, so an environment without it (a test, a build that
  * left it out) fails at the call. `store.ts` already treats a read that throws as "cannot tell what
  * was seen" and shows nothing by itself, and a write that throws as "remembered for this run only".
  */
@@ -11,7 +11,11 @@ import type { LastSeenStore } from './store';
 
 /** A `LastSeenStore` over AsyncStorage: `persistent` is true, so What's new may open by itself. */
 export function asyncStorageLastSeenStore(): LastSeenStore {
-  const storage = async () => (await import('@react-native-async-storage/async-storage')).default;
+  // A `require` inside the function, not a top-level import and not `import()`: the module loads on
+  // first use (Metro bundles it either way), and Jest's CommonJS runtime can run it, which it
+  // cannot for a dynamic `import()` ("invoked without --experimental-vm-modules").
+  const storage = async (): Promise<typeof import('@react-native-async-storage/async-storage').default> =>
+    (require('@react-native-async-storage/async-storage') as typeof import('@react-native-async-storage/async-storage')).default;
   return {
     persistent: true,
     async getItem(key) {
