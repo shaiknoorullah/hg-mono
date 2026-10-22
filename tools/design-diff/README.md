@@ -261,7 +261,7 @@ the board's size, and loses Android's status and navigation bars before the comp
 | `src/job-summary.mjs` | A run's verdicts as one Markdown table, areas worst first, for a CI job summary |
 | `src/findings.mjs` | The failing boards in words, for a CI job log: why each one is not passing, and where |
 | `src/names.mjs`, `src/insets.mjs` | The capture names; the phone profiles and their bars |
-| `src/capture-size.mjs` | A board's size from its `canvas.json`, and the viewport a web capture is taken at: a board taller than the window at the same width is captured at its own height, because the consoles scroll inside a fixed-height frame and `fullPage` would stop at the window |
+| `src/capture-size.mjs` | A board's size from its `canvas.json`, and the viewport a web capture is taken at: a board taller than the window at the same width is captured at its own height, because the consoles scroll inside a fixed-height frame and `fullPage` would stop at the window; and whether a capture is taken at all: only at the board's own width (`widthMismatch`) |
 | `src/vendor-fonts.mjs`, `third-party/` | React and the fonts the boards load, and their licences |
 | `android/` | The capture AVDs and the device state; `capture-server.mjs`, which writes a native capture's hierarchy and provenance |
 | `test/` | `pnpm --filter @hg/design-diff test:unit`: the verdict, the bars, the names, the findings, and which capture specs failed ([`tools/e2e/web/capture-failures.mjs`](../e2e/web/capture-failures.mjs) — it lives with the e2e suite that writes the reports, and is tested here because what it reports is a board without a capture) |
@@ -375,6 +375,12 @@ data (restaurant names, prices, a different number of lines) is captured only wh
 screen does not depend on that data; the rest read as unpairable rather than as a layout difference that is
 really a data difference. Text and layout from the dev world still differ from the boards' sample copy, so a capture
 of a restaurant page fails the "texts present" bar above until the dev world is seeded with the boards' sample restaurant.
+
+**Which rider boards are captured.** Of the rider app's 652 boards, 70 are named by a flow
+(`grep -rn "SHOT: design--" tools/e2e/native/rider`); the other 582 are listed with a reason in
+`tools/e2e/native/rider-boards.mjs`, and `pnpm e2e:boards:check` keeps the two lists whole, as for the customer app.
+The rider boards are drawn in the dark theme, so the rider's captures are taken with the phone dark
+(`tools/e2e/run.sh`, and `theme: dark` in the rider missions); the 45 light boards are unpaired.
 
 **Not verified on a device.** The hierarchy parser and the comparison are tested against a
 hand-written dump in the AOSP `uiautomator` shape (`test/fixtures/native-home.hierarchy.xml`) and

@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page, type Route } from '@playwright/test';
 
-import { declareUnpairable, expectDesignFor, type BoardFor } from './design';
+import { at1440, declareUnpairable, expectDesignFor, type BoardFor } from './design';
 import { MOCK_API, MODE, openSignedIn } from './redesign-restaurant.support';
 import { projectMeta } from './mode';
 
@@ -106,7 +106,7 @@ async function open(page: Page, path: string, scene: Scene = {}) {
 async function capture(page: Page, board: BoardFor, { settled = true } = {}) {
   if (settled) await page.waitForLoadState('networkidle');
   await expect(page.getByText('Not built yet')).toHaveCount(0);
-  await expectDesignFor(page, board);
+  await expectDesignFor(page, at1440(board));
 }
 
 const halal = (state: string, days: number) => (p: any) => ({

@@ -11,7 +11,7 @@ setup:
   # payouts in every state is a missing seed; see the WP10 fixture requests).
   - "make dev-journey route=short speed=max auto=all"
 reality:
-  - theme: light
+  - theme: dark
 flows: [ "tools/e2e/native/rider/redesign/1-sign-in.yaml", "tools/e2e/native/rider/redesign/10-earnings.yaml" ]   # 10-earnings keeps the session 1-sign-in opens
 explore: >
   The flow sets the location (setLocation) and switches airplane mode (setAirplaneMode) itself

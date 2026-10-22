@@ -13,8 +13,7 @@ setup:
 reality:
   - geo-route: tools/e2e/native/routes/restaurant-to-amina.gpx
   - network: umts
-  - theme: light
-  - font-scale: 1.3
+  - theme: dark
 flows: [ "tools/e2e/native/rider/redesign/lab/5b-dropoff-code.yaml" ]
 explore: >
   Set PICKUP_CODE (rider-wp4-pickup) and DELIVERY_CODE for the flow: sign in to the customer API

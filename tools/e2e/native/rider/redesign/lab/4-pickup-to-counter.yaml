@@ -65,6 +65,25 @@ env:
 - assertVisible: "Navigate"
 - assertNotVisible: "We couldn't start the trip"
 - takeScreenshot: rider-wp4-01-go-to-restaurant
+# The food panel on this screen says Preparing or Ready for pickup; the board is named for the one it says.
+- runFlow:
+    when:
+      visible: "Ready for pickup"
+    commands:
+      - runFlow:
+          file: ../../../design-capture.yaml
+          env:
+            SHOT: design--delivery--PickupReady
+            APP_ID: com.halalgoes.rider.dev
+- runFlow:
+    when:
+      visible: "Preparing"
+    commands:
+      - runFlow:
+          file: ../../../design-capture.yaml
+          env:
+            SHOT: design--delivery--PickupEnRoute
+            APP_ID: com.halalgoes.rider.dev
 - travel:
     points:
       - ${START_LAT},${START_LNG}
@@ -77,7 +96,11 @@ env:
     when:
       visible: "We can't place you at the restaurant"
     commands:
-      - takeScreenshot: rider-wp4-02-geofence
+      - runFlow:
+          file: ../../../design-capture.yaml
+          env:
+            SHOT: design--delivery--PickupGeofence
+            APP_ID: com.halalgoes.rider.dev
       - tapOn:
           id: "trip-geofence-reason-field"
       - inputText: "GPS is off by a block"
@@ -92,7 +115,11 @@ env:
     when:
       visible: "Wait for the food"
     commands:
-      - takeScreenshot: rider-wp4-03-waiting
+      - runFlow:
+          file: ../../../design-capture.yaml
+          env:
+            SHOT: design--delivery--PickupWaiting
+            APP_ID: com.halalgoes.rider.dev
       - extendedWaitUntil:
           notVisible: "Turns on when the restaurant marks the food ready."
           timeout: 300000
@@ -102,4 +129,8 @@ env:
     timeout: 30000
 - assertVisible: "Ask the kitchen for the pickup code"
 - assertVisible: "Turns on when the code has 4 digits."
-- takeScreenshot: rider-wp4-04-items
+- runFlow:
+    file: ../../../design-capture.yaml
+    env:
+      SHOT: design--delivery--PickupItems
+      APP_ID: com.halalgoes.rider.dev

@@ -17,8 +17,11 @@ name: rider redesign, drop-off with no connection at the door
 - assertVisible: "No internet connection"
 - assertVisible: "Turns on when your connection is back."
 - assertNotVisible: "Proof saved · delivery not sent yet"
-- takeScreenshot: rider-wp5-21-no-connection-at-door
-
+- runFlow:
+    file: ../../../design-capture.yaml
+    env:
+      SHOT: design--delivery--TripNoConnection
+      APP_ID: com.halalgoes.rider.dev
 - setAirplaneMode: disabled
 - extendedWaitUntil:
     notVisible: "Keep the bag until you're back online"
@@ -48,6 +51,15 @@ name: rider redesign, drop-off with no connection at the door
     timeout: 60000
 - assertNotVisible: "Delivered to .*"
 - takeScreenshot: rider-wp5-22-proof-offline
+- runFlow:
+    when:
+      visible: "Your photo didn't upload"
+    commands:
+      - runFlow:
+          file: ../../../design-capture.yaml
+          env:
+            SHOT: design--delivery--PodPhotoFailed
+            APP_ID: com.halalgoes.rider.dev
 - setAirplaneMode: disabled
 - tapOn: "Try uploading again|Try again"
 - extendedWaitUntil:

@@ -27,8 +27,11 @@ env:
 - assertVisible: "Step 3 of 5: documents"
 - assertVisible: "For a scooter we need these four, plus a work permit if you have one.*"
 - assertNotVisible: "Submit for review"
-- takeScreenshot: rider-wp8-01-documents-empty
-
+- runFlow:
+    file: ../../../design-capture.yaml
+    env:
+      SHOT: design--sign-in-onboarding--Docs-Empty
+      APP_ID: com.halalgoes.rider.dev
 - runFlow:
     file: 8-add-document.yaml
     env: { DOC_ID: DRIVERS_LICENCE, OPEN_ID: documents-next, EXPIRY_DAY: "14", EXPIRY_MONTH: "03", EXPIRY_YEAR: "2029" }
@@ -47,14 +50,22 @@ env:
 - scrollUntilVisible:
     element:
       text: "Submit for review"
-- takeScreenshot: rider-wp8-03-documents-ready
+- runFlow:
+    file: ../../../design-capture.yaml
+    env:
+      SHOT: design--sign-in-onboarding--Docs-Ready
+      APP_ID: com.halalgoes.rider.dev
 - tapOn:
     id: "documents-submit"
 - runFlow:
     when:
       visible: "Add government ID"
     commands:
-      - takeScreenshot: rider-wp8-04-documents-incomplete
+      - runFlow:
+          file: ../../../design-capture.yaml
+          env:
+            SHOT: design--sign-in-onboarding--Docs-Incomplete
+            APP_ID: com.halalgoes.rider.dev
       - runFlow:
           file: 8-add-document.yaml
           env: { DOC_ID: GOVERNMENT_ID, OPEN_ID: documents-next, EXPIRY_DAY: "03", EXPIRY_MONTH: "08", EXPIRY_YEAR: "2030" }
@@ -66,7 +77,11 @@ env:
     visible: "Get told when we decide on your application"
     timeout: 30000
 - assertVisible: "Your documents are sent"
-- takeScreenshot: rider-wp8-05-notify-prime
+- runFlow:
+    file: ../../../design-capture.yaml
+    env:
+      SHOT: design--sign-in-onboarding--Notify-Prime
+      APP_ID: com.halalgoes.rider.dev
 - tapOn:
     id: "notify-not-now"
 
@@ -77,3 +92,12 @@ env:
 - assertVisible: "Step 4 of 5: we check your documents"
 - assertVisible: "You can close the app. You can't go online until your documents are approved."
 - takeScreenshot: rider-wp8-06-review-sent
+- runFlow:
+    when:
+      visible: "Your documents are sent"
+    commands:
+      - runFlow:
+          file: ../../../design-capture.yaml
+          env:
+            SHOT: design--sign-in-onboarding--Review-Sent
+            APP_ID: com.halalgoes.rider.dev

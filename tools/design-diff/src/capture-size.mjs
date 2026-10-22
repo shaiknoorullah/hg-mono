@@ -31,6 +31,20 @@ export function captureViewport(viewport, board) {
 }
 
 /**
+ * Whether a capture at `viewport` can be compared with `board` at all: a capture is only compared
+ * with a board drawn at its own width. Returns the two widths when they differ, else null (compare).
+ * No known board size is not a mismatch: the capture is taken as before.
+ *
+ * @param {{ width: number, height: number }} viewport
+ * @param {{ w: number, h: number } | null | undefined} board
+ * @returns {{ viewport: number, board: number } | null}
+ */
+export function widthMismatch(viewport, board) {
+  if (!board || !Number.isFinite(board.w)) return null;
+  return board.w === viewport.width ? null : { viewport: viewport.width, board: board.w };
+}
+
+/**
  * The `boards` map of a canvas.json → `{ w, h }` of `<Board>`, or null when it is not listed.
  * @param {string} canvasJson the text of canvas.json
  * @param {string} board file name without `.dc.html`

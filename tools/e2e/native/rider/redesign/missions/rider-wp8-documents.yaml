@@ -15,8 +15,7 @@ setup:
 reality:
   # A picture in the photo library, for "Choose a file (PDF or photo)".
   - camera-media: tools/e2e/native/media/pod-sample-door.png
-  - theme: light
-  - font-scale: 1.3
+  - theme: dark
 flows:
   - "tools/e2e/native/rider/redesign/lab/8-documents.yaml"
   - "tools/e2e/native/rider/redesign/lab/8b-documents-fix.yaml"

@@ -25,7 +25,11 @@ env:
     visible: "Sign in or apply to ride"
     timeout: 90000
 - assertVisible: "Canadian numbers only (+1)."
-- takeScreenshot: rider-wp1-01-phone
+- runFlow:
+    file: ../../design-capture.yaml
+    env:
+      SHOT: design--sign-in-onboarding--Main
+      APP_ID: com.halalgoes.rider.dev
 - tapOn:
     id: "phone-field"
 - inputText: ${PHONE}
@@ -38,7 +42,11 @@ env:
     visible: "You are offline"
     timeout: 20000
 - assertVisible: "Nothing was sent. Connect to mobile data or Wi-Fi, then try again."
-- takeScreenshot: rider-wp1-02-phone-offline
+- runFlow:
+    file: ../../design-capture.yaml
+    env:
+      SHOT: design--sign-in-onboarding--SignIn-Phone-Offline
+      APP_ID: com.halalgoes.rider.dev
 - setAirplaneMode: disabled
 # The screen re-reads PublicConfig every 5 s while offline; its answer clears the alert.
 - extendedWaitUntil:
@@ -50,8 +58,11 @@ env:
     visible: "Enter your code"
     timeout: 30000
 - assertVisible: "We sent a 6-digit code to the number ending \\d{4}\\."
-- takeScreenshot: rider-wp1-03-code
-
+- runFlow:
+    file: ../../design-capture.yaml
+    env:
+      SHOT: design--sign-in-onboarding--SignIn-Code
+      APP_ID: com.halalgoes.rider.dev
 # A wrong code clears the field and says how many tries are left (SO SignIn-Code-Incorrect).
 - tapOn:
     id: "code-cell-0"
@@ -59,8 +70,11 @@ env:
 - extendedWaitUntil:
     visible: ".*That code is not right\\. You have \\d tr(y|ies) left\\..*"
     timeout: 30000
-- takeScreenshot: rider-wp1-04-code-incorrect
-
+- runFlow:
+    file: ../../design-capture.yaml
+    env:
+      SHOT: design--sign-in-onboarding--SignIn-Code-Incorrect
+      APP_ID: com.halalgoes.rider.dev
 # The right code: the 6th digit checks it by itself.
 - tapOn:
     id: "code-cell-0"
