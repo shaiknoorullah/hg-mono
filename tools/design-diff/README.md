@@ -13,13 +13,18 @@ the screens differ, and what differs in words.
 
 ```bash
 # 1. The references: every board of the apps you name, from the canvases' mirror branch.
-pnpm --filter @hg/design-diff render-refs --out ../../e2e-out/design-refs --apps restaurant,admin
+#    --repo names the checkout: pnpm runs the script inside tools/design-diff, and `git archive`
+#    resolves its pathspec relative to the directory it runs in, so without it the canvases are
+#    looked for under tools/design-diff/ and none is found.
+pnpm --filter @hg/design-diff render-refs --repo ../.. --out ../../e2e-out/design-refs --apps restaurant,admin
 # 2. Captures: specs and flows that name a board (tools/e2e/README.md, "Design captures").
 E2E_MODE=mock pnpm --filter @hg/e2e web --project 'restaurant-redesign-*'
 # 3. Compare, then read the report.
 pnpm --filter @hg/design-diff diff --refs ../../e2e-out/design-refs --captures ../../e2e-out/design-captures --out ../../e2e-out/design-diff
 pnpm --filter @hg/design-diff report --results ../../e2e-out/design-diff
 ```
+
+**CI runs this on every `e2e-full` or `e2e` run**, in the `design-diff` job of `.github/workflows/e2e.yml`: it renders the boards, compares the captures the `flows` job uploaded, writes the per-area verdict table to the job summary and uploads the HTML report as the `design-diff` artifact. It compares with `--no-strict`, so a failing board reports rather than failing the run — no board passes yet, and a gate that is red before the first one is fixed blocks every merge and tells nobody anything. A regression gate comes once there is something to protect ([#1034](https://github.com/shaiknoorullah/hg-mono/issues/1034)).
 
 Paths are relative to `tools/design-diff/`, where pnpm runs the scripts. On a machine where
 Playwright's own Chromium is not installed, set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` to a
@@ -216,7 +221,9 @@ the board's size, and loses Android's status and navigation bars before the comp
 | `src/page-scripts.mjs` | Runs in the page: hides the notes, snapshots the layout, waits for it to settle |
 | `src/diff.mjs`, `src/compare.mjs`, `src/layout-diff.mjs` | Pairing, the pixel comparison and verdict, the worded findings |
 | `src/uiautomator.mjs`, `src/native-geometry.mjs` | A native capture's view hierarchy as a layout record; the geometry and colour verdict and its tolerances |
+| `src/maestro-hierarchy.mjs` | The same record from Maestro's own hierarchy JSON, which is where a capture's layout has to come from ([#1026](https://github.com/shaiknoorullah/hg-mono/issues/1026)) |
 | `src/report.mjs`, `src/png.mjs` | The HTML report; PNG helpers |
+| `src/job-summary.mjs` | A run's verdicts as one Markdown table, areas worst first, for a CI job summary |
 | `src/names.mjs`, `src/insets.mjs` | The capture names; the phone profiles and their bars |
 | `src/vendor-fonts.mjs`, `third-party/` | React and the fonts the boards load, and their licences |
 | `android/` | The capture AVDs and the device state; `capture-server.mjs`, which writes a native capture's hierarchy and provenance |

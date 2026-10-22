@@ -102,6 +102,7 @@ export type { TabsProps, TabSpec } from '../navigation';
 export { RestaurantCard, RestaurantCardSkeleton } from '../content';
 export type { RestaurantCardProps } from '../content';
 
-// Capture and maps (N7): the text-panel degrade is kept when no map is available.
-export { MapView } from '../feedback';
-export type { MapViewProps, MapPoint, MapRider } from '../feedback';
+// Capture and maps (N7), on `@rnmapbox/maps`: the text-panel degrade is kept when no map is available
+// (no SDK linked, no public token, tiles failed).
+export { MapView, MapPinPicker } from '../feedback';
+export type { MapViewProps, MapPoint, MapRider, MapState, MapFollow, MapPinPickerProps, MapPinMoveSource } from '../feedback';

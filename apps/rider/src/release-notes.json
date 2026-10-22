@@ -1,0 +1,16 @@
+[
+  {
+    "version": "1.0.0",
+    "date": "2026-10-22",
+    "notes": [
+      {
+        "title": "A new look for the app",
+        "body": "The app follows your phone's light or dark setting, with large buttons and text that stay readable in sunlight."
+      },
+      {
+        "title": "Your past deliveries",
+        "body": "Deliveries, under Earnings, lists your past jobs by day, and each one opens its own page."
+      }
+    ]
+  }
+]

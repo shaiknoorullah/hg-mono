@@ -26,6 +26,7 @@ import { useConnection } from '../data/connection';
 import { serverNow } from '../data/serverClock';
 import { errorStatus, useServerResource } from '../data/useServerResource';
 import { usePagePanelOpen } from '../shell/layout';
+import { useElementWidth } from '../shell/useElementWidth';
 import { publishFirstLoadFailed, publishStale } from '../shell/stale';
 import { onAcceptedHere, wasAcceptedHere } from './acceptedHere';
 import { OrderDetail } from './OrderDetail';
@@ -74,17 +75,7 @@ type WidthMode = 'full' | 'mid' | 'narrow';
 
 /** Column set by the list's own width (§1.1): full ≥ 1260, mid ≥ 880, narrow below. */
 function useWidthMode(): [React.RefObject<HTMLElement | null>, WidthMode] {
-  const ref = useRef<HTMLElement | null>(null);
-  const [width, setWidth] = useState(0);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    setWidth(el.clientWidth);
-    if (typeof ResizeObserver === 'undefined') return;
-    const ro = new ResizeObserver(() => setWidth(el.clientWidth));
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
+  const [ref, width] = useElementWidth();
   // Unmeasured (0) reads as full: every column, nothing hidden.
   const mode: WidthMode = width === 0 || width >= 1260 ? 'full' : width >= 880 ? 'mid' : 'narrow';
   return [ref, mode];

@@ -1,7 +1,8 @@
 /**
  * R43 What's new (HW/WhatsNew), light and dark: the sheet after an update on Home (a new device
  * sees only the latest release; a saved version sees every version since), Got it and the close
- * button both count as seen, storage that throws never breaks it, never during a delivery,
+ * button both count as seen, storage that cannot be read shows nothing by itself, never during a
+ * delivery,
  * nothing for a version with no notes; the page reopened from Account (newest first, "New" on
  * the unseen ones, loading, empty, error).
  */
@@ -14,15 +15,30 @@ import { mockApi, type MockApi } from '../../test/mockApi';
 import { SCHEMES } from '../../test/render';
 import type { KeyValueStore } from '../../data/storage';
 import { WHATS_NEW } from '../copy';
+import bundledNotes from '../../../release-notes.json';
 import { compareVersions, parseNotes, resetWhatsNew, SEEN_KEY, setReleaseNotesSource, setSeenStore, unseen } from '../whatsNew';
 import { idleDashboard, renderRoute, renderSignedIn, riderOnHome, signOut } from './harness';
 
-const NOTES = parseNotes(require('../release-notes.json'));
+/** Three releases in the file's shape (newest first), so the since-last-seen rules have something to select. */
+const FIXTURE = [
+  {
+    version: '1.4.0',
+    date: '2026-09-27',
+    notes: [
+      { title: 'Delivery fee and tip', body: 'Each earnings line shows the delivery fee and the tip.' },
+      { title: 'Payout lines', body: 'Each payout lists the lines it is made of.' },
+    ],
+  },
+  { version: '1.3.2', date: '2026-09-22', notes: [{ title: 'Offer timer', body: 'The offer timer stays correct after your phone has been asleep.' }] },
+  { version: '1.3.1', date: '2026-09-14', notes: [{ title: 'Larger numbers', body: 'Buzzer and unit numbers are larger and easier to read.' }] },
+];
+const NOTES = parseNotes(FIXTURE);
 const config = Constants.expoConfig as { version?: string };
 
 let api: MockApi;
 beforeEach(() => {
   resetWhatsNew();
+  setReleaseNotesSource(() => FIXTURE);
   config.version = '1.4.0';
 });
 afterEach(() => {
@@ -67,6 +83,25 @@ describe('release notes', () => {
     expect(unseen(NOTES, '0.0.0', null)).toEqual([]);
     expect(() => parseNotes({ versions: [{ version: 1 }] })).toThrow();
   });
+
+  it('skips what is malformed and keeps the rest, newest first', () => {
+    const parsed = parseNotes([
+      { version: '1.0.0', date: '2026-10-01', notes: [{ title: 'a', body: 'b' }, { title: 'only a title' }] },
+      { version: 'next', date: '2026-10-02', notes: [{ title: 'x', body: 'y' }] },
+      { version: '1.1.0', date: '2026-10-03', notes: [] },
+      { version: '1.2.0', notes: [{ title: 'c', body: 'd' }] },
+    ]);
+    expect(parsed.map((v) => v.version)).toEqual(['1.2.0', '1.0.0']);
+    expect(parsed[0]!.date).toBeNull();
+    expect(parsed[1]!.notes).toEqual([{ title: 'a', body: 'b' }]);
+  });
+
+  it('the bundled file is in the shared shape and its newest release is 1.0.0', () => {
+    const bundled = parseNotes(bundledNotes);
+    expect(bundled[0]!.version).toBe('1.0.0');
+    expect(bundled[0]!.notes.length).toBeGreaterThan(0);
+    expect(bundled[0]!.date).toBe('2026-10-22');
+  });
 });
 
 describe.each(SCHEMES)("What's new sheet (%s)", (scheme) => {
@@ -78,7 +113,10 @@ describe.each(SCHEMES)("What's new sheet (%s)", (scheme) => {
     const sheet = within(await screen.findByTestId('whats-new-sheet'));
     expect(sheet.getByText(WHATS_NEW.newIn('1.4.0'))).toBeTruthy();
     expect(sheet.getByText(WHATS_NEW.version('1.4.0'))).toBeTruthy();
-    for (const n of NOTES[0]!.notes) expect(sheet.getByText(`• ${n}`)).toBeTruthy();
+    for (const n of NOTES[0]!.notes) {
+      expect(sheet.getByText(n.title)).toBeTruthy();
+      expect(sheet.getByText(n.body)).toBeTruthy();
+    }
     expect(sheet.queryByText(WHATS_NEW.version('1.3.2'))).toBeNull();
     expect(sheet.getByText(WHATS_NEW.reread)).toBeTruthy();
 
@@ -107,17 +145,13 @@ describe.each(SCHEMES)("What's new sheet (%s)", (scheme) => {
     await waitFor(() => expect(s.writes).toEqual(['1.4.0']));
   });
 
-  it('no persisted storage: it still shows once, closes, and stays closed for the run', async () => {
+  it('storage that cannot be read: nothing opens by itself, and Home still works', async () => {
     setSeenStore(store(null, true));
     api = mockApi({ getRiderMe: riderOnHome(), getRiderDashboard: idleDashboard() });
-    const view = renderSignedIn(scheme);
-    await screen.findByTestId('whats-new-sheet');
-    fireEvent.press(screen.getByTestId('whats-new-got-it'));
-    expect(screen.queryByTestId('whats-new-sheet')).toBeNull();
-    view.unmount();
     renderSignedIn(scheme);
     await settled();
     expect(screen.queryByTestId('whats-new-sheet')).toBeNull();
+    expect(screen.getByTestId('tab-home')).toBeTruthy();
   });
 
   it('never during a delivery: it waits', async () => {
@@ -158,7 +192,7 @@ describe.each(SCHEMES)("What's new page (%s)", (scheme) => {
   });
 
   it('empty: no release notes yet', async () => {
-    setReleaseNotesSource(() => ({ versions: [] }));
+    setReleaseNotesSource(() => []);
     renderRoute(scheme, 'whatsNew', undefined);
     await screen.findByText(WHATS_NEW.empty.title);
     expect(screen.getByText(WHATS_NEW.empty.body)).toBeTruthy();
@@ -169,7 +203,7 @@ describe.each(SCHEMES)("What's new page (%s)", (scheme) => {
     renderRoute(scheme, 'whatsNew', undefined);
     await screen.findByText(WHATS_NEW.error.title);
     expect(screen.getByText(WHATS_NEW.error.body)).toBeTruthy();
-    setReleaseNotesSource(null);
+    setReleaseNotesSource(() => FIXTURE);
     fireEvent.press(screen.getByTestId('whats-new-retry'));
     await screen.findByTestId('whats-new-card-1.4.0');
   });

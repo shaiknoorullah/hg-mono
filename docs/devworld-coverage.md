@@ -4,7 +4,7 @@ covers:
   - services/hg/internal/devworld/**
   - services/hg/migrations/devworld/**
   - docs/playbooks/**
-reviewed: 2026-10-16
+reviewed: 2026-10-22
 ---
 
 # Dev world coverage map
@@ -37,6 +37,14 @@ Commands run from `services/hg`, against a local stack (`make up`, `make migrate
 | `amina`, `nour` | `+15550100101`, `+15550100102`, code `000000` | customer app |
 | `rider-sim`, `rider-docs`, `rider-rejected`, `rider-registered` | `+15550100151` to `+15550100154`, code `000000` | rider app |
 | `rider-sim-2` | `+15550100155`, code `000000`, offline | rider app; the second rider of the offer scenarios |
+| `customer-suspended`, `customer-banned` | `+15550100103`, `+15550100104`, code `000000`; sign-in is refused | customer app; the suspended and banned screens |
+| `customer-flagged` | `+15550100105`, code `000000`, `ACTIVE` | customer app; the account `s=customer-suspend` suspends and `s=customer-reinstate` lifts |
+| `+15550100110` | code `000000`; **no account** until someone signs in with it (`make dev-reset` removes it) | customer app; first-run sign-in |
+| `rider-payout` | `+15550100156`, code `000000`, approved, with a payout account stand-in | rider app; `s=rider-earnings` gives it a settled delivery and its earning entries |
+| `rider-history` | `+15550100157`, code `000000`, approved | rider app; `s=rider-history` gives it a delivered and a platform-cancelled assignment |
+| `rider-suspended` | `+15550100158`, code `000000`, approved and `SUSPENDED` | rider app; the suspended screens |
+| `rider-flagged` | `+15550100159`, code `000000`, approved and `ACTIVE` | rider app; the rider `s=rider-suspend` suspends and `s=rider-reinstate` lifts |
+| `last-light-bakehouse`, `rouge-valley-roti`, `blank-slate-grill`, `lost-paper-diner` | `<slug>@seed.hg`, password `Seed!2026` | restaurant console; four listed, certified restaurants the customer app sees in a state of its own (see [C-14](#customer-app)) |
 | Restaurant personas and catalogue owners | `<slug>@seed.hg`, password `Seed!2026` | restaurant console, `http://localhost:5183` |
 | `bismillah-manager`, `bismillah-staff` | `<persona>@seed.hg`, password `Seed!2026`; `bismillah-invited` has no password and `bismillah-suspended` is refused | restaurant console |
 | `admin-seed` | `admin-seed@seed.hg`, `Seed!2026`, and the code from `make dev-totp` | admin console |
@@ -51,15 +59,15 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | Customer app | 21 | 2 | 0 | 13 | 4 |
 | Restaurant portal | 23 | 6 | 2 | 5 | 0 |
 | Rider app | 23 | 6 | 2 | 1 | 3 |
-| Admin console | 13 | 2 | 12 | 15 | 0 |
+| Admin console | 15 | 2 | 10 | 15 | 0 |
 | Platform | 30 | 6 | 0 | 0 | 3 |
 
 ## Customer app
 
 | Feature | Journey | How to reach it | Status | Gap |
 |---|---|---|---|---|
-| [C-01](spec/02-customer.md#c-01--registration--phone-otp-verification) | Sign up with a new phone number and a code | Customer app: an unused number from `+15550100100` to `+15550100159`, code `000000`; the profile step follows | Covered | — |
-| [C-02](spec/02-customer.md#c-02--login-logout-session-lifecycle) | Sign in, stay signed in, sign out | `amina` | Covered | — |
+| [C-01](spec/02-customer.md#c-01--registration--phone-otp-verification) | Sign up with a new phone number and a code | Customer app: an unused number from `+15550100106` to `+15550100150`, code `000000`; `+15550100110` is kept for this and no seed ever gives it an account; the profile step follows | Covered | — |
+| [C-02](spec/02-customer.md#c-02--login-logout-session-lifecycle) | Sign in, stay signed in, sign out | `amina`; `customer-suspended` and `customer-banned` are refused; `s=customer-suspend` suspends `customer-flagged` through the admin action and `s=customer-reinstate` lifts it | Covered | — |
 | [C-03](spec/02-customer.md#c-03--profile-management-personal-information) | Edit name and email | `amina` | Covered | — |
 | [C-04](spec/02-customer.md#c-04--preferences) | Preferences | — | Not in V1 | — |
 | [C-05](spec/02-customer.md#c-05--account-deletion) | Delete my account | No operation yet | Not in V1 | [#187](https://github.com/shaiknoorullah/hg-mono/issues/187) |
@@ -69,9 +77,9 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [C-09](spec/02-customer.md#c-09--home-feed) | Home feed | `amina` after `make dev-reset`: the 14 restaurants of the [Toronto catalogue](superpowers/specs/2026-09-28-devworld-harness-design.md#51a-toronto-catalogue) | Covered | — |
 | [C-10](spec/02-customer.md#c-10--search-restaurants-and-dishes) | Search restaurants and dishes | `amina`, the Toronto catalogue | Covered | — |
 | [C-11](spec/02-customer.md#c-11--filters-and-sort-advanced-filters) | Advanced filters and sort | — | Not in V1 | — |
-| [C-12](spec/02-customer.md#c-12--halal-certification-display-and-verification--critical) | See the halal badge and the certification panel | `amina`: Bismillah Grill is certified, Bamyan Kebab House (`expiring-halal`) is expiring; `expired-halal` and the onboarding restaurants are never listed. "View certificate" opens a generated PDF after `make dev-reset` | Covered | — |
+| [C-12](spec/02-customer.md#c-12--halal-certification-display-and-verification--critical) | See the halal badge and the certification panel | `amina`: Bismillah Grill is certified, Bamyan Kebab House (`expiring-halal`) is expiring; `expired-halal` and the onboarding restaurants are never listed. "View certificate" opens a generated PDF after `make dev-reset` (every seeded certificate is an `application/pdf` file). `lost-paper-diner` has no file behind its certificate, so the link is minted and the object store then answers "no such key". The API's `certificate_viewable: false` cannot be seeded: it is a server-wide setting (no storage signer), because a certificate always has its document | Covered | — |
 | [C-13](spec/02-customer.md#c-13--restaurant-detail-page) | Restaurant page | `amina`, any catalogue restaurant | Covered | — |
-| [C-14](spec/02-customer.md#c-14--restaurant-availability--serviceability-gating) | Closed, paused or out-of-range restaurant | `amina`: Galata Pide & Grill (`paused`), `padma-river-kitchen` (no hours on the reset day), the ordering pause in the admin console. The catalogue test checks that every catalogue restaurant closed by its hours refuses a cart line. Out of range: `amina`'s `Cottage` address (Huntsville), where the restaurant list by coordinates reads `OUT_OF_RANGE` for all 14; the API still prices a quote there ([#723](https://github.com/shaiknoorullah/hg-mono/issues/723)) and the list ignores `delivery_address_id` ([#724](https://github.com/shaiknoorullah/hg-mono/issues/724)) | Partial | [#723](https://github.com/shaiknoorullah/hg-mono/issues/723), [#724](https://github.com/shaiknoorullah/hg-mono/issues/724) |
+| [C-14](spec/02-customer.md#c-14--restaurant-availability--serviceability-gating) | Closed, paused or out-of-range restaurant | `amina`: Galata Pide & Grill (`paused`), `padma-river-kitchen` (no hours on the reset day), `last-light-bakehouse` (no weekly hours at all, so closed at any time), `blank-slate-grill` (open, in range, empty menu), the ordering pause in the admin console. The catalogue test checks that every catalogue restaurant closed by its hours refuses a cart line. Out of range: `amina`'s `Cottage` address (Huntsville), where the restaurant list by coordinates reads `OUT_OF_RANGE` for all 14 catalogue restaurants, and `rouge-valley-roti` (Rouge Hill), which is out of range of all three of `amina`'s addresses; the API still prices a quote there ([#723](https://github.com/shaiknoorullah/hg-mono/issues/723)) and the list ignores `delivery_address_id` ([#724](https://github.com/shaiknoorullah/hg-mono/issues/724)) | Partial | [#723](https://github.com/shaiknoorullah/hg-mono/issues/723), [#724](https://github.com/shaiknoorullah/hg-mono/issues/724) |
 | [C-15](spec/02-customer.md#c-15--food-item-detail) | Dish detail | `amina`, any catalogue dish | Covered | — |
 | [C-16](spec/02-customer.md#c-16--variant-and-add-on-selection) | Choose a size and add-ons | `amina`: catalogue dishes with a size group, required and optional add-ons, and sold-out options | Covered | — |
 | [C-17](spec/02-customer.md#c-17--favourite-restaurants) | Favourite restaurants | — | Not in V1 | — |
@@ -170,11 +178,11 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [D-24](spec/04-rider.md#d-24--customer-communication) | Contact the customer | Masked calling goes through Twilio | Blocked by external (Twilio) | [#181](https://github.com/shaiknoorullah/hg-mono/issues/181) |
 | [D-24b](spec/04-rider.md#d-24b--two-way-free-text-chat-with-customer-and-restaurant) | Chat | — | Not in V1 | — |
 | [D-25](spec/04-rider.md#d-25--restaurant-communication) | Contact the restaurant | The arrival shows during the journey; issue codes come after launch; calls need Twilio | Partial | [#190](https://github.com/shaiknoorullah/hg-mono/issues/190) |
-| [D-26](spec/04-rider.md#d-26--earnings-formula-and-per-delivery-ledger) | Earnings per delivery | `rider-sim` after `make dev-journey auto=all` | Covered | — |
+| [D-26](spec/04-rider.md#d-26--earnings-formula-and-per-delivery-ledger) | Earnings per delivery | `rider-sim` after `make dev-journey auto=all`, or `rider-payout` after `s=rider-earnings` | Covered | — |
 | [D-27](spec/04-rider.md#d-27--earnings-dashboard-daily--weekly--monthly) | Earnings by day and week | One day's lines only, and the summary reads zero ([#590](https://github.com/shaiknoorullah/hg-mono/issues/590)) | Partial | [#590](https://github.com/shaiknoorullah/hg-mono/issues/590) |
-| [D-28](spec/04-rider.md#d-28--payouts) | Payouts | `s=payout-run` runs the payout, but only a restaurant reads its payouts; no rider history until a run pays one | Missing | [#676](https://github.com/shaiknoorullah/hg-mono/issues/676) |
+| [D-28](spec/04-rider.md#d-28--payouts) | Payouts | `s=payout-run` runs the payout, but only a restaurant reads its payouts. `rider-payout` has earning entries after `s=rider-earnings` and an empty payout list: a rider's payout needs the earning an hour old and its week closed on a Monday, and no scenario moves the ledger's clock | Missing | [#676](https://github.com/shaiknoorullah/hg-mono/issues/676) |
 | [D-29](spec/04-rider.md#d-29--performance-metrics) | Performance figures | `rider-sim` after a few journeys | Covered | — |
-| [D-30](spec/04-rider.md#d-30--delivery-history) | Delivery history | `rider-sim` after `make dev-journey auto=all` | Covered | — |
+| [D-30](spec/04-rider.md#d-30--delivery-history) | Delivery history | `rider-sim` after `make dev-journey auto=all`; `rider-history` after `s=rider-history` holds a delivered and a platform-cancelled assignment. A returned one needs the rider's exception step, which has no operation yet ([#190](https://github.com/shaiknoorullah/hg-mono/issues/190)) | Covered | — |
 | [D-31](spec/04-rider.md#d-31--ratings-received-from-customers) | Ratings received | The journey rates `rider-sim` five | Covered | — |
 | [D-32](spec/04-rider.md#d-32--incident-reporting--mid-delivery-exceptions) | Report an incident | No operation yet | Missing | [#190](https://github.com/shaiknoorullah/hg-mono/issues/190) |
 | [D-33](spec/04-rider.md#d-33--notifications--alerts) | Notifications | Push needs a device and Expo | Blocked by external (push) | [#58](https://github.com/shaiknoorullah/hg-mono/issues/58) |
@@ -210,8 +218,8 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [A-24](spec/05-admin.md#a-24--rider-document-expiry-monitoring) | Rider document expiry | No expiry job for rider documents yet | Missing | — |
 | [A-25](spec/05-admin.md#a-25--rider-performance-monitoring) | Rider performance | — | Not in V1 | — |
 | [A-26](spec/05-admin.md#a-26--rider-incident-handling) | Rider incidents | — | Not in V1 | — |
-| [A-27](spec/05-admin.md#a-27--rider-account-state-actions) | Suspend or reinstate a rider | The admin console can; no scenario does | Missing | [#858](https://github.com/shaiknoorullah/hg-mono/issues/858) |
-| [A-28](spec/05-admin.md#a-28--customer-account-state-actions) | Suspend or reinstate a customer | The admin console can; no scenario does | Missing | [#858](https://github.com/shaiknoorullah/hg-mono/issues/858) |
+| [A-27](spec/05-admin.md#a-27--rider-account-state-actions) | Suspend or reinstate a rider | `s=rider-suspend` and `s=rider-reinstate` act on `rider-flagged` through the admin action (history row, audit record and notice included); `rider-suspended` is seeded suspended | Covered | — |
+| [A-28](spec/05-admin.md#a-28--customer-account-state-actions) | Suspend or reinstate a customer | `s=customer-suspend` and `s=customer-reinstate` act on `customer-flagged` through the admin action; `customer-suspended` and `customer-banned` are seeded in their state | Covered | — |
 | [A-29](spec/05-admin.md#a-29--in-flight-order-treatment-on-entity-state-change) | Orders in flight when an account changes | Needs a scenario that changes an account | Missing | [#858](https://github.com/shaiknoorullah/hg-mono/issues/858) |
 | [A-30](spec/05-admin.md#a-30--review-moderation) | Review moderation | — | Not in V1 | — |
 | [A-31](spec/05-admin.md#a-31--abuse-and-fraud-report-handling) | Abuse and fraud reports | — | Not in V1 | — |
@@ -384,6 +392,7 @@ Not filed as dev world issues:
 | Restaurant | [#683](https://github.com/shaiknoorullah/hg-mono/issues/683) manager and staff logins, hours overrides | personas `bismillah-manager`, `bismillah-staff` |
 | Rider | [#684](https://github.com/shaiknoorullah/hg-mono/issues/684) offers rejected, ignored, raced, and no rider found | `offer-reject`, `offer-ignored`, `offer-race`, `no-rider`; persona `rider-sim-2` |
 | Time passing | [#685](https://github.com/shaiknoorullah/hg-mono/issues/685) a certificate lapses and is renewed | `halal-lapse`, `halal-renew` |
+| Account states | [#708](https://github.com/shaiknoorullah/hg-mono/issues/708) and [#720](https://github.com/shaiknoorullah/hg-mono/issues/720) personas the redesigned rider and customer apps test against | personas `customer-suspended`, `customer-banned`, `customer-flagged`, `rider-payout`, `rider-history`, `rider-suspended`, `rider-flagged`, four state restaurants; `rider-suspend`, `rider-reinstate`, `customer-suspend`, `customer-reinstate`, `rider-earnings`, `rider-history` |
 | Other | [#687](https://github.com/shaiknoorullah/hg-mono/issues/687) restaurant playbooks name personas and commands that exist | playbook fixes |
 
 Order deadlines are reached by waiting, by design: the [harness design's non-goals](superpowers/specs/2026-09-28-devworld-harness-design.md#2-goals-and-non-goals) rule out a dev clock that moves `deadline_at` ([every non-terminal order state carries a deadline (invariant 4)](../AGENTS.md#3-non-negotiable-invariants)). A shorter local response window is asked for in [#676](https://github.com/shaiknoorullah/hg-mono/issues/676).

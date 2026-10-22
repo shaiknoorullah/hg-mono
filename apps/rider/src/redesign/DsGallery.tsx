@@ -144,6 +144,33 @@ const MENU_ITEM = {
 } as unknown as React.ComponentProps<typeof proposed.MenuItemCard>['item'];
 
 /** The N6 lists and content parts, in the states the canvases draw. */
+/** The map (N7) in each state it can take. With no Mapbox SDK or token in the build, every one of these shows its text panel: that is the documented fallback. */
+function MapSection(): React.ReactElement {
+  const [pin, setPin] = React.useState({ latitude: 43.6532, longitude: -79.3832 });
+  const restaurant = { latitude: 43.6532, longitude: -79.3832 };
+  const customer = { latitude: 43.6629, longitude: -79.3957 };
+  const rider = { latitude: 43.658, longitude: -79.389, headingDeg: 45 };
+  const summary = 'Rider is 1.2 km away, about 6 minutes.';
+  const common = { summary, restaurant, customer, rider, height: 160 } as const;
+  return (
+    <View className="gap-3">
+      <proposed.Text variant="heading.md">Map (N7)</proposed.Text>
+      <proposed.MapView {...common} testID="Gallery-map-ready" />
+      <proposed.MapView {...common} state="loading" testID="Gallery-map-loading" />
+      <proposed.MapView {...common} state="stale" testID="Gallery-map-stale" />
+      <proposed.MapView {...common} state="error" onRetry={() => {}} testID="Gallery-map-error" />
+      <proposed.MapView {...common} state="permission-denied" onOpenSettings={() => {}} testID="Gallery-map-denied" />
+      <proposed.MapPinPicker
+        value={pin}
+        onChange={(next) => setPin(next)}
+        summary={`Pin at ${pin.latitude.toFixed(5)}, ${pin.longitude.toFixed(5)}`}
+        height={180}
+        testID="Gallery-pin"
+      />
+    </View>
+  );
+}
+
 function ListsSection(): React.ReactElement {
   const [filters, setFilters] = React.useState<string[]>(['open']);
   const [notify, setNotify] = React.useState(true);
@@ -378,6 +405,8 @@ export function DsGallery({
       <FormsSection />
 
       <ListsSection />
+
+      <MapSection />
 
       {VARIANTS.map((variant) => (
         <Button key={variant} variant={variant} accessibilityLabel={`${variant} button`}>
