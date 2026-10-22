@@ -24,6 +24,8 @@ export interface InlineNoticeProps {
   body?: ReactNode;
   children?: ReactNode;
   role?: 'alert' | 'status' | 'note';
+  /** The title's size in px: 17 (default) or 15 (the History panel's quiet notes). */
+  titleSize?: 15 | 17;
   label?: string;
   className?: string;
   testId?: string;
@@ -45,7 +47,7 @@ const ICON_TONE: Record<NoticeTone, string> = {
   brand: 'text-brand-600',
 };
 
-export function InlineNotice({ tone = 'neutral', icon, title, body, children, role, label, className, testId }: InlineNoticeProps) {
+export function InlineNotice({ tone = 'neutral', icon, title, body, children, role, titleSize = 17, label, className, testId }: InlineNoticeProps) {
   const name: IconName | null = icon ? glyph(icon) : null;
   return (
     <div
@@ -57,7 +59,7 @@ export function InlineNotice({ tone = 'neutral', icon, title, body, children, ro
     >
       {name ? <Icon name={name} size={20} className={`mt-0.5 shrink-0 ${ICON_TONE[tone]}`} /> : null}
       <div className="flex min-w-0 flex-col gap-1">
-        {title ? <span className="text-[17px] font-bold leading-[22px]">{title}</span> : null}
+        {title ? <span className={`${titleSize === 15 ? 'text-[15px] leading-[21px]' : 'text-[17px] leading-[22px]'} font-bold`}>{title}</span> : null}
         {body ? <p className="text-[15px] leading-[21px]">{body}</p> : null}
         {children ? <div className="text-[15px] leading-[21px]">{children}</div> : null}
       </div>

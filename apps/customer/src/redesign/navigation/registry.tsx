@@ -27,6 +27,7 @@ import { CertificateScreen } from '../restaurant/CertificateScreen';
 import { RestaurantScreen as RedesignedRestaurantScreen } from '../restaurant/RestaurantScreen';
 import { AccountScreen } from '../account/AccountScreen';
 import { AddressesScreen as RedesignedAddressesScreen } from '../account/AddressesScreen';
+import { AddressFormScreen as RedesignedAddressFormScreen } from '../account/address/AddressFormScreen';
 import { EmailVerifyScreen } from '../account/EmailVerifyScreen';
 import { AppSettingsScreen } from '../account/AppSettingsScreen';
 import { NotificationSettingsScreen } from '../account/NotificationSettingsScreen';
@@ -52,11 +53,13 @@ export const REDESIGNED: Registry = {
   browse: (r) => <BrowseScreen sort={r.sort} openNow={r.openNow} />,
   search: () => <SearchScreen />,
   // WP10/WP11: Account (with its edit sheet and sign-out), Saved addresses, Notification settings,
-  // App settings (location permission and appearance) and the email-link page, and What's new
-  // (opened from Account; the once-after-an-update sheet is Home's). The address form is not built
-  // yet and still falls back to legacy or to Account.
+  // App settings (location permission and appearance), the email-link page, What's new (opened
+  // from Account; the once-after-an-update sheet is Home's) and the address form (search, details,
+  // edit, delete, default; its map pin step is a placeholder until the native map exists, issue
+  // #1023).
   account: () => <AccountScreen />,
   addresses: () => <RedesignedAddressesScreen />,
+  addressForm: (r) => <RedesignedAddressFormScreen addressId={r.addressId} first={r.first} />,
   notificationSettings: () => <NotificationSettingsScreen />,
   appSettings: () => <AppSettingsScreen />,
   emailVerify: (r) => <EmailVerifyScreen token={r.token} />,
