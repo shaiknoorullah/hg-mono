@@ -2,7 +2,7 @@
 covers:
   - .github/workflows/e2e.yml
   - tools/e2e/**
-reviewed: 2026-10-19
+reviewed: 2026-10-22
 ---
 
 # End-to-end flows
@@ -154,7 +154,7 @@ and `seed/` belong to the harness.
 | Web redesign specs | `web/redesign-<app>.<topic>.spec.ts` here (for example `redesign-admin.orders.spec.ts`) | the `VITE_HG_REDESIGN=1` build, desktop 1440x900 and tablet 1024x768 — and, where a design board draws a narrower width, phone 320 and 720 (`redesign-restaurant.frame-phone.spec.ts` drives the console frame at both) |
 | Native redesign flows | `native/<app>/redesign/*.yaml` here, in name order | the `EXPO_PUBLIC_HG_REDESIGN=1` APK |
 | Device-lab missions | `native/<app>/redesign/missions/<id>.yaml` here | the device lab only, never as flows |
-| Device-lab flows | `native/<app>/redesign/lab/*.yaml` here: flows that need devworld (`make dev-scenario`, `make dev-journey`), the emulator camera, or backend work that has not merged | the device lab only, through a mission; `run.sh` runs only the files directly in `redesign/` |
+| Device-lab flows | `native/<app>/redesign/lab/*.yaml` here: flows that need devworld (`make dev-scenario`, `make dev-journey`), the emulator camera, or backend work that has not merged. They are otherwise the same journeys as the flows beside them, with `takeScreenshot` replaced by design captures and the typing matched to the boards | the device lab, through a mission. `run.sh` does not run the folder: it runs the few files `lab_for_ci` names — those that take design captures **and** need nothing CI lacks, which today is `customer/redesign/lab/1-sign-in.yaml` alone. A named flow **replaces** the file of the same name beside it rather than running as well, because it is that journey plus the captures; running both signs in twice and the second sign-in fails on a stale `CODE`. The other capture-taking lab flows wait on devworld in CI ([#1030](https://github.com/shaiknoorullah/hg-mono/issues/1030)); rider's lab flows take no captures at all |
 
 **Native sign-in, once per run.** Each redesign flow gets the world's values (`PHONE`, and `CODE` when
 the app has a `redesign/1-ask-for-code.yaml`, which `run.sh` runs first). The e2e world's phones
@@ -257,10 +257,18 @@ board by that name, and judges it (a web capture pixel by pixel, a native one by
   design AVD in the state the board is drawn in ([phone captures](../design-diff/README.md#phone-captures)).
   `<area>` is the canvas folder and `<Board>` the file name without `.dc.html`, spelled exactly (case included);
   the app is the folder the screenshots are in, so a customer capture is the board `customer/<area>/<Board>`.
-  Capture in the device-lab flows (`lab/`, and `1-first-run.yaml` that the sign-in mission also runs) until a CI run has
-  shown the width below. The CI emulator is a Pixel 6 profile, 411 dp wide, and a native capture of another width than
-  its board is not compared; [`android/design-size.sh`](android/design-size.sh) sets it to 1170 x 2532 px at 480 dpi (390 x 844 dp at 3x, the device-lab AVD) before
-  `run.sh`, and the `design-size:` line in the `flows` job's log is the measured size. Trust it only once that line reads 390 x 844.
+  The captures live in the device-lab flows (`lab/`, and `1-first-run.yaml` that the sign-in mission also runs).
+  **8 of the 19 are taken in CI**: the 3 in `1-first-run.yaml`, and the 5 in `lab/1-sign-in.yaml`, which `lab_for_ci`
+  in [`run.sh`](run.sh) names because it takes captures and needs nothing CI lacks. It runs **in place of**
+  `redesign/1-sign-in.yaml`, being the same journey with the captures added, so the run signs in once. The other 11 are
+  in lab flows that need devworld, so they are taken in the device lab until CI has it
+  ([#1030](https://github.com/shaiknoorullah/hg-mono/issues/1030)).
+  What let any of them run in CI was measuring the width: the CI emulator is a
+  Pixel 6 profile, 411 dp wide, and a native capture of another width than its board is not compared, so
+  [`android/design-size.sh`](android/design-size.sh) sets it to 1170 x 2532 px at 480 dpi (390 x 844 dp at 3x, the
+  device-lab AVD) before `run.sh` and fails the job unless it reads back. The `design-size:` line in the `flows` job's
+  log is the measured size, and it has read `390.00 x 844.00 dp` since
+  [#1024](https://github.com/shaiknoorullah/hg-mono/pull/1024). Trust a native capture's verdict only when that line does.
   The customer boards that no flow captures, each with its reason, are in
   [`native/customer-boards.mjs`](native/customer-boards.mjs); `pnpm e2e:boards:check` fails on a capture named for a
   board that does not exist, and (with `origin/claude/redesign-canvases` fetched) on a board that is neither captured nor

@@ -288,9 +288,51 @@ redesign_offer() {
 # name order, each with the world's values; a 1-ask-for-code.yaml among them runs first, and the
 # others then get the code it asked for as CODE. missions/ holds the device lab's missions, which
 # are never run as flows.
+#
+# lab/ stays out as a folder, and `lab_for_ci` names the few files CI does run. Those flows are the
+# same journeys as the ones beside them with takeScreenshot replaced by design captures, so they are
+# what measures the native boards — but most of lab/ also wants devworld (`make dev-scenario`,
+# `make dev-journey`), the emulator camera, or backend that has not merged, and CI has none of that
+# (tools/e2e/README.md, "Device-lab flows"). Running the whole folder would add about twenty rider
+# flows that take no capture at all and fail for reasons that have nothing to do with the boards.
+#
+# So a flow is listed only when it takes captures AND needs nothing CI lacks. That is 8 of the 19
+# captures the customer flows declare: 3 in 1-first-run.yaml, which already ran, and 5 in
+# lab/1-sign-in.yaml. The other 11 wait on devworld in CI
+# (https://github.com/shaiknoorullah/hg-mono/issues/1030). A listed file that has gone missing is
+# recorded as a failure rather than skipped, so a rename cannot quietly drop its captures.
+#
+# A listed flow REPLACES the file of the same name beside it rather than running after it, because
+# it is that journey plus the captures: same assertions, same screenshots but for the one that
+# became a board capture of the same screen. Running both signed in twice, and the second sign-in
+# fails: `CODE` is the code run.sh read once at the start, and it holds only while that challenge is
+# open ("asking again inside the open challenge sends nothing new"). Ten minutes later the second
+# flow's own "Send code" opens a *new* challenge while the flow still types the old code, and the
+# app says "That code isn't right". Replacing in place also keeps the sequence's position, so the
+# session the flows after it reuse is established at the same point.
+lab_for_ci() {
+  case "$1" in
+    customer) printf '%s\n' redesign/lab/1-sign-in.yaml ;;
+    *) ;;
+  esac
+}
 if [ "$mode" = all ]; then
   for app in customer rider; do
     mapfile -t flows < <(find "$e2e/native/$app/redesign" -maxdepth 1 -type f -name '*.yaml' ! -name 'config.yaml' 2>/dev/null | sort)
+    while IFS= read -r rel; do
+      [ -n "$rel" ] || continue
+      labfile="$e2e/native/$app/$rel"
+      if [ ! -f "$labfile" ]; then
+        record "redesign-$app-$(basename "$rel" .yaml)" fail "lab_for_ci names $rel, which does not exist"
+        continue
+      fi
+      twin="$e2e/native/$app/redesign/$(basename "$rel")"
+      swapped=no
+      for i in "${!flows[@]}"; do
+        if [ "${flows[$i]}" = "$twin" ]; then flows[$i]="$labfile"; swapped=yes; break; fi
+      done
+      [ "$swapped" = yes ] || flows+=("$labfile")
+    done < <(lab_for_ci "$app")
     if [ "${#flows[@]}" -eq 0 ]; then
       record "redesign-$app" skip "no redesign flows (tools/e2e/native/$app/redesign/*.yaml)"
       continue
@@ -319,9 +361,13 @@ if [ "$mode" = all ]; then
       fi
     fi
     for flow in "${flows[@]}"; do
-      flow="redesign/$(basename "$flow")"
+      # Keep the path below native/<app>/, not the basename: lab/ holds a 1-sign-in.yaml of its own,
+      # and a basename would run one of the two twice and never the other.
+      flow="${flow#"$e2e/native/$app/"}"
       [ "$flow" != redesign/1-ask-for-code.yaml ] || continue
-      label="redesign-$app-$(basename "$flow" .yaml)"
+      label="redesign-$app-${flow#redesign/}"
+      label="${label%.yaml}"
+      label="${label//\//-}"
       keep_kitchen_open
       if [ "$app" = rider ] && [ "$flow" = redesign/3-offer.yaml ]; then
         redesign_offer "$label" "${vars[@]}"

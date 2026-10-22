@@ -22,9 +22,26 @@ import { parseCaptureFile } from '../src/names.mjs';
 
 const run = promisify(execFile);
 
+/**
+ * Runs adb and keeps what it said when it fails. Node's own message for a failed command is
+ * "Command failed: adb …" and nothing else: the reason is on the error's `stderr`, which is
+ * dropped unless it is read here. A capture that could not be taken then reports only the command
+ * that did not work, and the one line that says why — "could not get idle state", a permission, a
+ * second automation client already attached — never reaches the log. That cost a whole round of
+ * diagnosis on https://github.com/shaiknoorullah/hg-mono/issues/966.
+ */
+async function adbRun(adb, args) {
+  try {
+    return await run('adb', [...adb, ...args], { maxBuffer: 32 * 1024 * 1024 });
+  } catch (e) {
+    const said = [e.stderr, e.stdout].map((s) => String(s ?? '').trim()).filter(Boolean).join('; ');
+    throw new Error(said ? `${e.message}: ${said}` : e.message);
+  }
+}
+
 /** `adb shell` output, trimmed. */
 async function shell(adb, ...args) {
-  const { stdout } = await run('adb', [...adb, 'shell', ...args], { maxBuffer: 32 * 1024 * 1024 });
+  const { stdout } = await adbRun(adb, ['shell', ...args]);
   return stdout.replace(/\r/g, '').trim();
 }
 
@@ -46,11 +63,16 @@ export function buildFromDumpsys(out) {
 async function capture({ dir, name, appId, serial }) {
   const adb = serial ? ['-s', serial] : [];
   const remote = '/sdcard/hg-design-capture.xml';
-  await shell(adb, 'uiautomator', 'dump', remote);
-  const { stdout: xml } = await run('adb', [...adb, 'exec-out', 'cat', remote], { maxBuffer: 32 * 1024 * 1024 });
+  // `uiautomator dump` does not always fail by exiting non-zero: on several Android versions it
+  // prints "ERROR: could not get idle state." and exits 0, which would leave the last run's file on
+  // the device and copy it back as though it were this screen. So the dump is required to say it
+  // wrote the file, and the device's own word for that is the misspelling it has always printed.
+  const said = await shell(adb, 'uiautomator', 'dump', remote);
+  if (!/dumped to/i.test(said)) throw new Error(`uiautomator dump did not write ${remote}: ${said || 'it said nothing'}`);
+  const { stdout: xml } = await adbRun(adb, ['exec-out', 'cat', remote]);
   const [model, id, wm, pkg] = await Promise.all([
     shell(adb, 'getprop', 'ro.product.model'),
-    run('adb', [...adb, 'get-serialno']).then((r) => r.stdout.trim()),
+    adbRun(adb, ['get-serialno']).then((r) => r.stdout.trim()),
     shell(adb, 'wm', 'density'),
     appId ? shell(adb, 'dumpsys', 'package', appId) : Promise.resolve(''),
   ]);
