@@ -1,7 +1,7 @@
 ---
 covers:
   - deploy/**
-reviewed: 2026-10-05
+reviewed: 2026-10-22
 ---
 
 # Releasing HalalGoes
@@ -65,9 +65,16 @@ and the API share a host. The refresh cookie `hg_rt` stays `HttpOnly` on the API
   `http://localhost:5173,http://localhost:4173`; prod: `https://admin.<your-domain>`).
 - `hg-mobile-apps` → `EXPO_PUBLIC_MAPBOX_TOKEN` (customer + rider); native SDKs **cannot** be
   URL-restricted — keep it minimal, rotate if abused. (Mobile maps need an Expo dev build.)
-- A **secret token** (`sk.…`) is **not needed** — the backend never calls Mapbox. Only create one
-  for programmatic Studio style/tileset publishing, keep it in a password manager / CI secret,
-  and **never** put it in a `VITE_*`/`EXPO_PUBLIC_*` var (those ship to the client).
+- A **secret token** (`sk.…`) is needed by the API for address search: it forwards the location
+  picker's suggestions, place details and reverse geocoding to Mapbox. Set it as
+  `HG_MAPBOX_SECRET_TOKEN` in the API's environment (`deploy/.env`, or the sops secrets file).
+  **Address search is unavailable until the token is set**: in production the API still starts, logs
+  one error naming the variable, and the three `/v1/geo/` routes answer 503 `GEOCODER_UNAVAILABLE`
+  (apps fall back to typing the address and the map pin). Production never uses the fake, and the
+  API refuses to start with `HG_GEO_PROVIDER=fake` there. With the token unset, local and dev runs
+  use a built-in fake Toronto catalogue instead, logged as `geo provider: FAKE geocoder`. Keep it in a password
+  manager / CI secret, and **never** put it in a `VITE_*`/`EXPO_PUBLIC_*` var (those ship to the
+  client). Create it with the scopes the key needs and no map-style write scopes.
 
 > **2026-10-01:** Mapbox is SaaS, which [the self-hosted, open-source rule](docs/decisions/README.md#settled--platform-decisions-owner-2026-10-01)
 > now rules out. Replacing it is tracked in [#199](https://github.com/shaiknoorullah/hg-mono/issues/199).

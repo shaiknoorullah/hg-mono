@@ -266,6 +266,10 @@ jobs:
       # Which flows: all (emulator and browser) or web. Their API: the real stack, never the mock.
       E2E_FLOWS: ${{ needs.plan.outputs.mode }}
       E2E_MODE: real
+      # Real-mode captures go beside, not into, the directory design-diff reads. Every board the
+      # real specs capture is also declared by a mock spec — three of them, measured — so comparing
+      # both would count those boards twice and nothing dedupes by board (#1028, #1049).
+      E2E_DESIGN_DIR: ${{ github.workspace }}/e2e-out/design-captures-real
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -396,6 +400,84 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+  # The design captures, taken against the mock.
+  #
+  # The boards draw states the real stack cannot produce on demand — a failed payout, an expired
+  # certificate, a refused upload, a payment that failed — so the specs that capture them are written
+  # against the mock and skip when E2E_MODE is real. The `flows` job runs the real stack, so for a
+  # long time almost every capture spec skipped there: the first run that produced verdicts compared
+  # 4 boards, where the one run done by hand compared 143 (#1049).
+  #
+  # Its own job, beside `flows` rather than after it, for three reasons: mock mode needs no compose
+  # stack, no Go and no APKs, so it is cheap; it runs in parallel and adds nothing to the critical
+  # path; and serve.sh serves one API mode at a time, so a second mode in the same job would mean
+  # tearing down servers the real flows are still using.
+  captures:
+    needs: plan
+    if: "!cancelled() && needs.plan.outputs.mode != 'none'"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      E2E_OUT: ${{ github.workspace }}/e2e-out
+      E2E_MODE: mock
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --filter @hg/e2e exec playwright install --with-deps chromium
+
+      # A board and the capture compared with it must come from one Chromium build
+      # (tools/design-diff/README.md, "One browser for both sides").
+      - name: Install the Chromium build the design boards are drawn with
+        run: |
+          npx -y playwright@1.60.0 install --with-deps chromium
+          test -d "$HOME/.cache/ms-playwright/chromium-1223" || {
+            echo "::error::playwright@1.60.0 did not provide Chromium build 1223; captures could not be compared with the boards"
+            exit 1
+          }
+
+      # Starts `pnpm mock` on :4010 itself and builds the redesign apps against it.
+      - name: Build and serve the apps against the mock
+        run: bash tools/e2e/web/serve.sh
+
+      # Only the redesign projects: this job exists to take captures, not to run the suite twice.
+      # It does not fail the run on a failing spec — a capture spec that fails has taken no capture,
+      # which design-diff reports as a board with no capture, and that is the number to read. A
+      # crash still fails the job.
+      - name: Take the design captures
+        run: |
+          cd tools/e2e
+          for app in restaurant admin; do
+            E2E_RUN="captures-$app" pnpm exec playwright test --config web/playwright.config.ts \
+              --project "$app-redesign-*" --pass-with-no-tests || echo "::warning::$app capture specs had failures; boards they would have captured are reported as uncaptured"
+          done
+
+      - name: Summary
+        if: always()
+        run: |
+          n=$(find "$E2E_OUT/design-captures" -name '*.png' 2>/dev/null | wc -l)
+          echo "## Design captures (mock)" >>"$GITHUB_STEP_SUMMARY"
+          echo "" >>"$GITHUB_STEP_SUMMARY"
+          echo "$n captures taken against the mock API." >>"$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: design-captures-mock
+          path: ${{ env.E2E_OUT }}/design-captures
+          if-no-files-found: warn
+          retention-days: 14
+
   # Whether every redesigned screen matches the board it names, on every run that captures one.
   #
   # Nothing used to answer that in CI: the harness was unit-tested and the captures were uploaded,
@@ -405,8 +487,13 @@ jobs:
   # Its own job, not a step in `flows`: it needs no emulator, no stack and no APKs, and a 20-minute
   # emulator run should not wait on rendering boards.
   design-diff:
-    needs: [plan, flows]
-    if: "!cancelled() && needs.flows.result == 'success'"
+    needs: [plan, flows, captures]
+    # On the captures, not on the flows. Whether a screen matches its board and whether a journey
+    # works against the real stack are different questions, and the boards' own states are reached
+    # through the mock — so a broken API should not also cost the fidelity verdicts. It did: #1040
+    # made the legacy live-orders queue read one `state` value and the real-stack specs timed out,
+    # which under the old condition would have skipped this job entirely.
+    if: "!cancelled() && needs.captures.result == 'success'"
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
@@ -442,10 +529,25 @@ jobs:
             exit 1
           }
 
+      # The flows' output: native screenshots for when native captures join, and the run's own
+      # record. Nothing compared comes from here any more, so a failed flows job does not stop the
+      # diff.
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        continue-on-error: true
         with:
           name: e2e-screenshots-and-traces
           path: ${{ env.E2E_OUT }}
+
+      # The captures themselves, from the mock-mode job, into the directory the diff reads. The
+      # real-mode flows write theirs to design-captures-real, which is kept in their own artifact and
+      # not compared: the three boards both modes declare would otherwise be counted twice, and
+      # nothing dedupes by board (#1028). Not fatal when absent — a diff of what did arrive is worth
+      # more than no diff, and a missing capture is reported as a board without one.
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        continue-on-error: true
+        with:
+          name: design-captures-mock
+          path: ${{ env.E2E_OUT }}/design-captures
 
       # Every board of the apps whose captures a browser takes, not only the areas captured: the
       # count of boards with no capture at all is the coverage figure, and rendering only what was
@@ -480,6 +582,8 @@ jobs:
         if: always()
         with:
           name: design-diff
-          path: ${{ env.E2E_OUT }}/design-diff
+          path: |
+            ${{ env.E2E_OUT }}/design-diff
+            ${{ env.E2E_OUT }}/design-refs/manifest.json
           if-no-files-found: warn
           retention-days: 14

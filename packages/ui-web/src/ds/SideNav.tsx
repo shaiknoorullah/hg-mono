@@ -7,7 +7,7 @@
  *   the current one carries `aria-current="page"` as well as its filled tile.
  * - The current page is a **filled tile**, never an edge bar or border (constitution gate 9).
  * - A count is folded into the accessible name ("Orders, 3 new"); the pill is decorative.
- * - Collapsing folds the rail to an icon rail (80px). Each item keeps a short visible label
+ * - Collapsing folds the rail to an icon rail (72px). Each item keeps a short visible label
  *   under its icon and its full accessible name; nothing becomes an unlabelled glyph.
  * - Sign out sits on the chrome at the foot of the rail (`onSignOut`).
  * - No arrow-key roving: a list of links is not a composite widget; Tab order is the order.
@@ -107,6 +107,11 @@ export interface SideNavProps {
   collapsible?: boolean;
   /** `chrome` (restaurant and admin, default) or `light` (the pre-redesign glass rail). */
   tone?: 'chrome' | 'light';
+  /**
+   * Outer width of the expanded rail in px, border and padding included. Default 264 (the admin
+   * console); the restaurant console passes 232. The collapsed rail is 72 in both consoles.
+   */
+  expandedWidth?: number;
   /** The landmark's name. Default "Main". */
   label?: string;
   /** The brand mark at the top (a Wordmark); shown in both widths. */
@@ -165,6 +170,7 @@ export function SideNav({
   id,
   collapsible,
   tone = 'chrome',
+  expandedWidth,
   label = 'Main',
   brand,
   header,
@@ -198,7 +204,7 @@ export function SideNav({
       collapsed={collapsed}
       data-testid={testId}
       className={className}
-      style={style}
+      style={!collapsed && expandedWidth !== undefined ? { width: expandedWidth, ...style } : style}
     >
       {top || (header && !collapsed) ? (
         <SidebarHeader className={cn(collapsed && 'items-center px-2')}>
