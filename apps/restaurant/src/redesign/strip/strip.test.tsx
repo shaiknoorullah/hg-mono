@@ -311,7 +311,7 @@ describe('accept', () => {
     const o = pending('A7K2', 120);
     const route = `POST /v1/restaurant/orders/${o.id}/accept`;
     const api = installFakeApi(routesFor([o], { [route]: accepted(o) }));
-    await renderRedesign(`/orders/history?panel=offer&order=${o.id}`);
+    await renderRedesign(`/payouts/history?panel=offer&order=${o.id}`);
     const panel = await screen.findByRole('complementary', { name: 'Order A7K2 details' });
     await within(panel).findByText('Phone number and full address appear after you accept.');
     expect(within(panel).queryByText(/•••/)).toBeNull();
@@ -337,7 +337,7 @@ describe('decline', () => {
   it('needs a reason: nothing preselected, Keep order first, the group error moves focus', async () => {
     const o = pending('A7K2', 120);
     const api = installFakeApi(routesFor([o]));
-    await renderRedesign(`/orders/history?panel=decline&order=${o.id}`);
+    await renderRedesign(`/payouts/history?panel=decline&order=${o.id}`);
     const panel = await screen.findByRole('complementary', { name: 'Order A7K2 details' });
     await waitFor(() => expect(document.activeElement).toBe(within(panel).getByRole('button', { name: 'Keep order' })));
     const radios = within(panel).getAllByRole('radio');
@@ -362,7 +362,7 @@ describe('decline', () => {
     const o = pending('A7K2', 120);
     const route = `POST /v1/restaurant/orders/${o.id}/reject`;
     const api = installFakeApi(routesFor([o], { [route]: { status: 503, body: errorBody('SERVICE_UNAVAILABLE') } }));
-    await renderRedesign(`/orders/history?panel=decline&order=${o.id}`);
+    await renderRedesign(`/payouts/history?panel=decline&order=${o.id}`);
     const panel = await screen.findByRole('complementary', { name: 'Order A7K2 details' });
     expect(within(panel).queryByRole('textbox')).toBeNull();
     fireEvent.click(within(panel).getByRole('radio', { name: 'Something else' }));
@@ -403,7 +403,7 @@ describe('decline', () => {
     const biryani = o.lines[0].menu_item_id as string;
     const put = `PUT /v1/restaurant/menu/items/${biryani}/availability`;
     const api = installFakeApi(routesFor([o], { [reject]: 'restaurant_order_rejected', [put]: 'error_menu_locked' }));
-    await renderRedesign(`/orders/history?panel=decline&order=${o.id}`);
+    await renderRedesign(`/payouts/history?panel=decline&order=${o.id}`);
     const panel = await screen.findByRole('complementary', { name: 'Order A7K2 details' });
     fireEvent.click(within(panel).getByRole('radio', { name: 'An item is unavailable' }));
     expect(within(panel).getByRole('group', { name: 'Which items are unavailable?' })).toBeTruthy();
@@ -422,7 +422,7 @@ describe('decline', () => {
   it('409 OFFER_EXPIRED on decline shows "Too late to decline" and the timed-out tile', async () => {
     const o = pending('A7K2', 120);
     installFakeApi(routesFor([o], { [`POST /v1/restaurant/orders/${o.id}/reject`]: 'error_offer_expired' }));
-    await renderRedesign(`/orders/history?panel=decline&order=${o.id}`);
+    await renderRedesign(`/payouts/history?panel=decline&order=${o.id}`);
     const panel = await screen.findByRole('complementary', { name: 'Order A7K2 details' });
     fireEvent.click(within(panel).getByRole('radio', { name: 'Kitchen is too busy' }));
     fireEvent.click(within(panel).getByRole('button', { name: 'Decline order, order A7K2' }));
@@ -655,7 +655,7 @@ describe('strip around the board', () => {
   it('with an offer open in the panel the strip is one compact row; Show all closes the panel', async () => {
     const [a, b] = [pending('A7K2', 120), pending('B3M9', 40)];
     installFakeApi(routesFor([a, b]));
-    await renderRedesign(`/orders/history?panel=offer&order=${a.id}`);
+    await renderRedesign(`/payouts/history?panel=offer&order=${a.id}`);
     expect(await screen.findByText('2 new orders waiting')).toBeTruthy();
     expect(screen.getByText('A7K2 is open in the panel. Also waiting: B3M9 (timer shown).')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Show all 2 new orders' }));
@@ -843,7 +843,7 @@ describe('an accept whose response is lost', () => {
   it('locks the prep time once an accept has gone out under its key', async () => {
     const o = pending('A7K2', 120);
     const api = installFakeApi(routesFor([o], { [ACCEPT(o)]: { status: 503, body: errorBody('SERVICE_UNAVAILABLE') } }));
-    await renderRedesign(`/orders/history?panel=offer&order=${o.id}`);
+    await renderRedesign(`/payouts/history?panel=offer&order=${o.id}`);
     const panel = await screen.findByRole('complementary', { name: 'Order A7K2 details' });
     fireEvent.click(await within(panel).findByRole('button', { name: 'Accept order A7K2, ready in 20 minutes' }));
     expect(await within(panel).findByText('We couldn’t confirm this order')).toBeTruthy();
