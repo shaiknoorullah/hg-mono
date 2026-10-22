@@ -2,7 +2,7 @@ import { test, type Page } from '@playwright/test';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { resolveBrowser } from '@hg/design-diff/browser';
-import { boardSize, captureViewport } from '@hg/design-diff/capture-size';
+import { boardSize, captureViewport, widthMismatch } from '@hg/design-diff/capture-size';
 import { captureFile, parseBoardId } from '@hg/design-diff/names';
 import { settle, snapshotLayout } from '@hg/design-diff/page-scripts';
 import { OUT } from '../lib/paths.mjs';
@@ -52,7 +52,8 @@ async function expandRailIfDrawnExpanded(page: Page, app: string, area: string):
  * `fullPage` adds nothing and the screenshot would stop at the window while a narrow board draws the
  * whole page unrolled ("2300 dp short"). The window is set to the board's width x height (read from
  * its canvas.json, `captureViewport`), the page settles, the screenshot is taken, and the window is
- * put back. A board that fits the viewport is captured as before, and so is any board when the
+ * put back. A board drawn at another width than the viewport takes no capture at all (an annotation
+ * names the board and both widths). A board that fits the viewport is captured as before, and so is any board when the
  * canvases branch is not in the checkout. [tools/e2e/README.md](../README.md#design-captures), "Tall boards".
  */
 export async function expectDesign(page: Page, board: string): Promise<void> {
@@ -63,7 +64,18 @@ export async function expectDesign(page: Page, board: string): Promise<void> {
   const dir = path.join(root, app, `${vp.width}x${vp.height}`);
   mkdirSync(dir, { recursive: true });
   const file = path.join(dir, captureFile(area, name));
-  const target = captureViewport(vp, boardSize({ app, area, board: name }));
+  const size = boardSize({ app, area, board: name });
+  // A capture is only compared with a board drawn at its own width, so another width is not taken:
+  // it would be listed "not compared" and say nothing. The annotation keeps it visible, not failing.
+  const mismatch = widthMismatch(vp, size);
+  if (mismatch) {
+    test.info().annotations.push({
+      type: 'design-capture-skipped',
+      description: `${board}: the board is ${mismatch.board} dp wide and this viewport is ${mismatch.viewport} dp, so no capture was taken`,
+    });
+    return;
+  }
+  const target = captureViewport(vp, size);
   if (target) await page.setViewportSize(target);
   let layout;
   try {
@@ -89,6 +101,9 @@ export async function expectDesign(page: Page, board: string): Promise<void> {
  * A width with no entry has no board and takes no design capture: nothing is guessed.
  */
 export type BoardFor = string | Readonly<Record<number, string>>;
+
+/** The board of a page that is drawn at 1440 wide only: it is declared for the 1440 project and for no other. */
+export const at1440 = (board: BoardFor): BoardFor => (typeof board === 'string' ? { 1440: board } : board);
 
 /** `expectDesign` for the board declared for the page's current viewport width, if there is one. */
 export async function expectDesignFor(page: Page, boards: BoardFor): Promise<void> {
