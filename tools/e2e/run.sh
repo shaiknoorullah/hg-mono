@@ -89,6 +89,9 @@ maestro_flow() {
   rc=$?
   kill "$capture_pid" 2>/dev/null || true
   find "$dir" -name '*.png' -exec cp {} "$shots/" \; 2>/dev/null
+  # Each design capture's view hierarchy, from the file Maestro wrote for the probe step in
+  # design-capture.yaml, matched to the capture by name. Never fails the flow.
+  node "$e2e/native/pick-hierarchies.mjs" "$dir" "$shots" || true
   return $rc
 }
 

@@ -31,6 +31,7 @@ import { PROFILES, profileInsets } from './insets.mjs';
 import { compareLayouts } from './layout-diff.mjs';
 import { compareNative } from './native-geometry.mjs';
 import { snapshotFromHierarchy } from './uiautomator.mjs';
+import { snapshotFromMaestro } from './maestro-hierarchy.mjs';
 import { APPS, parseBoardId, parseCaptureFile } from './names.mjs';
 import { crop, readPng, shrink, sideBySide, writePng } from './png.mjs';
 
@@ -236,18 +237,27 @@ function main() {
       // A native screen and an HTML board never agree pixel for pixel (different text rasterisers), so
       // pixels are not a criterion for it: the pair is measured by layout geometry and colour
       // (src/native-geometry.mjs). The pixel figure is kept for information and never sets a verdict.
-      const hierarchyFile = c.file.replace(/\.png$/, '.hierarchy.xml');
+      // Maestro's own hierarchy first, then a `uiautomator dump`. Maestro's is what a capture can
+      // actually get: the dump is killed while a flow is in progress, and a capture runs inside a
+      // flow (https://github.com/shaiknoorullah/hg-mono/issues/1026). The dump is still read when
+      // it is there, for a capture taken outside a flow or by an older run.
+      const maestroFile = c.file.replace(/\.png$/, '.hierarchy.json');
+      const dumpFile = c.file.replace(/\.png$/, '.hierarchy.xml');
+      const hierarchyFile = existsSync(maestroFile) ? maestroFile : dumpFile;
       const refPng = readPng(path.join(o.refs, ref.file));
       const info = compare(refPng, shot, { scale: ref.scale, ...thresholds })[MISMATCH_FIELD] ?? null;
       const native = { ...base, informationalSharedHeightMismatchPct: info };
       if (!existsSync(hierarchyFile)) {
-        const reason = 'the capture has no view-hierarchy snapshot (a .hierarchy.xml beside it, from `uiautomator dump`; android/capture-server.mjs writes it), so its geometry cannot be measured';
+        const reason = 'the capture has no view-hierarchy snapshot beside it, so its geometry cannot be measured: no .hierarchy.json (Maestro\'s own, which tools/e2e/native/pick-hierarchies.mjs puts there from the probe step in design-capture.yaml) and no .hierarchy.xml (a `uiautomator dump`, which cannot be taken while a flow runs)';
         pairs.push({ ...native, verdict: 'NO LAYOUT', reason });
         console.log(`${'NO LAYOUT'.padEnd(12)} ${String(info ?? '').padStart(8)} %  ${c.id}  (${c.rel})  ${reason}`);
         continue;
       }
       const density = nativeDensity(readSidecar(c.file), full, ref);
-      const snapshot = snapshotFromHierarchy(readFileSync(hierarchyFile, 'utf8'), { density: density.value, cut });
+      const raw = readFileSync(hierarchyFile, 'utf8');
+      const snapshot = hierarchyFile === maestroFile
+        ? snapshotFromMaestro(raw, { density: density.value, cut })
+        : snapshotFromHierarchy(raw, { density: density.value, cut });
       const g = compareNative(JSON.parse(readFileSync(path.join(o.refs, ref.layout), 'utf8')), snapshot, { designPng: refPng, designScale: ref.scale, appPng: shot, appScale: density.value });
       pairs.push({ ...native, verdict: g.verdict, reason: g.reason, geometry: { tolerance: g.tolerance, measured: g.measured, density }, layout: { matchedTexts: g.measured.texts ?? 0, findings: g.findings } });
       console.log(`${g.verdict.padEnd(12)} ${String(info ?? '').padStart(8)} %  ${c.id}  (${c.rel})  geometry: ${g.measured.texts ?? 0}/${g.measured.boardTexts ?? 0} texts, ${g.measured.boxes ?? 0} boxes, worst ${g.measured.worstDp ?? 0} dp${g.reason ? `; ${g.reason}` : ''}`);

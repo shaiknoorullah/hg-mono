@@ -614,3 +614,28 @@ test('Maestro hierarchy: a real device capture becomes a layout record in dp', a
   assert.throws(() => parseMaestroHierarchy({ children: [{ attributes: {} }] }), /no node with bounds/);
   assert.throws(() => parseMaestroHierarchy('null'), /not a Maestro hierarchy/);
 });
+
+// Pairing a capture with the hierarchy Maestro left for it. By name, never by order: the nth
+// hierarchy is not the nth capture the moment a capture is added in the middle of a flow, and
+// getting that wrong would read one screen against another screen's board — silently, which is
+// worse than not measuring it (https://github.com/shaiknoorullah/hg-mono/issues/1026).
+test('a capture takes the hierarchy named after it, not the one next to it', async () => {
+  const { captureNameOf, hierarchyFiles } = await import('../../e2e/native/pick-hierarchies.mjs');
+
+  assert.equal(captureNameOf('step-053-tapOnElement-design--sign-in--Main.json'), 'design--sign-in--Main');
+  assert.equal(captureNameOf('/a/b/screen-hierarchy/step-007-tapOnElement-design--discover-order--Restaurant-open.json'), 'design--discover-order--Restaurant-open');
+  // A step that failed for a real reason leaves a file here too, and is not a capture's.
+  assert.equal(captureNameOf('step-011-tapOnElement-While_using_the_app.json'), null);
+  assert.equal(captureNameOf('step-053-assertCondition-Account.json'), null);
+  assert.equal(captureNameOf('design--sign-in--Main.json'), null, 'without the step prefix it is not one of Maestro’s');
+
+  const dir = mkdtempSync(path.join(tmpdir(), 'ph-'));
+  const sh = path.join(dir, 'run', 'flow name', 'screen-hierarchy');
+  mkdirSync(sh, { recursive: true });
+  writeFileSync(path.join(sh, 'step-001-tapOnElement-design--sign-in--Main.json'), '{"children":[]}');
+  writeFileSync(path.join(sh, 'step-002-assertCondition-Account.json'), '{"children":[]}');
+  // Not under a screen-hierarchy folder, so not a hierarchy.
+  writeFileSync(path.join(dir, 'run', 'commands.json'), '[]');
+  const found = hierarchyFiles(dir).map((f) => path.basename(f)).sort();
+  assert.deepEqual(found, ['step-001-tapOnElement-design--sign-in--Main.json', 'step-002-assertCondition-Account.json']);
+});

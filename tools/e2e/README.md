@@ -272,6 +272,18 @@ board by that name, and judges it (a web capture pixel by pixel, a native one by
   `<area>` is the canvas folder and `<Board>` the file name without `.dc.html`, spelled exactly (case included);
   the app is the folder the screenshots are in, so a customer capture is the board `customer/<area>/<Board>`.
   The captures live in the device-lab flows (`lab/`, and `1-first-run.yaml` that the sign-in mission also runs).
+  **The hierarchy comes from Maestro, not from `uiautomator dump`.** A dump is killed while a flow is
+  in progress and a capture runs inside a flow, so `design-capture.yaml` asks for an element named
+  after the capture that nothing has: the step fails harmlessly, Maestro writes
+  `screen-hierarchy/step-NNN-…-<capture>.json` as it does for any failed step, and
+  [`native/pick-hierarchies.mjs`](native/pick-hierarchies.mjs) puts it beside the screenshot —
+  **matched by name, never by order**, so adding a capture mid-flow cannot pair one screen with
+  another's board ([#1026](https://github.com/shaiknoorullah/hg-mono/issues/1026)). This leans on
+  Maestro's debug output rather than a documented API, so
+  [`native/check-hierarchies.mjs`](native/check-hierarchies.mjs) **fails the run** when captures were
+  taken and none has a hierarchy: a Maestro upgrade that stopped writing those files would otherwise
+  return every native board to `NO LAYOUT` quietly, and the diff does not fail on those.
+
   **8 of the 19 are taken in CI**: the 3 in `1-first-run.yaml`, and the 5 in `lab/1-sign-in.yaml`, which `lab_for_ci`
   in [`run.sh`](run.sh) names because it takes captures and needs nothing CI lacks. It runs **in place of**
   `redesign/1-sign-in.yaml`, being the same journey with the captures added, so the run signs in once. The other 11 are
