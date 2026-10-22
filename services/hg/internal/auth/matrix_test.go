@@ -39,6 +39,7 @@ func TestMatrixGolden(t *testing.T) {
 		httpx.Action("discovery.search"):                  {},
 		httpx.Action("document.review"):                   {},
 		httpx.Action("earnings.read"):                     {},
+		httpx.Action("geo.search"):                        {},
 		httpx.Action("halal_certificate.check"):           {},
 		httpx.Action("halal_certificate.decide"):          {},
 		httpx.Action("halal_certificate.read"):            {},

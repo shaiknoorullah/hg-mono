@@ -41,12 +41,12 @@
     "@expo-google-fonts/plus-jakarta-sans": "*",
     "@rn-primitives/portal": ">=1.5.0",
     "@rn-primitives/slot": ">=1.5.0",
+    "@rnmapbox/maps": ">=10.1.0",
     "expo-clipboard": "*",
     "expo-font": "*",
     "nativewind": ">=4.1.0",
     "react": ">=19.0.0",
     "react-native": ">=0.81.0",
-    "react-native-maps": ">=1.20.0",
     "react-native-safe-area-context": ">=5.0.0",
     "react-native-svg": ">=15.0.0"
   },
@@ -54,10 +54,10 @@
     "@expo-google-fonts/plus-jakarta-sans": { "optional": true },
     "@rn-primitives/portal": { "optional": true },
     "@rn-primitives/slot": { "optional": true },
+    "@rnmapbox/maps": { "optional": true },
     "expo-clipboard": { "optional": true },
     "expo-font": { "optional": true },
     "nativewind": { "optional": true },
-    "react-native-maps": { "optional": true },
     "react-native-safe-area-context": { "optional": true }
   },
   "devDependencies": {

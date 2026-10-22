@@ -34,6 +34,7 @@ import {
   useTypeStyle,
 } from '../ds';
 import { callSupport, useSupport, type Support } from '../api/config';
+import { rememberNextCard } from '../checkout/nextCard';
 import { useQuery } from '../lib/query';
 import { useNow } from '../lib/now';
 import { useNav } from '../navigation/context';
@@ -41,6 +42,7 @@ import { cardName } from '../orders/format';
 import type { OrderCustomerView } from '../orders/ordersApi';
 import { readOutcome, type OutcomeData } from './outcomeApi';
 import { moneyOf, outcomeOf, type MoneyRows, type Outcome, type OutcomeAction, type RefundRow } from './outcomeView';
+import { ChooseCardSheet } from './ChooseCardSheet';
 import { usePutItemsBack } from './putItemsBack';
 
 export const OUTCOME_COPY = {
@@ -66,6 +68,7 @@ export function OutcomeScreen({ order }: { order: OrderCustomerView }): React.Re
   const support = useSupport();
   const putBack = usePutItemsBack(order);
   const now = useNow(60_000);
+  const [chooseOpen, setChooseOpen] = React.useState(false);
 
   const data = query.kind === 'ready' ? query.data : null;
   const payment = data?.payment ?? null;
@@ -123,8 +126,24 @@ export function OutcomeScreen({ order }: { order: OrderCustomerView }): React.Re
           support={support}
           putBack={putBack.state.kind}
           onPutBack={() => putBack.run(false)}
+          onChooseCard={() => setChooseOpen(true)}
         />
       </ScrollView>
+
+      <ChooseCardSheet
+        variant="terminal"
+        open={chooseOpen}
+        restaurantName={order.restaurant.name}
+        declined={payment ? { brand: payment.card_brand ?? null, last4: payment.card_last4 ?? null } : null}
+        busy={putBack.state.kind === 'busy'}
+        onClose={() => setChooseOpen(false)}
+        onConfirm={(choice) => {
+          // The order is already closed: nothing is cancelled, the items go back and the card is
+          // chosen at the next checkout.
+          rememberNextCard(choice);
+          putBack.run(false);
+        }}
+      />
 
       <Modal
         open={putBack.state.kind === 'replace'}
@@ -267,12 +286,14 @@ function Actions({
   support,
   putBack,
   onPutBack,
+  onChooseCard,
 }: {
   outcome: Outcome;
   order: OrderCustomerView;
   support: Support | null;
   putBack: 'idle' | 'busy' | 'failed' | 'replace';
   onPutBack: () => void;
+  onChooseCard: () => void;
 }): React.ReactElement {
   const theme = useTheme();
   const nav = useNav();
@@ -296,6 +317,12 @@ function Actions({
             testID="Outcome-putBack"
           >
             {putBack === 'busy' ? OUTCOME_COPY.puttingBack : putBack === 'failed' ? 'Try again' : OUTCOME_COPY.putBack}
+          </Button>
+        );
+      case 'chooseCard':
+        return (
+          <Button key={action} variant={variant} size="lg" fullWidth onPress={onChooseCard} testID="Outcome-chooseCard">
+            {order.state === 'FAILED' ? 'Choose another card' : 'Try again with another card'}
           </Button>
         );
       case 'findRestaurant':
