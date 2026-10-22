@@ -168,6 +168,7 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
               groups={[{ key: 'main', items }]}
               activeKey={active}
               collapsed={!expanded}
+              expandedWidth={232}
               collapseLabel="Collapse navigation"
               expandLabel="Expand navigation"
               onToggleCollapsed={

@@ -134,7 +134,7 @@ for (const vp of VIEWPORTS) {
       await step(page, 'nav-every-item', async () => {
         const n = nav(page);
         await expect(n).toBeVisible();
-        // The 1024 boards draw the 80px rail; 1280 and wider draw it open.
+        // The 1024 boards draw the 72px rail; 1280 and wider draw it open.
         if (vp.width < 1280) await expect(n).toHaveAttribute('data-collapsed', 'true');
         else await expect(n).not.toHaveAttribute('data-collapsed', 'true');
         for (const label of ADMIN_NAV) {

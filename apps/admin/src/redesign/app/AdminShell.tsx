@@ -3,7 +3,7 @@
  * `ASS/SystemBannerStack`, `RV/Shell-Forbidden`, `ORD/AdminNavCollapsed`,
  * `ORD/AdminNavCountsPending`, `STF/SkipLinkFocus`).
  *
- *   [skip link] [SideNav 264px | 80px rail] [ banner slot ]
+ *   [skip link] [SideNav 264px | 72px rail] [ banner slot ]
  *                                           [ main: app bar h1 + page ]
  *
  * - "Skip to main content" is the first tab stop.
@@ -47,7 +47,7 @@ const NARROW_QUERY = `(max-width: ${NARROW_MAX_PX}px)`;
 const NAV_DRAWER_ID = 'admin-nav-drawer-panel';
 
 /**
- * Below 1280 CSS px the nav starts as the 80px rail (boards `RO/QueueNarrow1024`,
+ * Below 1280 CSS px the nav starts as the 72px rail (boards `RO/QueueNarrow1024`,
  * `ORD/AdminNavCollapsed`; `RO/QueueNarrow1280` still draws it open), so the page keeps its width
  * and every rail item fits a 1024x768 window without scrolling. The person can still open it.
  */

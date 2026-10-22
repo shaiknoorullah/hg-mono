@@ -411,7 +411,7 @@ func TestLoadRequiresTrustedProxiesOutsideLocal(t *testing.T) {
 			// Also required outside local (TestLoadRequiresPresignBaseURLOutsideLocal);
 			// set here so this test sees only the trusted-proxy rule.
 			env["HG_MINIO_PRESIGN_BASE_URL"] = "https://files.halalgoes.com"
-
+	
 			_, err := Load(getenvFrom(env))
 			if err == nil {
 				t.Fatal("HG_TRUSTED_PROXY_CIDRS unset was accepted outside local")
@@ -549,5 +549,82 @@ func TestCSRFCookieDomain(t *testing.T) {
 		if _, err := Load(getenvFrom(env)); err == nil || !strings.Contains(err.Error(), "HG_AUTH_CSRF_COOKIE_DOMAIN") {
 			t.Errorf("%q: err = %v, want it refused", bad, err)
 		}
+	}
+}
+
+// TestLoadGeoSettings pins the address-search rules: the fake geocoder is the
+// default only where there is no Mapbox token outside production, it is refused
+// in production, and production without a token still boots with address search
+// unavailable (503 GEOCODER_UNAVAILABLE) until the token is set.
+func TestLoadGeoSettings(t *testing.T) {
+	// provider names the loaded provider, or "<none>" when Load refused.
+	provider := func(c *Config) string {
+		if c == nil {
+			return "<none>"
+		}
+		return c.Geo.Provider
+	}
+	cfg, err := Load(getenvFrom(validEnv()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Geo.Provider != "fake" || cfg.Geo.Configured() {
+		t.Errorf("no token: provider = %q, configured = %v; want the fake", cfg.Geo.Provider, cfg.Geo.Configured())
+	}
+
+	env := validEnv()
+	env["HG_MAPBOX_SECRET_TOKEN"] = "fixture-mapbox-token"
+	cfg, err = Load(getenvFrom(env))
+	if err != nil || cfg.Geo.Provider != "mapbox" || !cfg.Geo.Configured() {
+		t.Fatalf("token set: provider = %q, err = %v; want mapbox", provider(cfg), err)
+	}
+
+	// An explicit fake wins over a token outside production, so a dev can
+	// keep a token in the shared file and still run offline.
+	env["HG_GEO_PROVIDER"] = "fake"
+	if cfg, err := Load(getenvFrom(env)); err != nil || cfg.Geo.Provider != "fake" || cfg.Geo.Configured() {
+		t.Errorf("explicit fake: provider = %q, err = %v", provider(cfg), err)
+	}
+
+	env = validEnv()
+	env["HG_GEO_PROVIDER"] = "mapbox"
+	if _, err := Load(getenvFrom(env)); err == nil || !strings.Contains(err.Error(), "HG_MAPBOX_SECRET_TOKEN") {
+		t.Errorf("HG_GEO_PROVIDER=mapbox without a token: err = %v, want it to name HG_MAPBOX_SECRET_TOKEN", err)
+	}
+	env["HG_GEO_PROVIDER"] = "google"
+	if _, err := Load(getenvFrom(env)); err == nil || !strings.Contains(err.Error(), "HG_GEO_PROVIDER") {
+		t.Errorf("HG_GEO_PROVIDER=google: err = %v, want it refused", err)
+	}
+
+	prod := func() map[string]string {
+		env := validEnv()
+		env["HG_ENV"] = "production"
+		env["HG_CORS_ALLOWED_ORIGINS"] = "https://app.halalgoes.com"
+		env["HG_TRUSTED_PROXY_CIDRS"] = "172.16.0.0/12"
+		env["HG_MINIO_PRESIGN_BASE_URL"] = "https://files.halalgoes.com"
+		return env
+	}
+	if cfg, err := Load(getenvFrom(prod())); err != nil || cfg.Geo.Provider != "unavailable" || cfg.Geo.Configured() {
+		t.Errorf("production without a token: provider = %q, err = %v; want it to boot with provider unavailable", provider(cfg), err)
+	}
+	env = prod()
+	env["HG_GEO_PROVIDER"] = "fake"
+	env["HG_MAPBOX_SECRET_TOKEN"] = "fixture-mapbox-token"
+	if _, err := Load(getenvFrom(env)); err == nil || !strings.Contains(err.Error(), "HG_GEO_PROVIDER=fake") {
+		t.Errorf("production accepted the fake geocoder: err = %v", err)
+	}
+	env = prod()
+	env["HG_MAPBOX_SECRET_TOKEN"] = "fixture-mapbox-token"
+	if cfg, err := Load(getenvFrom(env)); err != nil || cfg.Geo.Provider != "mapbox" {
+		t.Errorf("production with a token: provider = %q, err = %v", provider(cfg), err)
+	}
+
+	// Staging (the dev environment) may run the fake.
+	env = validEnv()
+	env["HG_ENV"] = "staging"
+	env["HG_TRUSTED_PROXY_CIDRS"] = "172.16.0.0/12"
+	env["HG_MINIO_PRESIGN_BASE_URL"] = "https://files.halalgoes.com"
+	if cfg, err := Load(getenvFrom(env)); err != nil || cfg.Geo.Provider != "fake" {
+		t.Errorf("staging without a token: provider = %q, err = %v; want the fake", provider(cfg), err)
 	}
 }

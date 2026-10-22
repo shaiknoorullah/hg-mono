@@ -7,10 +7,10 @@ The oracle: every covered operation had its live server response validated again
 enforces `additionalProperties:false` + `required[]` + closed enums automatically.
 
 - **Total contract operations:** 178
-- **Validated (covered):** 170
-- **Not yet validated (uncovered):** 8
+- **Validated (covered):** 173
+- **Not yet validated (uncovered):** 5
 
-## Covered (170)
+## Covered (173)
 
 - `acceptOffer` — POST /v1/riders/me/offers/{offerId}/accept
 - `acceptOrder` — POST /v1/restaurant/orders/{orderId}/accept
@@ -83,6 +83,7 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `getOrderingPause` — GET /v1/admin/ordering-pause
 - `getOwnMenu` — GET /v1/restaurant/menu
 - `getPayoutRun` — GET /v1/admin/payout-runs/{runId}
+- `getPlaceAddress` — GET /v1/geo/places/{placeId}
 - `getPublicConfig` — GET /v1/config/public
 - `getQuote` — GET /v1/quotes/{quoteId}
 - `getRealtimeSchema` — GET /v1/realtime/schema
@@ -147,6 +148,7 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `requestPasswordReset` — POST /v1/auth/password/forgot
 - `resendEmailVerification` — POST /v1/auth/email/resend
 - `resetPassword` — POST /v1/auth/password/reset
+- `reverseGeocode` — GET /v1/geo/reverse
 - `reviewRestaurantDocument` — POST /v1/admin/restaurant-documents/{documentId}/review
 - `reviewRiderDocument` — POST /v1/admin/rider-documents/{documentId}/review
 - `revokeSession` — DELETE /v1/auth/sessions/{sessionId}
@@ -169,6 +171,7 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `submitRiderDocuments` — POST /v1/riders/me/onboarding/documents
 - `submitRiderProfile` — POST /v1/riders/me/onboarding/profile
 - `submitRiderVehicle` — POST /v1/riders/me/onboarding/vehicle
+- `suggestAddresses` — GET /v1/geo/autocomplete
 - `takeNextRestaurantApplication` — POST /v1/admin/restaurant-applications/take-next
 - `takeNextRiderApplication` — POST /v1/admin/rider-applications/take-next
 - `transcribeHalalCertificate` — PUT /v1/admin/halal-certificates/{certificateId}/transcription
@@ -183,16 +186,13 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `verifyOtp` — POST /v1/auth/otp/verify
 - `verifyTotpEnrolment` — POST /v1/auth/totp/verify
 
-## Uncovered (8)
+## Uncovered (5)
 
 Each uncovered operation is listed with its method/path. This list is emitted
 every run: an operation silently losing coverage becomes visible here.
 
 - `getDependencyStatus` — GET /internal/deps — needs Redis and the object store
-- `getPlaceAddress` — GET /v1/geo/places/{placeId} — unexplained gap
 - `getReadiness` — GET /health/ready — needs Redis and the object store
 - `getSmsSenderStatus` — GET /v1/admin/system/sms-sender — unexplained gap
 - `joinWaitlist` — POST /v1/waitlist — unexplained gap
 - `replaceCart` — PUT /v1/cart — unexplained gap
-- `reverseGeocode` — GET /v1/geo/reverse — unexplained gap
-- `suggestAddresses` — GET /v1/geo/autocomplete — unexplained gap

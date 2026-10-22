@@ -2,7 +2,7 @@
 covers:
   - deploy/**
   - services/hg/internal/orders/runner*.go
-reviewed: 2026-10-13
+reviewed: 2026-10-22
 ---
 
 # Incident runbook
@@ -268,6 +268,16 @@ Sign-up confirmations, password resets, staff invitations, application decisions
 - A failed email retries by itself with backoff, up to 12 tries. A refused address (`PROVIDER_REJECTED`) is not retried. After fixing the key, put it in the secrets store and restart the replicas one at a time; emails still waiting for a retry go out.
 - Never set `HG_EMAIL_ALLOWLIST` in production: the API refuses to start with it, because it would stop email to everyone not on it.
 - Push is the same check with `channel = 'PUSH'`: the API logs `push provider: log` at start-up unless `HG_PUSH_ENABLED=true`, and turning it off again (unset it, restart the replicas one at a time) only stops pushes; orders and the inbox are unaffected.
+
+## Address search is not working
+
+The address form's search-as-you-type, the pin's "fill from the map" and the pick-a-suggestion step go through the API to Mapbox ([map address search decision](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
+
+- **What breaks:** customers and restaurants see "Address search is not available right now" and fall back to typing the address and moving the pin. Nothing else is affected: orders, saved addresses and checkout do not need Mapbox.
+- **Signs:** requests to `/v1/geo/` answer 503 `GEOCODER_UNAVAILABLE`, and the API logs `geocoder unavailable` with the operation and Mapbox's status (401 or 403: the token was refused; 429: Mapbox's own limit; 5xx or a timeout: Mapbox). A 429 `RATE_LIMITED` with a `Retry-After` is our own per-account limit, not an outage.
+- **Check** [Mapbox's status page](https://status.mapbox.com/) and the token in the Mapbox account: it must be a secret token (`sk.…`), not revoked, with permanent geocoding available to the account for saved addresses ([#297](https://github.com/shaiknoorullah/hg-mono/issues/297)). After fixing it, put the new value in the secrets store as `HG_MAPBOX_SECRET_TOKEN` and restart the replicas one at a time.
+- The API logs `geo provider: mapbox` at start-up. `geo provider: FAKE geocoder` means no token is set: the API answers from a built-in Toronto catalogue and every place id starts with `fake:`. That is for local and dev only. In production with no token the API still starts, logs `geo provider: address search is unavailable until HG_MAPBOX_SECRET_TOKEN is set`, and every geo route answers 503 `GEOCODER_UNAVAILABLE` until the token is set and the replicas restart; it never uses the fake, and it refuses to start with `HG_GEO_PROVIDER=fake`.
+- Suggestions are never cached, not even in Redis, because Mapbox's terms do not allow storing temporary results; a Redis outage only means each replica counts the per-account limit (60 suggestions and 30 place or pin requests a minute) in its own memory.
 
 ## Password sign-in answers "busy"
 

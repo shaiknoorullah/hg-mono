@@ -106,3 +106,13 @@ condition = "AND"
 paths = ['''^apps/admin/src/redesign/verification/application/checklists\.ts$''']
 regexTarget = "secret"
 regexes = ['''^EXPIRY_AT_LEAST_14_DAYS$''']
+
+# The address-search tests send one fixed session_token. It is a made-up UUID
+# the client would normally generate per search; it opens nothing. Matched by
+# exact value, and only in the geo tests.
+[[allowlists]]
+description = "fixed session_token UUID in the address-search tests is not a credential"
+condition = "AND"
+paths = ['''^services/hg/internal/geo/''', '''^services/hg/internal/conformance/conformance_geo_test\.go$''']
+regexTarget = "secret"
+regexes = ['''^00000000-0000-4000-8000-00000000a001$''', '''^7f2b8f2e-6e0d-4a43-9a0b-5d6a8f4f9a11$''']

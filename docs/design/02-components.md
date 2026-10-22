@@ -14,7 +14,7 @@ covers:
   - packages/ui-native/src/ds/**
   - packages/ui-native/src/lib/**
   - packages/ui-native/src/proposed/**
-reviewed: 2026-10-15
+reviewed: 2026-10-22
 ---
 
 # HalalGoes — Component Inventory
@@ -308,7 +308,7 @@ There is **no** `color`, `label`, `variant` or `icon` prop. The four states are 
 
 **Purpose.** The generic surface container everything else composes from.
 
-**Variants.** `elevated` (elevation 1, `surface.raised`) · `outlined` (1px `border.decorative`) · `filled` (`surface.subtle`) · `interactive` (elevated + hover/press).
+**Variants.** `elevated` (elevation 1, `surface.raised`) · `outlined` (1px `border.decorative`) · `filled` (`surface.subtle`) · `interactive` (elevated + hover/press). Every variant has a 1px border, transparent unless `outlined`, as [the Claude Design Card](https://claude.ai/artifact/1GwGVZz8Ju9wcz4HfCnzbv) draws it: all four are the same size, and the content sits 1px in from the edge ([#878](https://github.com/shaiknoorullah/hg-mono/issues/878)).
 **Props.** `variant`, `padding` (defaults to `density.cardPadding`), `radius` (default `lg`), `onPress`, `media`, `header`, `footer`.
 **States.** interactive only: hover (elevation +1), pressed (scale 0.99 + overlay), focus-visible (ring around the whole card).
 **Accessibility.** An interactive card is **one** tab stop with **one** accessible name; nested links inside a pressable card are forbidden (the "nested interactive" trap). If a card needs two actions, the card is not pressable and the actions are explicit buttons.
@@ -482,6 +482,8 @@ There is **no** `value: number` prop and **no** `formatted: string` prop. A comp
 - **permission-denied** (rider/address entry) — an inline explanation + a deep link to system settings. Never a bare grey map.
 - **error** — tile failure falls back to a text panel with the addresses and the ETA. **The map is never the only way to know where the order is.**
 **Accessibility.** The map is `accessibilityElementsHidden` / `aria-hidden` and is **always accompanied by an equivalent text summary** that is the actual accessible content: "Rider is 1.2 km away, about 6 minutes." Follow-mode is a labelled toggle. Camera moves use `spring.gentle` and never fight a user's pan.
+
+**Native build (`MapView`, `MapPinPicker` in `@hg/ui-native`).** Drawn with `@rnmapbox/maps`, the library both apps already depend on, which is an optional peer of the package. `summary` is a required prop. `state` is `loading` · `ready` · `stale` · `degraded` · `permission-denied` · `error`; the caller derives `stale` and `degraded` and passes `permission-denied` with `onOpenSettings`. The text panel with a "Map unavailable" note (the `error` look) also replaces the map when the Mapbox SDK is not linked in the build (no download token), when there is no public token, or when the SDK reports that tiles failed to load. It is never a crash and never a bare grey box. `MapPinPicker` is the address-entry sibling: a draggable pin (and tap-to-place) whose final coordinate goes to `onChange`; without a map it shows only its summary and the screen's own move buttons place the pin.
 
 ---
 
