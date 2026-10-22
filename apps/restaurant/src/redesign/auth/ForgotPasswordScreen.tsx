@@ -90,7 +90,6 @@ export function ForgotPasswordScreen() {
               if (fieldError) setFieldError(undefined);
             }}
             errorText={fieldError}
-            required
           />
           <Button
             variant="primary"

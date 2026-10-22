@@ -357,7 +357,6 @@ export function SignInScreen() {
           if (fieldErrors.email) setFieldErrors((f) => ({ ...f, email: undefined }));
         }}
         errorText={fieldErrors.email}
-        required
       />
       <Input
         ref={passwordRef}
@@ -370,7 +369,6 @@ export function SignInScreen() {
           if (fieldErrors.password) setFieldErrors((f) => ({ ...f, password: undefined }));
         }}
         errorText={fieldErrors.password}
-        required
       />
     </>
   );

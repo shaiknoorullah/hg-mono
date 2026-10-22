@@ -215,7 +215,6 @@ function ExpiredLink() {
             if (fieldError) setFieldError(undefined);
           }}
           errorText={fieldError}
-          required
         />
         <Button
           variant="primary"
