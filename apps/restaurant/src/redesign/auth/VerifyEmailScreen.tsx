@@ -208,7 +208,6 @@ function ExpiredLink() {
           label={VERIFY.email}
           variant="email"
           autoComplete="email"
-          size="lg"
           value={email}
           readOnly={sending}
           onChange={(v) => {

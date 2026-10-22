@@ -351,7 +351,6 @@ export function SignInScreen() {
         label={SIGN_IN.email}
         variant="email"
         autoComplete="username"
-        size="lg"
         value={email}
         onChange={(v) => {
           setEmail(v);
@@ -365,7 +364,6 @@ export function SignInScreen() {
         label={SIGN_IN.password}
         variant="password"
         autoComplete="current-password"
-        size="lg"
         value={password}
         onChange={(v) => {
           setPassword(v);

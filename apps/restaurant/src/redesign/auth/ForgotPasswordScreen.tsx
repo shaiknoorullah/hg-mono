@@ -83,7 +83,6 @@ export function ForgotPasswordScreen() {
             label={FORGOT.email}
             variant="email"
             autoComplete="username"
-            size="lg"
             value={email}
             readOnly={sending}
             onChange={(v) => {

@@ -269,7 +269,6 @@ export function RegisterScreen() {
             id={FIELD_IDS.name}
             label={REGISTER.name}
             helperText={REGISTER.nameHelp}
-            size="lg"
             autoComplete="organization"
             value={name}
             onChange={(v) => {
@@ -285,7 +284,6 @@ export function RegisterScreen() {
             helperText={REGISTER.emailHelp}
             variant="email"
             autoComplete="email"
-            size="lg"
             value={email}
             onChange={(v) => {
               setEmail(v);
@@ -300,7 +298,6 @@ export function RegisterScreen() {
             helperText={REGISTER.passwordHelp}
             variant="password"
             autoComplete="new-password"
-            size="lg"
             value={password}
             onChange={(v) => {
               setPassword(v);
