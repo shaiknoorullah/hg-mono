@@ -32,6 +32,20 @@ The full list of journeys still to cover is the harness plan in
 | A pull request with the **`e2e` label** | The web flows only, on every push while the label is on. No APK build and no emulator: those take the longest ([below](#what-it-costs)). Without the label no job starts |
 | A pull request with the **`e2e-full` label** | Every flow, emulator included, on every push while the label is on. The by-hand run for a pull request: a workflow can only be started from the Actions tab once it is on `main`. Remove the label when done |
 
+**After the flows, `design-diff`.** Whenever the `flows` job succeeds, a second job renders every
+`restaurant` and `admin` board from `claude/redesign-canvases` on the same Chromium build the
+captures were taken on, compares the captures with the boards they name, writes a per-area verdict
+table to the job summary and uploads the HTML report as the `design-diff` artifact
+([tools/design-diff/README.md](../design-diff/README.md)). It is its own job because it needs no
+emulator, no stack and no APKs, and a 20-minute emulator run should not wait on rendering boards.
+
+It compares with `--no-strict`: the diff exits 1 on any failing board and no board passes yet, so a
+gate there would be red before the first board is fixed and would block every merge. A crash still
+fails the job. The regression gate — a board that passed on `main` failing on a pull request — comes
+once there is something to protect ([#1034](https://github.com/shaiknoorullah/hg-mono/issues/1034)),
+and native captures join it once they have a view hierarchy
+([#1026](https://github.com/shaiknoorullah/hg-mono/issues/1026)).
+
 A run on a pull request reads no secret. No run needs one: the API runs with `HG_ENV=local`, so it
 uses its fake payment client (no Stripe keys) and writes phone sign-in codes to its own log
 instead of texting them. No flow sends an SMS or charges a card.
