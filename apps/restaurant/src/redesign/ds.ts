@@ -46,6 +46,8 @@ export type { SideNavItem, SideNavGroup } from '@hg/ui-web/ds';
 // The navigation drawer the phone board marks as a proposed component (#954). It is built from
 // the design system's own Sheet, IconButton and SideNav; the app adds no component of its own.
 export { NavDrawer } from '@hg/ui-web/proposed';
+// One filter chip above a list (packet P22): the History page's status chips.
+export { FilterChip } from '@hg/ui-web/proposed';
 export type { SkipTarget } from '@hg/ui-web/navigation';
 
 export {

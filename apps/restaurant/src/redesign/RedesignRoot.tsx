@@ -27,7 +27,6 @@ import { ConsoleLayout } from './shell/ConsoleLayout';
 import { ConsoleStatus } from './shell/ConsoleStatus';
 import { AccountPage } from './payouts/AccountPage';
 import { HistoryPage } from './payouts/HistoryPage';
-import { PendingRoute } from './routes/PendingRoute';
 import { MenuPage } from './menu/MenuPage';
 import { AuthLayout } from './auth/frame';
 import { SignInScreen } from './auth/SignInScreen';
@@ -40,6 +39,7 @@ import { HoursPage } from './hours/HoursPage';
 import { SettingsPage } from './settings/SettingsPage';
 import { NewOrdersProvider } from './strip/NewOrdersProvider';
 import { OrdersGate } from './orders/GoLiveGate';
+import { HistoryPage } from './orders/HistoryPage';
 import { LiveOrdersPage } from './orders/LiveOrdersPage';
 import { OnboardingRoutes } from './onboarding/OnboardingRoutes';
 import { clearAllDrafts } from './onboarding/profile';
@@ -190,10 +190,7 @@ export function RedesignApp() {
                 </OrdersGate>
               }
             />
-            <Route
-              path="/orders/history"
-              element={<PendingRoute title="Past orders" description="Orders you finished, declined or that were cancelled appear here." />}
-            />
+            <Route path="/orders/history" element={<HistoryPage />} />
             <Route path="/menu" element={<MenuPage />} />
             <Route path="/hours" element={<HoursPage />} />
             <Route path="/payouts" element={<AccountPage />} />
