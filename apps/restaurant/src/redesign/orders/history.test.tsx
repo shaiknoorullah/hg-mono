@@ -1,7 +1,6 @@
 /**
  * Past orders (restaurant redesign, #658; boards `History*`): every status against the contract
- * fixtures, the chips as server filters, the #601 pin, load more (loading, failed, end, and a
- * server that ignores the cursor), every list state, and the read-only panel.
+ * fixtures, the chips as server filters, load more (loading, failed, end), every list state, and the read-only panel.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
@@ -63,13 +62,11 @@ describe('Past orders list', () => {
     expect(within(grid).getAllByText('Payout open')).toHaveLength(2);
   });
 
-  it('#601: asks for the past states and drops live orders the server sent anyway', async () => {
+  it('asks the server for the past states, 20 at a time, and draws exactly what it sends', async () => {
     const p = past();
-    const api = installFakeApi(routes(list([p.completed, { ...fixture('restaurant_order_preparing'), code: 'LIVE1' }, { ...fixture('restaurant_order_restaurant_pending'), code: 'LIVE2' }])));
+    const api = installFakeApi(routes(list([p.completed])));
     await renderRedesign('/orders/history');
     await screen.findByRole('button', { name: p.completed.code });
-    expect(screen.queryByText('LIVE1')).toBeNull();
-    expect(screen.queryByText('LIVE2')).toBeNull();
     const call = new URL(pastCalls(api)[0]!.url);
     expect(call.searchParams.get('state')).toBe('DELIVERED,COMPLETED,RESOLVED,REJECTED,CANCELLED,DISPUTED');
     expect(call.searchParams.get('limit')).toBe('20');
@@ -137,15 +134,6 @@ describe('the chips', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Show all past orders' }));
     expect(await screen.findByRole('button', { name: p.completed.code })).toBeTruthy();
   });
-
-  it('never show another status when the server ignores the filter (#601)', async () => {
-    const p = past();
-    installFakeApi(routes(list(Object.values(p))));
-    await renderRedesign('/orders/history?status=CANCELLED');
-    await screen.findByRole('button', { name: p.cancelled.code });
-    expect(screen.queryByRole('button', { name: p.completed.code })).toBeNull();
-    expect(screen.queryByRole('button', { name: p.rejected.code })).toBeNull();
-  });
 });
 
 describe('load more', () => {
@@ -169,15 +157,6 @@ describe('load more', () => {
     expect(await screen.findByText('That’s every past order so far.')).toBeTruthy();
     expect(screen.getByRole('button', { name: past().rejected.code })).toBeTruthy();
     expect(new URL(pastCalls(api).at(-1)!.url).searchParams.get('cursor')).toBe('c2');
-  });
-
-  it('ends the list when a server that ignores the cursor sends the same page again (#601)', async () => {
-    installFakeApi(routes(() => envelope(page1(), 'c2')));
-    await renderRedesign('/orders/history');
-    fireEvent.click(await screen.findByRole('button', { name: 'Load more' }));
-    expect(await screen.findByText('That’s every past order so far.')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Load more' })).toBeNull();
-    expect(within(table()).getAllByRole('button', { name: past().completed.code })).toHaveLength(1);
   });
 });
 

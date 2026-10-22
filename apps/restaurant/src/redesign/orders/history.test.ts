@@ -1,5 +1,5 @@
 /**
- * Past orders' rules (boards `History*`): the #601 guard, the chips, each status, the prep meter
+ * Past orders' rules (boards `History*`): the chips, each status, the prep meter
  * against the promise, the "Placed" label in the restaurant's own day, and what the Order net
  * cell and the panel say when the contract names no reason.
  */
@@ -9,7 +9,6 @@ import {
   HISTORY_CHIPS,
   HISTORY_STATES,
   emptyCopy,
-  guardHistoryRows,
   historyCaption,
   historyStatus,
   isHistoryFilter,
@@ -25,23 +24,7 @@ import type { Order } from './model';
 
 const order = (patch: Partial<Order> & { code: string }): Order => ({ ...(fixture('restaurant_order_completed') as Order), id: `id-${patch.code}`, ...patch });
 
-describe('#601 client guard', () => {
-  const rows = [
-    order({ code: 'A', state: 'COMPLETED' }),
-    order({ code: 'B', state: 'PREPARING' }),
-    order({ code: 'C', state: 'RESTAURANT_PENDING' }),
-    order({ code: 'D', state: 'CANCELLED' }),
-    order({ code: 'E', state: 'DISPUTED' }),
-  ];
-
-  it('keeps only past orders under All, and drops every live one the server sent anyway', () => {
-    expect(guardHistoryRows(rows, 'ALL').map((o) => o.code)).toEqual(['A', 'D', 'E']);
-  });
-
-  it('keeps only the chosen status under a chip', () => {
-    expect(guardHistoryRows(rows, 'CANCELLED').map((o) => o.code)).toEqual(['D']);
-  });
-
+describe('chips', () => {
   it('asks the server for every past state, or for the one chip', () => {
     expect(statesFor('ALL')).toEqual([...HISTORY_STATES]);
     expect(statesFor('RESOLVED')).toEqual(['RESOLVED']);

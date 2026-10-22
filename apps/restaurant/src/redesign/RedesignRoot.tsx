@@ -39,7 +39,7 @@ import { HoursPage } from './hours/HoursPage';
 import { SettingsPage } from './settings/SettingsPage';
 import { NewOrdersProvider } from './strip/NewOrdersProvider';
 import { OrdersGate } from './orders/GoLiveGate';
-import { HistoryPage } from './orders/HistoryPage';
+import { PastOrdersPage } from './orders/HistoryPage';
 import { LiveOrdersPage } from './orders/LiveOrdersPage';
 import { OnboardingRoutes } from './onboarding/OnboardingRoutes';
 import { clearAllDrafts } from './onboarding/profile';
@@ -190,7 +190,7 @@ export function RedesignApp() {
                 </OrdersGate>
               }
             />
-            <Route path="/orders/history" element={<HistoryPage />} />
+            <Route path="/orders/history" element={<PastOrdersPage />} />
             <Route path="/menu" element={<MenuPage />} />
             <Route path="/hours" element={<HoursPage />} />
             <Route path="/payouts" element={<AccountPage />} />

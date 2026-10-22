@@ -10,19 +10,19 @@
  */
 import type { ReactElement } from 'react';
 import { negateCents, type Cents } from '@hg/api-client';
-import { Badge, Button, DetailPanel, Icon, InlineNotice, PickupCode, Price, Skeleton } from '../ds';
+import { Badge, Button, DetailPanel, Icon, InlineNotice, PickupCode, Price } from '../ds';
 import { useConsole } from '../data/console';
-import { errorStatus, errorCode, type ServerResource } from '../data/useServerResource';
+import type { ServerResource } from '../data/useServerResource';
 import { serverNow } from '../data/serverClock';
 import { formatTime } from '../format/time';
 import { formatPhone, telHref } from '../format/phone';
+import { ItemsSection, panelPlaceholder } from './PanelParts';
 import {
   deliveryInstructions,
   formatAddress,
   endedBeforeAccept,
   isAccepted,
   isLate,
-  lineExtra,
   panelBadge,
   pickupCodeOf,
   readyByText,
@@ -76,55 +76,20 @@ export function OrderDetail({ orderId, resource, facts, mark, onMarkReady, onClo
     cfg?.support_enabled && cfg.support_phone_e164 ? { display: formatPhone(cfg.support_phone_e164), href: telHref(cfg.support_phone_e164), hours: cfg.support_hours ?? null } : null;
   const restaurantName = profile.data?.display_name ?? 'this restaurant';
 
-  const notFound = resource.status === 'error' && (errorStatus(resource.error) === 404 || errorCode(resource.error) === 'NOT_FOUND');
-
-  if (notFound) {
-    return (
-      <DetailPanel title="Order" label="Order details" closeLabel="Close order details" onClose={onClose} testId="order-detail">
-        <div role="status" className="flex flex-col items-start gap-3 py-6">
-          <h3 className="text-[17px] font-bold">We can’t show this order</h3>
-          <p className="text-[15px]">It isn’t one of {restaurantName}’s orders, or the link is wrong. Nothing else is affected.</p>
-          <Button variant="tertiary" size="lg" iconStart={<Icon name="close" size={18} />} onPress={onClose}>
-            Close
-          </Button>
-        </div>
-      </DetailPanel>
-    );
-  }
-
   const order = resource.data;
-  const code = order?.code ?? '';
-  const title = <span className="font-mono">{code || 'Order'}</span>;
-  const label = code ? `Order ${code} details` : 'Order details';
-  const closeLabel = code ? `Close order ${code} details` : 'Close order details';
-
   if (!order) {
-    if (resource.status === 'error') {
-      return (
-        <DetailPanel title={title} label={label} closeLabel={closeLabel} onClose={onClose} testId="order-detail">
-          <div role="alert" className="flex flex-col items-start gap-3 py-6">
-            <h3 className="text-[17px] font-bold">We couldn’t load this order</h3>
-            <p className="text-[15px]">Check the connection. The list and new orders keep working while this panel retries.</p>
-            <Button variant="tertiary" size="lg" onPress={resource.reload}>
-              Try again
-            </Button>
-          </div>
-        </DetailPanel>
-      );
-    }
-    return (
-      <DetailPanel title={title} label={label} closeLabel={closeLabel} onClose={onClose} testId="order-detail">
-        <div role="status" className="sr-only">
-          Loading order {code}…
-        </div>
-        <div aria-hidden="true" className="flex flex-col gap-3">
-          <Skeleton variant="rect" height={40} />
-          <Skeleton variant="rect" height={120} />
-          <Skeleton variant="rect" height={90} />
-        </div>
-      </DetailPanel>
-    );
+    return panelPlaceholder({
+      resource,
+      restaurantName,
+      testId: 'order-detail',
+      onClose,
+      loadFailedBody: 'Check the connection. The list and new orders keep working while this panel retries.',
+    });
   }
+  const code = order.code;
+  const title = <span className="font-mono">{code}</span>;
+  const label = `Order ${code} details`;
+  const closeLabel = `Close order ${code} details`;
 
   const now = serverNow();
   const badge = panelBadge(order, facts, now);
@@ -357,40 +322,19 @@ export function OrderDetail({ orderId, resource, facts, mark, onMarkReady, onClo
           </section>
         ) : null}
 
-        <section aria-labelledby="items-title">
-          <h3 id="items-title" className="mb-1 text-[16px] font-semibold text-fg-secondary">
-            Items
-          </h3>
-          <ul className="flex flex-col">
-            {order.lines.map((line) => {
-              const extra = lineExtra(line);
-              return (
-                <li key={line.line_no} className="flex gap-2 border-b border-line-decorative py-2 last:border-b-0">
-                  <span className="min-w-9 font-bold tabular-nums">{line.quantity} ×</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold">{line.name}</p>
-                    {extra ? <p className="text-[15px] text-fg-secondary">{extra}</p> : null}
-                    {line.special_request ? (
-                      <span className="mt-1 inline-block rounded border border-feedback-warning-border bg-feedback-warning-tint px-1.5 text-[13px] font-semibold text-feedback-warning-tint-text">
-                        Request: {line.special_request}
-                      </span>
-                    ) : null}
-                  </div>
-                  <Price cents={line.line_total_cents} size="md" />
-                </li>
-              );
-            })}
-            {(facts.removedLines ?? []).map((r) => (
-              <li key={`removed-${r.line_no}`} className="flex gap-2 border-b border-line-decorative py-2 text-fg-secondary last:border-b-0">
-                <span className="min-w-9 font-bold tabular-nums line-through">{r.qty} ×</span>
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold line-through">{r.name}</p>
-                  <p className="text-[13px] font-semibold">Removed from the order</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
+        <ItemsSection
+          lines={order.lines}
+          titleId="items-title"
+          after={(facts.removedLines ?? []).map((r) => (
+            <li key={`removed-${r.line_no}`} className="flex gap-2 border-b border-line-decorative py-2 text-fg-secondary last:border-b-0">
+              <span className="min-w-9 font-bold tabular-nums line-through">{r.qty} ×</span>
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold line-through">{r.name}</p>
+                <p className="text-[13px] font-semibold">Removed from the order</p>
+              </div>
+            </li>
+          ))}
+        />
 
         <section aria-label="Money" className="flex flex-col gap-1 border-t border-line-decorative pt-2 text-[15px]">
           <div className="flex justify-between">

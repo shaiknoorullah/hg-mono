@@ -6,9 +6,8 @@
  * panel beside the list for one order (`?order={id}`). The chip is `?status=` and is sent to the
  * server as the `state` filter every time it changes.
  *
- * - #601: the server ignores `state` and the cursor on `listRestaurantOrders`. The request always
- *   carries both AND the rows are guarded on the client (`guardHistoryRows`); a page that adds
- *   nothing new ends the list instead of asking again.
+ * - The server applies `state` and the keyset cursor on `listRestaurantOrders`; the list is
+ *   exactly what it sends, and `meta.has_more` says whether another page follows.
  * - Every state is drawn: loading, empty, filtered empty, error (with the header and chips kept),
  *   load more (loading and failed), end of list, and a refetch signal from the live channel.
  */
@@ -20,6 +19,7 @@ import { useConsole } from '../data/console';
 import { serverNow } from '../data/serverClock';
 import { useServerResource } from '../data/useServerResource';
 import { usePagePanelOpen } from '../shell/layout';
+import { useElementWidth } from '../shell/useElementWidth';
 import { HistoryDetail } from './HistoryDetail';
 import { loadHistoryPage, loadPastOrder } from './historyApi';
 import {
@@ -49,21 +49,6 @@ const START: ListState = { status: 'loading', rows: [], cursor: null, hasMore: f
 /** Below this list width the Items and Prep columns drop (the board's mid layout). */
 const MID_WIDTH = 1060;
 
-function useListWidth(): [React.RefObject<HTMLElement | null>, number] {
-  const ref = useRef<HTMLElement | null>(null);
-  const [width, setWidth] = useState(0);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    setWidth(el.clientWidth);
-    if (typeof ResizeObserver === 'undefined') return;
-    const ro = new ResizeObserver(() => setWidth(el.clientWidth));
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-  return [ref, width];
-}
-
 function Dash({ visible, spoken }: { visible?: string; spoken: string }) {
   return (
     <span className="inline-flex gap-1.5 text-fg-secondary">
@@ -73,7 +58,7 @@ function Dash({ visible, spoken }: { visible?: string; spoken: string }) {
   );
 }
 
-export function HistoryPage() {
+export function PastOrdersPage() {
   const { core, timezone } = useConsole();
   const [params, setParams] = useSearchParams();
   const raw = params.get('status');
@@ -83,7 +68,7 @@ export function HistoryPage() {
   const ticket = useRef(0);
   const listRef = useRef(list);
   listRef.current = list;
-  const [sectionRef, listWidth] = useListWidth();
+  const [sectionRef, listWidth] = useElementWidth();
   usePagePanelOpen(Boolean(openId));
 
   const loadFirst = useCallback(
@@ -108,11 +93,7 @@ export function HistoryPage() {
     try {
       const page = await loadHistoryPage(filter, listRef.current.cursor);
       if (mine !== ticket.current) return;
-      setList((s) => {
-        const fresh = page.rows.filter((r) => !s.rows.some((x) => x.id === r.id));
-        // A server that ignores the cursor (#601) sends the same page again: that is the end.
-        return { ...s, rows: [...s.rows, ...fresh], cursor: page.nextCursor, hasMore: page.hasMore && fresh.length > 0 && page.nextCursor !== null, more: 'idle' };
-      });
+      setList((s) => ({ ...s, rows: [...s.rows, ...page.rows], cursor: page.nextCursor, hasMore: page.hasMore, more: 'idle' }));
     } catch {
       if (mine !== ticket.current) return;
       setList((s) => ({ ...s, more: 'error' }));

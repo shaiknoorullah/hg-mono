@@ -8,6 +8,7 @@
  * counts) is not guessed here: the panel says what the state alone says. The list of those gaps
  * is in the pull request that added this file.
  */
+import type { Cents } from '@hg/api-client';
 import type { BadgeVariant, IconName } from '../ds';
 import { formatShortDate, formatTime } from '../format/time';
 import { endedBeforeAccept, type Order, type OrderState } from './model';
@@ -39,15 +40,6 @@ export const HISTORY_CHIPS: readonly { value: HistoryFilter; label: string; grou
 /** The `state` filter to send for a chip. */
 export function statesFor(filter: HistoryFilter): HistoryState[] {
   return filter === 'ALL' ? [...HISTORY_STATES] : [filter];
-}
-
-/**
- * #601: the server ignores `state` on `listRestaurantOrders`. The request always carries the
- * filter AND the rows are dropped when they are outside it, so a live order never shows up in
- * History and a chip never shows another status.
- */
-export function guardHistoryRows(rows: readonly Order[], filter: HistoryFilter): Order[] {
-  return rows.filter((o) => (filter === 'ALL' ? PAST.has(o.state) : o.state === filter));
 }
 
 export interface HistoryStatus {
@@ -121,7 +113,7 @@ export function placedLabel(iso: string, now: number, timeZone?: string): string
 }
 
 /** What the Order net cell draws: nothing owed (never accepted), or the server's figure. */
-export type NetCell = { kind: 'not-charged' } | { kind: 'amount'; cents: number; payoutOpen: boolean };
+export type NetCell = { kind: 'not-charged' } | { kind: 'amount'; cents: Cents; payoutOpen: boolean };
 
 /**
  * An order that ended before anyone accepted it paid nothing: "Not charged". Otherwise the figure
