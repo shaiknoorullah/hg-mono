@@ -83,6 +83,7 @@ import {
   type Quote,
 } from './checkoutApi';
 import { confirmPayment, outcomeOfPayment, type PaymentOutcome } from './confirmPayment';
+import { clearNextCard, peekNextCard } from './nextCard';
 import {
   DEFAULT_HANDOVER,
   TIP_NOT_AN_AMOUNT,
@@ -185,7 +186,9 @@ export function CheckoutScreen(): React.ReactElement {
   const [addressId, setAddressId] = React.useState<string | null>(null);
   const [tip, setTip] = React.useState<TipChoice>({ kind: 'preset', value: TIP_PRESETS[0]! });
   const [tipError, setTipError] = React.useState<string | null>(null);
-  const [pay, setPay] = React.useState<PayChoice | undefined>(undefined);
+  // A card picked while recovering an unpaid order is chosen here once; otherwise the default card.
+  const [pay, setPay] = React.useState<PayChoice | undefined>(() => peekNextCard());
+  React.useEffect(() => clearNextCard(), []);
   const [handover, setHandover] = React.useState<Handover>({ choice: DEFAULT_HANDOVER, noRing: false, noCall: false, note: '' });
   const [quote, setQuote] = React.useState<QuoteState>({ kind: 'none' });
   /** The quote the page showed before the latest one, to say what changed. */

@@ -13,8 +13,9 @@
  *   delivery code at a met handover, and an open report.
  *
  * Every other state hands over: an ended order (cancelled, rejected, failed, disputed, resolved) to
- * the outcome screen, a delivered or completed one to the legacy tracking screen through the legacy
- * bridge, so nothing regresses (design plan, route-by-route fallback).
+ * the outcome screen, a delivered or completed one to the delivered screen. An unpaid order
+ * (CREATED) whose payment needs the customer (a bank check, a declined card) shows the payment
+ * recovery page in place of the waiting body.
  *
  * Rules this page holds:
  * - Money is a server field through Price; the page adds and subtracts nothing and sends nothing.
@@ -29,9 +30,8 @@
  *   drops the halal badge once that copy is more than 15 minutes old.
  *
  * The cancel and Get help sheets, and the page for an order that has ended, live in
- * `OrderActions.tsx`. Not on this page yet (each is a separate surface, filed as a follow-up):
- * payment recovery, the delivered and completed pages, and live socket updates (the page polls,
- * which the contract allows).
+ * `OrderActions.tsx`; payment recovery in `PaymentRecovery.tsx`. Not on this page yet (a separate
+ * surface, filed as a follow-up): live socket updates (the page polls, which the contract allows).
  */
 import * as React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -62,6 +62,8 @@ import { formatTime } from '../lib/time';
 import { useNav } from '../navigation/context';
 import { cardName } from '../orders/format';
 import { EndedOrder, OrderActions } from './OrderActions';
+import { PaymentRecoveryBody } from './PaymentRecovery';
+import { recoveryOf } from './paymentRecovery';
 import type { TrackedOrder } from './trackingApi';
 import {
   SLOW_AUTHORIZED_MS,
@@ -104,9 +106,12 @@ export function TrackingScreen({ orderId, pollMs }: { orderId: string; pollMs?: 
   const nav = useNav();
   const { state, reload } = useTrackedOrder(orderId, pollMs);
   const { online } = useConnectivity();
+  /** The customer finished the bank's check here: the waiting line says the hold is being placed. */
+  const [bankConfirmed, setBankConfirmed] = React.useState(false);
 
   const ready = state.kind === 'ready' ? state : null;
   const order = ready?.data.order ?? null;
+  const recovering = order ? recoveryOf(order, ready?.data.payment ?? null) !== null : false;
 
   // A state this page does not draw: the outcome screen for an order that ended, else the legacy
   // screen, whole (it brings its own bar).
@@ -152,14 +157,25 @@ export function TrackingScreen({ orderId, pollMs }: { orderId: string; pollMs?: 
   } else {
     title = `Order ${ready!.data.order.code}`;
     subtitle = ready!.data.order.restaurant.name;
-    body = <TrackingBody data={ready!.data} asOf={ready!.asOf} failed={ready!.failed || !online} online={online} onRetry={reload} />;
+    body = (
+      <TrackingBody
+        data={ready!.data}
+        asOf={ready!.asOf}
+        failed={ready!.failed || !online}
+        online={online}
+        onRetry={reload}
+        bankConfirmed={bankConfirmed}
+        onBankConfirmed={() => setBankConfirmed(true)}
+        reload={reload}
+      />
+    );
   }
 
   return (
     <View style={[styles.fill, { backgroundColor: theme.color.surface.base }]} testID="TrackingScreen">
       <AppBar title={title} subtitle={subtitle} back={back} backLabel={TRACKING_COPY.backToOrders} tone="cream" isPageHeading={false} />
       {body}
-      {order ? <OrderActions order={order} tracking={ready?.data.tracking ?? null} reload={reload} /> : null}
+      {order ? <OrderActions order={order} tracking={ready?.data.tracking ?? null} reload={reload} hideCancel={recovering} /> : null}
     </View>
   );
 }
@@ -185,9 +201,13 @@ interface BodyProps {
   failed: boolean;
   online: boolean;
   onRetry: () => void;
+  /** The customer finished the bank's check on this page. */
+  bankConfirmed: boolean;
+  onBankConfirmed: () => void;
+  reload: () => void;
 }
 
-function TrackingBody({ data, asOf, failed, online, onRetry }: BodyProps): React.ReactElement {
+function TrackingBody({ data, asOf, failed, online, onRetry, bankConfirmed, onBankConfirmed, reload }: BodyProps): React.ReactElement {
   const theme = useTheme();
   // `now` is the phone's clock, for what the phone itself timed (the halal cache). Everything compared
   // with a time the server sent (the reply-by deadline, how long ago a fix was) uses `serverNow`.
@@ -230,11 +250,25 @@ function TrackingBody({ data, asOf, failed, online, onRetry }: BodyProps): React
     />
   ) : null;
 
+  // An unpaid order that needs the customer (a bank check, a declined card) gets its own page.
+  const recovery = recoveryOf(order, payment);
+  if (recovery) {
+    return (
+      <PaymentRecoveryBody
+        data={data}
+        recovery={recovery}
+        reload={reload}
+        onBankConfirmed={onBankConfirmed}
+        restaurantCard={<RestaurantCard data={data} asOf={asOf} online={online && !failed} now={now} waiting />}
+      />
+    );
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.page} testID="Tracking-body">
       {offlineBanner}
       {waiting ? (
-        <WaitingTop data={data} authorised={authorised} cardLabel={card} now={serverNow} />
+        <WaitingTop data={data} authorised={authorised} cardLabel={card} now={serverNow} bankConfirmed={bankConfirmed} />
       ) : (
         <LiveTop
           headline={headline}
@@ -275,11 +309,13 @@ function WaitingTop({
   authorised,
   cardLabel,
   now,
+  bankConfirmed,
 }: {
   data: TrackedOrder;
   authorised: Schema['Cents'];
   cardLabel: string | null;
   now: number;
+  bankConfirmed: boolean;
 }): React.ReactElement {
   const theme = useTheme();
   const display = useTypeStyle('display.md');
@@ -295,7 +331,9 @@ function WaitingTop({
   const deadlinePassed = deadline !== null && now >= deadline;
 
   let line: React.ReactNode;
-  if (order.state === 'CREATED') {
+  if (order.state === 'CREATED' && bankConfirmed) {
+    line = `Your bank has confirmed it's you. Placing the hold on your ${cardLabel ?? 'card'} now.`;
+  } else if (order.state === 'CREATED') {
     line = `Placing a hold on your ${cardLabel ?? 'card'}. Nothing is charged until ${name} accepts.`;
   } else if (order.state === 'AUTHORIZED') {
     line = slow ? (
