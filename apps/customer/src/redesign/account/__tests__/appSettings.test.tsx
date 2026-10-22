@@ -29,6 +29,9 @@ beforeEach(() => {
   current = jest.spyOn(Location, 'getForegroundPermissionsAsync');
   request = jest.spyOn(Location, 'requestForegroundPermissionsAsync');
   openSettings = jest.spyOn(Linking, 'openSettings').mockResolvedValue(undefined);
+  // The react-native preset's Linking.openSettings is already a jest.fn, so spyOn returns it as it
+  // is and restoreAllMocks does not clear its calls: without this, one test's call counts in the next.
+  openSettings.mockClear();
 });
 
 afterEach(() => {
