@@ -287,10 +287,17 @@ redesign_offer() {
 # The redesign APK replaces the legacy one (same package), with its data cleared. Its flows run in
 # name order, each with the world's values; a 1-ask-for-code.yaml among them runs first, and the
 # others then get the code it asked for as CODE. missions/ holds the device lab's missions, which
-# are never run as flows.
+# are never run as flows, and is the only folder left out.
+#
+# lab/ is in. Those are the same journeys as the flows beside them with takeScreenshot replaced by
+# design captures and the typing matched to the boards, so they are what measures the native boards
+# at all: 16 of the 19 design captures the customer flows declare are in lab/. A `-maxdepth 1` here
+# kept missions/ out and, unremarked, kept lab/ out too, so those 16 had never run anywhere
+# (https://github.com/shaiknoorullah/hg-mono/issues/966). Nested flows were always provided for —
+# maestro_flow flattens the path into the label and gives the flow its own screenshot folder.
 if [ "$mode" = all ]; then
   for app in customer rider; do
-    mapfile -t flows < <(find "$e2e/native/$app/redesign" -maxdepth 1 -type f -name '*.yaml' ! -name 'config.yaml' 2>/dev/null | sort)
+    mapfile -t flows < <(find "$e2e/native/$app/redesign" -type f -name '*.yaml' ! -name 'config.yaml' ! -path '*/missions/*' 2>/dev/null | sort)
     if [ "${#flows[@]}" -eq 0 ]; then
       record "redesign-$app" skip "no redesign flows (tools/e2e/native/$app/redesign/*.yaml)"
       continue
@@ -319,9 +326,13 @@ if [ "$mode" = all ]; then
       fi
     fi
     for flow in "${flows[@]}"; do
-      flow="redesign/$(basename "$flow")"
+      # Keep the path below native/<app>/, not the basename: lab/ holds a 1-sign-in.yaml of its own,
+      # and a basename would run one of the two twice and never the other.
+      flow="${flow#"$e2e/native/$app/"}"
       [ "$flow" != redesign/1-ask-for-code.yaml ] || continue
-      label="redesign-$app-$(basename "$flow" .yaml)"
+      label="redesign-$app-${flow#redesign/}"
+      label="${label%.yaml}"
+      label="${label//\//-}"
       keep_kitchen_open
       if [ "$app" = rider ] && [ "$flow" = redesign/3-offer.yaml ]; then
         redesign_offer "$label" "${vars[@]}"

@@ -11,7 +11,7 @@ reviewed: 2026-10-16
 
 # CI on self-hosted runners
 
-GitHub stopped starting hosted jobs on this private repository when the free Actions minutes ran
+GitHub stopped starting hosted jobs on this repository when the free Actions minutes ran
 out ([#287](https://github.com/shaiknoorullah/hg-mono/issues/287)). Until hosted billing is back,
 CI runs on the owner's own machines. One repository variable switches it; this page says which
 jobs move, how to add a machine, and what the setup does and does not protect against.
@@ -189,9 +189,13 @@ later jobs.
 What keeps that from happening is who can run a job at all:
 
 - only trusted accounts (`HG_CI_TRUSTED_ACTORS`) on branches of this repository;
-- the repository is private, and its "Run workflows from fork pull requests" setting stays off.
-  The fork check above lives in the workflow file, which a fork could edit, so this setting is
-  what actually keeps fork code off our machines;
+- **this repository is public**, so anyone can open a pull request from a fork. What holds those is
+  the fork approval policy, set to require approval for *all* external contributors, so no workflow
+  runs on a fork's code until a maintainer approves that run. The fork check further down lives in
+  the workflow file, which a fork could edit, so the approval policy, not that check, is what keeps
+  fork code off our machines. Read it with
+  `gh api repos/shaiknoorullah/hg-mono/actions/permissions/fork-pr-contributor-approval`, which must
+  answer `all_external_contributors`;
 - jobs on our runners get no secrets and only a read-only token;
 - every action and tool is pinned (actions to a commit, Vale, gitleaks and the runner by SHA-256,
   npm packages by lockfile).
