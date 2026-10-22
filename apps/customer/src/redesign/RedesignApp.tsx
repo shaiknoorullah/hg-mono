@@ -24,6 +24,12 @@ import { PaymentSheetHost } from '../payments/PaymentSheetHost';
 import { OrderingPauseProvider } from '../ordering/orderingPause';
 import { ThemeProvider } from './ds';
 import { Shell } from './navigation/Shell';
+import { asyncStorageLastSeenStore } from './whatsnew/asyncStorage';
+import { setLastSeenStore } from './whatsnew/store';
+
+// What's new remembers the last version it showed in the phone's storage, so the sheet opens once
+// per update (https://github.com/shaiknoorullah/hg-mono/issues/1058). Set before the first render.
+setLastSeenStore(asyncStorageLastSeenStore());
 
 export default function RedesignApp(): React.ReactElement | null {
   const scheme = useColorScheme();

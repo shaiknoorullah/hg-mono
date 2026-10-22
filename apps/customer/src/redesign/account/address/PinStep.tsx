@@ -18,8 +18,10 @@
  * `onPinChange`, the summary text) are what the real map needs. The rest of the step, the form and
  * its tests do not change.
  *
- * Not built, and why: "Use my current location" (needs a location module, a native dependency)
- * and its permission-off note (board `AddressForm-locdenied`).
+ * **Use my current location** is a button here and a flow in the form (`useCurrentLocation`): the
+ * form checks the phone's location permission, reads where it is, looks the address up and fills the
+ * fields. When the permission is off the button is disabled and `locationNote` says why, with a way
+ * to the phone's settings (board `AddressForm-locdenied`).
  */
 import * as React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -73,6 +75,13 @@ export interface PinStepProps {
   disabled?: boolean;
   /** "Use this spot" cannot run (offline). */
   lookupDisabled?: boolean;
+  /** "Use my current location" is running (permission, position or lookup). */
+  locating?: boolean;
+  /** Location is off for the app: the button is disabled and `locationNote` says why. */
+  locationDisabled?: boolean;
+  /** The note about location: off, or the phone could not say where it is. */
+  locationNote?: React.ReactNode;
+  onUseLocation: () => void;
   onPinChange: (pin: GeoPoint) => void;
   /** Reverse-geocode the pin (`reverseGeocode`) and fill the address fields from it. */
   onUseSpot: () => void;
@@ -80,7 +89,7 @@ export interface PinStepProps {
 }
 
 export function PinStep(props: PinStepProps): React.ReactElement {
-  const { isEdit, pin, centre, status, line1, search, error, note, disabled = false, lookupDisabled = false, onPinChange, onUseSpot, testID = 'PinStep' } = props;
+  const { isEdit, pin, centre, status, line1, search, error, note, locating = false, locationDisabled = false, locationNote, onUseLocation, disabled = false, lookupDisabled = false, onPinChange, onUseSpot, testID = 'PinStep' } = props;
   const theme = useTheme();
   const h2 = useTypeStyle('heading.sm');
   const small = useTypeStyle('body.sm');
@@ -104,8 +113,19 @@ export function PinStep(props: PinStepProps): React.ReactElement {
           <Text style={[small, { color: theme.color.feedback.danger.text, flex: 1 }]}>{error}</Text>
         </View>
       ) : null}
+      {locationNote}
       {note}
       <View style={styles.buttons}>
+        <Button
+          variant="tertiary"
+          iconStart="map"
+          disabled={disabled || lookupDisabled || locationDisabled || status === 'finding'}
+          loading={locating}
+          onPress={onUseLocation}
+          testID={`${testID}-useLocation`}
+        >
+          Use my current location
+        </Button>
         <Button
           variant="tertiary"
           iconStart="map"
