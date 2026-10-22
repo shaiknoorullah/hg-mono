@@ -94,7 +94,7 @@ export function SplitPanes({ panes, onResize, className, testId = 'SplitPanes' }
   const onKey = (i: number) => (event: KeyboardEvent<HTMLDivElement>) => {
     const c = controlled(i);
     if (!c) return;
-    const size = sizes[c.pane.id] ?? 360;
+    const size = sizes[c.pane.id] ?? c.pane.defaultSize ?? 360;
     const step = event.shiftKey ? BIG_STEP : STEP;
     const { min, max } = limits(c.pane);
     let next: number | null = null;
@@ -110,7 +110,7 @@ export function SplitPanes({ panes, onResize, className, testId = 'SplitPanes' }
   const onPointerDown = (i: number) => (event: PointerEvent<HTMLDivElement>) => {
     const c = controlled(i);
     if (!c) return;
-    drag.current = { id: c.pane.id, startX: event.clientX, startSize: sizes[c.pane.id] ?? 360, sign: c.sign };
+    drag.current = { id: c.pane.id, startX: event.clientX, startSize: sizes[c.pane.id] ?? c.pane.defaultSize ?? 360, sign: c.sign };
     try {
       event.currentTarget.setPointerCapture(event.pointerId);
     } catch {
@@ -133,7 +133,7 @@ export function SplitPanes({ panes, onResize, className, testId = 'SplitPanes' }
         const isFill = i === resolvedFill;
         const folded = Boolean(pane.collapsible && pane.collapsed);
         const c = i < panes.length - 1 ? controlled(i) : null;
-        const value = c ? (sizes[c.pane.id] ?? 360) : undefined;
+        const value = c ? (sizes[c.pane.id] ?? c.pane.defaultSize ?? 360) : undefined;
         const lim = c ? limits(c.pane) : undefined;
         return (
           <Fragment key={pane.id}>
@@ -142,7 +142,7 @@ export function SplitPanes({ panes, onResize, className, testId = 'SplitPanes' }
               data-pane={pane.id}
               data-collapsed={folded || undefined}
               className={cx('relative flex min-h-0 min-w-0 flex-col', isFill && !folded ? 'flex-1' : 'shrink-0')}
-              style={folded ? { width: STRIP } : isFill ? undefined : { width: sizes[pane.id] ?? 360 }}
+              style={folded ? { width: STRIP } : isFill ? undefined : { width: sizes[pane.id] ?? pane.defaultSize ?? 360 }}
             >
               {folded ? (
                 <div data-pane-strip className="flex h-full flex-col items-center border-e border-line-decorative bg-surface-subtle pt-2">

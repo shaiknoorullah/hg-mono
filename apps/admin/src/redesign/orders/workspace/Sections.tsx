@@ -22,6 +22,7 @@ import {
   REFUND_STATE,
 } from '../labels';
 import { deadlineNote, isHeldByFailedRefund, leaveItNote } from './notes';
+import { offersLiveMap, riderOf } from './liveMapModel';
 
 type Order = Schema['OrderAdminView'];
 type Refund = Schema['Refund'];
@@ -285,6 +286,33 @@ export function PeopleAndPlace({
         ]}
       />
       {revealed ? <p className="text-body-sm text-fg-secondary">Delivery address revealed for this view. Your reason is logged.</p> : null}
+    </section>
+  );
+}
+
+/**
+ * "Where things are": the live map's door and its words (`ORD/OrderDetail`). The words are the
+ * same facts the map pane draws, so the order is locatable here without opening a map. The
+ * 180 px mini map the board draws in this section is not built; see the live map pane's comment.
+ */
+export function WhereThingsAre({ order, onOpenMap }: { order: Order; onOpenMap: () => void }) {
+  const seen = riderOf(order, Date.now(), null);
+  const destination = order.pii_revealed ? 'the address is revealed on this order' : 'hidden until you reveal the address';
+  return (
+    <section aria-labelledby="where-heading" className="flex flex-col gap-2 border-t border-line-decorative pt-3">
+      <div className="flex items-center gap-2">
+        <h3 id="where-heading" className="m-0 flex-1 text-label-lg font-semibold text-fg-primary">
+          Where things are
+        </h3>
+        {offersLiveMap(order) ? (
+          <Button variant="ghost" iconStart="map" onPress={onOpenMap}>
+            Live map
+          </Button>
+        ) : null}
+      </div>
+      <p className="text-body-sm text-fg-primary">
+        Restaurant: {order.restaurant.name}. Destination: {destination}. Rider: {order.rider ? seen.sentence : 'no rider yet'}
+      </p>
     </section>
   );
 }

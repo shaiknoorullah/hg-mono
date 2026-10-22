@@ -36,6 +36,10 @@ export type { WordmarkProps } from './ds-stubs/adapters/Wordmark.adapter';
 export { Tooltip, TooltipProvider } from './ds-stubs/adapters/Tooltip.adapter';
 export type { TooltipProps } from './ds-stubs/adapters/Tooltip.adapter';
 
+/* ── Maps (proposed component, adapter) ─────────────────────────────────────────────────── */
+export { LiveMap } from './ds-stubs/adapters/LiveMap.adapter';
+export type { LiveMapProps, LiveMapPlace, LiveMapRider, MapPhase } from './ds-stubs/adapters/LiveMap.adapter';
+
 /* ── Data and time (live DS: adapters) ───────────────────────────────────────────────────
  * Price is the ONLY way money reaches the screen; Countdown runs on the server clock. */
 export { Price } from './ds-stubs/adapters/Price.adapter';

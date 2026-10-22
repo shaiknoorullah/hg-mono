@@ -17,12 +17,15 @@
  * - The list pane folds to a 48 px strip (the button in its header) and comes back from the strip's Show
  *   button, so the order can take the width.
  *
- * Not on this page, with the reason in the pull request: the live map pane (the design system has no map component yet), resolving a dispute and
- * opening an incident (no API), click-to-call (no API).
+ * - The live map opens in the same place, widened over the list; closing it brings More detail back.
+ *   Reveal address from the map replaces it, as Cancel and Reveal do.
+ *
+ * Not on this page, with the reason in the pull request: resolving a dispute and opening an
+ * incident (no API), click-to-call (no API).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { useRealtimeChannel } from '@hg/ui-web/live';
+import { eventOfType, useRealtimeChannel } from '@hg/ui-web/live';
 import { isApiError } from '@hg/api-client';
 import type { Schema } from '@hg/api-client';
 
@@ -39,6 +42,7 @@ import { staffCanCancel } from './notes';
 import { CancelPanel } from './CancelPanel';
 import { ListPane, listFoldLabels, listSourceOf } from './ListPane';
 import { RevealPanel } from './RevealPanel';
+import { LiveMapPane } from './LiveMapPane';
 import {
   ChargebackBlock,
   DeadlineBlock,
@@ -52,11 +56,12 @@ import {
   RefundRows,
   ResidualAlert,
   TimelineBlock,
+  WhereThingsAre,
 } from './Sections';
 
 type Order = Schema['OrderAdminView'];
 type Load = { kind: 'loading' } | { kind: 'ready'; order: Order } | { kind: 'not-found' } | { kind: 'error' };
-type Panel = 'none' | 'cancel' | 'reveal' | 'refund';
+type Panel = 'none' | 'cancel' | 'reveal' | 'refund' | 'map';
 type Result = { refunded: boolean; at: string } | null;
 
 export default function OrderRoute() {
@@ -71,7 +76,9 @@ export default function OrderRoute() {
   const [load, setLoad] = useState<Load>({ kind: 'loading' });
   const [panel, setPanel] = useState<Panel>('none');
   const [result, setResult] = useState<Result>(null);
-  // The list pane folds to a strip so the order can be read at full width (`ORD/OrderDetailListCollapsed`).
+  // The list pane folds to a strip so the order can be read at full width
+  // (`ORD/OrderDetailListCollapsed`), and folds on its own while the map is open. Either way the
+  // person's own choice is what it returns to.
   const [listFolded, setListFolded] = useState(false);
   const ticket = useRef(0);
   const openedBy = useRef<HTMLElement | null>(null);
@@ -101,8 +108,10 @@ export default function OrderRoute() {
   }, [read]);
 
   // The server moves orders on its own; follow it without a skeleton.
-  useRealtimeChannel(`order:${orderId}`, () => {
-    if (panel === 'none') void read(true);
+  useRealtimeChannel(`order:${orderId}`, (signal) => {
+    // The map pane takes every rider position itself; a position is not a reason to read the order.
+    if (panel === 'map' && eventOfType(signal, 'rider.location')) return;
+    if (panel === 'none' || panel === 'map') void read(true);
   });
 
   const order = load.kind === 'ready' ? load.order : null;
@@ -188,6 +197,13 @@ export default function OrderRoute() {
         <RefundRows order={o} />
         <PaymentBlock order={o} />
         <ItemsAndMoney order={o} />
+        <WhereThingsAre
+          order={o}
+          onOpenMap={() => {
+            openedBy.current = document.activeElement as HTMLElement | null;
+            setPanel('map');
+          }}
+        />
         <PeopleAndPlace
           order={o}
           onReveal={
@@ -230,6 +246,23 @@ export default function OrderRoute() {
           onClose={close}
           onReload={() => void read(true)}
           onAnswered={() => void read(true)}
+        />
+      );
+    }
+    if (order && panel === 'map') {
+      return (
+        <LiveMapPane
+          order={order}
+          onRefresh={() => void read(true)}
+          onClose={close}
+          onReveal={
+            online && !order.pii_revealed
+              ? () => {
+                  setPanel('reveal');
+                }
+              : null
+          }
+          returnFocusRef={openedBy}
         />
       );
     }
@@ -278,14 +311,16 @@ export default function OrderRoute() {
             label: 'List',
             showLabel: listFoldLabels(from).show,
             collapsible: true,
-            collapsed: listFolded,
+            collapsed: listFolded || panel === 'map',
             onCollapsedChange: setListFolded,
             defaultSize: 300,
             minSize: 220,
             content: <ListPane from={from} selectedId={orderId} onCollapse={() => setListFolded(true)} />,
           },
           { id: 'order', label: 'Order', fill: true, content: <div className="h-full overflow-auto p-4">{orderPane}</div> },
-          { id: 'order-detail', label: 'More detail', collapsible: true, defaultSize: 440, minSize: 320, content: <div className="h-full overflow-auto">{detailPane}</div> },
+          panel === 'map'
+            ? { id: 'order-map', label: 'Live map', defaultSize: 760, minSize: 520, maxSize: 960, content: <div className="h-full overflow-auto">{detailPane}</div> }
+            : { id: 'order-detail', label: 'More detail', collapsible: true, defaultSize: 440, minSize: 320, content: <div className="h-full overflow-auto">{detailPane}</div> },
         ]}
       />
     </section>
