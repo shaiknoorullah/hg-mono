@@ -326,6 +326,20 @@ and asks `android/capture-server.mjs` (started by `tools/e2e/run.sh` for each fl
 `.hierarchy.xml` and `.capture.json` (device, app build, density) beside it. If the server is not
 running the flow still passes and the diff reports `NO LAYOUT`.
 
+**Where a native capture's layout comes from.** Not `uiautomator dump`: that is killed while a
+Maestro flow is in progress, and a capture runs inside a flow by definition — measured on one device
+in one run, `Killed`/`rc=137` during a flow and `rc=0` with nothing driving
+([#1026](https://github.com/shaiknoorullah/hg-mono/issues/1026)). Maestro holds the hierarchy anyway
+and writes it for any step that failed or was retried, so `tools/e2e/native/design-capture.yaml`
+asks for an element named after the capture that nothing has. The capture server takes the newest
+such file at the moment the flow POSTs, which is the step straight after that probe, and writes it
+beside the screenshot as `<capture>.hierarchy.json`.
+
+It cannot be matched by file name: Maestro names the file from the **literal** command text, so a
+real run leaves `step-022-tapOnElement-${SHOT}.json` with the variable unsubstituted. Each file is
+used once, so a probe that wrote nothing is given nothing rather than the previous capture's screen.
+`diff.mjs` reads `.hierarchy.json` first and falls back to the `.hierarchy.xml` of a dump.
+
 A capture never fails the journey it measures, so the only account of why one is missing is what the
 server logged, so it is made to say as much as it can.
 

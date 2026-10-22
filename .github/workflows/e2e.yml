@@ -379,7 +379,7 @@ jobs:
           #
           # The design boards are 390 dp wide and a Pixel 6 is 411 dp, so the size and density are set
           # first and the measured size is printed in this log (tools/e2e/android/design-size.sh).
-          script: adb shell settings put global hide_error_dialogs 1 && bash tools/e2e/android/design-size.sh && adb logcat -G 16M && { bash tools/e2e/run.sh; rc=$?; bash tools/e2e/android/kill-evidence.sh || true; exit $rc; }
+          script: adb shell settings put global hide_error_dialogs 1 && bash tools/e2e/android/design-size.sh && adb logcat -G 16M && { bash tools/e2e/run.sh; rc=$?; bash tools/e2e/android/kill-evidence.sh || true; node tools/e2e/native/check-hierarchies.mjs || rc=1; exit $rc; }
 
       - name: Collect the stack's logs
         if: always()
