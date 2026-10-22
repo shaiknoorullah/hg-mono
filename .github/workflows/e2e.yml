@@ -336,7 +336,15 @@ jobs:
           arch: x86_64
           target: google_apis
           profile: pixel_6
-          ram-size: 3072M
+          # 6 GiB because a design capture's `uiautomator dump` was being killed at 3 GiB: the CI
+          # run reported `Killed` and `rc=137` (SIGKILL) from inside the device, so Android's
+          # low-memory killer, not the host. The dump starts a JVM on top of the app under test and
+          # Maestro's driver, and that was the process the device gave up first — which is why every
+          # native capture has been NO LAYOUT and no native board has ever been measured
+          # (https://github.com/shaiknoorullah/hg-mono/issues/1026). The runner has 16 GiB, and the
+          # compose stack and the web servers share it, so this is raised as far as is comfortable
+          # rather than as far as it goes.
+          ram-size: 6144M
           disk-size: 4096M
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
           disable-animations: true

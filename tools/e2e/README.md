@@ -269,6 +269,10 @@ board by that name, and judges it (a web capture pixel by pixel, a native one by
   device-lab AVD) before `run.sh` and fails the job unless it reads back. The `design-size:` line in the `flows` job's
   log is the measured size, and it has read `390.00 x 844.00 dp` since
   [#1024](https://github.com/shaiknoorullah/hg-mono/pull/1024). Trust a native capture's verdict only when that line does.
+  The emulator is given **6 GiB**, not the action's smaller default, because a capture's
+  `uiautomator dump` starts a JVM on top of the app and Maestro's driver: at 3 GiB the device's
+  low-memory killer took it every time (`Killed`, `rc=137`), and every native capture came out with
+  no hierarchy ([#1026](https://github.com/shaiknoorullah/hg-mono/issues/1026)).
   The customer boards that no flow captures, each with its reason, are in
   [`native/customer-boards.mjs`](native/customer-boards.mjs); `pnpm e2e:boards:check` fails on a capture named for a
   board that does not exist, and (with `origin/claude/redesign-canvases` fetched) on a board that is neither captured nor
