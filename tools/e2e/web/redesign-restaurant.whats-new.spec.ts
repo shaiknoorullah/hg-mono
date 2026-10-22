@@ -18,7 +18,7 @@ test.skip(MODE !== 'mock', 'written against the mock server; run with E2E_MODE=m
  *   - captured: `WhatsNew-AfterUpdate` (over Payouts), `WhatsNew-OnOrders` (over Live orders),
  *     `WhatsNew-Page`, `WhatsNew-Loading`, `WhatsNew-Error`, `WhatsNew-UpToDate`;
  *   - declared unpairable, with the reason on each: `WhatsNew-Interrupted` (a new order arrives over the
- *     live connection, which the mock server cannot send; the unit tests cover that the panel stays),
+ *     live connection, which the mock server cannot send; nothing opens another panel by itself, so the panel stays),
  *     `WhatsNew-FirstRun` (it draws the "Get set up" checklist, a different feature from release notes),
  *     and `PartWhatsNew` (declared by redesign-restaurant.settings.spec.ts with the other component boards).
  *
@@ -103,11 +103,11 @@ test.describe('redesigned restaurant · what’s new panel (mock)', () => {
     await open(page, '/payouts');
     await expect(panel(page)).toBeVisible();
     // The board draws a new order arriving over the live connection, which the mock server cannot
-    // send. The unit tests (apps/restaurant/src/redesign/whatsnew) check the panel stays open.
+    // send. A new order goes to the strip and opens no panel by itself, so this panel stays open.
     await declareUnpairable(
       page,
       'restaurant/settings/WhatsNew-Interrupted',
-      'a new order arrives over the live connection while the panel is open; the mock server cannot push one, so the state cannot be reached here (the unit tests cover that the panel stays)',
+      'a new order arrives over the live connection while the panel is open; the mock server cannot push one, so the state cannot be reached here (a new order goes to the strip and opens no panel by itself)',
     );
   });
 
