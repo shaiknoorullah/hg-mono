@@ -379,7 +379,7 @@ jobs:
           #
           # The design boards are 390 dp wide and a Pixel 6 is 411 dp, so the size and density are set
           # first and the measured size is printed in this log (tools/e2e/android/design-size.sh).
-          script: adb shell settings put global hide_error_dialogs 1 && bash tools/e2e/android/design-size.sh && adb logcat -G 16M && { bash tools/e2e/run.sh; rc=$?; bash tools/e2e/android/kill-evidence.sh || true; exit $rc; }
+          script: adb shell settings put global hide_error_dialogs 1 && bash tools/e2e/android/design-size.sh && adb logcat -G 16M && { bash tools/e2e/run.sh; rc=$?; bash tools/e2e/android/kill-evidence.sh || true; node tools/e2e/native/check-hierarchies.mjs || rc=1; exit $rc; }
 
       - name: Collect the stack's logs
         if: always()
@@ -421,7 +421,10 @@ jobs:
     needs: plan
     if: "!cancelled() && needs.plan.outputs.mode != 'none'"
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    # 60, not 30: with the admin refunds, staff and restaurant onboarding captures in, one mock pass
+    # over both consoles ran past 30 minutes (run 39770582269). A stopgap until the job is split
+    # into one job per app.
+    timeout-minutes: 60
     env:
       E2E_OUT: ${{ github.workspace }}/e2e-out
       E2E_MODE: mock
@@ -480,6 +483,14 @@ jobs:
           echo "" >>"$GITHUB_STEP_SUMMARY"
           echo "$n captures taken against the mock API." >>"$GITHUB_STEP_SUMMARY"
 
+      # A failing spec takes no capture, and a board with no capture reads as "uncaptured" — which
+      # is also what a board nobody has written a capture for looks like. One is a regression and
+      # the other is work not started, so the failures are named rather than left to the diff's
+      # count, which cannot tell them apart.
+      - name: The capture specs that failed
+        if: always()
+        run: node tools/e2e/web/capture-failures.mjs "$E2E_OUT/playwright" || true
+
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
@@ -505,7 +516,10 @@ jobs:
     # which under the old condition would have skipped this job entirely.
     if: "!cancelled() && needs.captures.result == 'success'"
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    # The comparison is about a second a pair and the capture count only goes up: 681 when it
+    # landed, 823 a day later, and roughly 2,600 boards exist. 90 minutes is headroom, not a fix —
+    # the run that needs it should be read, not just allowed to finish.
+    timeout-minutes: 90
     env:
       E2E_OUT: ${{ github.workspace }}/e2e-out
     steps:
@@ -575,10 +589,43 @@ jobs:
       # --no-strict: the diff exits 1 on any FAIL, and no board passes yet. A gate that is red
       # before the first board is fixed tells nobody anything and blocks every merge; the verdicts
       # are published instead, and a regression gate comes once there is something to protect.
+      # A job that is cancelled leaves no reason behind: on run 39762301254 the comparison stopped
+      # after 92 silent seconds at 23 of its 45 allowed minutes, with every other job green. Disk
+      # and memory are the two the runner can run out of without saying so, and the comparison
+      # writes three PNGs a pair, so both are printed either side of it.
+      - name: Space and memory before the comparison
+        run: df -h "$GITHUB_WORKSPACE" | tail -1; free -m | head -2
+
+      # Sampled while the comparison runs, not either side of it. Measuring either side cannot see
+      # this failure: the step that reads the numbers afterwards carries `if: always()` and was
+      # SKIPPED on run 39775974688, which is what GitHub does when a job is terminated from outside
+      # rather than when a step fails. So the only reading that can survive the failure is one
+      # already in the log when it happens
+      # (https://github.com/shaiknoorullah/hg-mono/issues/1034).
+      #
+      # The sampler is killed on the way out so it cannot hold the step open.
       - name: Compare the captures with their boards
-        run: >-
-          pnpm --filter @hg/design-diff exec node src/diff.mjs --no-strict
-          --refs "$E2E_OUT/design-refs" --captures "$E2E_OUT/design-captures" --out "$E2E_OUT/design-diff"
+        run: |
+          (
+            while :; do
+              printf '[sample] %s  %s  out %s\n' \
+                "$(date -u +%H:%M:%S)" \
+                "$(free -m | awk '/^Mem:/{printf "available %s MiB of %s, cache %s", $7, $2, $6}')" \
+                "$(du -sh "$E2E_OUT/design-diff" 2>/dev/null | cut -f1)"
+              sleep 15
+            done
+          ) &
+          sampler=$!
+          trap 'kill "$sampler" 2>/dev/null || true' EXIT
+          pnpm --filter @hg/design-diff exec node src/diff.mjs --no-strict \
+            --refs "$E2E_OUT/design-refs" --captures "$E2E_OUT/design-captures" --out "$E2E_OUT/design-diff"
+
+      - name: Space and memory after the comparison
+        if: always()
+        run: |
+          df -h "$GITHUB_WORKSPACE" | tail -1
+          free -m | head -2
+          du -sh "$E2E_OUT/design-diff" "$E2E_OUT/design-refs" "$E2E_OUT/design-captures" 2>/dev/null || true
 
       - name: Write the report
         if: always()

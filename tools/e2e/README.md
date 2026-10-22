@@ -40,8 +40,7 @@ compose stack, no Go and no APKs, runs in parallel, and `serve.sh` starts `pnpm 
 it existed, the first run that produced verdicts compared **4** boards where the one run done by
 hand compared **143** ([#1049](https://github.com/shaiknoorullah/hg-mono/issues/1049)).
 
-A failing capture spec does not fail that job: a spec that failed took no capture, which the diff
-already reports as a board without one, and that is the number to read. A crash still fails it.
+A failing capture spec does not fail that job: one broken spec must not cost every other board its verdict. But the failures are **named** in the job summary, because leniency made them silent — a spec that fails takes no capture, and the diff reports a board with no capture as "uncaptured", which is exactly how it reports a board nobody has written a capture for. One is a regression and the other is work not started ([`web/capture-failures.mjs`](web/capture-failures.mjs)). A crash still fails the job.
 
 Real-mode captures are written to `design-captures-real` and are **not** compared. Three boards are
 declared by both a real-mode and a mock-mode spec, measured, and nothing dedupes by board
@@ -61,6 +60,17 @@ fails the job. The regression gate — a board that passed on `main` failing on 
 once there is something to protect ([#1034](https://github.com/shaiknoorullah/hg-mono/issues/1034)),
 and native captures join it once they have a view hierarchy
 ([#1026](https://github.com/shaiknoorullah/hg-mono/issues/1026)).
+
+**What it costs, and what has not been explained.** The comparison is about a second a pair, and the
+pair count only rises: 681 when the mock capture pass landed, 823 a day later, against roughly 2,600
+boards. Its `timeout-minutes` is **90** — headroom, not a measurement: the job has never been read
+to completion. One run stopped at 23 minutes with `The operation was canceled` and **no failing
+step**, after printing a verdict about once a second and then going silent for 92 seconds. The
+declared timeout, the run being cancelled, a newer run superseding it, pairs holding decoded images
+and the V8 heap were each checked and ruled out, so the cause is still open: the job now prints
+`df -h` and `free -m` either side of the comparison, and the next capture-heavy run should say which
+of disk or memory runs out
+([#1034](https://github.com/shaiknoorullah/hg-mono/issues/1034)).
 
 A run on a pull request reads no secret. No run needs one: the API runs with `HG_ENV=local`, so it
 uses its fake payment client (no Stripe keys) and writes phone sign-in codes to its own log
@@ -296,6 +306,17 @@ board by that name, and judges it (a web capture pixel by pixel, a native one by
   `<area>` is the canvas folder and `<Board>` the file name without `.dc.html`, spelled exactly (case included);
   the app is the folder the screenshots are in, so a customer capture is the board `customer/<area>/<Board>`.
   The captures live in the device-lab flows (`lab/`, and `1-first-run.yaml` that the sign-in mission also runs).
+  **The hierarchy comes from Maestro, not from `uiautomator dump`.** A dump is killed while a flow is
+  in progress and a capture runs inside a flow, so `design-capture.yaml` ends with a probe whose
+  debug output the capture server pairs with the screenshot: the mechanism, and why the pairing is by
+  moment rather than by file name, is in
+  [the design-diff README](../design-diff/README.md#native-boards-customer-rider), and the evidence is on
+  [#1026](https://github.com/shaiknoorullah/hg-mono/issues/1026). It leans on
+  Maestro's debug output rather than a documented API, so
+  [`native/check-hierarchies.mjs`](native/check-hierarchies.mjs) **fails the run** when captures were
+  taken and none has a hierarchy: a Maestro upgrade that stopped writing those files would otherwise
+  return every native board to `NO LAYOUT` quietly, and the diff does not fail on those.
+
   **8 of the 19 are taken in CI**: the 3 in `1-first-run.yaml`, and the 5 in `lab/1-sign-in.yaml`, which `lab_for_ci`
   in [`run.sh`](run.sh) names because it takes captures and needs nothing CI lacks. It runs **in place of**
   `redesign/1-sign-in.yaml`, being the same journey with the captures added, so the run signs in once. The other 11 are
@@ -317,7 +338,7 @@ board by that name, and judges it (a web capture pixel by pixel, a native one by
   The customer boards that no flow captures, each with its reason, are in
   [`native/customer-boards.mjs`](native/customer-boards.mjs); `pnpm e2e:boards:check` fails on a capture named for a
   board that does not exist, and (with `origin/claude/redesign-canvases` fetched) on a board that is neither captured nor
-  given a reason. A new flow screenshot of a board's screen should be named for it; a screen with no board stays unnamed.
+  given a reason. A new flow screenshot of a board's screen should be named for it; a screen with no board stays unnamed. The seven App settings boards are built but unpaired: the location states are the phone's permission, which no flow sets before it captures.
 
 Every redesign web spec declares the board of each screenshot it takes, and the board has to be
 the exact file `canvases/<app>/<area>/project/<Board>.dc.html` on `origin/claude/redesign-canvases`.
@@ -355,8 +376,9 @@ in its `.capture.json` and reported as uncovered. Three helpers in `web/design.t
   and is listed as not comparable, never as a 20-odd percent difference. It is also how a board
   that no screen of the app can be paired with is declared, with its reason: a component or a
   specimen drawn alone, or a state that needs a contract operation, a contract field or an owner
-  decision the app does not have yet (`redesign-admin.rider-onboarding-unpairable.spec.ts` lists
-  the rider onboarding area's, each with its reason). The capture then shows what the app draws
+  decision the app does not have yet (`redesign-admin.rider-onboarding-unpairable.spec.ts` and
+  `redesign-admin.verification-unpairable.spec.ts` list the rider onboarding and Restaurant
+  Verification areas', each with its reason). The capture then shows what the app draws
   in that state's place.
 - `stepper(app, prefix, boards)` takes the declarations of a step-by-step spec by step name.
 
@@ -386,6 +408,7 @@ job has a timeout:
 | A push to a PR labelled `e2e-full` | as a nightly run | 35 to 60 |
 | Run workflow, `flows: web` | plan 1, flows 15 | 16 |
 | Each redesign build, once an app has redesign specs or flows | web: about 1 more per app in `flows`; Android: one more APK build, 15 (1 from the cache), and its flows | +1 to +30 |
+| The design captures, beside `flows` on every `e2e` or `e2e-full` run | `captures` (the redesign specs in mock mode, both consoles) about 30, with a 60-minute limit until it runs as one job per app | in parallel with `flows`, so about +0 to +15 to the run |
 
 A month of nightly runs on a busy `main` is about 1,000 to 1,800 minutes of run time, which costs
 nothing here. To spend less time, label only the pull requests that change an app's flows, or run

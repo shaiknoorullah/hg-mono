@@ -61,6 +61,19 @@ module.exports = () => {
         // credentials in Expo; without them, or without EAS_PROJECT_ID, there is no push token
         // and the app works without push.
         'expo-notifications',
+        // Location while the app is open, to start the address map where the customer is (App
+        // settings, the address form). Never in the background: both background switches are off, so the
+        // plugin adds no Android background permission and no iOS location background mode, and the
+        // app only ever asks "while using the app".
+        [
+          'expo-location',
+          {
+            locationWhenInUsePermission:
+              'HalalGoes uses your location to find addresses near you when you add a delivery address.',
+            isAndroidBackgroundLocationEnabled: false,
+            isIosBackgroundLocationEnabled: false,
+          },
+        ],
         ...mapboxPlugins(),
       ],
       extra: {
