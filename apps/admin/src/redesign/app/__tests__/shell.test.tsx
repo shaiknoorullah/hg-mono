@@ -441,14 +441,14 @@ describe('shell chrome', () => {
     expect(document.activeElement).toBe(open);
   });
 
-  it('rail labels are caption size and wrap inside the 80px rail instead of spilling out', () => {
+  it('draws the rail as the board does: icons only, each item still named and titled', () => {
     renderApp('/riders/7c1d4f2a-0b3e-4c5d-8e6f-1a2b3c4d5e09', 'ADMIN');
     const labels = [...nav().querySelectorAll<HTMLElement>('[data-rail-label]')];
     expect(labels.map((l) => l.textContent)).toEqual(expect.arrayContaining(['Certificates', 'Restaurant']));
     for (const label of labels) {
-      expect(label.className).toContain('max-w-[72px]');
-      expect(label.className).toContain('[overflow-wrap:anywhere]');
-      expect(label.closest('a')!.className).toContain('text-caption');
+      // Not painted (the board draws no text in the rail), but still in the accessibility tree.
+      expect(label.className).toContain('sr-only');
+      expect(label.closest('a')!.getAttribute('title')).toBeTruthy();
     }
   });
 });
