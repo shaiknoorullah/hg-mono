@@ -2,7 +2,7 @@
 covers:
   - deploy/**
   - services/hg/internal/orders/runner*.go
-reviewed: 2026-10-13
+reviewed: 2026-10-22
 ---
 
 # Incident runbook
