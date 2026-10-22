@@ -1,0 +1,22 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "dXJuOm1ieHBjOmZpeHR1cmUtbTRqMW0z",
+      "geometry": {"type": "Point", "coordinates": [-79.3310, 43.6815]},
+      "properties": {
+        "mapbox_id": "dXJuOm1ieHBjOmZpeHR1cmUtbTRqMW0z",
+        "feature_type": "postcode",
+        "name": "M4J 1M6",
+        "coordinates": {"longitude": -79.3310, "latitude": 43.6815},
+        "place_formatted": "Toronto, Ontario, Canada",
+        "context": {
+          "place": {"mapbox_id": "pl1", "name": "Toronto"},
+          "region": {"mapbox_id": "r1", "name": "Ontario", "region_code": "ON", "region_code_full": "CA-ON"},
+          "country": {"mapbox_id": "c1", "name": "Canada", "country_code": "CA", "country_code_alpha_3": "CAN"}
+        }
+      }
+    }
+  ]
+}

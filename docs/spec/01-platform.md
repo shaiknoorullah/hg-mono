@@ -9,7 +9,7 @@ covers:
   - services/hg/internal/files/**
   - services/hg/internal/dispatch/**
   - services/hg/internal/httpx/**
-reviewed: 2026-10-16
+reviewed: 2026-10-22
 ---
 
 # HalalGoes — Cross-Cutting Platform Layer Specification
@@ -383,7 +383,7 @@ CREATE TABLE signing_key (
 
 - **Behaviour**: Authorization is `Can(principal, action, subject) → allow | deny`. `action` is a `noun.verb` string from a **closed, compile-time enumerated** set (`order.read`, `order.accept`, `menu_item.update`, `payout.read`, `kyc_document.download`, …). Permissions are a static Go map `role → set[action]`, versioned in-repo and covered by a golden test; they are **not** database-configurable in V1 (no runtime permission editing means no runtime permission bug). Scope narrows the subject set: a `RESTAURANT_MANAGER` scoped to R1 holding `order.accept` may only accept orders whose `restaurant_id = R1`, which is the *ownership* check (P-07), not the role check.
 
-  `SUPER_ADMIN` holds all actions. `ADMIN` holds all except `admin.grant_role`, `platform_config.write`, `payout_config.write`. `SUPPORT_AGENT` holds read actions plus `refund.request` (which requires admin approval above a threshold) and `order.annotate`. So pausing new orders platform-wide (`ordering_pause.set`, [#244](https://github.com/shaiknoorullah/hg-mono/issues/244)) is `ADMIN` and `SUPER_ADMIN`; `SUPPORT_AGENT` only reads it (`ordering_pause.read`).
+  `SUPER_ADMIN` holds all actions. `ADMIN` holds all except `admin.grant_role`, `platform_config.write`, `payout_config.write`. `SUPPORT_AGENT` holds read actions plus `refund.request` (which requires admin approval above a threshold) and `order.annotate`. So pausing new orders platform-wide (`ordering_pause.set`, [#244](https://github.com/shaiknoorullah/hg-mono/issues/244)) is `ADMIN` and `SUPER_ADMIN`; `SUPPORT_AGENT` only reads it (`ordering_pause.read`). Address search (`geo.search`: suggestions, place details and reverse geocoding, [issue #891](https://github.com/shaiknoorullah/hg-mono/issues/891)) is held by `CUSTOMER`, `RESTAURANT_OWNER` and `RESTAURANT_MANAGER` only; every call costs money at the provider, so no staff or rider role has it.
 
 - **Data**: no table in V1. `account_role` (P-01) is the only persisted authorization data. The permission matrix ships as `internal/authz/matrix.go` and is dumped into the OpenAPI description and into `docs/permissions.md` by `go generate`.
 

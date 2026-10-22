@@ -29,7 +29,7 @@ func TestConformance_SpecLoadsAndEnumerates(t *testing.T) {
 	// suggestAddresses/getPlaceAddress/reverseGeocode (address search for the
 	// location picker, forwarded to Mapbox — the round-2 decision on map address
 	// search, docs/decisions/README.md "Launch scope and contract", issue #179;
-	// no handler yet) +
+	// served by internal/geo, https://github.com/shaiknoorullah/hg-mono/issues/891) +
 	// createPayoutRun/listPayoutRuns/getPayoutRun (issue #251) +
 	// listRefundsAdmin/approveRefund/declineRefund and
 	// listChargebacks/getChargeback/addChargebackEvidenceNote (staff review

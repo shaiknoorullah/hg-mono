@@ -1,0 +1,22 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "dXJuOm1ieGFkcjpmaXh0dXJlLXVzLTE",
+      "geometry": {"type": "Point", "coordinates": [-78.8784, 42.8864]},
+      "properties": {
+        "mapbox_id": "dXJuOm1ieGFkcjpmaXh0dXJlLXVzLTE",
+        "feature_type": "address",
+        "name": "1 Main Street",
+        "coordinates": {"longitude": -78.8784, "latitude": 42.8864},
+        "place_formatted": "Buffalo, New York 14202, United States",
+        "full_address": "1 Main Street, Buffalo, New York 14202, United States",
+        "context": {
+          "region": {"mapbox_id": "r2", "name": "New York", "region_code": "NY", "region_code_full": "US-NY"},
+          "country": {"mapbox_id": "c2", "name": "United States", "country_code": "US", "country_code_alpha_3": "USA"}
+        }
+      }
+    }
+  ]
+}
