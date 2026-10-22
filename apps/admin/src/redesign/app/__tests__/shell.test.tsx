@@ -448,6 +448,15 @@ describe('shell chrome', () => {
       expect(label.closest('a')!.className).toContain('text-caption');
     }
   });
+
+  it('draws the current item as an inverted tile: filled, chrome-coloured, bold, never outlined', () => {
+    renderApp('/riders/7c1d4f2a-0b3e-4c5d-8e6f-1a2b3c4d5e09', 'ADMIN');
+    const current = nav().querySelector<HTMLElement>('a[aria-current="page"]')!;
+    expect(current.className).toContain('bg-fg-on-accent');
+    expect(current.className).toContain('text-surface-chrome');
+    expect(current.className).toContain('font-bold');
+    expect(current.className).not.toMatch(/\bborder/);
+  });
 });
 
 describe('session ended dialog', () => {

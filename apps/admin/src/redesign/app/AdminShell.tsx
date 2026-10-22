@@ -19,7 +19,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type MouseEvent } from 'react';
 import { Outlet, useHref, useLocation, useNavigate } from 'react-router-dom';
 
-import { Badge, Banner, Button, Icon, NavDrawer, SideNav, SideNavIconSlot, Wordmark } from '../ds';
+import { Badge, Banner, Button, Icon, IconButton, NavDrawer, SideNav, SideNavIconSlot, Wordmark } from '../ds';
 import { api } from '../data/api';
 import { getSession, staffRoleOf, subscribeSession, type StaffRole } from '../data/session';
 import { queueCountsNote, useQueueDepth } from '../realtime/queueDepth';
@@ -32,7 +32,7 @@ import { useWhatsNew, useWhatsNewApi, WhatsNewProvider, WHATS_NEW_PANEL_ID } fro
 import { FORBIDDEN, NOT_FOUND } from './copy';
 import { useLanding } from './landing';
 import { navGroupsFor, ROLE_LABEL } from './nav';
-import { PageTitleContext } from './pageTitle';
+import { PageBarContext, PageTitleContext, type PageBar } from './pageTitle';
 import { canOpen, findAdminRoute } from './routes';
 import { finishSignOut } from './signOut';
 
@@ -228,11 +228,13 @@ function AdminShellFrame() {
   const notFound = route === null && pathname !== '/' && !pathname.startsWith('/applications/');
 
   const [titleOverride, setTitleOverride] = useState<string | null>(null);
+  const [pageBar, setPageBar] = useState<PageBar | null>(null);
   const pageHeading = forbidden ? FORBIDDEN.heading : notFound ? NOT_FOUND.heading : (titleOverride ?? route?.title ?? '');
   const heading = panelFullArea ? WHATS_NEW.panelTitle : pageHeading;
 
   // The rail on detail workspaces; elsewhere whatever the person last chose on a list page.
   const detail = Boolean(route?.detail) && !forbidden;
+  const chrome = route?.bar === 'chrome' && !forbidden && !panelFullArea;
   // `null` until the person chooses on a list page: the window's width decides until then.
   const [preferCollapsed, setPreferCollapsed] = useState<boolean | null>(null);
   const [manual, setManual] = useState<{ path: string; collapsed: boolean } | null>(null);
@@ -253,6 +255,7 @@ function AdminShellFrame() {
 
   useEffect(() => {
     setTitleOverride(null);
+    setPageBar(null);
     setDrawerOpen(false);
   }, [pathname]);
 
@@ -322,6 +325,7 @@ function AdminShellFrame() {
 
   return (
     <PageTitleContext.Provider value={setTitleOverride}>
+      <PageBarContext.Provider value={setPageBar}>
       <div data-testid="AdminShell" className="relative flex h-screen overflow-hidden bg-surface-base text-fg-primary">
         <a
           href="#main-content"
@@ -341,6 +345,7 @@ function AdminShellFrame() {
               label="Admin"
               groups={groups}
               collapsed={collapsed}
+              railLabels={route?.bar !== 'chrome'}
               onCollapsedChange={onCollapsedChange}
               header={header}
               footer={footer(collapsed)}
@@ -378,7 +383,14 @@ function AdminShellFrame() {
             aria-labelledby="app-bar-heading"
             className="flex min-h-0 flex-1 flex-col outline-none"
           >
-            <div ref={appBarRef} className="flex min-h-14 shrink-0 items-center gap-3 border-b border-line-decorative bg-surface-raised px-4">
+            <div
+              ref={appBarRef}
+              className={
+                chrome
+                  ? 'hg-on-accent flex min-h-14 shrink-0 items-center gap-2 bg-surface-chrome px-4 text-fg-on-accent'
+                  : 'flex min-h-14 shrink-0 items-center gap-3 border-b border-line-decorative bg-surface-raised px-4'
+              }
+            >
               {panelFullArea ? (
                 <Button variant="tertiary" iconStart="back" onPress={whatsNew.close}>
                   {WHATS_NEW.back(pageHeading)}
@@ -395,9 +407,22 @@ function AdminShellFrame() {
                   Open navigation
                 </Button>
               ) : null}
-              <h1 ref={headingRef} id="app-bar-heading" tabIndex={-1} className="text-heading-md text-fg-primary outline-none">
-                {heading}
-              </h1>
+              {chrome && pageBar?.back ? (
+                <span className="-ms-2 inline-flex shrink-0 text-current [&_button]:text-current">
+                  <IconButton icon="back" accessibilityLabel={pageBar.back.label} variant="plain" size="md" onPress={() => navigate(pageBar.back!.to)} />
+                </span>
+              ) : null}
+              <div className="grid min-w-0 flex-1 gap-px">
+                <h1
+                  ref={headingRef}
+                  id="app-bar-heading"
+                  tabIndex={-1}
+                  className={`m-0 text-heading-md outline-none ${chrome ? 'truncate font-semibold text-fg-on-accent' : 'text-fg-primary'}`}
+                >
+                  {heading}
+                </h1>
+                {chrome && pageBar?.subtitle ? <p className="m-0 truncate text-body-sm text-fg-on-accent opacity-85">{pageBar.subtitle}</p> : null}
+              </div>
             </div>
             {/* Kept mounted (typed input survives) but out of the way while the panel has the whole area. */}
             <div className={panelFullArea ? 'hidden' : 'contents'}>
@@ -425,6 +450,7 @@ function AdminShellFrame() {
           </NavDrawer>
         ) : null}
       </div>
+      </PageBarContext.Provider>
     </PageTitleContext.Provider>
   );
 }
