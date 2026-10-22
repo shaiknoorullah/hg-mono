@@ -141,6 +141,17 @@ describe('SideNav', () => {
     expect(onToggle).toHaveBeenCalledWith(false);
   });
 
+  it('is 72px collapsed and 264px expanded, and takes the expanded width from the console', () => {
+    const { rerender } = render(<SideNav groups={groups} collapsed />);
+    expect(screen.getByRole('navigation').className).toMatch(/\bw-18\b/);
+    rerender(<SideNav groups={groups} collapsed={false} />);
+    expect(screen.getByRole('navigation').className).toMatch(/\bw-66\b/);
+    rerender(<SideNav groups={groups} collapsed={false} expandedWidth={232} />);
+    expect(screen.getByRole('navigation').style.width).toBe('232px');
+    rerender(<SideNav groups={groups} collapsed expandedWidth={232} />);
+    expect(screen.getByRole('navigation').style.width).toBe('');
+  });
+
   it('reads a disabled item’s reason and ignores activation', () => {
     const onSelect = vi.fn();
     render(<SideNav groups={[{ key: 'g', items: [{ key: 's', label: 'Staff', disabled: true, disabledReason: 'Only an admin can manage staff', onSelect }] }]} />);
