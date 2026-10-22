@@ -159,6 +159,23 @@ export function snapshotLayout() {
     if (!text || !shown(el) || r.width < 1) continue;
     texts.push({ text: text.slice(0, 160), field: true, x: half(r.left), y: half(r.top), w: half(r.width), h: half(r.height), ...type(getComputedStyle(el)) });
   }
+    // The words this box shows, which is NOT `textContent`: that returns the text of hidden
+  // descendants too, and the designers' notes are hidden rather than removed
+  // (`[data-design-note]{display:none}` above). A note therefore put its own words into the key of
+  // every box around it, and boxes keyed by text that is not drawn cannot be paired — a real run
+  // reported `Boxes holding "Proposed component: AppBar with brand mark…": the text names more
+  // than one box on a side, so they were not compared`, on a board whose pixels were already
+  // right. Walking the subtree and stepping over the notes is what `textContent` would be if it
+  // respected the hiding; `innerText` would too, but it forces a reflow per element and there are
+  // up to 800 of them.
+  const shownText = (node) => {
+    let out = '';
+    for (const c of node.childNodes) {
+      if (c.nodeType === 3) out += c.nodeValue;
+      else if (c.nodeType === 1 && !c.hasAttribute('data-design-note')) out += shownText(c);
+    }
+    return out;
+  };
   const boxes = [];
   for (const el of document.body.querySelectorAll('*')) {
     if (boxes.length >= 800) break;
@@ -168,7 +185,7 @@ export function snapshotLayout() {
     const shadow = cs.boxShadow !== 'none' ? cs.boxShadow : null;
     if (!bg && !border && !shadow) continue;
     const r = el.getBoundingClientRect();
-    const key = squash(el.textContent).slice(0, 80) || squash(el.getAttribute('aria-label'));
+    const key = squash(shownText(el)).slice(0, 80) || squash(el.getAttribute('aria-label'));
     if (!key || r.width < 4 || r.height < 4 || !shown(el)) continue;
     boxes.push({ key, x: half(r.left), y: half(r.top), w: half(r.width), h: half(r.height), radius: parseFloat(cs.borderTopLeftRadius), bg, border, shadow });
   }

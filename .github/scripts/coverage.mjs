@@ -48,6 +48,7 @@ const JS = [
   { name: 'restaurant', dir: 'apps/restaurant', runner: 'vitest' },
   { name: 'ui-web', dir: 'packages/ui-web', runner: 'vitest' },
   { name: 'emails', dir: 'packages/emails', runner: 'vitest' },
+  { name: 'release-notes', dir: 'packages/release-notes', runner: 'vitest' },
   { name: 'customer', dir: 'apps/customer', runner: 'jest' },
   { name: 'rider', dir: 'apps/rider', runner: 'jest' },
   { name: 'ui-native', dir: 'packages/ui-native', runner: 'jest' },

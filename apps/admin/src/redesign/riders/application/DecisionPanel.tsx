@@ -42,6 +42,7 @@ import {
   type RejectionReason,
 } from './model';
 import { vehicleLabel } from '../queue/model';
+import { useHoldWhatsNewNotice } from '../../whatsnew/hold';
 
 export type DecisionKind = 'approve' | 'reject' | 'changes';
 
@@ -104,6 +105,8 @@ function plural(n: number): string {
 }
 
 export function DecisionPanel({ kind, application, preset, returnFocusRef, onSwitchToChanges, onClose, onResult }: Props) {
+  // An update that arrives while this panel holds unsent input waits until it closes.
+  useHoldWhatsNewNotice();
   const uid = useId();
   const draftKey = `rider-decision:${application.rider_account_id}:${kind}`;
   const name = application.display_name;

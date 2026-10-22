@@ -1,6 +1,6 @@
 {
   "name": "@hg/restaurant",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "description": "Restaurant operator web app — onboarding, live order queue, menu, hours.",

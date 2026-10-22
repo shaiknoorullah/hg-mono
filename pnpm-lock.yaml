@@ -97,6 +97,9 @@ importers:
       '@hg/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
+      '@hg/release-notes':
+        specifier: workspace:*
+        version: link:../../packages/release-notes
       '@hg/ui-native':
         specifier: workspace:*
         version: link:../../packages/ui-native
@@ -549,6 +552,21 @@ importers:
         specifier: ^3.0.0
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.1)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.33.0)(sass@1.104.1)(terser@5.49.2)(tsx@4.23.12)(yaml@2.9.0)
 
+  packages/release-notes:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.1
+      '@vitest/coverage-v8':
+        specifier: 3.2.7
+        version: 3.2.7(vitest@3.2.7(@types/debug@4.1.13)(@types/node@22.20.1)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.33.0)(sass@1.104.1)(terser@5.49.2)(tsx@4.23.12)(yaml@2.9.0))
+      typescript:
+        specifier: ^5.9.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.1)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.33.0)(sass@1.104.1)(terser@5.49.2)(tsx@4.23.12)(yaml@2.9.0)
+
   packages/ui-native:
     dependencies:
       '@hg/api-client':
@@ -669,6 +687,9 @@ importers:
       '@hg/brand':
         specifier: workspace:*
         version: link:../brand
+      '@hg/release-notes':
+        specifier: workspace:*
+        version: link:../release-notes
       '@iconify/react':
         specifier: ^5.2.0
         version: 5.2.1(react@19.1.0)

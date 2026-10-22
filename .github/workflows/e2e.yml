@@ -367,9 +367,14 @@ jobs:
           # "isn't responding" dialog (the launcher, under load) must never cover the app under
           # test, so error dialogs are hidden first; more memory keeps the launcher responsive.
           #
+          # `logcat -G 16M` grows the ring buffer before the flows start, which needs neither root
+          # nor a restart. The default is small and ReactNativeJS and Maestro's driver are both
+          # noisy, so a kill early in a 20-minute run would otherwise have scrolled away long before
+          # kill-evidence.sh reads the buffer at the end.
+          #
           # The design boards are 390 dp wide and a Pixel 6 is 411 dp, so the size and density are set
           # first and the measured size is printed in this log (tools/e2e/android/design-size.sh).
-          script: adb shell settings put global hide_error_dialogs 1 && bash tools/e2e/android/design-size.sh && bash tools/e2e/run.sh
+          script: adb shell settings put global hide_error_dialogs 1 && bash tools/e2e/android/design-size.sh && adb logcat -G 16M && { bash tools/e2e/run.sh; rc=$?; bash tools/e2e/android/kill-evidence.sh || true; exit $rc; }
 
       - name: Collect the stack's logs
         if: always()
