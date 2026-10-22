@@ -19,9 +19,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useHref, useNavigate, useSearchParams } from 'react-router-dom';
 import { unwrap } from '../../lib/load';
 import { api } from '../data/api';
-import { formatFullDateTime, formatShortDateTime } from '../data/format';
+import { formatFullDateTime, formatShortDateTime, formatTime } from '../data/format';
 import { useOnline } from '../auth/online';
 import {
+  Badge,
   Banner,
   Button,
   DataGrid,
@@ -106,6 +107,12 @@ export function paramsFromFilters(f: OrderFilters): URLSearchParams {
 
 type Load = 'loading' | 'ready' | 'error';
 
+/** An order whose state moved between two reads of the list: what it was, and when that read was. */
+interface Change {
+  readonly from: OrderState;
+  readonly at: Date;
+}
+
 export function OrderListPage({ mode }: { mode: 'orders' | 'disputes' }) {
   const disputes = mode === 'disputes';
   const [params, setParams] = useSearchParams();
@@ -133,6 +140,14 @@ export function OrderListPage({ mode }: { mode: 'orders' | 'disputes' }) {
   const [load, setLoad] = useState<Load>('loading');
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadMoreFailed, setLoadMoreFailed] = useState(false);
+  // When the list was last read, and which orders changed state since the read before it (Refresh).
+  const [loadedAt, setLoadedAt] = useState<Date | null>(null);
+  const [changes, setChanges] = useState<ReadonlyMap<string, Change>>(() => new Map());
+  const [refreshing, setRefreshing] = useState(false);
+  const rowsRef = useRef<OrderSummary[]>([]);
+  rowsRef.current = rows;
+  const loadedAtRef = useRef<Date | null>(null);
+  loadedAtRef.current = loadedAt;
   const ticket = useRef(0);
   const filterKey = JSON.stringify(filters);
 
@@ -141,11 +156,14 @@ export function OrderListPage({ mode }: { mode: 'orders' | 'disputes' }) {
     setLoad('loading');
     setLoadMoreFailed(false);
     setLoadingMore(false);
+    setRefreshing(false);
     try {
       const first = await fetchPage(filters, null);
       if (mine !== ticket.current) return;
       setRows(first.rows);
       setPage({ cursor: first.cursor, hasMore: first.hasMore, total: first.total });
+      setChanges(new Map());
+      setLoadedAt(new Date());
       setLoad('ready');
     } catch {
       if (mine !== ticket.current) return;
@@ -158,6 +176,42 @@ export function OrderListPage({ mode }: { mode: 'orders' | 'disputes' }) {
   useEffect(() => {
     void run();
   }, [run]);
+
+  /**
+   * Refresh, once the list is on screen: read the first page again WITHOUT blanking the list, and mark
+   * each order whose state differs from the read before ("Updated", "Was Preparing at 6:52 pm").
+   * Before the first read, or after a failed one, it is a plain reload.
+   */
+  const refresh = useCallback(async () => {
+    if (load !== 'ready') {
+      void run();
+      return;
+    }
+    const mine = ++ticket.current;
+    const previousAt = loadedAtRef.current ?? new Date();
+    setRefreshing(true);
+    setLoadingMore(false);
+    setLoadMoreFailed(false);
+    try {
+      const first = await fetchPage(filters, null);
+      if (mine !== ticket.current) return;
+      const before = new Map(rowsRef.current.map((r) => [r.id, r.state]));
+      const moved = new Map<string, Change>();
+      for (const r of first.rows) {
+        const was = before.get(r.id);
+        if (was !== undefined && was !== r.state) moved.set(r.id, { from: was, at: previousAt });
+      }
+      setRows(first.rows);
+      setPage({ cursor: first.cursor, hasMore: first.hasMore, total: first.total });
+      setChanges(moved);
+      setLoadedAt(new Date());
+    } catch {
+      if (mine === ticket.current) setLoad('error');
+    } finally {
+      if (mine === ticket.current) setRefreshing(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [load, run, filterKey]);
 
   const loadMore = useCallback(async () => {
     if (!page.cursor || loadingMore) return;
@@ -201,7 +255,29 @@ export function OrderListPage({ mode }: { mode: 'orders' | 'disputes' }) {
     { key: 'code', header: 'Order', width: disputes ? 120 : 116, mono: true, render: (r) => r.code },
     ...(disputes
       ? []
-      : [{ key: 'state', header: 'State', width: 190, render: (r: OrderSummary) => <StateBadge state={r.state} /> } satisfies DataGridColumn<OrderSummary>]),
+      : [
+          {
+            key: 'state',
+            header: 'State',
+            width: 190,
+            render: (r: OrderSummary) => {
+              const moved = changes.get(r.id);
+              return moved ? (
+                <span className="flex flex-col items-start gap-1">
+                  <span className="inline-flex items-center gap-2">
+                    <StateBadge state={r.state} />
+                    <Badge variant="info" size="sm">
+                      {ORDERS.updated}
+                    </Badge>
+                  </span>
+                  <span className="whitespace-normal text-body-sm text-fg-secondary">{ORDERS.wasState(ORDER_STATE[moved.from].label, formatTime(moved.at))}</span>
+                </span>
+              ) : (
+                <StateBadge state={r.state} />
+              );
+            },
+          } satisfies DataGridColumn<OrderSummary>,
+        ]),
     {
       key: 'deadline',
       header: 'Next deadline',
@@ -304,6 +380,7 @@ export function OrderListPage({ mode }: { mode: 'orders' | 'disputes' }) {
 
   const noun = disputes ? 'disputes' : 'orders';
   const retry = () => void run();
+  const asOf = loadedAt && load === 'ready' ? (changes.size > 0 ? ORDERS.asOfChanged(formatTime(loadedAt), changes.size) : ORDERS.asOf(formatTime(loadedAt))) : '';
 
   return (
     <section aria-label={disputes ? 'Disputes page' : 'Orders page'} className="flex min-h-0 flex-1 flex-col gap-3 p-3">
@@ -317,7 +394,8 @@ export function OrderListPage({ mode }: { mode: 'orders' | 'disputes' }) {
         end={
           <span className="flex items-center gap-2 text-body-sm text-fg-secondary">
             <span aria-live="polite">{countText}</span>
-            <Button variant="tertiary" size="sm" iconStart="refresh" disabled={!online || load === 'loading'} onPress={retry}>
+            {asOf ? <span>{asOf}</span> : null}
+            <Button variant="tertiary" size="sm" iconStart="refresh" disabled={!online || load === 'loading' || refreshing} onPress={() => void refresh()}>
               {ORDERS.refresh}
             </Button>
           </span>

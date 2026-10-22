@@ -14,6 +14,9 @@
  * - Issue refund opens the refund panel in the same place. It is a visible button once money has been
  *   captured and the order is delivered or beyond, and a "More actions" item before that.
  *
+ * - The list pane folds to a 48 px strip (the button in its header) and comes back from the strip's Show
+ *   button, so the order can take the width.
+ *
  * - The live map opens in the same place, widened over the list; closing it brings More detail back.
  *   Reveal address from the map replaces it, as Cancel and Reveal do.
  *
@@ -37,7 +40,7 @@ import { REFUND_BUTTON_STATES } from '../../refunds/model';
 import { RefundPanel } from '../../refunds/RefundPanel';
 import { staffCanCancel } from './notes';
 import { CancelPanel } from './CancelPanel';
-import { ListPane, listSourceOf } from './ListPane';
+import { ListPane, listFoldLabels, listSourceOf } from './ListPane';
 import { RevealPanel } from './RevealPanel';
 import { LiveMapPane } from './LiveMapPane';
 import {
@@ -73,7 +76,9 @@ export default function OrderRoute() {
   const [load, setLoad] = useState<Load>({ kind: 'loading' });
   const [panel, setPanel] = useState<Panel>('none');
   const [result, setResult] = useState<Result>(null);
-  // The list folds to a strip while the map is open, and stays as the person leaves it.
+  // The list pane folds to a strip so the order can be read at full width
+  // (`ORD/OrderDetailListCollapsed`), and folds on its own while the map is open. Either way the
+  // person's own choice is what it returns to.
   const [listFolded, setListFolded] = useState(false);
   const ticket = useRef(0);
   const openedBy = useRef<HTMLElement | null>(null);
@@ -304,12 +309,13 @@ export default function OrderRoute() {
           {
             id: 'orders-list',
             label: 'List',
+            showLabel: listFoldLabels(from).show,
             collapsible: true,
             collapsed: listFolded || panel === 'map',
             onCollapsedChange: setListFolded,
             defaultSize: 300,
             minSize: 220,
-            content: <ListPane from={from} selectedId={orderId} />,
+            content: <ListPane from={from} selectedId={orderId} onCollapse={() => setListFolded(true)} />,
           },
           { id: 'order', label: 'Order', fill: true, content: <div className="h-full overflow-auto p-4">{orderPane}</div> },
           panel === 'map'
