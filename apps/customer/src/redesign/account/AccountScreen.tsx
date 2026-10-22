@@ -10,13 +10,12 @@
  * out, not guessed.
  *
  * Built: the profile card (name, number, email and its confirmed state, Send the link again), the
- * Ordering group (Addresses), Notifications and privacy (Notification settings), Help and about
+ * Ordering group (Addresses), Notifications and privacy (Notification settings, App settings), Help and about
  * (Call support or its closed and unavailable forms, How we check halal certificates, Terms and
  * privacy), the deletion-by-request paragraph, Sign out and the app version.
  *
- * Not built, and why: Payment methods and Refunds (no board draws the pages they open) and App
- * settings (needs a location-permission module the app does not ship). Their rows are left out
- * rather than leading nowhere; the tracking issue lists them. What's new is built (`../whatsnew`).
+ * Not built, and why: Payment methods and Refunds (no board draws the pages they open). Their rows
+ * are left out rather than leading nowhere; the tracking issue lists them. What's new is built (`../whatsnew`).
  *
  * Sign out always works on this phone: the session is cleared at once and the server is told
  * best-effort, so the board's "We couldn't sign you out" never occurs here (`api/auth.ts`).
@@ -208,6 +207,13 @@ export function AccountScreen(): React.ReactElement {
             subline={notifLine}
             onPress={() => nav.push({ name: 'notificationSettings' })}
             testID="Account-notificationSettings"
+          />
+          {/* The board leaves the icon slot empty: `settings` is not in the design system's icon set. */}
+          <SettingsRow
+            title="App settings"
+            subline="Location and appearance"
+            onPress={() => nav.push({ name: 'appSettings' })}
+            testID="Account-appSettings"
           />
         </SettingsGroup>
 
