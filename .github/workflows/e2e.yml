@@ -653,6 +653,21 @@ jobs:
         if: always()
         run: node tools/design-diff/src/findings.mjs --results "$E2E_OUT/design-diff" --out "$E2E_OUT/design-diff/findings.txt" || true
 
+      # The pairs under 3 % with their images, as an artifact of their own. The full one holds every
+      # pair's images and passed 900 MB at ~1,100 pairs (run 39818518993): over an hour to download
+      # here, per run, so nobody could fix a nearly passing board and look at it again.
+      - name: The pairs closest to passing, with their images
+        if: always()
+        run: node tools/design-diff/src/near.mjs --results "$E2E_OUT/design-diff" --out "$E2E_OUT/design-diff-near" --under 3 || true
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: design-diff-near
+          path: ${{ env.E2E_OUT }}/design-diff-near
+          if-no-files-found: ignore
+          retention-days: 14
+
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
