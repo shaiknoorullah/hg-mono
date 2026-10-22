@@ -1498,3 +1498,147 @@ func TestIntegration_GetOnboardingStatus_RejectionListsLatestDocumentPerType(t *
 		t.Fatalf("documents to fix = %v, want only FOOD_SAFETY (the replaced BUSINESS_LICENCE must not come back)", got)
 	}
 }
+
+// ─── listRestaurantOrders: state filter and cursor (issue #601) ──────────────
+
+// listOrdersPage calls GET /v1/restaurant/orders with the given raw query and
+// decodes the envelope.
+func listOrdersPage(t *testing.T, h *restaurant.Handler, accountID, query string) (int, []string, *string, bool) {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodGet, "/v1/restaurant/orders?"+query, nil)
+	req = withPrincipal(req, principalWith(accountID, httpx.RoleRestaurantOwner))
+	rec := httptest.NewRecorder()
+	h.ListRestaurantOrders(rec, req)
+	var env struct {
+		Data []struct {
+			ID    string `json:"id"`
+			State string `json:"state"`
+		} `json:"data"`
+		Meta struct {
+			NextCursor *string `json:"next_cursor"`
+			HasMore    bool    `json:"has_more"`
+		} `json:"meta"`
+	}
+	if rec.Code == http.StatusOK {
+		if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
+			t.Fatalf("unmarshal: %v (body: %s)", err, rec.Body.String())
+		}
+	}
+	ids := make([]string, 0, len(env.Data))
+	for _, o := range env.Data {
+		ids = append(ids, o.ID+"|"+o.State)
+	}
+	return rec.Code, ids, env.Meta.NextCursor, env.Meta.HasMore
+}
+
+// The filter returns only the requested states; an unfiltered list still
+// returns every state.
+func TestIntegration_ListOrders_StateFilter(t *testing.T) {
+	pool := testPool(t)
+	f := seedFixtures(t, pool)
+	h := newHandler(pool)
+
+	pending := seedOrder(t, pool, f.restaurantID, f.menuItemID, "RESTAURANT_PENDING", "now() + interval '3 minutes'")
+	preparing := seedOrder(t, pool, f.restaurantID, f.menuItemID, "PREPARING", "now() + interval '20 minutes'")
+	completed := seedOrder(t, pool, f.restaurantID, f.menuItemID, "COMPLETED", "NULL")
+
+	code, got, _, _ := listOrdersPage(t, h, f.ownerAccountID, "state=RESTAURANT_PENDING,PREPARING")
+	if code != http.StatusOK {
+		t.Fatalf("status=%d, want 200", code)
+	}
+	want := map[string]bool{pending + "|RESTAURANT_PENDING": true, preparing + "|PREPARING": true}
+	if len(got) != len(want) {
+		t.Fatalf("filtered list = %v, want exactly %v", got, want)
+	}
+	for _, g := range got {
+		if !want[g] {
+			t.Fatalf("filtered list returned %q, which was not requested", g)
+		}
+	}
+
+	_, all, _, _ := listOrdersPage(t, h, f.ownerAccountID, "")
+	seen := map[string]bool{}
+	for _, g := range all {
+		seen[g] = true
+	}
+	for _, id := range []string{pending + "|RESTAURANT_PENDING", preparing + "|PREPARING", completed + "|COMPLETED"} {
+		if !seen[id] {
+			t.Fatalf("unfiltered list is missing %q (got %v)", id, all)
+		}
+	}
+}
+
+// The cursor walks the whole set with no duplicates and no gaps, including
+// rows that share a placed_at (the id tie-break).
+func TestIntegration_ListOrders_CursorPaging(t *testing.T) {
+	pool := testPool(t)
+	f := seedFixtures(t, pool)
+	h := newHandler(pool)
+
+	want := map[string]bool{}
+	for i := 0; i < 5; i++ {
+		id := seedOrder(t, pool, f.restaurantID, f.menuItemID, "COMPLETED", "NULL")
+		want[id] = true
+	}
+	// Force a tie on placed_at across all five.
+	ids := make([]string, 0, len(want))
+	for id := range want {
+		ids = append(ids, id)
+	}
+	if _, err := pool.Exec(context.Background(),
+		`UPDATE "order" SET placed_at = '2026-01-01T00:00:00Z' WHERE id = ANY($1::uuid[])`, ids); err != nil {
+		t.Fatalf("force placed_at tie: %v", err)
+	}
+
+	got := map[string]bool{}
+	cursor := ""
+	for page := 0; page < 50; page++ {
+		q := "state=COMPLETED&limit=2"
+		if cursor != "" {
+			q += "&cursor=" + cursor
+		}
+		code, rows, next, hasMore := listOrdersPage(t, h, f.ownerAccountID, q)
+		if code != http.StatusOK {
+			t.Fatalf("page %d: status=%d, want 200", page, code)
+		}
+		if len(rows) > 2 {
+			t.Fatalf("page %d: %d rows, limit was 2", page, len(rows))
+		}
+		for _, r := range rows {
+			id := strings.SplitN(r, "|", 2)[0]
+			if got[id] {
+				t.Fatalf("page %d: order %s returned twice", page, id)
+			}
+			got[id] = true
+		}
+		if !hasMore {
+			if next != nil {
+				t.Fatalf("page %d: has_more=false but next_cursor set", page)
+			}
+			break
+		}
+		if next == nil {
+			t.Fatalf("page %d: has_more=true but next_cursor is null", page)
+		}
+		cursor = *next
+	}
+	for id := range want {
+		if !got[id] {
+			t.Fatalf("order %s never appeared while paging (gap)", id)
+		}
+	}
+}
+
+// An unknown state, a malformed cursor and a bad limit are 422 per the contract.
+func TestIntegration_ListOrders_InvalidParams(t *testing.T) {
+	pool := testPool(t)
+	f := seedFixtures(t, pool)
+	h := newHandler(pool)
+
+	for _, q := range []string{"state=NOT_A_STATE", "state=PREPARING,bogus", "cursor=!!notbase64", "limit=0", "limit=abc", "limit=101"} {
+		code, _, _, _ := listOrdersPage(t, h, f.ownerAccountID, q)
+		if code != http.StatusUnprocessableEntity {
+			t.Errorf("?%s: status=%d, want 422", q, code)
+		}
+	}
+}

@@ -778,12 +778,51 @@ func (h *Handler) ListRestaurantOrders(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	list, hasMore, err := h.repo.ListOrders(r.Context(), restaurantID, 20, nil)
+	limit := 20
+	if v := r.URL.Query().Get("limit"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n < 1 || n > 100 {
+			httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+				"limit must be a number from 1 to 100.",
+				[]httpx.FieldError{{Field: "limit", Code: "invalid", Message: "must be 1-100"}})
+			return
+		}
+		limit = n
+	}
+	// state is a comma-separated list of OrderState (style: form, explode: false).
+	var states []string
+	if v := r.URL.Query().Get("state"); v != "" {
+		for _, s := range strings.Split(v, ",") {
+			if !contract.OrderState(s).Valid() {
+				httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+					"state contains a value that is not an order state.",
+					[]httpx.FieldError{{Field: "state", Code: "invalid", Message: "unknown order state " + strconv.Quote(s)}})
+				return
+			}
+			states = append(states, s)
+		}
+		if len(states) > 14 {
+			httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+				"state lists at most 14 values.",
+				[]httpx.FieldError{{Field: "state", Code: "invalid", Message: "at most 14 values"}})
+			return
+		}
+	}
+	curKey, curID, ok := decodeStaffCursor(r)
+	if ok && curID != nil && !isValidUUID(*curID) {
+		ok = false
+	}
+	if !ok {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"cursor is malformed.", []httpx.FieldError{{Field: "cursor", Code: "invalid", Message: "malformed cursor"}})
+		return
+	}
+	list, next, hasMore, err := h.repo.ListOrders(r.Context(), restaurantID, states, limit, curKey, curID)
 	if err != nil {
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
 		return
 	}
-	httpx.RespondList(w, r, http.StatusOK, list, httpx.Meta{HasMore: hasMore})
+	httpx.RespondList(w, r, http.StatusOK, list, httpx.Meta{NextCursor: next, HasMore: hasMore})
 }
 
 // GetRestaurantOrder implements GET /v1/restaurant/orders/{orderId}.
