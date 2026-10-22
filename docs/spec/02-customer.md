@@ -3,7 +3,7 @@ covers:
   - apps/customer/**
   - services/hg/internal/account/**
   - services/hg/internal/addresses/**
-reviewed: 2026-10-16
+reviewed: 2026-10-22
 ---
 
 # HalalGoes — CUSTOMER Domain Specification
@@ -176,6 +176,7 @@ The rules in this spec apply to both. With the flag on:
   2. Given `excluded_allergens=['peanuts']`, when the customer opens a menu containing a peanut item, then the item is visible and carries a "Contains peanuts" warning chip.
   3. Given a `PATCH /users/:id/preferences` with `push_order_updates=false`, then the response is `400 FIELD_NOT_EDITABLE` and the stored value remains `true`.
 - **Out of scope**: language preference; currency preference; halal-school/madhhab preference (see decision below); saved dietary profiles per household member; preference-driven recommendation training.
+- **Built ahead of V3 (App settings)**: the redesign's App settings screen (Account, then App settings) holds the two settings that need no API. Location is the phone's permission, asked only "while using the app" and only to start the address map where the customer is; when it is off the page opens the phone's settings instead of showing a switch that does nothing. Appearance follows the phone's light or dark setting, with no in-app choice. [Issue #891](https://github.com/shaiknoorullah/hg-mono/issues/891).
 - **Version**: V3 · **Size**: M
 
 > **DECISION REQUIRED — halal strictness preferences**: Should customers be able to filter by certifying body or halal school of thought (e.g. hand-slaughtered vs. machine, alcohol-serving premises)? · **Proposed default**: **No at V1–V3.** Certification is a single binary + the certifying body's name shown as text (C-12). No filtering by body or method. · **Why**: encoding madhhab distinctions is a religious-authority judgement the vendor cannot make, and getting it wrong is a brand-fatal error.

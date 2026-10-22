@@ -286,7 +286,7 @@ board by that name, and judges it (a web capture pixel by pixel, a native one by
   The customer boards that no flow captures, each with its reason, are in
   [`native/customer-boards.mjs`](native/customer-boards.mjs); `pnpm e2e:boards:check` fails on a capture named for a
   board that does not exist, and (with `origin/claude/redesign-canvases` fetched) on a board that is neither captured nor
-  given a reason. A new flow screenshot of a board's screen should be named for it; a screen with no board stays unnamed.
+  given a reason. A new flow screenshot of a board's screen should be named for it; a screen with no board stays unnamed. The seven App settings boards are built but unpaired: the location states are the phone's permission, which no flow sets before it captures.
 
 Every redesign web spec declares the board of each screenshot it takes, and the board has to be
 the exact file `canvases/<app>/<area>/project/<Board>.dc.html` on `origin/claude/redesign-canvases`.
