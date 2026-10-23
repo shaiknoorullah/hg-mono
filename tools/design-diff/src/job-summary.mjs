@@ -72,6 +72,8 @@ export function summarise(results, title) {
   out.push(`**${pairs.length} captures compared:** ${verdicts}`, '');
   out.push(`**${pass} of ${pairs.length} match their board.** ${uncaptured} board${uncaptured === 1 ? '' : 's'} of the rendered apps had no capture at all.`, '');
 
+  const dup = Array.isArray(results.duplicates) ? results.duplicates : [];
+  if (dup.length) out.push(`**${dup.length} duplicate capture${dup.length === 1 ? '' : 's'} of a board already counted** (not compared, not in the figures above; the run fails): ${dup.slice(0, 5).map((d) => `\`${d.capture}\` repeats \`${d.keptCapture}\``).join('; ')}${dup.length > 5 ? '; ...' : ''}. The captures directory is probably one level too high.`, '');
   out.push('| App | Area | Pass | Fail | Not compared | Worst |', '|---|---|---:|---:|---:|---:|');
   for (const r of rows(pairs, mismatchField)) {
     const worst = r.worst === null ? '—' : `${r.worst} %`;

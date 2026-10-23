@@ -48,7 +48,7 @@ describe('check your email', () => {
     const button = screen.getByRole('button', { name: 'Send a new link' });
     expect(button.getAttribute('aria-disabled')).toBe('true');
     expect(button.getAttribute('aria-describedby')).toBe('wait-reason');
-    expect(document.getElementById('wait-reason')!.textContent).toBe('You can send another in 1:00');
+    expect(document.getElementById('wait-reason')!.textContent).toBe('You can send another in 1:00until you can try again');
   });
 
   it('DailyLimit: a 429 whose Retry-After is over a minute is the daily limit', async () => {
@@ -59,7 +59,7 @@ describe('check your email', () => {
     expect(alert.getAttribute('role')).toBe('status');
     expect(within(alert).getByText("You've asked for 5 links today")).toBeTruthy();
     expect(within(alert).getByText("That's the daily limit. Use the newest email you have, or call partner support.")).toBeTruthy();
-    expect(screen.getByRole('timer', { name: 'until tomorrow’s limit resets' }).textContent).toBe('24:00:00');
+    expect(screen.getByRole('timer', { name: 'until tomorrow’s limit resets' }).querySelector('[data-wait-time]')!.textContent).toBe('24:00:00');
   });
 
   it('a reload ages the wait kept in history state: after the minute it is Default, within it the rest of the minute', async () => {
@@ -81,7 +81,10 @@ describe('check your email', () => {
     // Reloaded 40 seconds after: the remaining 20 seconds, not a fresh minute.
     await renderPublic('/check-email', { ...entry, start: 'cooldown', wait: wait(Date.now() - 40_000) });
     expect(await screen.findByText('A new link is on its way. Earlier links no longer work, so use the newest email.')).toBeTruthy();
-    expect(screen.getByRole('timer').textContent).toMatch(/^0:(19|20)$/);
+    const cooldown = screen.getByRole('timer');
+    expect(cooldown.querySelector('[data-wait-time]')!.textContent).toMatch(/^0:(19|20)$/);
+    // The board draws the timer's name as text under the countdown (CheckEmail-Cooldown).
+    expect(cooldown.querySelector('[data-wait-label]')!.textContent).toBe(cooldown.getAttribute('aria-label'));
   });
 
   it('Offline: a neutral alert takes focus; the button keeps its label', async () => {

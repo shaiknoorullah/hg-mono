@@ -167,7 +167,7 @@ compared. Height is described next. A board with any `failedAssets` is `DEFECTIV
 not compare it, because the missing picture is the renderer's and would be charged to the app as a UI
 difference. The diff fails by default: it exits 1 when any pair is FAIL, NO BOARD (including a board whose
 reference recorded errors, and a declared board missing from the manifest), UNCOVERED, DEFECTIVE REFERENCE, NOT COMPARED, BROWSER MISMATCH, NO PROVENANCE or NO LAYOUT;
-UNPAIRABLE, a capture its spec declared cannot be compared, does not fail the run; `--no-strict` reports and exits 0, `--strict` is an accepted
+A second screenshot of a board already captured (a `--captures` directory that holds every screenshot twice, such as `$E2E_OUT` with Maestro's own copies under `maestro/`) is a `duplicates` entry in `results.json`, listed on stdout naming both paths: it is not compared and not counted, so each board counts once, and it fails the run. UNPAIRABLE, a capture its spec declared cannot be compared, does not fail the run; `--no-strict` reports and exits 0, `--strict` is an accepted
 alias of the default, and a crash or usage error exits 2. The summary also lists the uncaptured boards
 (boards of the rendered apps with no capture); that count alone does not fail the run.
 
@@ -280,7 +280,7 @@ the board's size, and loses Android's status and navigation bars before the comp
 | `src/near.mjs` | The pairs under 3 % with their side-by-side and diff images, for the small `design-diff-near` CI artifact |
 | `src/gate.mjs`, `passing.json` | The regression gate: the boards that have passed on `main`, and the CI step that fails a run in which one of them does not pass |
 | `src/names.mjs`, `src/insets.mjs` | The capture names; the phone profiles and their bars |
-| `src/capture-size.mjs` | A board's size from its `canvas.json`, and the viewport a web capture is taken at: a board taller than the window at the same width is captured at its own height, because the consoles scroll inside a fixed-height frame and `fullPage` would stop at the window; and whether a capture is taken at all: only at the board's own width (`widthMismatch`) |
+| `src/capture-size.mjs` | A board's size from its `canvas.json`, and the viewport a web capture is taken at: a board taller than the window at the same width is captured at its own height, because the consoles scroll inside a fixed-height frame and `fullPage` would stop at the window; and whether a capture is taken at all: only at the board's own width (`widthMismatch`); and the frame a reference is drawn in (`referenceFrame`): a board under 200 dp high is drawn in a 200 dp window and cut to its size |
 | `src/vendor-fonts.mjs`, `third-party/` | React and the fonts the boards load, and their licences |
 | `android/` | The capture AVDs and the device state; `capture-server.mjs`, which writes a native capture's hierarchy and provenance |
 | `test/` | `pnpm --filter @hg/design-diff test:unit`: the verdict, the bars, the names, the findings, which capture specs failed, and the ratchet that fails the captures job on a new failure ([`tools/e2e/web/capture-failures.mjs`](../e2e/web/capture-failures.mjs) — it lives with the e2e suite that writes the reports, and is tested here because what it reports is a board without a capture) |

@@ -12,20 +12,19 @@
  *
  * The ringing link ("Ringing · 2 waiting") belongs to the strip's work package (WP3).
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { eventOfType, useRealtimeChannel } from '@hg/ui-web/live';
-import { Badge, Button, HalalBadge, Icon, InlineConfirm, Menu, Switch, reportHalalClientError, useToast } from '../ds';
+import { Badge, Button, HalalBadge, Icon, InlineConfirm, Menu, Switch, useToast } from '../ds';
 import type { BadgeVariant, IconName } from '../ds';
 import { useConsole } from '../data/console';
-import { isOutsideTradingHours, setAcceptingOrders, useAvailability, type Availability, type AvailabilityWrite } from '../data/availability';
 import { useConnection, type ConnectionView } from '../data/connection';
 import { serverNow } from '../data/serverClock';
 import { formatTime } from '../format/time';
 import { useConsoleLayout } from '../shell/layout';
 import { useFirstLoadFailed, useStale } from '../shell/stale';
-import { halalConsoleView } from './halal';
 import { openStateView } from './openState';
+import { useAcceptingOrders } from './acceptingOrders';
+import { useHalalBadge } from './useHalalBadge';
 
 const PAUSE_CHOICES = [
   { key: '15', minutes: 15, label: 'Pause for 15 minutes' },
@@ -53,47 +52,17 @@ export function healthBadge(c: ConnectionView, firstLoadFailed: boolean, timeZon
 }
 
 export function StatusBar() {
-  const { core, profile, timezone } = useConsole();
-  const availability = useAvailability();
+  const { profile, timezone } = useConsole();
+  const { availability, pending, write, turnOn, askTurnOff, outsideHours } = useAcceptingOrders();
   const connection = useConnection();
   const stale = useStale();
   const pageLoadFailed = useFirstLoadFailed();
   const toast = useToast();
   const { setConfirm } = useConsoleLayout();
   const [params, setParams] = useSearchParams();
-  const [pending, setPending] = useState<null | 'on' | 'off' | 'pause' | 'resume'>(null);
   const healthRef = useRef<HTMLButtonElement>(null);
-  // The last write was refused because the restaurant is outside its trading hours.
-  const outsideHours = useRef(false);
-
-  const restaurantId = core.data?.restaurantId ?? null;
-  const { mutate, refresh } = availability;
-
-  // `restaurant.status_changed`: another screen, the server's auto-off, or an admin changed it.
-  useRealtimeChannel(restaurantId ? `restaurant:${restaurantId}` : null, (signal) => {
-    if (signal.kind === 'refetch') {
-      void refresh();
-      return;
-    }
-    const ev = eventOfType(signal, 'restaurant.status_changed');
-    if (!ev) return;
-    mutate((prev) =>
-      prev
-        ? { ...prev, is_accepting_orders: ev.data.is_accepting_orders, open_state: ev.data.open_state, reason: ev.data.reason ?? prev.reason }
-        : prev,
-    );
-  });
-
   // Halal (wp4 §7): missing → nothing on screen, and the absence is reported.
-  const profileReady = profile.status === 'ready' || profile.status === 'stale';
-  const halal = profileReady ? halalConsoleView(profile.data?.halal, null) : null;
-  const missingHalal = Boolean(halal?.missing);
-  useEffect(() => {
-    if (missingHalal) {
-      reportHalalClientError('HALAL_DISPLAY_STATE_MISSING', { restaurantId: profile.data?.id, received: profile.data?.halal, surface: 'operational' });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [missingHalal]);
+  const { halal } = useHalalBadge();
 
   // A page whose first read failed (Board-first-load-error) makes the whole bar unknown: the
   // open state can't be shown as known beside "We couldn’t load your orders".
@@ -109,54 +78,6 @@ export function StatusBar() {
     else next.set('panel', 'health');
     setParams(next, { replace: true });
   };
-
-  const write = useCallback(
-    async (body: AvailabilityWrite, kind: 'on' | 'off' | 'pause' | 'resume') => {
-      setPending(kind);
-      try {
-        const next: Availability = await setAcceptingOrders(body);
-        mutate(() => next);
-        return true;
-      } catch (err) {
-        outsideHours.current = isOutsideTradingHours(err);
-        return false;
-      } finally {
-        setPending(null);
-      }
-    },
-    [mutate],
-  );
-
-  const turnOn = async () => {
-    const ok = await write({ is_accepting_orders: true }, 'on');
-    if (!ok) {
-      toast.show({ variant: 'danger', title: 'Couldn’t turn on orders', description: 'You’re still not accepting orders. Check the connection and try again.' });
-    }
-  };
-
-  const askTurnOff = () =>
-    setConfirm(
-      <InlineConfirm
-        testId="turn-off-confirm"
-        icon="info"
-        title="Stop accepting new orders?"
-        body="Orders already waiting still need an answer. Customers can’t order until you turn this back on."
-        cancel={{ label: 'Keep accepting', onPress: () => setConfirm(null) }}
-        actions={[
-          {
-            label: 'Stop accepting',
-            variant: 'secondary',
-            onPress: async () => {
-              setConfirm(null);
-              const ok = await write({ is_accepting_orders: false }, 'off');
-              if (!ok) {
-                toast.show({ variant: 'danger', title: 'Couldn’t turn off orders', description: 'You’re still accepting orders. Check the connection and try again.' });
-              }
-            },
-          },
-        ]}
-      />,
-    );
 
   const pause = async (minutes: number) => {
     const until = new Date(serverNow() + minutes * 60_000).toISOString();

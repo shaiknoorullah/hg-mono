@@ -3,7 +3,8 @@
  *
  *   [skip links]
  *   SideNav rail | AppBar (page title · restaurant · account menu)
- *                | Status bar  (region "Service status": WP4)
+ *                | Status bar  (region "Service status": WP4). On Settings and Payouts the app bar
+ *                  carries the service badges instead and there is no status bar (`frame.ts`).
  *                | Banners + inline confirm
  *                | NewOrderStrip (#new-orders: WP3)
  *                | panes: page body | shell panel (?panel=…)
@@ -27,6 +28,8 @@ import { WHATS_NEW } from '../whatsnew/copy';
 import { useAutoOpenWhatsNew } from '../whatsnew/autoOpen';
 import { useUnseenNotes } from '../whatsnew/useNotes';
 import { useIsDesktop, useIsPhone } from './viewport';
+import { isCompactFrame } from './frame';
+import { ServiceBadges } from './ServiceBadges';
 
 const RAIL_KEY = 'hg_restaurant_rail_expanded_v1';
 
@@ -98,7 +101,9 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
 
   const p = profile.data;
   const city = p?.address?.city;
-  const subtitle = p ? [p.display_name, city].filter(Boolean).join(' · ') : undefined;
+  // The compact frame (Settings, Payouts) draws the restaurant's name alone under the page title.
+  const compactFrame = isCompactFrame(location.pathname, isPhone);
+  const subtitle = p ? (compactFrame ? p.display_name : [p.display_name, city].filter(Boolean).join(' · ')) : undefined;
   const ownerName = p ? [p.owner_first_name, p.owner_last_name].filter(Boolean).join(' ') : '';
 
   // The rail's header and footer exist on the expanded rail only; the 72 px rail has no room for text.
@@ -218,6 +223,7 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
               titleIsPageHeading={false}
               actions={
                 <>
+                {compactFrame ? <ServiceBadges /> : null}
                 <Menu
                   label="Account"
                   triggerLabel={ownerName ? `Account: ${ownerName}, owner` : 'Account'}
@@ -241,9 +247,11 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
             />
           </header>
 
-          <div role="region" aria-label="Service status" className="border-b border-line-decorative bg-surface-raised">
-            <StatusBarSlot />
-          </div>
+          {compactFrame ? null : (
+            <div role="region" aria-label="Service status" className="border-b border-line-decorative bg-surface-raised">
+              <StatusBarSlot />
+            </div>
+          )}
 
           <BannerSlot />
 

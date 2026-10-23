@@ -66,6 +66,13 @@ export interface NewOrderStripProps {
    * text). It is drawn only for "nothing waiting"; waiting orders stack under the heading.
    */
   isPhone?: boolean;
+  /**
+   * The compact frame (Settings and Payouts, board `PartNewOrders`): while nothing waits, the strip is
+   * one 64 px row, "No orders waiting" and what the strip does, with `trailing` (the Accepting orders
+   * switch) at its end, in every open state. Orders waiting keep the tiles.
+   */
+  slim?: boolean;
+  trailing?: ReactNode;
   /** Strip tint pulse (1 Hz) while ringing; reduced motion keeps it steady. */
   flash?: boolean;
   /**
@@ -87,7 +94,7 @@ function GlyphIcon({ name, size, className }: { name: GlyphName; size: number; c
   return g ? <Icon name={g} size={size} className={className} /> : null;
 }
 
-export function NewOrderStrip({ status, rule, tiles, empty, compact, now, isDesktop, isPhone = false, flash, advanceFocusFrom, testId }: NewOrderStripProps) {
+export function NewOrderStrip({ status, rule, tiles, empty, compact, now, isDesktop, isPhone = false, slim = false, trailing, flash, advanceFocusFrom, testId }: NewOrderStripProps) {
   const rootRef = useRef<HTMLElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const tileRefs = useRef(new Map<string, HTMLDivElement>());
@@ -264,6 +271,45 @@ export function NewOrderStrip({ status, rule, tiles, empty, compact, now, isDesk
         <h2 ref={headingRef} tabIndex={-1} role={status === 'loading' ? 'status' : undefined} className="hg-focus min-w-0 truncate text-[15px] font-semibold leading-5 outline-none">
           {line}
         </h2>
+      </section>
+    );
+  }
+
+  if (slim && (status === 'loading' || status === 'empty' || tiles.length === 0)) {
+    const loading = status === 'loading';
+    // The boards draw these two lines in every state, closed ones included; why orders are off is
+    // said by the switch beside them (its note), and `empty.action` (Resume now, Turn on, Edit hours) stays.
+    const title = loading ? 'Loading new orders…' : 'No orders waiting';
+    const body = loading ? null : 'New orders appear here on every page, with the time left to accept.';
+    return (
+      <section
+        ref={rootRef}
+        aria-label={label}
+        data-testid={testId}
+        data-slim-row=""
+        className="flex min-h-16 items-center gap-4 border-b border-line-decorative bg-surface-raised ps-6 pe-4"
+      >
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <span aria-hidden="true" className="shrink-0 text-fg-secondary">
+            <GlyphIcon name="orders" size={24} />
+          </span>
+          <h2
+            ref={headingRef}
+            tabIndex={-1}
+            role={loading ? 'status' : undefined}
+            aria-label={loading ? 'Loading new orders' : undefined}
+            className="hg-focus m-0 whitespace-nowrap text-label-lg outline-none"
+          >
+            {title}
+          </h2>
+          {body ? <span className="min-w-0 text-body-sm text-fg-secondary">{body}</span> : null}
+          {!loading && empty?.action ? (
+            <Button variant={empty.action.variant ?? 'tertiary'} size="md" loading={empty.action.loading} onPress={empty.action.onPress}>
+              {empty.action.label}
+            </Button>
+          ) : null}
+        </div>
+        {trailing ? <div className="shrink-0 border-s border-line-decorative ps-4">{trailing}</div> : null}
       </section>
     );
   }
