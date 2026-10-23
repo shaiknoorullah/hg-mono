@@ -5,7 +5,7 @@ import path from 'node:path';
 import { ROOT } from '../lib/paths.mjs';
 import { expectDesignFor, type BoardFor } from './design';
 import { E2E_MODE, projectMeta } from './mode';
-import { signIn, signInAndOpen, type StaffRole } from './redesign-admin.support';
+import { routeQueueDepth, signIn, signInAndOpen, type StaffRole } from './redesign-admin.support';
 
 test.skip(E2E_MODE !== 'mock', 'written against the mock server; run with E2E_MODE=mock');
 
@@ -71,6 +71,7 @@ interface Open {
 async function open(page: Page, { role = 'SUPER_ADMIN', hash = '/staff', seen = 'older', chunk = 'ok' }: Open = {}) {
   await seed(page, seen);
   await routeNotes(page, chunk);
+  await routeQueueDepth(page);
   await signInAndOpen(page, role, hash);
 }
 
