@@ -108,9 +108,15 @@ function NavFooter({
   return (
     <div className={collapsed ? 'flex w-full flex-col items-center gap-1' : 'flex w-full flex-col gap-1'}>
       {countsNote ? (
-        <p data-testid="queue-counts-note" className={collapsed || !countsStale ? 'sr-only' : 'px-2 pb-1 text-body-sm text-fg-on-accent'}>
-          {countsNote}
-        </p>
+        countsStale && !collapsed ? (
+          <p data-testid="queue-counts-note" className="px-2 pb-1 text-body-sm text-fg-on-accent">
+            {countsNote}
+          </p>
+        ) : (
+          // The boards draw nothing while counts are still arriving (`ORD/AdminNavCountsPending`), so the
+          // line is the status's accessible name, not drawn text.
+          <div role="status" data-testid="queue-counts-note" aria-label={countsNote} />
+        )
       ) : null}
       {/* What's new, as `ASS/AdminSidebar` draws it: an inverted tile while its panel is open. */}
       <button
