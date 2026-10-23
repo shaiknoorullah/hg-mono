@@ -48,6 +48,8 @@ test.describe('restaurant redesign · onboarding (mock)', () => {
   test('documents step, nothing added yet', async ({ page }) => {
     await open(page, '/onboarding/documents', { status: 'restaurant_onboarding_documents_pending', docs: 'restaurant_document_pack_empty', profile: 'restaurant_profile_account_pending' });
     await expect(page.getByTestId('setup-rail').first()).toBeVisible();
+    // The account menu's text is the address that signed in on this browser (board OnbTop).
+    await expect(page.getByTestId('onboarding-top-bar').getByRole('button', { name: 'Account menu, samir@zaytoungrill.ca' })).toHaveText('samir@zaytoungrill.ca');
     await settled(page, { 1440: `${ONB}Docs-None` });
   });
 

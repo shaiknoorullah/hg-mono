@@ -9,6 +9,7 @@ import { getSession } from '../../lib/api';
 import { formatTime, formatCalendarDate, spokenDuration } from '../format/time';
 import { HEARTBEAT_INTERVAL_MS, recordHeartbeat } from '../data/heartbeat';
 import { resetDevicePrefs, setDevicePrefs } from '../data/devicePrefs';
+import { signedInLine } from './ConsoleLayout';
 
 afterEach(() => {
   cleanup();
@@ -93,6 +94,39 @@ describe('console shell', () => {
     await renderRedesign('/orders/history');
     expect(await screen.findByTestId('status-bar')).toBeTruthy();
     expect(screen.queryByTestId('service-badges')).toBeNull();
+  it('draws the rail header and footer on the expanded rail only', async () => {
+    installFakeApi(consoleRoutes());
+    localStorage.setItem('hg_restaurant_rail_expanded_v1', '1');
+    await renderRedesign('/orders/history', { desktop: true });
+    const rail = await screen.findByTestId('console-rail');
+    const profile = fixture('restaurant_profile');
+    expect(within(rail).getByText('Restaurant partner')).toBeTruthy();
+    expect((await within(rail).findByTestId('rail-restaurant')).textContent).toBe(profile.display_name);
+    expect(within(rail).getByTestId('rail-signed-in').textContent).toBe('Signed in as the owner');
+    // The current item is still a filled tile and the rail still collapses.
+    expect(within(rail).getByRole('link', { name: /History/ }).getAttribute('aria-current')).toBe('page');
+    fireEvent.click(within(rail).getByRole('button', { name: 'Collapse navigation' }));
+    expect(within(rail).queryByText('Restaurant partner')).toBeNull();
+    expect(within(rail).queryByTestId('rail-restaurant')).toBeNull();
+    expect(within(rail).getByRole('button', { name: 'Expand navigation' })).toBeTruthy();
+    localStorage.clear();
+  });
+
+  it('keeps the 72 px rail free of the header and footer text', async () => {
+    installFakeApi(consoleRoutes());
+    await renderRedesign('/orders/history');
+    const rail = await screen.findByTestId('console-rail');
+    await screen.findByText(new RegExp(fixture('restaurant_profile').display_name));
+    expect(within(rail).queryByText('Restaurant partner')).toBeNull();
+    expect(within(rail).queryByTestId('rail-restaurant')).toBeNull();
+  });
+
+  it('names the signed-in role under the restaurant name', () => {
+    expect(signedInLine([{ role: 'RESTAURANT_OWNER' }])).toBe('Signed in as the owner');
+    expect(signedInLine([{ role: 'RESTAURANT_MANAGER' }])).toBe('Signed in as a manager');
+    expect(signedInLine([{ role: 'RESTAURANT_STAFF' }])).toBe('Signed in as staff');
+    expect(signedInLine([{ role: 'ADMIN' }])).toBeNull();
+    expect(signedInLine(undefined)).toBeNull();
   });
 
   it('has the skip links, strip landmark and a service status region', async () => {
