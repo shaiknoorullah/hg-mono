@@ -208,7 +208,7 @@ function Forbidden({ role, permission, routeId }: { role: StaffRole | null; perm
           className="flex w-full max-w-[640px] flex-col items-start gap-3 rounded-xl border border-line-decorative bg-surface-raised p-8"
         >
           <span className="flex size-8 items-center justify-center text-fg-secondary">
-            <Icon name="lock" size={28} />
+            <Icon name="lock" size={32} />
           </span>
           <h2 className="m-0 text-heading-lg font-semibold text-fg-primary">{STAFF_FORBIDDEN.title}</h2>
           <p className="m-0 text-body-md text-fg-secondary">

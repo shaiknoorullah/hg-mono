@@ -87,7 +87,7 @@ function Message({
     <div className="flex flex-col gap-5">
       {icon ? (
         <span className="flex size-8 items-center justify-center text-fg-secondary">
-          <Icon name="info" size={28} />
+          <Icon name="info" size={32} />
         </span>
       ) : null}
       <h1
