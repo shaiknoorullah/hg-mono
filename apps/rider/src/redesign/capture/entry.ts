@@ -113,6 +113,11 @@ export async function openCapture(url: string | null | undefined): Promise<boole
 
   setMockScenario(scenario);
   await adoptCaptureClock(API_BASE_URL, clock);
+  // Logged before any return below, the sign-in screen included: the native capture runner
+  // (tools/e2e/native/capture/run.mjs) reads this line from the phone's log to know the link was
+  // acted on, and `nothing opened` above to know it was refused.
+  // eslint-disable-next-line no-console
+  console.info(`[capture] ${board ?? target?.name ?? 'signIn'}: ${JSON.stringify(target ?? { name: 'signIn' })}${scenario ? ` · ${scenario}` : ''}`);
 
   setPending(null);
   if (!target) {
@@ -122,8 +127,6 @@ export async function openCapture(url: string | null | undefined): Promise<boole
   // The fixture session. The session gate then reads `getRiderMe` under the scenario.
   setToken(CAPTURE_ACCESS_TOKEN, CAPTURE_REFRESH_TOKEN);
   setPending(target);
-  // eslint-disable-next-line no-console
-  console.info(`[capture] ${board ?? target.name}: ${JSON.stringify(target)}${scenario ? ` · ${scenario}` : ''}`);
   return true;
 }
 

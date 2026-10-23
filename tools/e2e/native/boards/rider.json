@@ -1,1 +1,103 @@
-[]
+[
+  {
+    "board": "shift-offers/HomeLoading",
+    "route": "home",
+    "scenario": "getRiderDashboard=@stall",
+    "device": "dark-390-100"
+  },
+  {
+    "board": "shift-offers/HomeError",
+    "route": "home",
+    "scenario": "getRiderDashboard=@status=500",
+    "device": "dark-390-100"
+  },
+  {
+    "board": "shift-offers/HomeOnDelivery",
+    "route": "home",
+    "scenario": "getRiderDashboard=rider_dashboard_on_delivery_pickup",
+    "device": "dark-390-100"
+  },
+  {
+    "board": "shift-offers/HomeOnDeliveryDropoff",
+    "route": "home",
+    "scenario": "getRiderDashboard=rider_dashboard_on_delivery_dropoff",
+    "device": "dark-390-100"
+  },
+  {
+    "board": "shift-offers/AccountTabResume",
+    "route": "account",
+    "scenario": "getRiderDashboard=rider_dashboard_on_delivery_pickup",
+    "device": "dark-390-100"
+  },
+  {
+    "board": "shift-offers/EarningsTabResume",
+    "route": "earnings",
+    "scenario": "getRiderDashboard=rider_dashboard_on_delivery_pickup",
+    "device": "dark-390-100"
+  },
+  {
+    "board": "shift-offers/ResumeStripDropoff",
+    "route": "earnings",
+    "scenario": "getRiderDashboard=rider_dashboard_on_delivery_dropoff",
+    "device": "dark-390-100"
+  },
+  {
+    "board": "shift-offers/HomeBlocked",
+    "route": "home",
+    "scenario": "getRiderDashboard=rider_dashboard_offline_blocked",
+    "device": "dark-390-100"
+  },
+  {
+    "board": "shift-offers/OfflineCap",
+    "route": "home",
+    "scenario": "getRiderDashboard=rider_dashboard_offline_blocked_continuous_online_cap",
+    "device": "dark-390-100"
+  },
+  {
+    "board": "shift-offers/OfflineDocExpired",
+    "route": "home",
+    "scenario": "getRiderDashboard=rider_dashboard_offline_blocked_document_expired",
+    "device": "dark-390-100"
+  },
+  {
+    "board": "shift-offers/SuspendedMidShift",
+    "route": "home",
+    "scenario": "getRiderDashboard=rider_dashboard_offline_blocked_account_not_active",
+    "device": "dark-390-100"
+  },
+  {
+    "board": "shift-offers/HomeTodayEmpty",
+    "route": "home",
+    "scenario": "getRiderDashboard=rider_dashboard_zero_earnings",
+    "device": "dark-390-100"
+  },
+  {
+    "board": "shift-offers/HomeStale",
+    "route": "home",
+    "scenario": "getRiderDashboard=rider_dashboard_online_stale",
+    "device": "dark-390-100"
+  },
+  {
+    "board": "shift-offers/HomeDegraded",
+    "route": "home",
+    "scenario": "getRiderDashboard=rider_dashboard_tracking_degraded",
+    "device": "dark-390-100"
+  },
+  {
+    "board": "shift-offers/HomeLost",
+    "route": "home",
+    "scenario": "getRiderDashboard=rider_dashboard_tracking_lost",
+    "device": "dark-390-100"
+  },
+  {
+    "board": "shift-offers/OfferTipHidden",
+    "route": "home",
+    "scenario": "getRiderDashboard=rider_dashboard_online_idle,getCurrentOffer=offer_zero_tip_low_value",
+    "device": "dark-390-100",
+    "volatile": [
+      "^\\d+:\\d{2}$",
+      "^\\d+ seconds"
+    ],
+    "note": "A live offer counts down, so the countdown numeral and its spoken label are blanked when deciding the screen has settled."
+  }
+]

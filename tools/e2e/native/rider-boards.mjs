@@ -49,16 +49,15 @@ export const UNPAIRABLE = [
   [/^[^/]+\/.*[Ff]ocus/, 'A focus-ring or screen-reader reading-order state (a control focused by keyboard or TalkBack). Maestro cannot place that focus before it captures.'],
 
   // --- shift and offers ----------------------------------------------------------------------------
-  [/^shift-offers\/(HomeGoingOnline|HomeGoingOffline|HomeLoading|OfferAccepting|OfferDeclining|OfferEarningsLoading)$/, IN_FLIGHT],
-  [/^shift-offers\/(HomeError|HomeOnlineFailed|HomeOfflineFailed|OfferAcceptRetry|OfferDeclineFailed|OfferLoadFailed|OfferAcceptExpired|OfferConnectionLost)$/, REFUSED],
-  [/^shift-offers\/(HomeDegraded|HomeLost|HomeStale|HomePermissionRevoked|HomeNotificationsOff)$/, 'Tracking or a phone permission goes wrong mid-shift (weak or lost location, location or notifications turned off). The flows grant the permissions and set one fixed location; none degrades them.'],
-  [/^shift-offers\/(HomeOnDelivery|HomeOnDeliveryDropoff|HomeGoOfflineAfter|HomeGoOfflineRefused|ForcedOfflineOnDelivery|AccountTabResume|EarningsTabResume|ResumeStripDropoff|SuspendedOnDelivery)$/, 'Needs a delivery under way with the rider on Home or another tab. The trip flows stay on the trip screens, and CI cannot accept an offer: the backend still asks for a seal scan at pickup until https://github.com/shaiknoorullah/hg-mono/issues/315, which would strand the rider.'],
+  [/^shift-offers\/(HomeGoingOnline|HomeGoingOffline|OfferAccepting|OfferDeclining|OfferEarningsLoading)$/, IN_FLIGHT],
+  [/^shift-offers\/(HomeOnlineFailed|HomeOfflineFailed|OfferAcceptRetry|OfferDeclineFailed|OfferLoadFailed|OfferAcceptExpired|OfferConnectionLost)$/, REFUSED],
+  [/^shift-offers\/(HomePermissionRevoked|HomeNotificationsOff)$/, 'A phone permission is turned off mid-shift (location or notifications). The flows grant the permissions before they start; none revokes one.'],
+  [/^shift-offers\/(HomeGoOfflineAfter|HomeGoOfflineRefused|ForcedOfflineOnDelivery|SuspendedOnDelivery)$/, 'Needs a delivery under way with the rider on Home or another tab. The trip flows stay on the trip screens, and CI cannot accept an offer: the backend still asks for a seal scan at pickup until https://github.com/shaiknoorullah/hg-mono/issues/315, which would strand the rider.'],
   [/^shift-offers\/(OfferCritical|OfferUrgent)$/, 'The offer with under 25 % or under 10 % of its 30 seconds left. The flows capture the offer as soon as it shows; Maestro cannot capture at a chosen second of a countdown.'],
   [/^shift-offers\/(OfferTaken|OfferWithdrawn|OfferNotAvailable|OfferReplacesResult|OfferLockScreen|OfferLockScreenLate)$/, 'An offer outcome the server pushes (taken by another rider, withdrawn, the rider no longer available), or the phone locked or the app in the background. The order-ready scenario offers one order to one rider, and no flow locks the phone.'],
-  [/^shift-offers\/(OfferBreakdownPartial|OfferTipHidden)$/, 'The offer with breakdown rows hidden (fields missing, no tip yet). Which rows show follows the offer the dev world sends, not the flow.'],
+  [/^shift-offers\/OfferBreakdownPartial$/, 'The offer with breakdown rows hidden (fields missing, no tip yet). Which rows show follows the offer the dev world sends, not the flow.'],
   [/^shift-offers\/(OfferDeclineOther|HomeCapWarning|OfflineUnresponsive)$/, 'An alternative drawn for a contract field that does not exist yet (the board is marked Needs API), so the app cannot draw it.'],
-  [/^shift-offers\/(OfflineCap|OfflineDocExpired|OfflineNoReason|SuspendedMidShift|HomeBlocked|HomePayoutsPaused)$/, 'The server sets the rider offline or blocks going online (12 hours online, an expired document, a suspended account, payouts paused by Stripe). ' + NO_DEVWORLD],
-  [/^shift-offers\/HomeTodayEmpty$/, 'Home on a first shift with nothing earned today. The flow captures Home offline as shift-offers/Main; which of the two the rider sees depends on trips the rider has made today, which no flow sets.'],
+  [/^shift-offers\/(OfflineNoReason|HomePayoutsPaused)$/, 'The server sets the rider offline or blocks going online (12 hours online, an expired document, a suspended account, payouts paused by Stripe). ' + NO_DEVWORLD],
 
   // --- delivery ------------------------------------------------------------------------------------
   [/^delivery\/(PickupArriving|PickupRecording|DropoffArriving|CantDeliverSending|ReturnedSending|ReturnedLoading|PodAttestationSubmitting|PodMarkingDelivered|PodOtpChecking|PodPhotoUploading|TripLoading|Restoring|ContactLoading)$/, IN_FLIGHT],

@@ -125,6 +125,11 @@ export async function openCapture(url: string | null | undefined): Promise<Route
 
   setMockScenario(scenario);
   await adoptCaptureClock(API_BASE_URL, clock);
+  // Logged before any return below, signed-out routes included: the native capture runner
+  // (tools/e2e/native/capture/run.mjs) reads this line from the phone's log to know the link was
+  // acted on, and `nothing opened` above to know it was refused.
+  // eslint-disable-next-line no-console
+  console.info(`[capture] ${board ?? route.name}: ${JSON.stringify(route)}${scenario ? ` · ${scenario}` : ''}`);
 
   clearForced();
   if (route.name === 'signIn') {
@@ -138,7 +143,5 @@ export async function openCapture(url: string | null | undefined): Promise<Route
   }
   // The landing is Home; the shell opens `route` over it, the way it opens a deep link.
   enterApp();
-  // eslint-disable-next-line no-console
-  console.info(`[capture] ${board ?? route.name}: ${JSON.stringify(route)}${scenario ? ` · ${scenario}` : ''}`);
   return route;
 }
