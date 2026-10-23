@@ -27,7 +27,16 @@ describe('console shell', () => {
       copy.querySelectorAll('[aria-hidden="true"]').forEach((n) => n.remove());
       return copy.textContent?.trim();
     };
-    expect(links.map(visibleName)).toEqual(['Live orders', 'History', 'Menu', 'Hours', 'Payouts', 'Settings']);
+    // The 72 px rail says "Orders" under the first icon, as the boards draw it; its name stays "Live orders".
+    expect(links.map(visibleName)).toEqual(['Orders', 'History', 'Menu', 'Hours', 'Payouts', 'Settings']);
+    expect(within(rail).getByRole('link', { name: /^Live orders/ })).toBeTruthy();
+    // No item draws its name twice (an icon-less item once had its name in the icon's place too).
+    for (const name of ['History', 'Payouts', 'Settings']) {
+      const link = within(rail).getByRole('link', { name: new RegExp(`^${name}`) });
+      expect((link.textContent ?? '').split(name).length - 1).toBe(1);
+    }
+    // The wordmark sits at the top of the rail.
+    expect(within(rail).getByRole('img', { name: 'HalalGoes' })).toBeTruthy();
     expect(within(rail).queryByText('Staff')).toBeNull();
     // History is current on /orders/history, not Live orders.
     expect(within(rail).getByRole('link', { name: /History/ }).getAttribute('aria-current')).toBe('page');
@@ -56,6 +65,9 @@ describe('console shell', () => {
     expect(within(rail).getByText('Restaurant partner')).toBeTruthy();
     expect((await within(rail).findByTestId('rail-restaurant')).textContent).toBe(profile.display_name);
     expect(within(rail).getByTestId('rail-signed-in').textContent).toBe('Signed in as the owner');
+    // The toggle says "Collapse" and is named "Collapse navigation".
+    const toggle = within(rail).getByRole('button', { name: 'Collapse navigation' });
+    expect(toggle.textContent).toBe('Collapse');
     // The current item is still a filled tile and the rail still collapses.
     expect(within(rail).getByRole('link', { name: /History/ }).getAttribute('aria-current')).toBe('page');
     fireEvent.click(within(rail).getByRole('button', { name: 'Collapse navigation' }));

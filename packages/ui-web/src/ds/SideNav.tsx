@@ -91,6 +91,13 @@ export interface SideNavProps {
   onToggleCollapsed?: (collapsed: boolean) => void;
   /** Alias of `onToggleCollapsed` (admin). */
   onCollapsedChange?: (collapsed: boolean) => void;
+  /**
+   * Visible word beside the toggle's icon when the rail is expanded, when it differs from the
+   * accessible name `collapseLabel` (the restaurant boards draw "Collapse"). Default: `collapseLabel`.
+   */
+  collapseText?: string;
+  /** The toggle's border: `plain` (default, the admin rail) or `outline` (the restaurant boards). */
+  toggleEmphasis?: 'outline' | 'plain';
   /** The toggle's names. Defaults "Collapse menu" and "Expand menu". */
   collapseLabel?: string;
   expandLabel?: string;
@@ -164,6 +171,8 @@ export function SideNav({
   onToggleCollapsed,
   onCollapsedChange,
   collapseLabel = 'Collapse menu',
+  collapseText,
+  toggleEmphasis = 'plain',
   expandLabel = 'Expand menu',
   railHeader,
   onNavigate,
@@ -313,7 +322,7 @@ export function SideNav({
           {showToggle ? (
             <SidebarFooterButton
               tone={tone}
-              emphasis="plain"
+              emphasis={toggleEmphasis}
               aria-expanded={!collapsed}
               aria-controls={listId}
               aria-label={collapsed ? expandLabel : collapseLabel}
@@ -323,7 +332,7 @@ export function SideNav({
               <span aria-hidden="true" className={cn('inline-flex', collapsed && '-scale-x-100 rtl:scale-x-100')}>
                 <Icon name="back" size="md" />
               </span>
-              {collapsed ? null : <span aria-hidden="true">{collapseLabel}</span>}
+              {collapsed ? null : <span aria-hidden="true">{collapseText ?? collapseLabel}</span>}
             </SidebarFooterButton>
           ) : null}
         </SidebarFooter>

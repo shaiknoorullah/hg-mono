@@ -16,7 +16,7 @@
  */
 import { useCallback, useEffect, useMemo, useState, type MouseEvent, type ReactNode } from 'react';
 import { Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Icon, IconButton, Menu, NavDrawer, AppBar, SideNav, type SideNavItem } from '../ds';
+import { Icon, IconButton, Menu, NavDrawer, AppBar, SideNav, Wordmark, type SideNavItem } from '../ds';
 import { useConsole } from '../data/console';
 import { NAV, activeNavKey } from './nav';
 import { BannerSlot, SHELL_PANELS, StatusBarSlot, StripSlot } from './slots';
@@ -27,6 +27,15 @@ import { WHATS_NEW } from '../whatsnew/copy';
 import { useAutoOpenWhatsNew } from '../whatsnew/autoOpen';
 import { useUnseenNotes } from '../whatsnew/useNotes';
 import { useIsDesktop, useIsPhone } from './viewport';
+
+/** The wordmark at the top of the rail, in the rail's own ink (the boards: 96 x 32 expanded, 60 x 20 collapsed). */
+function RailBrand({ collapsed }: { collapsed: boolean }) {
+  return (
+    <span className="inline-flex" style={{ ['--hg-text-primary' as string]: 'var(--hg-text-on-accent)' }}>
+      <Wordmark height={collapsed ? 20 : 32} title="HalalGoes" />
+    </span>
+  );
+}
 
 const RAIL_KEY = 'hg_restaurant_rail_expanded_v1';
 
@@ -119,23 +128,18 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
     setParams(next, { replace: true });
   }, [params, setParams]);
 
-  const buildItems = (labelsShown: boolean): SideNavItem[] => NAV.map((n) => ({
+  const buildItems = (): SideNavItem[] => NAV.map((n) => ({
     key: n.key,
     label: n.label,
     href: n.to,
-    // No Solar glyph yet for History, Payouts, Settings (#198): the collapsed rail shows the
-    // item's name in the icon's place, never a blank tile (wp1 spec §3).
-    icon: n.icon ? (
-      <Icon name={n.icon} weight={n.key === active ? 'bold' : 'linear'} size={22} />
-    ) : labelsShown ? undefined : (
-      <span aria-hidden="true" className="text-[11px] font-semibold leading-none">
-        {n.label}
-      </span>
-    ),
+    shortLabel: n.shortLabel,
+    // No Solar glyph yet for History, Payouts, Settings (#198): their rail item shows the name alone, once
+    // (the boards draw it that way; a second copy in the icon's place read "Payouts Payouts").
+    icon: n.icon ? <Icon name={n.icon} weight={n.key === active ? 'bold' : 'linear'} size={22} /> : undefined,
     badge: n.key === 'orders' && waiting > 0 ? waiting : undefined,
     badgeNoun: n.key === 'orders' ? 'new' : undefined,
   }));
-  const items = buildItems(expanded);
+  const items = buildItems();
 
   // Rail items are real links (middle-click, copy link), but a plain click stays in
   // the app: a full page load would drop the go-live gesture and stop the order
@@ -192,7 +196,10 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
               expandedWidth={232}
               header="Restaurant partner"
               footer={railFooter}
+              brand={<RailBrand collapsed={!expanded} />}
               collapseLabel="Collapse navigation"
+              collapseText="Collapse"
+              toggleEmphasis="outline"
               expandLabel="Expand navigation"
               onToggleCollapsed={
                 isDesktop && !anyPanelOpen
@@ -263,7 +270,7 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
         {isPhone ? (
           <NavDrawer id="console-nav-drawer" tone="light" hideTrigger open={drawerOpen} onClose={() => setDrawerOpen(false)} testId="console-nav-drawer">
             <div className="flex min-h-0 flex-1" onClick={keepInApp}>
-              <SideNav tone="light" groups={[{ key: 'main', items: buildItems(true) }]} activeKey={active} collapsed={false} testId="console-drawer-nav" />
+              <SideNav tone="light" groups={[{ key: 'main', items: buildItems() }]} activeKey={active} collapsed={false} testId="console-drawer-nav" />
             </div>
           </NavDrawer>
         ) : null}

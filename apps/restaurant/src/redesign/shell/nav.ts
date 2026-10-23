@@ -9,12 +9,14 @@ import type { IconName } from '../ds';
 export interface NavDef {
   key: 'orders' | 'history' | 'menu' | 'hours' | 'payouts' | 'settings';
   label: string;
+  /** Under the icon on the 72 px rail, as the boards draw it ("Orders"); defaults to `label`. */
+  shortLabel?: string;
   to: string;
   icon?: IconName;
 }
 
 export const NAV: readonly NavDef[] = [
-  { key: 'orders', label: 'Live orders', to: '/orders', icon: 'orders' },
+  { key: 'orders', label: 'Live orders', shortLabel: 'Orders', to: '/orders', icon: 'orders' },
   { key: 'history', label: 'History', to: '/orders/history' },
   { key: 'menu', label: 'Menu', to: '/menu', icon: 'menu' },
   { key: 'hours', label: 'Hours', to: '/hours', icon: 'clock' },
