@@ -1,7 +1,7 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
 
 import { declareUnpairable, expectDesignFor, type BoardFor } from './design';
-import { MOCK_API, MODE, freshCheckIn, openSignedIn, pinCheckedIn } from './redesign-restaurant.support';
+import { MOCK_API, MODE, freshCheckIn, openSignedIn } from './redesign-restaurant.support';
 import { projectMeta } from './mode';
 
 test.skip(MODE !== 'mock', 'written against the mock server; run with E2E_MODE=mock');
@@ -103,7 +103,6 @@ async function capture(page: Page, board: BoardFor, { settled = true } = {}) {
   // A call that never answers keeps the network busy for good: the loading state is captured as it is.
   if (settled) await page.waitForLoadState('networkidle');
   await expect(page.getByText('Not built yet')).toHaveCount(0);
-  await pinCheckedIn(page);
   await expectDesignFor(page, board);
 }
 

@@ -1,7 +1,7 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
 
 import { at1440, expectDesignFor, type BoardFor } from './design';
-import { MODE, openSignedIn, scenarioPayload as fixture, torontoDateIn as torontoDate } from './redesign-restaurant.support';
+import { MODE, freshCheckIn, openSignedIn, scenarioPayload as fixture, torontoDateIn as torontoDate } from './redesign-restaurant.support';
 
 test.skip(MODE !== 'mock', 'written against the mock server; run with E2E_MODE=mock');
 
@@ -47,6 +47,7 @@ interface Road {
 
 /** Serves the profile, the document pack and the whole upload road; returns what the pack looks like now. */
 async function serve(page: Page, o: Road = {}) {
+  await freshCheckIn(page);
   const presigned = await fixture(page, 'presigned_upload');
   const ready = await fixture(page, 'stored_object_ready');
   const profile = (o.profile ?? ((p) => p))(await fixture(page, 'restaurant_profile_halal_certified'));
