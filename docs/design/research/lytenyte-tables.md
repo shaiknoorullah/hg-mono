@@ -2,10 +2,12 @@
 covers:
   - packages/ui-web/src/**
   - apps/admin/src/**
-reviewed: 2026-10-17
+reviewed: 2026-10-23
 ---
 
 # DataTable on LyteNyte Grid, and the cell component set — spec draft
+
+> **2026-10-23:** the admin's stand-in grid (`ds-stubs/DataGrid.stub.tsx`) draws its header row as the boards' `DataTable` does: a sunken fill, 8 px above and below, 11 px semibold label text. This draft's choice of LyteNyte is unchanged.
 
 > **2026-10-05:** `packages/ui-web/src/live/` (the realtime socket and `LiveMap`) and the admin's
 > live operations map are outside this draft's scope; the operations map lists its orders as plain
