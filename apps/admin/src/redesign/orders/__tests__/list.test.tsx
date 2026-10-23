@@ -30,8 +30,8 @@ describe('Orders', () => {
     for (const label of ['Created', 'Payment authorised', 'Waiting for restaurant', 'Preparing', 'Ready for pickup', 'Picked up', 'Rider arrived', 'Delivered', 'Completed', 'Cancelled', 'Rejected by restaurant', 'Failed', 'Disputed', 'Resolved']) {
       expect(within(grid).getByText(label)).toBeTruthy();
     }
-    // The resolved order's restaurant has no halal object: plain text, never an optimistic badge.
-    expect(within(grid).getByText('No status on file')).toBeTruthy();
+    // The ready and failed orders' restaurant (Sham Shawarma) has no halal object: plain text, never an optimistic badge.
+    expect(within(grid).getAllByText('No status on file')).toHaveLength(2);
     // All four halal states are drawn, and none of them is red.
     const halal = [...grid.querySelectorAll('[data-testid="HalalBadge"]')];
     expect(new Set(halal.map((b) => b.getAttribute('data-halal-render')))).toEqual(new Set(['certified', 'expiring', 'expired', 'unverified']));
