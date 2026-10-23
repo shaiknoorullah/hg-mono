@@ -162,7 +162,11 @@ describe('sign in · refusals (branch on error.code)', () => {
     expect(button.getAttribute('aria-disabled')).toBe('true');
     expect(button.getAttribute('aria-describedby')).toBe('wait-reason');
     const timer = screen.getByRole('timer', { name: 'until you can try again' });
-    expect(timer.textContent).toMatch(/^0:(39|40)$/);
+    expect(timer.querySelector('[data-wait-time]')!.textContent).toMatch(/^0:(39|40)$/);
+    // The board draws the timer's name as visible text under the countdown, not only as its name.
+    const waitLabel = timer.querySelector('[data-wait-label]')!;
+    expect(waitLabel.textContent).toBe('until you can try again');
+    expect(waitLabel.getAttribute('aria-hidden')).toBe('true');
     expect(document.getElementById('wait-reason')!.textContent).toMatch(/^You can try again in 0:4/);
     // A status, not an alert: focus stays put.
     expect(document.activeElement?.getAttribute('role')).not.toBe('alert');
@@ -191,7 +195,7 @@ describe('sign in · refusals (branch on error.code)', () => {
     const signInButton = screen.getByRole('button', { name: 'Sign in' });
     expect(signInButton.getAttribute('aria-disabled')).toBe('true');
     expect(signInButton.getAttribute('aria-describedby')).toBe('wait-reason');
-    expect(screen.getByRole('timer').textContent).toMatch(/^1[45]:\d\d$/);
+    expect(screen.getByRole('timer').querySelector('[data-wait-time]')!.textContent).toMatch(/^1[45]:\d\d$/);
     expect((screen.getByLabelText(/^Password/) as HTMLInputElement).value).toBe('');
     expect(screen.getByText(/^Partner support:/)).toBeTruthy();
   });
