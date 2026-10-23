@@ -13,11 +13,13 @@
  *   route; any other failure clears the session, which returns the app to sign-in.
  * - **Mock scenarios, dev only.** `EXPO_PUBLIC_MOCK_SCENARIO` is forwarded as `X-Mock-Scenario`
  *   against `pnpm mock` for review builds; never in a release build (`__DEV__` is false there).
+ *   `api/mockScenario.ts` holds one the capture entry can set while the app runs; it wins.
  * - **Tests.** `setApiFetch` swaps the transport for the fixture-backed one in `test/mockApi.ts`.
  */
 import { createHgClient } from '@hg/api-client';
 
 import { API_BASE_URL } from '../../api/config';
+import { getMockScenario, mockScenarioHeaders } from '../../api/mockScenario';
 import { getRefreshToken, getToken, setToken } from '../../api/token';
 import { markOffline, markOnline } from '../lib/connectivity';
 import { forcedKindForCode, raiseForced } from '../session/forced';
@@ -78,6 +80,7 @@ export async function postDirect(
       headers: {
         Accept: 'application/json',
         'X-HG-Client': 'customer-app',
+        ...mockScenarioHeaders(),
         ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
@@ -105,6 +108,7 @@ async function refreshSession(): Promise<boolean> {
           'Content-Type': 'application/json',
           Accept: 'application/json',
           'X-HG-Client': 'customer-app',
+          ...mockScenarioHeaders(),
         },
         body: JSON.stringify({ refresh_token: refresh }),
       }),
@@ -146,6 +150,7 @@ export const api = createHgClient({
   },
   clientSurface: 'customer-app',
   clientVersion: '0.0.0',
-  mockScenario: devScenario || undefined,
+  // Read on every request: the capture entry changes it while the app runs.
+  mockScenario: () => getMockScenario() ?? (devScenario || undefined),
   fetch: observedFetch,
 });

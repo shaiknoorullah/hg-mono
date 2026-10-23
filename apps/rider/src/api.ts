@@ -13,6 +13,7 @@
  */
 import { createHgClient, type HgClient } from '@hg/api-client';
 
+import { getMockScenario } from './mockScenario';
 import { getEpoch, getRefreshToken, getToken, setToken, setTokens } from './token';
 
 const DEFAULT_BASE_URL = 'http://localhost:4010';
@@ -37,6 +38,7 @@ export const refreshClient = createHgClient({
   getToken: () => null,
   clientSurface: 'rider-app',
   clientVersion: '0.0.0',
+  mockScenario: getMockScenario,
 });
 
 let refreshing: Promise<boolean> | null = null;
@@ -86,6 +88,7 @@ export const api = createHgClient({
   clientSurface: 'rider-app',
   clientVersion: '0.0.0',
   onUnauthorized,
+  mockScenario: getMockScenario,
 });
 
 const scenarioClients = new Map<string, HgClient>();

@@ -7,7 +7,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { test } = require('node:test');
 
-const { envProblems, dotenvProblems, bundleProblems, REDESIGN_MARKER } = require('./redesign-off.cjs');
+const { envProblems, dotenvProblems, bundleProblems, REDESIGN_MARKER, CAPTURE_MARKER } = require('./redesign-off.cjs');
 
 function tmp(files) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'redesign-off-'));
@@ -48,5 +48,40 @@ test('a bundle with the flag compiled on is refused: the marker, or an inlined e
   }
   // Hermes bytecode is binary; the marker is still a plain string in its string table.
   const hbc = tmp({ 'index.android.bundle': Buffer.concat([Buffer.from([0xc6, 0x1f, 0xbc, 0x03, 0]), Buffer.from(REDESIGN_MARKER)]) });
+  assert.equal(bundleProblems([path.join(hbc, 'index.android.bundle')]).length, 1);
+});
+
+const OFF = { EXPO_PUBLIC_HG_REDESIGN: '0', VITE_HG_REDESIGN: '0' };
+
+test('a release build refuses the design-capture flag when it is on, and accepts it unset, empty or "0"', () => {
+  for (const ok of [undefined, '', '0']) assert.deepEqual(envProblems({ ...OFF, EXPO_PUBLIC_HG_CAPTURE: ok }), [], String(ok));
+  for (const bad of ['1', 'true', 'yes']) {
+    const problems = envProblems({ ...OFF, EXPO_PUBLIC_HG_CAPTURE: bad });
+    assert.equal(problems.length, 1, bad);
+    assert.match(problems[0], /EXPO_PUBLIC_HG_CAPTURE is "/);
+  }
+});
+
+test('a .env file that turns the design-capture flag on is refused; off values and .env.example are not', () => {
+  const on = tmp({ '.env.local': 'EXPO_PUBLIC_HG_CAPTURE=1\n' });
+  const exported = tmp({ '.env': 'export EXPO_PUBLIC_HG_CAPTURE="yes" # try it\n' });
+  const fine = tmp({ '.env.example': 'EXPO_PUBLIC_HG_CAPTURE=1\n', '.env': 'EXPO_PUBLIC_HG_CAPTURE=0\nEXPO_PUBLIC_HG_CAPTURE_X=1\n' });
+  const empty = tmp({ '.env': 'EXPO_PUBLIC_HG_CAPTURE=\n' });
+  assert.equal(dotenvProblems([on]).length, 1);
+  assert.equal(dotenvProblems([exported]).length, 1);
+  assert.deepEqual(dotenvProblems([fine]), []);
+  assert.deepEqual(dotenvProblems([empty]), []);
+});
+
+test('a bundle that holds the design-capture entry is refused; one without it is not', () => {
+  assert.equal(CAPTURE_MARKER, '__capture');
+  const clean = tmp({ 'index.android.bundle': 'var a="hgcustomer://order/";' });
+  assert.deepEqual(bundleProblems([clean]), []);
+  const entry = tmp({ 'index.android.bundle': 'var re=/^hgcustomer:\\/\\/__capture(?:\\?([^#]*))?/;' });
+  const problems = bundleProblems([entry]);
+  assert.equal(problems.length, 1);
+  assert.match(problems[0], /design-capture entry/);
+  // Hermes bytecode keeps the string readable in its string table.
+  const hbc = tmp({ 'index.android.bundle': Buffer.concat([Buffer.from([0xc6, 0x1f, 0xbc, 0x03, 0]), Buffer.from('hgrider://__capture')]) });
   assert.equal(bundleProblems([path.join(hbc, 'index.android.bundle')]).length, 1);
 });

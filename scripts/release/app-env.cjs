@@ -107,6 +107,13 @@ function resolveEnvironment(name, env = process.env) {
         'Unset it, or build dev (tools/e2e/README.md, Redesign).',
     );
   }
+  // The native design captures' dev-only entry (apps/<app>/src/redesign/capture/): never in prod.
+  if (name === 'prod' && env.EXPO_PUBLIC_HG_CAPTURE && env.EXPO_PUBLIC_HG_CAPTURE !== '0') {
+    throw new Error(
+      `a prod build must not carry the design-capture entry, but EXPO_PUBLIC_HG_CAPTURE is "${env.EXPO_PUBLIC_HG_CAPTURE}". ` +
+        'Unset it, or build dev.',
+    );
+  }
   const version = env.APP_VERSION || '0.0.0';
   return {
     name,
