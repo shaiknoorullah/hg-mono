@@ -14,7 +14,7 @@ import { parseInsets } from '../src/insets.mjs';
 import { compareLayouts } from '../src/layout-diff.mjs';
 import { parseBoardId, parseCaptureFile } from '../src/names.mjs';
 import { canvas, writePng } from '../src/png.mjs';
-import { TOLERANCE, compareNative, deltaE } from '../src/native-geometry.mjs';
+import { TOLERANCE, compareNative, deltaE, sampleInk } from '../src/native-geometry.mjs';
 import { parseHierarchy, snapshotFromHierarchy } from '../src/uiautomator.mjs';
 
 const WHITE = [255, 255, 255, 255];
@@ -460,6 +460,19 @@ test('native geometry: a board never passes on nothing measured or on mostly mis
   below.texts.push({ text: 'Below the fold', x: 16, y: 900, w: 100, h: 20 });
   assert.equal(compareNative(below, app, opts).verdict, 'PASS', 'what the screen does not reach is not measured');
   assert.ok(deltaE([0, 0, 0], [255, 255, 255]) > 99 && deltaE([10, 10, 10], [10, 10, 10]) === 0);
+});
+
+test('native geometry: a text\'s ink is the core of its strokes, not their subpixel-antialiased edge', () => {
+  const CREAM = [255, 250, 234, 255];
+  const stroke = [0x4a, 0x4e, 0x48, 255];
+  const blueEdge = [0x4a, 0x4e, 0x66, 255]; // red and green subpixels inked, blue half
+  const redEdge = [0x8a, 0x4e, 0x48, 255];
+  // A 6 px stroke with a 1 px edge on each side, the way Chromium draws subpixel text.
+  const png = paint(paint(paint(canvas(30, 10, CREAM), 12, 0, 6, 10, stroke), 18, 0, 1, 10, blueEdge), 11, 0, 1, 10, redEdge);
+  const box = { x: 0, y: 0, w: 30, h: 10 };
+  assert.ok(deltaE(CREAM, blueEdge) > deltaE(CREAM, stroke), 'the edge is further in colour than the ink');
+  assert.deepEqual(sampleInk(png, box, 1), [0x4a, 0x4e, 0x48]);
+  assert.equal(sampleInk(canvas(30, 10, CREAM), box, 1), null, 'no ink, no colour');
 });
 
 test('diff.mjs: a native pair is decided by geometry; identical pixels do not pass it, and a hierarchy is what it needs', () => {
