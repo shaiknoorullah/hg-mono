@@ -252,7 +252,7 @@ test.describe('redesigned restaurant · payout account (mock)', () => {
   });
 
   test('back from Stripe, still checking', async ({ page }) => {
-    await open(page, '/payouts/return', { connect: 'connect_status_pending_verification', requirements: SETUP });
+    await open(page, '/payouts/return', { connect: 'connect_status_pending_verification' });
     await expect(page.getByTestId('banner-checking')).toBeVisible();
     await capture(page, { 1440: 'restaurant/payouts/Payouts-StripeReturn-Checking' });
   });
