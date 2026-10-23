@@ -2,10 +2,15 @@
 covers:
   - packages/ui-web/src/**
   - apps/admin/src/**
-reviewed: 2026-10-17
+reviewed: 2026-10-23
 ---
 
 # DataTable on LyteNyte Grid, and the cell component set — spec draft
+
+> **2026-10-23:** `AppBar`, `SideNav` and `Switch` in `packages/ui-web/src/ds/` now draw the restaurant
+> boards' type: 13/19.5 rail labels with no tracking, 1.5 line height on the app bar's title and
+> subtitle (warm off-white on the chrome bar), and a 13/19.5 semibold state word on the switch. The tables
+> in this draft are unchanged.
 
 > **2026-10-05:** `packages/ui-web/src/live/` (the realtime socket and `LiveMap`) and the admin's
 > live operations map are outside this draft's scope; the operations map lists its orders as plain

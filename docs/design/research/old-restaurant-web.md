@@ -1,10 +1,14 @@
 ---
 covers:
   - apps/restaurant/src/**
-reviewed: 2026-10-22
+reviewed: 2026-10-23
 ---
 
 # What the old restaurant web app teaches the redesign
+
+> **2026-10-23:** the redesigned console's collapsed rail now sets its labels at 13/19.5 with no tracking, the
+> status strip uses the design system's own badge (26 px high) and shows "Ringing · N waiting" while orders
+> wait, the account button is named "Account menu", and the setup top bar's account email is drawn bordered in semibold.
 
 > **2026-10-16:** the old app's four document tiles (above) have a successor in the redesigned
 > Settings, Documents section: each food safety, business licence and owner ID row opens a sheet

@@ -165,7 +165,8 @@ export function AppBar({
               <p
                 className={cn(
                   'm-0 truncate text-body-sm leading-normal',
-                  tone === 'chrome' ? 'text-neutral-200' : onColour || transparent ? 'text-current opacity-85' : 'text-fg-secondary',
+                  // The boards' warm off-white under the title on the chrome bar (the border role's colour).
+                  tone === 'chrome' ? 'text-line-decorative' : onColour || transparent ? 'text-current opacity-85' : 'text-fg-secondary',
                   contextual && 'text-fg-secondary opacity-100',
                 )}
               >
