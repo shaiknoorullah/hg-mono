@@ -110,6 +110,8 @@ test.describe('redesigned admin · system status and account (mock)', () => {
     await routeLogin(page, 'ADMIN');
     await page.goto('/');
     await signIn(page);
+    // Sign-in lands on the restaurant queue; going to the account before it has landed lets the landing replace it.
+    await expect(page.locator('#app-bar-heading')).toHaveText('Restaurant applications');
     await page.evaluate(() => {
       window.location.hash = '#/account';
     });

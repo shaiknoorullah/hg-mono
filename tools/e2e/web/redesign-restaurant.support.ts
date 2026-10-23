@@ -45,6 +45,10 @@ function liveOwner(): { email: string; password: string } {
 }
 
 const SESSION_KEY = 'hg_restaurant_session_v1';
+/** Where the sign-in screen keeps the address that last signed in on this browser (`rememberEmail`). */
+const LAST_EMAIL_KEY = 'hg_restaurant_last_email_v1';
+/** The sample owner the boards draw (the setup top bar shows this address). */
+const MOCK_OWNER_EMAIL = 'samir@zaytoungrill.ca';
 
 /**
  * Mock mode: a restaurant owner's principal. The contract has only `principal_customer`
@@ -97,8 +101,12 @@ export async function openSignedIn(page: Page, path: string): Promise<void> {
     const principal = await restaurantPrincipal(page);
     await page.route('**/v1/auth/me', (route) => route.fulfill({ json: { data: principal } }));
     await page.addInitScript(
-      ([key]) => window.localStorage.setItem(key!, JSON.stringify({ accessToken: 'mock-access-token' })),
-      [SESSION_KEY],
+      ([key, emailKey, email]) => {
+        window.localStorage.setItem(key!, JSON.stringify({ accessToken: 'mock-access-token' }));
+        // As if this browser had signed in: the setup top bar shows the address that signed in here.
+        window.localStorage.setItem(emailKey!, email!);
+      },
+      [SESSION_KEY, LAST_EMAIL_KEY, MOCK_OWNER_EMAIL],
     );
     await page.goto(path);
     return;
@@ -107,8 +115,11 @@ export async function openSignedIn(page: Page, path: string): Promise<void> {
   // page with that session, exactly as a reload after signing in would.
   const grant = await realGrant(page);
   await page.addInitScript(
-    ([key, token, account]) => window.localStorage.setItem(key!, JSON.stringify({ accessToken: token, accountId: account })),
-    [SESSION_KEY, grant.access_token, grant.principal.account_id],
+    ([key, token, account, emailKey, email]) => {
+      window.localStorage.setItem(key!, JSON.stringify({ accessToken: token, accountId: account }));
+      window.localStorage.setItem(emailKey!, email!);
+    },
+    [SESSION_KEY, grant.access_token, grant.principal.account_id, LAST_EMAIL_KEY, LIVE_OWNER.email],
   );
   await page.goto(path);
 }

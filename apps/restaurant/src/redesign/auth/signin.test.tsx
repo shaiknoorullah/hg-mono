@@ -348,12 +348,12 @@ describe('sign in · after a session ended', () => {
     installFakeApi(routes({ body: restaurantGrant() }));
     await renderPublic('/login?signed_out=reuse-detected');
     expect(await screen.findByRole('heading', { name: 'We signed you out on every device' })).toBeTruthy();
-    expect(screen.getByText('Every session ended, including kitchen tablets')).toBeTruthy();
-    expect(
-      await screen.findByText(
-        'Something looked like a copied sign-in, so we ended every session. Sign in again on each one. If you didn’t expect this, call partner support on 1-800-555-0199 after signing in.',
-      ),
-    ).toBeTruthy();
+    const alert = screen.getByText('Every session ended, including kitchen tablets').closest<HTMLElement>('[role="alert"]')!;
+    const phone = within(alert).getByRole('link', { name: '1-800-555-0199' });
+    expect(phone.getAttribute('href')).toBe('tel:+18005550199');
+    expect(phone.parentElement?.textContent).toBe(
+      "Something looked like a copied sign-in, so we ended every session. Sign in again on each one. If you didn't expect this, call partner support on 1-800-555-0199 after signing in.",
+    );
   });
 
   it('the shell’s Sign in again lands on the matching board', async () => {
