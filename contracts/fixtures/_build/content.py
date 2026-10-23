@@ -719,3 +719,26 @@ class Content:
         if prop in by_prop and by_prop[prop] in members:
             return by_prop[prop]
         return members[0]
+
+
+# The restaurant the console boards draw (restaurant/settings, payouts, onboarding): every
+# RestaurantProfile fixture is this restaurant, so a capture of the app shows what its board shows.
+# The numbers are in the 555-01xx test range.
+BOARD_RESTAURANT_PROFILE = {
+    "legal_name": "Zaytoun Grill Holdings Inc.",
+    "display_name": "Zaytoun Grill",
+    "owner_first_name": "Samir",
+    "owner_last_name": "Haddad",
+    "phone_e164": "+14165550134",
+    "public_phone_e164": "+14165550199",
+    "gst_hst_number": "123456789RT0001",
+    "address": {
+        "line1": "14 Ellesmere Rd",
+        "line2": None,
+        "city": "Scarborough",
+        "province": "ON",
+        "postal_code": "M1R 4B5",
+        "latitude": 43.7522,
+        "longitude": -79.2972,
+    },
+}

@@ -79,6 +79,19 @@ function error(code: string, status: number, extra: { details?: unknown; headers
     });
 }
 
+/**
+ * The register boards draw "Version 2026-09" as the partner terms; the mock's public config says
+ * 2026-05-01. The contract only calls `terms_version` a string, so the capture serves the board's
+ * value on the config read, as the real server would once the terms were published.
+ */
+async function partnerTermsVersion(page: Page) {
+  await page.route('**/v1/config/public', async (route) => {
+    const res = await route.fetch();
+    const body = await res.json();
+    await route.fulfill({ response: res, json: { ...body, data: { ...body.data, terms_version: '2026-09' } } });
+  });
+}
+
 async function fillSignIn(page: Page, email: string, password: string) {
   await page.getByLabel(/^Email/).fill(email);
   await page.getByLabel(/^Password/).fill(password);
@@ -101,8 +114,9 @@ test.describe('restaurant redesign · sign in (mock)', () => {
     await expect(page.getByText('Restaurant partner')).toBeVisible();
     await expect(page.getByRole('navigation')).toHaveCount(0);
     await expect(page.getByTestId('support-sentence')).toContainText('Need help signing in? Call partner support on');
+    // The boards (Main, Tab-SignIn-1024) draw the form filled in; the capture types what they show.
+    await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct-horse-battery');
     await check(page, info, 'main');
-    await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct horse battery');
     await page.getByLabel(/^Password/).press('Enter');
     await expect(page).toHaveURL(/\/orders$/);
     await expect(page.getByTestId('console-rail')).toBeVisible();
@@ -111,7 +125,7 @@ test.describe('restaurant redesign · sign in (mock)', () => {
   test('Submitting: the form is busy and the button shows progress', async ({ page }, info) => {
     await page.route('**/v1/auth/login', () => undefined); // never answers
     await page.goto('/login');
-    await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct horse battery');
+    await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct-horse-battery');
     await page.getByRole('button', { name: 'Sign in' }).click();
     await expect(page.locator('form[aria-busy="true"]')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Sign in' })).toHaveAttribute('aria-busy', 'true');
@@ -135,7 +149,7 @@ test.describe('restaurant redesign · sign in (mock)', () => {
   test('Unverified: Send a new link opens Check your email in its wait', async ({ page }, info) => {
     await page.route('**/v1/auth/login', error('INVALID_CREDENTIALS', 401, { details: { email_verification_required: true } }));
     await page.goto('/login');
-    await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct horse battery');
+    await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct-horse-battery');
     await page.getByLabel(/^Password/).press('Enter');
     await expect(page.getByText('Confirm your email to sign in')).toBeVisible();
     await check(page, info, 'unverified');
@@ -149,7 +163,7 @@ test.describe('restaurant redesign · sign in (mock)', () => {
   test('TooMany: Try again waits for Retry-After', async ({ page }, info) => {
     await page.route('**/v1/auth/login', error('RATE_LIMITED', 429, { headers: { 'Retry-After': '60' } }));
     await page.goto('/login');
-    await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct horse battery');
+    await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct-horse-battery');
     await page.getByLabel(/^Password/).press('Enter');
     await expect(page.getByText('Too many attempts from this device')).toBeVisible();
     const button = page.getByRole('button', { name: 'Try again' });
@@ -163,7 +177,7 @@ test.describe('restaurant redesign · sign in (mock)', () => {
     await page.route('**/v1/auth/login', error('ACCOUNT_TEMPORARILY_LOCKED', 429, { headers: { 'Retry-After': '900' } }));
     await page.goto('/login');
     await expect(page.getByTestId('support-sentence')).toBeVisible();
-    await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct horse battery');
+    await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct-horse-battery');
     await page.getByLabel(/^Password/).press('Enter');
     await expect(page.getByTestId('InlineAlert')).toBeFocused();
     await expect(page.getByRole('link', { name: 'Call partner support' })).toHaveAttribute('href', /^tel:\+/);
@@ -186,7 +200,7 @@ test.describe('restaurant redesign · sign in (mock)', () => {
   test('Offline and server-busy share the Offline layout', async ({ page }, info) => {
     await page.route('**/v1/auth/login', (route) => route.abort('internetdisconnected'));
     await page.goto('/login');
-    await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct horse battery');
+    await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct-horse-battery');
     await page.getByLabel(/^Password/).press('Enter');
     await expect(page.getByTestId('InlineAlert')).toContainText("We couldn't reach HalalGoes");
     await expect(page.getByTestId('InlineAlert')).toBeFocused();
@@ -202,15 +216,18 @@ test.describe('restaurant redesign · sign in (mock)', () => {
     await page.goto('/login?signed_out=expired&return_to=%2Forders');
     await expect(page.getByRole('heading', { name: "You've been signed out" })).toBeVisible();
     await expect(page.getByTestId('InlineAlert')).toContainText('will time out after 3 minutes');
+    // The board draws the email the owner was signed in with.
+    await page.getByLabel(/^Email/).fill('samir@zaytoungrill.ca');
     await check(page, info, 'session-expired');
     await page.goto('/login?signed_out=reuse-detected');
     await expect(page.getByRole('heading', { name: 'We signed you out on every device' })).toBeVisible();
+    await page.getByLabel(/^Email/).fill('samir@zaytoungrill.ca');
     await check(page, info, 'reuse-detected');
   });
 
   test('NotRestaurant: the mock’s customer grant is refused and explained', async ({ page }, info) => {
     await page.goto('/login');
-    await fillSignIn(page, 'amina@example.ca', 'correct horse battery');
+    await fillSignIn(page, 'samir.h@gmail.com', 'correct-horse-battery');
     await page.getByLabel(/^Password/).press('Enter');
     await expect(page.getByRole('heading', { name: "This isn't a restaurant account" })).toBeVisible();
     await check(page, info, 'not-restaurant');
@@ -226,7 +243,7 @@ test.describe('restaurant redesign · sign in (mock)', () => {
     test(`Account card: ${code}`, async ({ page }, info) => {
       await page.route('**/v1/auth/login', error(code, status));
       await page.goto('/login');
-      await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct horse battery');
+      await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct-horse-battery');
       await page.getByLabel(/^Password/).press('Enter');
       await expect(page.getByRole('heading', { name: title })).toBeVisible();
       await expect(page.getByTestId('support-block')).toBeVisible();
@@ -237,12 +254,17 @@ test.describe('restaurant redesign · sign in (mock)', () => {
   }
 
   test('Register: default, errors, email taken, terms changed, net error, rate limited, then created', async ({ page }, info) => {
+    await partnerTermsVersion(page);
     await page.goto('/register');
     await expect(page.getByRole('heading', { level: 1, name: 'Register your restaurant' })).toBeVisible();
     await expect(page.getByText(/^Version /)).toBeVisible();
     await expect(page.getByRole('checkbox', { name: 'I have read and accept the partner terms' })).toHaveAttribute('aria-checked', 'false');
     await check(page, info, 'register-default');
 
+    // Register-Errors draws a one-letter name, an email without its ending and a short password.
+    await page.getByLabel(/^Restaurant name/).fill('Z');
+    await page.getByLabel(/^Work email/).fill('samir@zaytoungrill');
+    await page.getByLabel(/^Password/).fill('shawarma');
     await page.getByRole('button', { name: 'Create account' }).click();
     const summary = page.getByTestId('InlineAlert');
     await expect(summary).toContainText('4 things need changing before we can create your account');
@@ -251,7 +273,7 @@ test.describe('restaurant redesign · sign in (mock)', () => {
 
     await page.getByLabel(/^Restaurant name/).fill('Zaytoun Grill');
     await page.getByLabel(/^Work email/).fill('samir@zaytoungrill.ca');
-    await page.getByLabel(/^Password/).fill('a long kitchen password');
+    await page.getByLabel(/^Password/).fill('olive-tree-courtyard');
     await page.getByRole('checkbox', { name: 'I have read and accept the partner terms' }).click();
 
     const keys: string[] = [];
@@ -270,7 +292,7 @@ test.describe('restaurant redesign · sign in (mock)', () => {
     await check(page, info, 'register-email-taken');
 
     mode = 'terms';
-    await page.getByLabel(/^Work email/).fill('owner@zaytoungrill.ca');
+    await page.getByLabel(/^Work email/).fill('samir@zaytoungrill.ca');
     await page.getByRole('button', { name: 'Create account' }).click();
     await expect(page.getByTestId('InlineAlert')).toContainText('The partner terms have changed');
     await expect(page.getByText('Read the updated partner terms')).toBeVisible();
@@ -296,10 +318,11 @@ test.describe('restaurant redesign · sign in (mock)', () => {
     await page.route('**/v1/auth/register/restaurant', (route) =>
       route.fulfill({ status: 201, json: { data: { restaurant_id: '927cc55c-8ddd-4d9f-a353-353ba2a8982b', email: 'samir@zaytoungrill.ca', onboarding_state: 'REGISTERED' } } }),
     );
+    await partnerTermsVersion(page);
     await page.goto('/register');
     await page.getByLabel(/^Restaurant name/).fill('Zaytoun Grill');
     await page.getByLabel(/^Work email/).fill('samir@zaytoungrill.ca');
-    await page.getByLabel(/^Password/).fill('a long kitchen password');
+    await page.getByLabel(/^Password/).fill('olive-tree-courtyard');
     await page.getByRole('checkbox', { name: 'I have read and accept the partner terms' }).click();
     await page.getByLabel(/^Password/).press('Enter');
     await expect(page).toHaveURL(/\/check-email$/);
@@ -310,6 +333,7 @@ test.describe('restaurant redesign · sign in (mock)', () => {
 
   test('Register reflows at 320px (400% zoom): one column, no sideways scroll', async ({ page }, info) => {
     await page.setViewportSize({ width: 320, height: 640 });
+    await partnerTermsVersion(page);
     await page.goto('/register');
     await expect(page.getByRole('heading', { name: 'Register your restaurant' })).toBeVisible();
     await expect(page.getByText('Restaurant partner')).toBeHidden();
@@ -320,7 +344,7 @@ test.describe('restaurant redesign · sign in (mock)', () => {
     await page.route('**/v1/auth/login', error('INVALID_CREDENTIALS', 401, { details: { email_verification_required: true } }));
     await page.route('**/v1/auth/email/resend', error('RATE_LIMITED', 429, { headers: { 'Retry-After': '86400' } }));
     await page.goto('/login');
-    await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct horse battery');
+    await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct-horse-battery');
     await page.getByLabel(/^Password/).press('Enter');
     await page.getByRole('button', { name: 'Send a new link' }).click();
     await expect(page.getByText("You've asked for 5 links today")).toBeVisible();
@@ -405,7 +429,7 @@ test.describe('restaurant redesign · sign in (mock)', () => {
     await page.goto(`/reset-password?token=${token}`);
     await expect(page.getByRole('heading', { name: 'Set a new password' })).toBeVisible();
     await check(page, info, 'reset');
-    await page.getByLabel(/^New password/).fill('password1234567');
+    await page.getByLabel(/^New password/).fill('password1234');
     await page.getByLabel(/^New password/).press('Enter');
     await expect(page.getByText('This password appears in known data breaches. Choose a different one.')).toBeVisible();
     await expect(page.getByLabel(/^New password/)).toBeFocused();
