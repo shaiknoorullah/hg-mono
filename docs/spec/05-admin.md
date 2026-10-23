@@ -153,7 +153,7 @@ fails, the change is rolled back. This is a hard invariant, not a best effort.
   unless a `SUPER_ADMIN` reactivates.
 - **Data**: `staff_user` (§0.3); `staff_invitation {id, staff_user_id, token_hash, expires_at, consumed_at, created_by}`.
 - **Role**: **Super Admin** only — create, edit role, suspend, deactivate, reactivate, resend invite.
-  **Admin**: read the staff list (names, roles, status) only. **Support Agent**: denied entirely.
+  **Admin**: read the staff list (names, roles, status) only. **Support Agent**: denied entirely. The console draws that denial as its own page, not the generic "No permission" one: the app bar keeps "Staff", the card says staff accounts are for admins and super admins, and the one button is a filled "Go to live alerts" (boards `STF/StaffSupportDenied` and `STF/StaffDetailSupportDenied`).
 - **States**: `INVITED → ACTIVE` (invitation consumed + MFA enrolled) · `INVITED → DEACTIVATED`
   (revoke invite, or 72h expiry + 7 days) · `ACTIVE → SUSPENDED` (super admin action, reversible) ·
   `SUSPENDED → ACTIVE` (super admin action) · `ACTIVE|SUSPENDED → DEACTIVATED` (super admin action,
