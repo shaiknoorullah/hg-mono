@@ -185,11 +185,6 @@
       "project": "restaurant-redesign-tablet",
       "spec": "redesign-restaurant.settings.spec.ts › redesigned restaurant settings · upload a halal certificate (mock) › locked while a review is open",
       "issue": 1103
-    },
-    {
-      "project": "restaurant-redesign-tablet",
-      "spec": "redesign-restaurant.strip.spec.ts › restaurant redesign · new-order strip › Enter opens the offer in the panel; Escape returns focus to the tile",
-      "issue": 1104
     }
   ]
 }
