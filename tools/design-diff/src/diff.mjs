@@ -9,6 +9,7 @@
 // A capture is any design--<area>--<Board>.png under --captures. The board it is compared with is the one
 // its .capture.json declares (`board`); nothing is matched by similarity (README.md, "Pairing"). A capture
 // that declares `unpairable` is UNPAIRABLE and never compared; one that declares no board is UNCOVERED.
+// A second screenshot of a board already captured is a DUPLICATE: listed, not compared, not counted, and it fails the run.
 // Only a native capture (a Maestro flow cannot write a declaration) is paired by its file name, and --map
 // names a board for a screenshot with no declaration: { "<path under --captures>": "<app>/<area>/<Board>" }. Phone screenshots lose Android's bars first (--insets, measured, or
 // --profile, the stock heights). Writes <out>/results.json and, per pair, the diff image and the
@@ -123,6 +124,34 @@ export function findCaptures(root, { app = null, map = {} } = {}) {
   return found;
 }
 
+/**
+ * Two screenshots that resolve to the same board are one board counted twice, and the second is
+ * usually the one that fails (a Maestro flow keeps a second copy of every screenshot, without a
+ * hierarchy, under maestro/ in the same output directory). It is always a mistake about which
+ * directory was passed, never two takes to average. Each board is kept once: the copy nearest the
+ * top of the tree (a duplicate sits deeper), ties by path. The rest come back as `duplicates`
+ * naming both paths, and the run fails on them (exitCodeFor). Unpairable captures and captures
+ * with no board are not boards, so they are never duplicates.
+ * @param {{ rel: string, id: string | null, pairing: string | null }[]} captures
+ */
+export function dedupeCaptures(captures) {
+  const depth = (c) => c.rel.split(path.sep).length;
+  const keep = new Map();
+  for (const c of captures) {
+    if (!c.id || c.pairing === 'unpairable' || c.pairing === null) continue;
+    const kept = keep.get(c.id);
+    if (!kept || depth(c) < depth(kept) || (depth(c) === depth(kept) && c.rel < kept.rel)) keep.set(c.id, c);
+  }
+  const duplicates = [];
+  const unique = [];
+  for (const c of captures) {
+    const kept = c.id && c.pairing !== 'unpairable' && c.pairing !== null ? keep.get(c.id) : c;
+    if (kept === c) unique.push(c);
+    else duplicates.push({ id: c.id, capture: c.rel, keptCapture: kept.rel, reason: `${c.rel} is a second screenshot of ${c.id}, already taken by ${kept.rel}; it is not compared and not counted. Point --captures at the directory of one run's screenshots (tools/design-diff/README.md), not at one that holds each twice` });
+  }
+  return { captures: unique, duplicates };
+}
+
 /** Why a board cannot be compared against, or null when its reference is sound. */
 export function unusableReference(ref, refsDir) {
   if (!ref) return 'no board of that name in the references (a typo, or its app and area were not rendered)';
@@ -148,9 +177,9 @@ export function referenceIncomplete(ref) {
 /** Verdicts that do not fail a run: a pass, and a capture its spec declared cannot be compared, with the reason. */
 const NOT_FAILING = ['PASS', 'UNPAIRABLE'];
 
-/** 1 when the run must fail: any pair that is not PASS or UNPAIRABLE (FAIL, NO BOARD, UNCOVERED, DEFECTIVE REFERENCE, NOT COMPARED, BROWSER MISMATCH, NO PROVENANCE, NO LAYOUT), unless strict is off. */
-export function exitCodeFor(pairs, strict = true) {
-  return strict && pairs.some((p) => !NOT_FAILING.includes(p.verdict)) ? 1 : 0;
+/** 1 when the run must fail: any duplicate capture of a board (dedupeCaptures), or any pair that is not PASS or UNPAIRABLE (FAIL, NO BOARD, UNCOVERED, DEFECTIVE REFERENCE, NOT COMPARED, BROWSER MISMATCH, NO PROVENANCE, NO LAYOUT), unless strict is off. */
+export function exitCodeFor(pairs, strict = true, duplicates = []) {
+  return strict && (duplicates.length > 0 || pairs.some((p) => !NOT_FAILING.includes(p.verdict))) ? 1 : 0;
 }
 
 /** Why a web capture and its board came from different browsers, or null. Device captures have no browser. */
@@ -189,9 +218,11 @@ async function main() {
   const map = o.map ? JSON.parse(readFileSync(o.map, 'utf8')) : {};
   const cut = o.insets ? JSON.parse(readFileSync(o.insets, 'utf8')) : o.profile ? profileInsets(PROFILES[o.profile]) : null;
   const thresholds = { ...DEFAULTS, ...o.thresholds };
-  const captures = findCaptures(o.captures, { app: o.app, map });
+  const found = findCaptures(o.captures, { app: o.app, map });
+  const { captures, duplicates } = dedupeCaptures(found);
   if (!captures.length) throw new Error(`no captures under ${o.captures} (design--<area>--<Board>.png, or --map)`);
 
+  for (const d of duplicates) console.log(`${'DUPLICATE'.padEnd(12)} ${''.padStart(8)}    ${d.id}  (${d.capture})  ${d.reason}`);
   const pairs = [];
   for (const c of captures) {
     // One turn of the event loop per pair, so the images the last pair decoded are freed. Node frees
@@ -305,6 +336,7 @@ async function main() {
     crop: cut,
     pairing: { declared: pairs.filter((p) => p.pairing === 'declared').length, map: pairs.filter((p) => p.pairing === 'map').length, name: pairs.filter((p) => p.pairing === 'name').length },
     pairs,
+    duplicates,
     uncaptured,
     areas: Object.fromEntries(Object.entries(manifest.areas).filter(([id]) => apps.has(id.split('/')[0]))),
     caveatBoards: Object.fromEntries(Object.entries(manifest.boards).filter(([id, b]) => apps.has(id.split('/')[0]) && b.caveats?.length).map(([id, b]) => [id, { title: b.title, caveats: b.caveats }])),
@@ -315,7 +347,8 @@ async function main() {
   console.log(`\n${pairs.length} captures: ${count('PASS')} pass, ${count('FAIL')} fail, ${count('NOT COMPARED')} not compared, ${count('NO BOARD')} without a board, ${count('UNCOVERED')} uncovered (no board declared), ${count('UNPAIRABLE')} unpairable (declared not comparable), ${count('DEFECTIVE REFERENCE')} with a defective reference, ${count('BROWSER MISMATCH')} from another browser than their board, ${count('NO PROVENANCE')} native without provenance, ${count('NO LAYOUT')} native without a view hierarchy. ${path.join(o.out, 'results.json')}`);
   console.log(`paired by declaration: ${results.pairing.declared}, by --map: ${results.pairing.map}, by native file name: ${results.pairing.name}`);
   console.log(`uncaptured boards: ${uncaptured.length}${uncaptured.length ? ` (${uncaptured.slice(0, 10).join(', ')}${uncaptured.length > 10 ? ', ...' : ''})` : ''}`);
-  process.exitCode = exitCodeFor(pairs, o.strict);
+  if (duplicates.length) console.log(`${duplicates.length} duplicate captures of a board already counted (not compared, not in the figures above): the run fails. Wrong --captures directory?`);
+  process.exitCode = exitCodeFor(pairs, o.strict, duplicates);
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

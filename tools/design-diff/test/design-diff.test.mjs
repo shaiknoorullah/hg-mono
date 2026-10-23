@@ -8,7 +8,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, utimesSync, writeFile
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
-import { declaredBoard, exitCodeFor, findCaptures, referenceIncomplete, unusableReference } from '../src/diff.mjs';
+import { declaredBoard, dedupeCaptures, exitCodeFor, findCaptures, referenceIncomplete, unusableReference } from '../src/diff.mjs';
 import { DEFAULTS, compare } from '../src/compare.mjs';
 import { parseInsets } from '../src/insets.mjs';
 import { compareLayouts } from '../src/layout-diff.mjs';
@@ -735,4 +735,37 @@ test('the box key ignores hidden notes, and snapshotLayout stays self-contained'
   const shownText = new Function(`${src.slice(src.indexOf('const shownText'), src.indexOf('const boxes'))} return shownText;`)();
   assert.equal(shownText(e([t('Sign in'), e([t('Proposed component: AppBar')], true)])), 'Sign in');
   assert.equal(shownText(e([t('a'), e([t('b')]), t('c')])), 'abc');
+});
+
+test('two screenshots of one board are counted once, the extra is reported as a duplicate, and the run fails', () => {
+  const copy = (rel) => [rel, { board: 'admin/orders/Main' }];
+  const { caps, run, results } = declaredRun(['admin/orders/Main'], [
+    copy('screenshots/admin/1440x900/design--orders--Main.png'),
+    copy('maestro/run/ts/flow/takeScreenshot/design--orders--Main.png'),
+  ]);
+  const out = run();
+  const r = results();
+  assert.equal(r.pairs.length, 1, 'the board is counted once');
+  assert.equal(r.pairs[0].capture, 'screenshots/admin/1440x900/design--orders--Main.png', 'the copy nearest the top is kept');
+  assert.equal(r.duplicates.length, 1);
+  assert.equal(r.duplicates[0].capture, 'maestro/run/ts/flow/takeScreenshot/design--orders--Main.png');
+  assert.match(out.stdout, /DUPLICATE .*admin\/orders\/Main/);
+  assert.match(out.stdout, /1 captures:/);
+  assert.equal(exitCodeFor([{ verdict: 'PASS' }], true, r.duplicates), 1, 'a duplicate fails an otherwise clean run');
+  assert.equal(exitCodeFor([{ verdict: 'PASS' }], true, []), 0);
+  assert.equal(findCaptures(caps).length, 2, 'findCaptures still lists both');
+});
+
+test('dedupeCaptures leaves distinct boards, unpairable captures and uncovered ones alone', () => {
+  const caps = [
+    { rel: 'a/x.png', id: 'admin/orders/A', pairing: 'declared' },
+    { rel: 'a/y.png', id: 'admin/orders/B', pairing: 'declared' },
+    { rel: 'u/1.png', id: 'admin/orders/C', pairing: 'unpairable' },
+    { rel: 'u/2.png', id: 'admin/orders/C', pairing: 'unpairable' },
+    { rel: 'n/1.png', id: null, pairing: null },
+    { rel: 'n/2.png', id: null, pairing: null },
+  ];
+  const { captures, duplicates } = dedupeCaptures(caps);
+  assert.equal(captures.length, 6);
+  assert.deepEqual(duplicates, []);
 });
