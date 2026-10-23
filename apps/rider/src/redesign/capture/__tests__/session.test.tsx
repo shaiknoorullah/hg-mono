@@ -21,7 +21,7 @@ import { useNav } from '../../nav/Navigator';
 import { SessionGate } from '../../session/Session';
 import { mockApi, type MockApi } from '../../test/mockApi';
 import { CaptureLink } from '../entry';
-import { restoreClock } from '../clock';
+import { restoreClock } from '@hg/api-client/capture';
 
 declare module '../../nav/routes' {
   interface RedesignRoutes {

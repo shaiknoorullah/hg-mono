@@ -5,7 +5,7 @@
 import { getMockScenario, setMockScenario } from '../../../mockScenario';
 import { getToken, setToken } from '../../../token';
 import { clearScreens, registerScreen } from '../../nav/registry';
-import { restoreClock } from '../clock';
+import { restoreClock } from '@hg/api-client/capture';
 import { openCapture, parseCaptureUrl } from '../entry';
 
 // The app has no Node type declarations (it ships to phones); jest's few Node calls are typed by hand.
@@ -65,17 +65,14 @@ describe('parseCaptureUrl', () => {
     }
   });
 
-  it('refuses, with the reason, a link that cannot be opened', () => {
-    const why = (query: Record<string, string>) => {
-      const parsed = parseCaptureUrl(link(query));
-      return parsed && !parsed.ok ? parsed.why : null;
-    };
-    expect(why({ board: 'a/B' })).toMatch(/a\/B: no `route`/);
-    expect(why({ route: 'nowhere' })).toMatch(/no screen is registered for the route "nowhere"/);
-    expect(why({ route: 'suspended' })).toMatch(/shown by the session gate/);
-    expect(why({ route: 'home', params: '[1]' })).toMatch(/not a JSON object/);
-    expect(why({ route: 'home', params: '{oops' })).toMatch(/not a JSON object/);
-    expect(why({ route: 'home', clock: 'yesterday' })).toMatch(/`clock` is not a date/);
+  it.each([
+    [{ route: 'nowhere' }, /no screen is registered for the route "nowhere"/],
+    [{ route: 'suspended' }, /shown by the session gate/],
+    [{ board: 'a/B' }, /^a\/B: no `route`/],
+  ])('refuses %j with the reason', (query, reason) => {
+    const parsed = parseCaptureUrl(link(query));
+    expect(parsed).toMatchObject({ ok: false });
+    expect(parsed && !parsed.ok && parsed.why).toMatch(reason);
   });
 
   it('opens the sign-in screen without a registered route', () => {
@@ -90,29 +87,7 @@ describe('openCapture', () => {
     ).resolves.toBe(true);
     expect(getToken()).not.toBeNull();
     expect(getMockScenario()).toBe('getRiderMe=rider_me');
-    // The phone's clock now reads the fixtures' frozen instant, still ticking.
     expect(Math.abs(Date.now() - Date.parse(FROZEN))).toBeLessThan(5_000);
-    expect(new Date().getUTCFullYear()).toBe(2026);
-    expect(new Date(0).getTime()).toBe(0);
-    expect(new Date('2027-01-01T00:00:00Z').toISOString()).toBe('2027-01-01T00:00:00.000Z');
-    expect(new Date() instanceof Date).toBe(true);
-  });
-
-  it('asks the mock for the frozen clock when the link names none', async () => {
-    const fetchMock = jest.fn(async () => new Response(JSON.stringify({ data: { frozen_clock: FROZEN } })));
-    jest.spyOn(globalThis, 'fetch').mockImplementation(fetchMock as unknown as typeof fetch);
-    await openCapture(link({ route: 'home' }));
-    expect(String((fetchMock.mock.calls[0] as unknown[])[0])).toMatch(/\/__mock\/health$/);
-    expect(Math.abs(Date.now() - Date.parse(FROZEN))).toBeLessThan(5_000);
-  });
-
-  it('keeps the phone\'s clock, and says so, when nothing gives it a time', async () => {
-    jest.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'));
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    const before = Date.now();
-    await expect(openCapture(link({ route: 'home' }))).resolves.toBe(true);
-    expect(Math.abs(Date.now() - before)).toBeLessThan(5_000);
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('the clock stays the phone'));
   });
 
   it('signs out for the sign-in screen', async () => {
@@ -132,14 +107,18 @@ describe('openCapture', () => {
 });
 
 describe('with the flag off', () => {
-  it('has no entry, and the guard is the literal build-time test the bundler removes', () => {
+  it('has no entry module to open anything with', () => {
     // Jest runs without EXPO_PUBLIC_HG_CAPTURE, as every build but the capture one does.
-    let entry: unknown = 'unset';
+    let found: unknown = 'unset';
     jest.isolateModules(() => {
-      entry = (jest.requireActual('../index') as { captureEntry: unknown }).captureEntry;
+      found = jest.requireActual('../index').captureEntry;
     });
-    expect(entry).toBeNull();
-    const source = fs.readFileSync(path.join(__dirname, '..', 'index.ts'), 'utf8');
-    expect(source).toMatch(/process\.env\.EXPO_PUBLIC_HG_CAPTURE === '1' \? \(require\('\.\/entry'\)/);
+    expect(found).toBeNull();
+  });
+
+  it('is guarded by the literal build-time test, so the bundler can remove the require', () => {
+    const guard = fs.readFileSync(path.join(__dirname, '..', 'index.ts'), 'utf8');
+    expect(guard).toContain("process.env.EXPO_PUBLIC_HG_CAPTURE === '1'");
+    expect(guard).not.toMatch(/^import .*['"]\.\/entry['"]/m);
   });
 });

@@ -13,7 +13,7 @@ import { Shell } from '../../navigation/Shell';
 import { clearForced } from '../../session/forced';
 import { resetSessionForTests } from '../../session/session';
 import { renderRedesign } from '../../test/render';
-import { restoreClock } from '../clock';
+import { restoreClock } from '@hg/api-client/capture';
 
 // A capture build: the real entry in place of the flag-guarded `captureEntry` (the flag is a
 // build-time constant, and jest builds without it).

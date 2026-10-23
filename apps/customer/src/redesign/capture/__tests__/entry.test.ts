@@ -7,7 +7,7 @@ import { getToken, setToken } from '../../../api/token';
 import { routeForUrl } from '../../navigation/deepLinks';
 import { clearForced, getForced, raiseForced } from '../../session/forced';
 import { getSession, resetSessionForTests } from '../../session/session';
-import { restoreClock } from '../clock';
+import { restoreClock } from '@hg/api-client/capture';
 import { openCapture, parseCaptureUrl } from '../entry';
 
 // The app has no Node type declarations (it ships to phones); jest's few Node calls are typed by hand.
@@ -71,8 +71,6 @@ describe('parseCaptureUrl', () => {
     expect(why({ route: 'restaurant' })).toMatch(/needs `restaurantId`/);
     expect(why({ route: 'tracking', params: '{"orderId":""}' })).toMatch(/needs `orderId`/);
     expect(why({ route: 'cart', params: '[1]' })).toMatch(/not a JSON object/);
-    expect(why({ route: 'cart', params: '{oops' })).toMatch(/not a JSON object/);
-    expect(why({ route: 'cart', clock: 'yesterday' })).toMatch(/`clock` is not a date/);
     expect(why({ route: 'code' })).toMatch(/step inside the sign-in flow/);
   });
 
@@ -90,13 +88,7 @@ describe('openCapture', () => {
     expect(getToken()).not.toBeNull();
     expect(getMockScenario()).toBe('getOrder=order_arrived');
     expect(getSession().phase).toBe('app');
-    // The phone's clock now reads the fixtures' frozen instant, still ticking.
-    const now = Date.now();
-    expect(Math.abs(now - Date.parse(FROZEN))).toBeLessThan(5_000);
-    expect(new Date().getUTCFullYear()).toBe(2026);
-    expect(new Date(0).getTime()).toBe(0);
-    expect(new Date('2027-01-01T00:00:00Z').toISOString()).toBe('2027-01-01T00:00:00.000Z');
-    expect(new Date() instanceof Date).toBe(true);
+    expect(Math.abs(Date.now() - Date.parse(FROZEN))).toBeLessThan(5_000);
   });
 
   it('clears a forced route and the previous scenario before it opens the next board', async () => {
@@ -105,23 +97,6 @@ describe('openCapture', () => {
     await openCapture(link({ route: 'cart', clock: FROZEN }));
     expect(getForced()).toBeNull();
     expect(getMockScenario()).toBeUndefined();
-  });
-
-  it('asks the mock for the frozen clock when the link names none', async () => {
-    const fetchMock = jest.fn(async () => new Response(JSON.stringify({ data: { frozen_clock: FROZEN } })));
-    jest.spyOn(globalThis, 'fetch').mockImplementation(fetchMock as unknown as typeof fetch);
-    await openCapture(link({ route: 'cart' }));
-    expect(String((fetchMock.mock.calls[0] as unknown[])[0])).toMatch(/\/__mock\/health$/);
-    expect(Math.abs(Date.now() - Date.parse(FROZEN))).toBeLessThan(5_000);
-  });
-
-  it('keeps the phone\'s clock, and says so, when nothing gives it a time', async () => {
-    jest.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'));
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    const before = Date.now();
-    await expect(openCapture(link({ route: 'cart' }))).resolves.toEqual({ name: 'cart' });
-    expect(Math.abs(Date.now() - before)).toBeLessThan(5_000);
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('the clock stays the phone'));
   });
 
   it('signs out for the signed-out screen and opens "Your details" through the session', async () => {

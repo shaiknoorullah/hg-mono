@@ -22,19 +22,22 @@
 import * as React from 'react';
 import { Linking } from 'react-native';
 
+import {
+  CAPTURE_ACCESS_TOKEN,
+  CAPTURE_REFRESH_TOKEN,
+  adoptCaptureClock,
+  captureRefusal,
+  readCaptureQuery,
+} from '@hg/api-client/capture';
+
 import { API_BASE_URL } from '../../api';
 import { setMockScenario } from '../../mockScenario';
 import { setToken } from '../../token';
 import { useNav } from '../nav/Navigator';
 import { screenFor } from '../nav/registry';
-import { offsetClockTo } from './clock';
 
 /** `hgrider://__capture?...`, the scheme in app.config.js. */
 const CAPTURE_URL = /^hgrider:\/\/__capture(?:\?([^#]*))?(?:#.*)?$/;
-
-/** The token the mock accepts for any bearer; the scenario decides who the rider is. */
-const FIXTURE_ACCESS_TOKEN = 'capture-fixture-access';
-const FIXTURE_REFRESH_TOKEN = 'capture-fixture-refresh';
 
 /** Routes the session gate renders by itself, from `getRiderMe`; they are not navigated to. */
 const GATE_ROUTES: ReadonlySet<string> = new Set(['splash', 'suspended', 'terminal']);
@@ -66,38 +69,19 @@ export function parseCaptureUrl(url: string | null | undefined): Parsed | null {
   if (!match) return null;
   const query = new URLSearchParams(match[1] ?? '');
   const board = query.get('board');
-  const fail = (why: string): Parsed => ({ ok: false, why: `${board ?? 'capture link'}: ${why}` });
 
   const name = query.get('route');
-  if (!name) return fail('no `route` in the link');
+  if (!name) return captureRefusal(board, 'no `route` in the link');
   if (GATE_ROUTES.has(name)) {
-    return fail(`"${name}" is shown by the session gate from \`getRiderMe\`; pick the scenario that leads there`);
+    return captureRefusal(board, `"${name}" is shown by the session gate from \`getRiderMe\`; pick the scenario that leads there`);
   }
-  if (name !== 'signIn' && !screenFor(name as never)) return fail(`no screen is registered for the route "${name}"`);
-
-  let params: Record<string, unknown> | undefined;
-  const raw = query.get('params');
-  if (raw) {
-    try {
-      const parsed: unknown = JSON.parse(raw);
-      if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('not an object');
-      params = parsed as Record<string, unknown>;
-    } catch {
-      return fail('`params` is not a JSON object');
-    }
+  if (name !== 'signIn' && !screenFor(name as never)) {
+    return captureRefusal(board, `no screen is registered for the route "${name}"`);
   }
-  const clock = query.get('clock') ?? undefined;
-  if (clock !== undefined && Number.isNaN(Date.parse(clock))) return fail('`clock` is not a date');
-
-  return {
-    ok: true,
-    request: {
-      board,
-      target: name === 'signIn' ? null : { name, params },
-      scenario: query.get('scenario') || undefined,
-      clock,
-    },
-  };
+  const read = readCaptureQuery(query);
+  if (!read.ok) return read;
+  const target = name === 'signIn' ? null : { name, params: read.params };
+  return { ok: true, request: { board, target, scenario: read.scenario, clock: read.clock } };
 }
 
 /* The route waiting for the navigator. A one-slot store: the follower takes it and empties it. */
@@ -111,17 +95,6 @@ const getPending = (): CaptureTarget | null => pending;
 function setPending(next: CaptureTarget | null): void {
   pending = next;
   for (const fn of listeners) fn();
-}
-
-/** The instant the mock's fixtures are relative to (`GET /__mock/health`), or null if it cannot be read. */
-async function mockFrozenClock(): Promise<string | null> {
-  try {
-    const res = await globalThis.fetch(`${API_BASE_URL}/__mock/health`);
-    const body = (await res.json()) as { data?: { frozen_clock?: string | null } };
-    return body.data?.frozen_clock ?? null;
-  } catch {
-    return null;
-  }
 }
 
 /**
@@ -139,10 +112,7 @@ export async function openCapture(url: string | null | undefined): Promise<boole
   const { board, target, scenario, clock } = parsed.request;
 
   setMockScenario(scenario);
-  const at = clock ?? (await mockFrozenClock());
-  if (at && !Number.isNaN(Date.parse(at))) offsetClockTo(Date.parse(at));
-  // eslint-disable-next-line no-console
-  else console.warn('[capture] the clock stays the phone\'s: no `clock` in the link and the mock gave none');
+  await adoptCaptureClock(API_BASE_URL, clock);
 
   setPending(null);
   if (!target) {
@@ -150,7 +120,7 @@ export async function openCapture(url: string | null | undefined): Promise<boole
     return true;
   }
   // The fixture session. The session gate then reads `getRiderMe` under the scenario.
-  setToken(FIXTURE_ACCESS_TOKEN, FIXTURE_REFRESH_TOKEN);
+  setToken(CAPTURE_ACCESS_TOKEN, CAPTURE_REFRESH_TOKEN);
   setPending(target);
   // eslint-disable-next-line no-console
   console.info(`[capture] ${board ?? target.name}: ${JSON.stringify(target)}${scenario ? ` · ${scenario}` : ''}`);

@@ -99,7 +99,7 @@ without parsing them into floats either.
 | `clientVersion` | sent as `X-Client-Version` for the force-upgrade check |
 | `onUnauthorized` | invoked on a 401; return `true` to retry the original request **exactly once** |
 | `onError` | every non-2xx, for telemetry |
-| `mockScenario` | sent as `X-Mock-Scenario`; ignored by the real API, honoured by the mock |
+| `mockScenario` | sent as `X-Mock-Scenario`; ignored by the real API, honoured by the mock. A string, or a function read on every request (the native capture entry changes it while the app runs) |
 
 ## Errors
 
@@ -151,3 +151,9 @@ setTimeout(reconnect, reconnectDelayMs(attempt));   // 1→2→4→8→15 s cap,
 | `pnpm generate` | `openapi-typescript contracts/openapi.yaml → src/generated/openapi.d.ts` |
 | `pnpm generate:check` | regenerate, then `git diff --exit-code` — the CI drift gate |
 | `pnpm typecheck` | `tsc --noEmit` |
+
+## `@hg/api-client/capture`
+
+What the customer and rider apps' design-capture entries share ([issue 1141](https://github.com/shaiknoorullah/hg-mono/issues/1141)):
+reading a capture link's query, moving the phone's clock to the mock's frozen clock, and the fixture session's tokens. Only an
+entry module that exists in a build made with `EXPO_PUBLIC_HG_CAPTURE=1` imports it, so no other build contains it.
