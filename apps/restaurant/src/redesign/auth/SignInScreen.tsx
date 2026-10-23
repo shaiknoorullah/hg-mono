@@ -288,7 +288,20 @@ export function SignInScreen() {
       if (arrival === 'reuse-detected')
         return (
           <InlineAlert key={alertKey} tone="warning" icon="lock" blocking title={SIGN_IN.reuseAlertTitle}>
-            <span>{support ? SIGN_IN.reuseBody(support.display) : SIGN_IN.reuseBodyNoSupport}</span>
+            {support ? (
+              <span>
+                {SIGN_IN.reuseBodyBefore}
+                <a
+                  href={`tel:${support.tel}`}
+                  className="hg-focus font-semibold text-feedback-warning-tint-text underline decoration-1 underline-offset-2"
+                >
+                  {support.display}
+                </a>
+                {SIGN_IN.reuseBodyAfter}
+              </span>
+            ) : (
+              <span>{SIGN_IN.reuseBodyNoSupport}</span>
+            )}
             <span>{SIGN_IN.ordersAtRisk(responseWindow)}</span>
           </InlineAlert>
         );
