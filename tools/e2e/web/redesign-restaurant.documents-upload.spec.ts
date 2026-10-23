@@ -1,7 +1,7 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
 
 import { at1440, expectDesignFor, type BoardFor } from './design';
-import { MODE, freshCheckIn, openSignedIn, scenarioPayload as fixture, torontoDateIn as torontoDate } from './redesign-restaurant.support';
+import { MODE, boardDocuments, freshCheckIn, openSignedIn, scenarioPayload as fixture, torontoDateIn as torontoDate } from './redesign-restaurant.support';
 
 test.skip(MODE !== 'mock', 'written against the mock server; run with E2E_MODE=mock');
 
@@ -47,11 +47,12 @@ interface Road {
 
 /** Serves the profile, the document pack and the whole upload road; returns what the pack looks like now. */
 async function serve(page: Page, o: Road = {}) {
+  await page.context().grantPermissions(['notifications']);
   await freshCheckIn(page);
   const presigned = await fixture(page, 'presigned_upload');
   const ready = await fixture(page, 'stored_object_ready');
   const profile = (o.profile ?? ((p) => p))(await fixture(page, 'restaurant_profile_halal_certified'));
-  let pack: any[] = (o.docs ?? ((d) => d))(await fixture(page, 'restaurant_document_pack_complete'));
+  let pack: any[] = (o.docs ?? ((d) => d))(boardDocuments(await fixture(page, 'restaurant_document_pack_complete')));
   await page.route('**/v1/restaurant/profile', (route) => route.fulfill({ json: { data: profile } }));
   await page.route('**/v1/uploads', (route) => route.fulfill({ status: 201, json: { data: presigned } }));
   await page.route(presigned.url, (route) => (o.put === 'never' ? never() : route.fulfill({ status: 200, body: '' })));

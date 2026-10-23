@@ -58,8 +58,11 @@ export interface HgClientConfig {
   /**
    * Scenario name forwarded to the mock server as `X-Mock-Scenario`. Ignored by the real
    * API. See `contracts/fixtures/README.md` for the catalogue.
+   *
+   * A function is read on every request, so an app can change the scenario while it runs (the
+   * native capture entry does). Return `undefined` to send no header.
    */
-  mockScenario?: string;
+  mockScenario?: string | (() => string | undefined);
   /** Override for tests. Defaults to global `fetch`. */
   fetch?: ClientOptions['fetch'];
   /** Extra headers merged into every request. */
@@ -142,7 +145,8 @@ export function createHgClient(config: HgClientConfig) {
       if (token) request.headers.set('Authorization', `Bearer ${token}`);
       if (clientSurface) request.headers.set('X-HG-Client', clientSurface);
       if (clientVersion) request.headers.set('X-Client-Version', clientVersion);
-      if (mockScenario) request.headers.set('X-Mock-Scenario', mockScenario);
+      const scenario = typeof mockScenario === 'function' ? mockScenario() : mockScenario;
+      if (scenario) request.headers.set('X-Mock-Scenario', scenario);
       for (const [k, v] of Object.entries(staticHeaders ?? {})) request.headers.set(k, v);
       return request;
     },

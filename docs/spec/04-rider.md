@@ -1123,3 +1123,4 @@ The domain is not "done" until all of these pass in CI against a live stack:
 6. **Secrets**: a bundle scan finds no secret Mapbox token or routing key, no hardcoded base URL, no committed rider UUID.
 7. **Auth**: every `/riders/:id/...` endpoint is exercised with another rider's token and must return 403.
 8. **Offline resilience**: the full delivery flow (arrive → pick up → in transit → deliver with POD) completes with the network disabled from `ARRIVED_AT_PICKUP` onwards and reconciles correctly on reconnect.
+9. **No capture entry in a release**: the design-capture entry (`hgrider://__capture`, `apps/rider/src/redesign/capture/`) exists only in a build made with `EXPO_PUBLIC_HG_CAPTURE=1`; a bundle scan of every other build finds no `__capture` ([issue 1141](https://github.com/shaiknoorullah/hg-mono/issues/1141)).

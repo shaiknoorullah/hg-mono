@@ -2,7 +2,7 @@
   "scenario": "restaurant_profile_halal_certified",
   "domain": "onboarding",
   "schema": "RestaurantProfile",
-  "describes": "`getRestaurantProfile` with `halal.display_state: CERTIFIED`. Halal certified, valid for months.",
+  "describes": "`getRestaurantProfile` with `halal.display_state: CERTIFIED`. Halal certified, valid until 12 November 2026.",
   "operations": [
     "getRestaurantProfile"
   ],
@@ -41,8 +41,8 @@
     "onboarding_state": "ACTIVE",
     "halal": {
       "display_state": "CERTIFIED",
-      "certifying_body_name": "Halal Monitoring Authority",
-      "expires_on": "2027-03-08"
+      "certifying_body_name": "HMA Canada",
+      "expires_on": "2026-11-12"
     },
     "commission_rate_bps": 0
   }

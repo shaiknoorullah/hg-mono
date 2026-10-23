@@ -41,8 +41,8 @@
     "onboarding_state": "ACTIVE",
     "halal": {
       "display_state": "EXPIRED",
-      "certifying_body_name": "Halal Monitoring Authority",
-      "expires_on": "2026-08-07"
+      "certifying_body_name": "HMA Canada",
+      "expires_on": "2026-09-12"
     },
     "commission_rate_bps": 0
   }

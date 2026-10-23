@@ -28,8 +28,8 @@ describe('payout history', () => {
     for (const label of ['Accruing', 'Ready to send', 'Sending to Stripe', 'Sent to Stripe', 'On hold', 'Failed', 'Paid']) {
       expect((await within(table).findAllByText(label)).length).toBeGreaterThan(0);
     }
-    // 184250 cents is $1,842.50: formatted from the integer, not computed.
-    expect((await within(table).findAllByText(/1,842\.50/)).length).toBeGreaterThan(0);
+    // 289400 cents is $2,894.00: formatted from the integer, not computed.
+    expect((await within(table).findAllByText(/2,894\.00/)).length).toBeGreaterThan(0);
     // Needs-attention line lists the held and failed weeks.
     expect(within(await screen.findByTestId('attention')).getAllByRole('button')).toHaveLength(2);
   });
@@ -89,7 +89,7 @@ describe('payout history at phone width', () => {
     const rows = await screen.findByRole('list', { name: 'Payouts, newest first' });
     expect(screen.queryByRole('grid')).toBeNull();
     expect(within(rows).getAllByRole('listitem')).toHaveLength(every.length);
-    expect((await within(rows).findAllByText(/1,842\.50/)).length).toBeGreaterThan(0);
+    expect((await within(rows).findAllByText(/2,894\.00/)).length).toBeGreaterThan(0);
     fireEvent.click(within(rows).getAllByRole('button')[0]!);
     expect(await screen.findByTestId('payout-detail')).toBeTruthy();
   });

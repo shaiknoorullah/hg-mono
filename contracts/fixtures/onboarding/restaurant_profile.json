@@ -15,7 +15,7 @@
     "id": "927cc55c-8ddd-4d9f-a353-353ba2a8982b",
     "legal_name": "Zaytoun Grill Holdings Inc.",
     "display_name": "Zaytoun Grill",
-    "description": "Charcoal-grilled, hand-cut and cooked to order. Halal certified.",
+    "description": "Charcoal grills, shawarma and mezze from a family kitchen. Everything is cooked to order over real charcoal.",
     "owner_first_name": "Samir",
     "owner_last_name": "Haddad",
     "phone_e164": "+14165550134",
@@ -35,14 +35,14 @@
       "cd6fe9ce-5679-4835-a405-8d3bb9a1959a",
       "57610de6-476b-4f3f-afa2-96fb7df6031b"
     ],
-    "avg_prep_minutes": 19,
-    "delivery_radius_m": 7,
+    "avg_prep_minutes": 20,
+    "delivery_radius_m": 7000,
     "account_state": "LIVE",
     "onboarding_state": "ACTIVE",
     "halal": {
       "display_state": "CERTIFIED",
-      "certifying_body_name": "Canadian Halal Certification Bureau",
-      "expires_on": "2027-03-08"
+      "certifying_body_name": "HMA Canada",
+      "expires_on": "2026-11-12"
     },
     "commission_rate_bps": 0
   }

@@ -1,7 +1,7 @@
 import { expect, test, type Locator, type Page, type Route } from '@playwright/test';
 
 import { at1440, declareUnpairable, expectDesignFor, type BoardFor } from './design';
-import { MOCK_API, MODE, freshCheckIn, openSignedIn } from './redesign-restaurant.support';
+import { MOCK_API, MODE, boardDate, boardDocuments, freshCheckIn, openSignedIn } from './redesign-restaurant.support';
 import { projectMeta } from './mode';
 
 test.skip(MODE !== 'mock', 'written against the mock server; run with E2E_MODE=mock');
@@ -76,6 +76,8 @@ interface Scene {
 }
 
 async function open(page: Page, path: string, scene: Scene = {}) {
+  // The device summary reads "Sound on · notifications allowed" on the boards: this browser allows them.
+  await page.context().grantPermissions(['notifications']);
   await freshCheckIn(page);
   const { profile = 'restaurant_profile_halal_certified', patchProfile = (p) => p, docs = (d) => d } = scene;
   if (scene.profileCall === 'error') await page.route('**/v1/restaurant/profile', failing);
@@ -91,7 +93,7 @@ async function open(page: Page, path: string, scene: Scene = {}) {
       route.fulfill({ status: 403, json: { error: { code: 'FORBIDDEN', message: 'no', request_id: 'req_e2e' } } }),
     );
   } else {
-    const list = docs(await fixture(page, 'restaurant_document_pack_complete'));
+    const list = docs(boardDocuments(await fixture(page, 'restaurant_document_pack_complete')));
     await page.route('**/v1/restaurant/documents', (route) =>
       route.request().method() === 'GET' ? route.fulfill({ json: { data: list } }) : route.fallback(),
     );
@@ -112,7 +114,7 @@ async function capture(page: Page, board: BoardFor, { settled = true } = {}) {
 
 const halal = (state: string, days: number) => (p: any) => ({
   ...p,
-  halal: { ...p.halal, display_state: state, expires_on: torontoDate(days) },
+  halal: { ...p.halal, display_state: state, expires_on: boardDate(days) },
 });
 
 /** The document pack with one document type changed (or left out when `patch` is null). */
@@ -134,7 +136,7 @@ test.describe('redesigned restaurant settings · halal certification (mock)', ()
   });
 
   test('certified, the renewal window is not open yet', async ({ page }) => {
-    await open(page, '/settings/halal', { patchProfile: halal('CERTIFIED', 400) });
+    await open(page, '/settings/halal', { patchProfile: halal('CERTIFIED', 410) });
     await expect(page.getByTestId('renew-reason')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Upload renewed certificate' })).toBeDisabled();
     await capture(page, 'restaurant/settings/Settings-RenewNotYet');
@@ -156,8 +158,8 @@ test.describe('redesigned restaurant settings · halal certification (mock)', ()
   test('expired: cool slate, we cannot currently vouch', async ({ page }) => {
     await open(page, '/settings/halal', {
       profile: 'restaurant_profile_halal_expired',
-      patchProfile: halal('EXPIRED', -14),
-      docs: withDoc('HALAL_CERTIFICATE', { state: 'EXPIRED', valid_until: torontoDate(-14) }),
+      patchProfile: halal('EXPIRED', -16),
+      docs: withDoc('HALAL_CERTIFICATE', { state: 'EXPIRED', valid_until: boardDate(-16) }),
     });
     await expect(section(page, 'halal')).toHaveAttribute('data-tone', 'expired');
     await capture(page, 'restaurant/settings/Settings-HalalExpired');
@@ -204,7 +206,7 @@ test.describe('redesigned restaurant settings · renewals (mock)', () => {
   const renewal = (state: string, extra: Record<string, unknown> = {}) => withDoc('HALAL_CERTIFICATE', { state, ...extra });
 
   test('expired, renewal in review', async ({ page }) => {
-    await open(page, '/settings/halal', { patchProfile: halal('EXPIRED', -14), docs: renewal('IN_REVIEW') });
+    await open(page, '/settings/halal', { patchProfile: halal('EXPIRED', -16), docs: renewal('IN_REVIEW') });
     await note(page, 'review');
     await capture(page, 'restaurant/settings/Renewal-InReview');
   });
@@ -222,7 +224,7 @@ test.describe('redesigned restaurant settings · renewals (mock)', () => {
   });
 
   test('expired, renewal just sent', async ({ page }) => {
-    await open(page, '/settings/halal', { patchProfile: halal('EXPIRED', -14), docs: renewal('SUBMITTED') });
+    await open(page, '/settings/halal', { patchProfile: halal('EXPIRED', -16), docs: renewal('SUBMITTED') });
     await note(page, 'review');
     await capture(page, 'restaurant/settings/Renewal-Submitted');
   });
@@ -235,7 +237,7 @@ test.describe('redesigned restaurant settings · renewals (mock)', () => {
 
   test('expired, renewal not accepted', async ({ page }) => {
     await open(page, '/settings/halal', {
-      patchProfile: halal('EXPIRED', -14),
+      patchProfile: halal('EXPIRED', -16),
       docs: renewal('REJECTED', { review_note: 'Page 2 is cut off at the bottom, so the expiry date cannot be read. Upload every page again.' }),
     });
     await note(page, 'rejected');
@@ -244,7 +246,7 @@ test.describe('redesigned restaurant settings · renewals (mock)', () => {
 
   test('expired, renewal not accepted: the certificate is already in use', async ({ page }) => {
     await open(page, '/settings/halal', {
-      patchProfile: halal('EXPIRED', -14),
+      patchProfile: halal('EXPIRED', -16),
       docs: renewal('REJECTED', { rejection_reason_code: 'DUPLICATE', review_note: 'This certificate number is already on record for another restaurant.' }),
     });
     await note(page, 'rejected');
@@ -429,7 +431,7 @@ test.describe('redesigned restaurant settings · upload a halal certificate (moc
 
   test('after the certificate expired', async ({ page }) => {
     await uploadRoad(page);
-    await open(page, '/settings/halal?panel=renew', { patchProfile: halal('EXPIRED', -14), docs: withDoc('HALAL_CERTIFICATE', { state: 'EXPIRED' }) });
+    await open(page, '/settings/halal?panel=renew', { patchProfile: halal('EXPIRED', -16), docs: withDoc('HALAL_CERTIFICATE', { state: 'EXPIRED' }) });
     await expect(panel(page)).toBeVisible();
     await capture(page, 'restaurant/settings/Renew-AfterExpiry');
   });
@@ -535,7 +537,7 @@ test.describe('redesigned restaurant settings · upload a halal certificate (moc
   });
 
   test('locked while a review is open', async ({ page }) => {
-    await toDetails(page, { patchProfile: halal('EXPIRED', -14), docs: withDoc('HALAL_CERTIFICATE', { state: 'IN_REVIEW' }) }, { attach: 'locked' });
+    await toDetails(page, { patchProfile: halal('EXPIRED', -16), docs: withDoc('HALAL_CERTIFICATE', { state: 'IN_REVIEW' }) }, { attach: 'locked' });
     await fill(page, 'HMA Canada', 'HMA-2026-09114', 400);
     await save(page);
     await show(page.getByTestId('renew-locked'));
@@ -700,7 +702,7 @@ test.describe('redesigned restaurant settings · documents (mock)', () => {
   // certificate. The page has neither yet (the upload sheets for the other documents are not built),
   // so these compare the documents page with the document in that state, nothing more.
   test('food safety certificate expiring', async ({ page }) => {
-    await open(page, '/settings/documents', { docs: withDoc('FOOD_SAFETY', { valid_until: torontoDate(3) }) });
+    await open(page, '/settings/documents', { docs: withDoc('FOOD_SAFETY', { valid_until: boardDate(14) }) });
     await expect(doc(page, 'FOOD_SAFETY')).toBeVisible();
     await capture(page, 'restaurant/settings/Docs-FoodExpiring');
   });
@@ -716,7 +718,7 @@ test.describe('redesigned restaurant settings · documents (mock)', () => {
   test('food safety certificate expired', async ({ page }) => {
     await open(page, '/settings/documents', {
       profile: 'restaurant_profile_account_delisted',
-      docs: withDoc('FOOD_SAFETY', { state: 'EXPIRED', valid_until: torontoDate(-5) }),
+      docs: withDoc('FOOD_SAFETY', { state: 'EXPIRED', valid_until: boardDate(-8) }),
     });
     await expect(doc(page, 'FOOD_SAFETY')).toHaveAttribute('data-state', 'EXPIRED');
     await capture(page, 'restaurant/settings/Settings-FoodSafetyExpired');
@@ -821,7 +823,7 @@ test.describe('redesigned restaurant settings · contact support (mock)', () => 
 
   test('from the halal certification page, the certificate is already in use', async ({ page }) => {
     await open(page, '/settings/halal?panel=support', {
-      patchProfile: halal('EXPIRED', -14),
+      patchProfile: halal('EXPIRED', -16),
       docs: withDoc('HALAL_CERTIFICATE', { state: 'REJECTED', review_note: 'This certificate number is already on record for another restaurant.' }),
     });
     await expect(page.getByTestId('support-panel')).toBeVisible();

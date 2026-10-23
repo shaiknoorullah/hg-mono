@@ -21,6 +21,7 @@ import { useHgFonts } from '@hg/ui-native/fonts';
 import { HgColorSchemeBridge } from '@hg/ui-native/lib';
 
 import { ThemeProvider, TopInsetSpent } from './ds';
+import { captureEntry } from './capture';
 import { outbox } from './data/outbox';
 import { SessionGate } from './session/Session';
 import { DS_GALLERY_ENABLED, DsGalleryRoot } from './DsGalleryRoot';
@@ -50,6 +51,8 @@ export function RedesignApp(): React.ReactElement | null {
   if (!fontsLoaded) return null;
   return (
     <View style={{ flex: 1 }}>
+      {/* Native design captures only (EXPO_PUBLIC_HG_CAPTURE=1): reads the capture link. */}
+      {captureEntry ? <captureEntry.CaptureLink /> : null}
       {gallery ? (
         <DsGalleryRoot onClose={() => setGallery(false)} />
       ) : (
