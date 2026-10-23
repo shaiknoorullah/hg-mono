@@ -53,6 +53,11 @@ export function failedSpecs(xml) {
   return out;
 }
 
+/** The Playwright projects a JUnit file ran: a job runs only its own app's, and says nothing of the others. */
+export function projectsIn(xml) {
+  return [...xml.matchAll(/<testsuite\b[^>]*\bhostname="([^"]*)"/g)].map((m) => unescape(m[1]));
+}
+
 /** The identity a known failure is listed by. */
 export const specId = (f) => `${f.project} › ${f.spec}`;
 
@@ -60,12 +65,13 @@ export const specId = (f) => `${f.project} › ${f.spec}`;
  * What a run says about the known failures: specs that failed and are not listed (the run fails),
  * listed specs that did not fail (to be removed), and listed entries without an issue.
  */
-export function ratchet(failed, known) {
+export function ratchet(failed, known, ran = null) {
   const listed = new Map(known.map((k) => [specId(k), k]));
   const failedIds = new Set(failed.map(specId));
   return {
     unlisted: failed.filter((f) => !listed.has(specId(f))),
-    nowPassing: known.filter((k) => !failedIds.has(specId(k))),
+    // Only a project this run ran can say a spec now passes: the admin job knows nothing of the restaurant specs.
+    nowPassing: known.filter((k) => !failedIds.has(specId(k)) && (!ran || ran.has(k.project))),
     noIssue: known.filter((k) => !Number.isInteger(k.issue)),
   };
 }
@@ -106,7 +112,8 @@ function main() {
     process.exit(1);
   }
   const failed = files.flatMap((f) => failedSpecs(readFileSync(f, 'utf8')));
-  const { unlisted, nowPassing, noIssue } = ratchet(failed, known);
+  const ran = new Set(files.flatMap((f) => projectsIn(readFileSync(f, 'utf8'))));
+  const { unlisted, nowPassing, noIssue } = ratchet(failed, known, ran);
 
   const lines = [];
   if (failed.length) {

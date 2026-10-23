@@ -12,7 +12,7 @@ import { test } from 'node:test';
 // known failures, and the list names the Playwright project, so a tablet-only failure is not hidden
 // by a desktop entry.
 test('capture ratchet: an unlisted failure fails, the project is part of the identity, a fixed spec is printed', async () => {
-  const { failedSpecs, ratchet } = await import('../../e2e/web/capture-failures.mjs');
+  const { failedSpecs, projectsIn, ratchet } = await import('../../e2e/web/capture-failures.mjs');
   const xml = `<testsuites>
     <testsuite name="a.spec.ts" hostname="admin-redesign-desktop"><testcase name="x › one" classname="a.spec.ts"><failure>e</failure></testcase><testcase name="two" classname="a.spec.ts"/></testsuite>
     <testsuite name="a.spec.ts" hostname="admin-redesign-tablet"><testcase name="x › one" classname="a.spec.ts"><failure>e</failure></testcase><testcase name="say &quot;hi&quot;" classname="a.spec.ts"><failure>e</failure></testcase></testsuite>
@@ -35,6 +35,9 @@ test('capture ratchet: an unlisted failure fails, the project is part of the ide
   assert.deepEqual(r.nowPassing, [{ project: 'admin-redesign-tablet', spec: 'a.spec.ts › fixed', issue: 2 }]);
   assert.deepEqual(r.noIssue.map((k) => k.spec), ['a.spec.ts › say "hi"']);
   assert.deepEqual(ratchet([], []), { unlisted: [], nowPassing: [], noIssue: [] });
+  // A job that ran only the admin projects cannot say a restaurant spec now passes.
+  assert.deepEqual(ratchet([], known, new Set(['admin-redesign-tablet'])).nowPassing.map((k) => k.spec), ['a.spec.ts › fixed', 'a.spec.ts › say "hi"']);
+  assert.deepEqual(projectsIn(xml), ['admin-redesign-desktop', 'admin-redesign-tablet']);
 });
 
 test('capture ratchet: the command exits 1 on an unlisted failure, 0 on listed ones, 1 with no report', async () => {
