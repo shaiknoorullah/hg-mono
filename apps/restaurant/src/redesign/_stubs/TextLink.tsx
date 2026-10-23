@@ -3,10 +3,11 @@
  * `@hg/ui-web/ds` or `/proposed` exports a text link.
  *
  * A link in the link colour, underlined at rest (1 px, 2 px offset, as the boards' base CSS
- * draws every `a`; hover: the link-hover colour) with the DS focus ring. Two shapes the
- * sign-in boards draw: `inline` (weight 600, inside a sentence) and `standalone` (weight 500, its
- * own 44 px target, centred; "Back to sign in"). `to` is an in-app route (router state allowed);
- * `href` is anything else (`tel:` for the support phone).
+ * draws every `a`; hover: the link-hover colour) with the DS focus ring. Three shapes the
+ * sign-in boards draw: `inline` (weight 600, inside a sentence), `plain` (the sentence's own
+ * weight; the support phone in "Call partner support on …") and `standalone` (body-md at weight
+ * 500, its own 44 px target at the start of its column; "Back to sign in"). `to` is an in-app
+ * route (router state allowed); `href` is anything else (`tel:` for the support phone).
  */
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
@@ -18,7 +19,7 @@ export interface TextLinkProps {
   state?: unknown;
   /** A non-route link (`tel:…`). Ignored when `to` is set. */
   href?: string;
-  variant?: "inline" | "standalone";
+  variant?: "inline" | "plain" | "standalone";
   /** Extra type class, e.g. `text-heading-sm` for the support block's phone number. */
   className?: string;
   children: ReactNode;
@@ -35,8 +36,10 @@ export function TextLink({
   const classes = [
     "hg-focus text-fg-link underline decoration-1 underline-offset-2 hover:text-fg-link-hover",
     variant === "standalone"
-      ? "inline-flex min-h-11 items-center justify-center self-center font-medium"
-      : "font-semibold",
+      ? "inline-flex min-h-11 items-center self-start text-body-md font-medium"
+      : variant === "inline"
+        ? "font-semibold"
+        : "",
     className,
   ]
     .filter(Boolean)

@@ -372,7 +372,7 @@ export function SignInScreen() {
   );
 
   const forgotLine = (
-    <p className="m-0 text-body-sm text-fg-secondary">
+    <p className="m-0 text-body-sm leading-normal text-fg-secondary">
       {COMMON.forgotBefore}
       <TextLink to="/forgot-password" state={{ email: email.trim() }}>
         {COMMON.forgotLink}
@@ -549,9 +549,9 @@ function OutcomeView({
           <Button variant="primary" size="lg" fullWidth onPress={onStartOver}>
             {SIGN_IN.differentEmail}
           </Button>
-          <p className="m-0 text-center text-body-md">
-            <TextLink to="/register">{COMMON.registerLink}</TextLink>
-          </p>
+          <TextLink to="/register" variant="standalone">
+            {COMMON.registerLink}
+          </TextLink>
         </StateCard>
         <SupportSentence contact={support} lead={SUPPORT.sentenceBefore} />
       </>
