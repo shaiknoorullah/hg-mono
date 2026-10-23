@@ -259,7 +259,7 @@ for (const vp of VIEWPORTS) {
         await expect(appBar(page)).toHaveText('Staff');
         await expect(appBar(page)).toBeFocused();
         await expect(page.getByText('Staff accounts are for admins and super admins')).toBeVisible();
-        await expect(page.getByText('You’re signed in as a support agent, so this page isn’t in your menu.')).toBeVisible();
+        await expect(page.getByText("You're signed in as a support agent, so this page isn't in your menu.")).toBeVisible();
         await expect(page.getByRole('button', { name: 'Go to live alerts' })).toBeVisible();
       });
 

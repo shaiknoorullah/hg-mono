@@ -255,10 +255,10 @@ describe('routes', () => {
   });
 
   it.each([
-    ['/staff', 'You’re signed in as a support agent, so this page isn’t in your menu.'],
+    ['/staff', "You're signed in as a support agent, so this page isn't in your menu."],
     [
       '/staff/1c2d3e4f-5061-4b7c-8d9e-0f1a2b3c4d5e',
-      'This link opens a staff account, and you’re signed in as a support agent, so it isn’t available to you.',
+      "This link opens a staff account, and you're signed in as a support agent, so it isn't available to you.",
     ],
   ])('support opening %s gets the staff page the boards draw: app bar "Staff", a filled "Go to live alerts"', async (route, why) => {
     renderApp(route, 'SUPPORT_AGENT');

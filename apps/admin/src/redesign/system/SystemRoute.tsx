@@ -284,7 +284,7 @@ function badgeFor(name: DependencyName, reading: Reading | null, stale: boolean)
 function DependencyTable({ shown, stale }: { shown: Reading | null; stale: boolean }) {
   return (
     <table className="w-full border-collapse text-start text-[13px] leading-[19.5px]">
-      <caption className="sr-only">{SYSTEM.tableCaption}</caption>
+      <caption className="px-3 py-2 text-start text-[15px] leading-[22.5px] font-semibold text-fg-primary">{SYSTEM.tableCaption}</caption>
       <thead>
         <tr className="border-b border-line-decorative bg-surface-sunken text-start text-[11px] leading-[16.5px] tracking-[0.4px] text-fg-secondary">
           <th scope="col" className="h-[33px] px-3 py-0 text-start font-semibold">{SYSTEM.columns.name}</th>
@@ -401,7 +401,7 @@ export default function SystemRoute() {
       {admin ? (
         <SplitPanes
           panes={[
-            { id: 'system-status-pane', label: 'status', content: left, defaultSize: 520, minSize: 320 },
+            { id: 'system-status-pane', label: 'status', content: left, defaultSize: 502, minSize: 320 },
             {
               id: 'system-deps-pane',
               label: 'what the API needs',

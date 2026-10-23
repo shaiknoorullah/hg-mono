@@ -210,13 +210,13 @@ function Forbidden({ role, permission, routeId }: { role: StaffRole | null; perm
           <span className="flex size-8 items-center justify-center text-fg-secondary">
             <Icon name="lock" size={32} />
           </span>
-          <h2 className="m-0 text-heading-lg font-semibold text-fg-primary">{STAFF_FORBIDDEN.title}</h2>
+          <h2 className="m-0 text-[20px] leading-[30px] font-semibold tracking-normal text-fg-primary">{STAFF_FORBIDDEN.title}</h2>
           <p className="m-0 text-body-md text-fg-secondary">
             {routeId === 'staff' ? STAFF_FORBIDDEN.list(roleLabel) : STAFF_FORBIDDEN.detail(roleLabel)}
           </p>
           <p className="m-0 text-body-md text-fg-secondary">{STAFF_FORBIDDEN.help}</p>
           <div className="pt-1">
-            <Button variant="primary" size="lg" onPress={back.go}>
+            <Button variant="primary" size="md" onPress={back.go}>
               {back.goLabel}
             </Button>
           </div>
