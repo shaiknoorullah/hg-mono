@@ -727,6 +727,9 @@ class Content:
 BOARD_RESTAURANT_PROFILE = {
     "legal_name": "Zaytoun Grill Holdings Inc.",
     "display_name": "Zaytoun Grill",
+    "description": "Charcoal grills, shawarma and mezze from a family kitchen. Everything is cooked to order over real charcoal.",
+    "avg_prep_minutes": 20,
+    "delivery_radius_m": 7000,
     "owner_first_name": "Samir",
     "owner_last_name": "Haddad",
     "phone_e164": "+14165550134",
@@ -742,3 +745,11 @@ BOARD_RESTAURANT_PROFILE = {
         "longitude": -79.2972,
     },
 }
+
+
+# The halal certificate the settings boards draw. They are set on 28 September 2026 and the
+# certificate they show runs to 12 November 2026; the reminder boards move its expiry to 28 October
+# (30 days out) and the expired board to 12 September. Dates are written out, not counted from the
+# fixtures' own clock, so a capture shows the board's text whatever day it runs.
+BOARD_HALAL_BODY = "HMA Canada"
+BOARD_HALAL_EXPIRY = {"CERTIFIED": "2026-11-12", "EXPIRING_SOON": "2026-10-28", "EXPIRED": "2026-09-12"}

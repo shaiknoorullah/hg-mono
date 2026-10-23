@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import copy
 
-from content import BOARD_RESTAURANT_PROFILE, MINUTE, ts
+from content import BOARD_HALAL_BODY, BOARD_HALAL_EXPIRY, BOARD_RESTAURANT_PROFILE, MINUTE, ts
 from synth import ulid_for, uuid_for
 
 # The devworld staff personas (services/hg/internal/devworld/personas.go and
@@ -765,26 +765,26 @@ ACCOUNT_STATES = [
 ]
 
 HALAL_STATES = [
-    ("CERTIFIED", 210, "Halal certified, valid for months."),
-    ("EXPIRING_SOON", 12,
-     "Certificate expires in 12 days: the console shows the renewal banner. Customers "
+    ("CERTIFIED", "Halal certified, valid until 12 November 2026."),
+    ("EXPIRING_SOON",
+     "Certificate expires on 28 October 2026: the console shows the renewal banner. Customers "
      "still see the dated badge."),
-    ("EXPIRED", -3,
-     "Certificate expired 3 days ago: the restaurant is hidden from customers "
+    ("EXPIRED",
+     "Certificate expired on 12 September 2026: the restaurant is hidden from customers "
      "(`account_state: DELISTED`). Cool slate, never red."),
-    ("UNVERIFIED", None,
+    ("UNVERIFIED",
      "No verified certificate: the restaurant is not shown to customers. Cool slate, "
      "never red."),
 ]
 
 
-def _halal(display_state: str, days) -> dict:
-    from content import day
-
+def _halal(display_state: str) -> dict:
+    """The restaurant's `halal` field in a state: the dates and body the settings boards draw."""
+    expires_on = BOARD_HALAL_EXPIRY.get(display_state)
     return {
         "display_state": display_state,
-        "certifying_body_name": None if days is None else "Halal Monitoring Authority",
-        "expires_on": None if days is None else day(days),
+        "certifying_body_name": None if expires_on is None else BOARD_HALAL_BODY,
+        "expires_on": expires_on,
     }
 
 
@@ -806,11 +806,11 @@ def _restaurant_profiles(reg, synth) -> None:
         profile["account_state"] = state
         profile["onboarding_state"] = onboarding
         if halal_state == "EXPIRED":
-            profile["halal"] = _halal("EXPIRED", -3)
+            profile["halal"] = _halal("EXPIRED")
         elif state == "PENDING":
-            profile["halal"] = _halal("UNVERIFIED", None)
+            profile["halal"] = _halal("UNVERIFIED")
         else:
-            profile["halal"] = _halal("CERTIFIED", 210)
+            profile["halal"] = _halal("CERTIFIED")
         reg.add(
             f"restaurant_profile_account_{state.lower()}",
             "onboarding",
@@ -821,9 +821,9 @@ def _restaurant_profiles(reg, synth) -> None:
             tags=["restaurant", "account-state-matrix"],
         )
 
-    for display_state, days, note in HALAL_STATES:
+    for display_state, note in HALAL_STATES:
         profile = copy.deepcopy(base)
-        profile["halal"] = _halal(display_state, days)
+        profile["halal"] = _halal(display_state)
         if display_state == "EXPIRED":
             profile["account_state"] = "DELISTED"
         reg.add(

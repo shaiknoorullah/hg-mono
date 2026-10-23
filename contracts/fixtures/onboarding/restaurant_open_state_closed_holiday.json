@@ -20,8 +20,8 @@
     "pause_until": null,
     "pause_kind": null,
     "last_heartbeat_at": "2026-08-10T18:32:11.412Z",
-    "missed_order_count": 20,
-    "reason": "Closed for a scheduled deep clean. Reopening at 14:00.",
+    "missed_order_count": 0,
+    "reason": "Closed today for a holiday. You open again tomorrow at 11:00 am.",
     "resolvable_by": "RESTAURANT"
   }
 }

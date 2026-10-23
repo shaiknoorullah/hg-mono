@@ -5,14 +5,14 @@ from __future__ import annotations
 import copy
 from typing import Any
 
-from content import BOARD_RESTAURANT_PROFILE, DAY, DISHES, HOUR, IMAGE_BASE, ISSUING_BODIES, MINUTE, day, ts
+from content import BOARD_HALAL_BODY, BOARD_HALAL_EXPIRY, BOARD_RESTAURANT_PROFILE, DAY, DISHES, HOUR, IMAGE_BASE, ISSUING_BODIES, MINUTE, day, ts
 from synth import int_for, ulid_for, uuid_for
 from world import certification_panel, public_address, slug
 
 # state -> (current_step, progress_percent, note). `current_step` is its own closed enum
 # on RestaurantOnboardingStatus — it is NOT a NextRoute.
-# 10:00 pm Toronto on 10 August 2026, the evening of the fixtures' shared heartbeat.
-CLOSING_TONIGHT = "2026-08-11T02:00:00.000Z"
+# 11:00 pm Toronto on 10 August 2026, the evening of the fixtures' shared heartbeat (the boards say 11:00 pm).
+CLOSING_TONIGHT = "2026-08-11T03:00:00.000Z"
 
 RESTAURANT_ONBOARDING = {
     "REGISTERED": ("PROFILE", 0, "Account created, email not yet verified. Nothing else is reachable."),
@@ -147,7 +147,15 @@ def _restaurant_onboarding(reg, synth) -> None:
         "A submitted restaurant profile: Ontario address, CRA-form GST/HST number, "
         "America/Toronto. Server-controlled fields (`is_approved`, `account_state`, "
         "`commission_rate_bps`, anything `_cents`) do not exist on this DTO at all.",
-        {**synth.make("RestaurantProfile", "restaurant-profile"), **copy.deepcopy(BOARD_RESTAURANT_PROFILE)},
+        {
+            **synth.make("RestaurantProfile", "restaurant-profile"),
+            **copy.deepcopy(BOARD_RESTAURANT_PROFILE),
+            "halal": {
+                "display_state": "CERTIFIED",
+                "certifying_body_name": BOARD_HALAL_BODY,
+                "expires_on": BOARD_HALAL_EXPIRY["CERTIFIED"],
+            },
+        },
         operations=["getRestaurantProfile", "submitRestaurantProfile"],
         tags=["restaurant"],
     )
@@ -215,10 +223,24 @@ def _restaurant_onboarding(reg, synth) -> None:
             av["pause_kind"] = None
         # within_hours is the hours alone and does not follow the state: the toggle, the
         # heartbeat, a suspension and a pause all outrank the hours, so those can sit on
-        # either side of them. These are inside (closing 10:00 pm Toronto); the hours-closed
+        # either side of them. These are inside (closing 11:00 pm Toronto); the hours-closed
         # states are outside.
         av["within_hours"] = state not in ("CLOSED_HOURS", "CLOSED_HOLIDAY")
         av["next_closing_at"] = CLOSING_TONIGHT if av["within_hours"] else None
+        # Two missed orders in a row switch ordering off by themselves (`..._closed_toggle_auto_off`);
+        # none of these states is that one, and a placeholder count would make the console say so.
+        av["missed_order_count"] = 0
+        # The server's own sentence for each state; the console shows it as it is (the boards' copy).
+        av["reason"] = {
+            "OPEN": "Taking orders until 11:00 pm",
+            "PAUSED": "Orders are paused.",
+            "CLOSED_HOURS": "Closed until 11:00 am tomorrow, when your hours start.",
+            "CLOSED_HOLIDAY": "Closed today for a holiday. You open again tomorrow at 11:00 am.",
+            "CLOSED_TOGGLE": "Ordering is turned off. Customers can see your menu but can't order.",
+            "CLOSED_OFFLINE": "This screen lost its connection to HalalGoes at 6:41 pm, so no new orders are being offered. "
+                              "Check the internet connection. It reconnects by itself.",
+            "CLOSED_SUSPENDED": "No new orders while your account is suspended.",
+        }[state]
         reg.add(
             f"restaurant_open_state_{state.lower()}",
             "onboarding",

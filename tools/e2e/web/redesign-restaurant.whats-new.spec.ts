@@ -48,6 +48,8 @@ async function fixture<T = any>(page: Page, name: string): Promise<T> {
 
 /** The calls the pages under the panel make (Payouts and Settings), answered from the mock's fixtures. */
 async function routePages(page: Page) {
+  // The device summary reads "Sound on · notifications allowed" on the boards.
+  await page.context().grantPermissions(['notifications']);
   await freshCheckIn(page);
   const profile = await fixture(page, 'restaurant_profile_account_live');
   const docs = await fixture(page, 'restaurant_document_pack_complete');

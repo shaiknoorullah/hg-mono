@@ -27,6 +27,23 @@ export async function answer(page: Page, glob: string | RegExp, src: Src, patch?
   return page.route(glob, (route) => route.fulfill({ json: { data } }));
 }
 
+/**
+ * The documents the onboarding boards list (`DocsMain`): the business licence added on 28 September 2026,
+ * the halal certificate from HMA Canada (number HMA-2026-00481, valid until 14 March 2027), the food
+ * safety certificate FH-551903 (valid until 9 August 2029) and the owner ID (valid until 21 May 2030).
+ * Applied to a document that is approved or waiting for a review; a rejected or expired one keeps what
+ * the fixture says about why.
+ */
+const ONBOARDING_SAMPLE: Record<string, Record<string, unknown>> = {
+  BUSINESS_LICENCE: { issuer: null, certificate_number: null, issued_on: null, valid_until: null, created_at: '2026-09-28T15:00:00.000Z' },
+  HALAL_CERTIFICATE: { issuer: 'HMA Canada', certificate_number: 'HMA-2026-00481', issued_on: '2026-03-15', valid_until: '2027-03-14' },
+  FOOD_SAFETY: { issuer: null, certificate_number: 'FH-551903', issued_on: null, valid_until: '2029-08-09' },
+  OWNER_ID: { issuer: null, certificate_number: null, issued_on: null, valid_until: '2030-05-21' },
+};
+export function onboardingDocuments(docs: any[]): any[] {
+  return docs.map((d) => (['APPROVED', 'SUBMITTED', 'IN_REVIEW'].includes(d.state) && d.doc_type in ONBOARDING_SAMPLE ? { ...d, ...ONBOARDING_SAMPLE[d.doc_type] } : d));
+}
+
 export const STATUS = {
   profile: 'restaurant_onboarding_profile_pending',
   documents: 'restaurant_onboarding_documents_pending',
@@ -54,7 +71,7 @@ export interface Scene {
 export async function serve(page: Page, s: Scene) {
   await answer(page, '**/v1/restaurant/onboarding/status', s.status, s.statusPatch);
   await answer(page, '**/v1/restaurant/profile', s.profile ?? 'restaurant_profile_account_pending');
-  await answer(page, '**/v1/restaurant/documents', s.docs ?? 'restaurant_document_pack_complete');
+  await answer(page, '**/v1/restaurant/documents', s.docs ?? 'restaurant_document_pack_complete', onboardingDocuments);
   if (s.connect) await answer(page, '**/v1/connect/status', s.connect);
   if (s.hours) await answer(page, '**/v1/restaurant/hours', s.hours);
   if (s.menu) await answer(page, '**/v1/restaurant/menu', s.menu);
@@ -75,7 +92,7 @@ export async function road(page: Page, r: Road) {
   const presigned = await fixture(page, 'presigned_upload');
   const ready = await fixture(page, 'stored_object_ready');
   const review = await fixture(page, STATUS.review);
-  let pack: any[] = (r.filter ?? ((d) => d))(await fixture(page, r.pack));
+  let pack: any[] = (r.filter ?? ((d) => d))(onboardingDocuments(await fixture(page, r.pack)));
   let puts = 0;
   await page.route('**/v1/uploads', (route) => route.fulfill({ status: 201, json: { data: presigned } }));
   await page.route(presigned.url, (route) => {
