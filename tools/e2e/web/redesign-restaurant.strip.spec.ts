@@ -243,7 +243,8 @@ test.describe('restaurant redesign · new-order strip', () => {
     await goLive(page, info);
     await tile(page, 'A7K2').focus();
     await page.keyboard.press('Enter');
-    const panel = page.getByRole('complementary', { name: 'Order A7K2 details' });
+    // On the tablet the past-order panel is also an aside of that name; the offer is the one under test.
+    const panel = page.getByTestId('offer-panel');
     await expect(panel).toBeVisible();
     await expect(panel.getByRole('heading', { name: 'A7K2' })).toBeFocused();
     await expect(panel.getByText('Phone number and full address appear after you accept.')).toBeVisible();

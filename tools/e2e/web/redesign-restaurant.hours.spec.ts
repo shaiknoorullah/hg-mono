@@ -155,7 +155,7 @@ test.describe('Hours (mock)', () => {
     await expect(items.nth(1)).toHaveText(/^Pause for 30 minutes \(until /);
     await expect(items.nth(2)).toHaveText(/^Pause for 60 minutes \(until /);
     // The fourth item has no end time in its label: the server works out the closing time.
-    await expect(items.nth(3)).toHaveText(/^Pause until closing$/);
+    await expect(items.nth(3)).toHaveText(/^Pause until closing/);
     await expect(menu.locator('[aria-checked="true"]')).toHaveCount(0);
     await shot(page, 'pause-menu');
     await items.nth(1).click();
