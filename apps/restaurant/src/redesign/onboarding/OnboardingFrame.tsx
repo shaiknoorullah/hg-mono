@@ -10,6 +10,7 @@ import { Menu, Wordmark, Icon, IconButton, HalalBadge, ProgressBar, SetupCheckli
 import { useOnboarding } from './context';
 import { STEP_LABEL, halalRailLine, latestDocs, railItems } from './model';
 import { RAIL } from './copy';
+import { rememberedEmail } from '../auth/api';
 
 const RAIL_KEY = 'hg_restaurant_setup_rail_open_v1';
 
@@ -29,7 +30,17 @@ function writeRail(open: boolean) {
   }
 }
 
+/**
+ * The signed-in account's email is not in any read the app has: `/v1/auth/me` returns the role
+ * grants and no email, the restaurant profile has no email field, and the staff list holds only
+ * managers and staff, not the owner (https://github.com/shaiknoorullah/hg-mono/issues/1125).
+ * What the app does know is the address that signed in on this device, which the sign-in screen
+ * already keeps as a convenience (`rememberEmail`, written only after a restaurant sign-in
+ * succeeds). It is read here and shown as the account menu's text; nothing new is stored. When
+ * this device has no such address (a session that began elsewhere), the menu is the icon alone.
+ */
 export function SetupTopBar({ businessName, onSignOut }: { businessName: string; onSignOut: () => void }) {
+  const [email] = useState(rememberedEmail);
   return (
     <header className="flex h-16 shrink-0 items-center gap-4 border-b border-line-decorative bg-surface-base px-4 xl:px-7" data-testid="onboarding-top-bar">
       <a href="#main" className="hg-focus sr-only focus:not-sr-only focus:rounded-[12px] focus:bg-surface-raised focus:px-4 focus:py-2">
@@ -42,8 +53,8 @@ export function SetupTopBar({ businessName, onSignOut }: { businessName: string;
       </span>
       <Menu
         label="Account"
-        triggerLabel={businessName ? `Account: ${businessName}` : 'Account'}
-        trigger={<Icon name="profile" size={22} />}
+        triggerLabel={email ? `Account menu, ${email}` : businessName ? `Account: ${businessName}` : 'Account'}
+        trigger={email ? <span className="text-body-md" data-testid="account-email">{email}</span> : <Icon name="profile" size={22} />}
         variant="plain"
         align="end"
         items={[{ key: 'signout', label: 'Sign out', onSelect: onSignOut }]}
