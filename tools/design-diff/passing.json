@@ -12,6 +12,7 @@
     "restaurant/sign-in/SignIn-NotActive",
     "restaurant/sign-in/SignIn-NotRestaurant",
     "restaurant/sign-in/SignIn-Offline",
+    "restaurant/sign-in/SignIn-ReuseDetected",
     "restaurant/sign-in/SignIn-SessionExpired",
     "restaurant/sign-in/SignIn-Suspended",
     "restaurant/sign-in/SignIn-Unverified",
