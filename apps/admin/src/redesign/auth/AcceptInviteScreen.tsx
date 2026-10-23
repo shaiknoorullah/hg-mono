@@ -15,7 +15,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { emailLinkCalls, isWellFormedToken, useLinkToken, useSetPasswordForm } from '@hg/ui-web/email-links';
 
 import { api } from '../data/api';
-import { Button, Card, InlineAlert, Input, Wordmark } from '../ds';
+import { Button, Card, Icon, InlineAlert, Input, Wordmark } from '../ds';
 import { ACCEPT, tooManyRequests } from './copy';
 import { useOnline } from './online';
 
@@ -36,9 +36,15 @@ export function AcceptInviteScreen() {
   }, [step]);
 
   return (
-    <main className="flex min-h-screen w-full min-w-0 flex-col items-center bg-surface-base px-4 py-10">
+    <main
+      className={`flex min-h-screen w-full min-w-0 flex-col items-center bg-surface-base px-4 ${
+        step === 'invalid' ? 'pb-10 pt-16' : 'py-10'
+      }`}
+    >
       <div className="flex w-full min-w-0 max-w-[520px] flex-col gap-6">
-        <Wordmark height={32} />
+        {/* The link-not-recognised board (`STF/AcceptInvalid`) draws the card alone, with no
+            wordmark above it; the other steps keep it. Listed for the redraw in #1042. */}
+        {step === 'invalid' ? null : <Wordmark height={32} />}
         <Card variant="elevated" padding="clamp(20px, 5vw, 32px)" className="w-full min-w-0">
           {step === 'set' && isWellFormedToken(token) ? (
             <SetPassword
@@ -49,7 +55,7 @@ export function AcceptInviteScreen() {
             />
           ) : null}
           {step === 'invalid' ? (
-            <Message headingRef={headingRef} title={ACCEPT.invalidTitle} body={ACCEPT.invalidBody} />
+            <Message headingRef={headingRef} title={ACCEPT.invalidTitle} body={ACCEPT.invalidBody} icon />
           ) : null}
           {step === 'spent' ? (
             <Message headingRef={headingRef} title={ACCEPT.spentTitle} body={ACCEPT.spentBody} signIn />
@@ -68,18 +74,30 @@ function Message({
   title,
   body,
   signIn = false,
+  icon = false,
 }: {
   headingRef: React.RefObject<HTMLHeadingElement | null>;
   title: string;
   body: string;
   signIn?: boolean;
+  icon?: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-4">
-      <h1 ref={headingRef} tabIndex={-1} className="m-0 text-heading-xl break-words text-fg-primary outline-none">
+    // The boards set these pages' title at 24/36 bold and the body in secondary text, 20 apart.
+    <div className="flex flex-col gap-5">
+      {icon ? (
+        <span className="flex size-8 items-center justify-center text-fg-secondary">
+          <Icon name="info" size={28} />
+        </span>
+      ) : null}
+      <h1
+        ref={headingRef}
+        tabIndex={-1}
+        className="m-0 text-[24px] leading-9 font-bold tracking-normal break-words text-fg-primary outline-none"
+      >
         {title}
       </h1>
-      <p className="m-0 text-body-md text-fg-primary">{body}</p>
+      <p className="m-0 text-body-md text-fg-secondary">{body}</p>
       {signIn ? (
         // The one next step, primary on both spent and done pages (`STF/AcceptUsed`, `STF/AcceptDone`).
         <Button variant="primary" size="lg" fullWidth href="/">

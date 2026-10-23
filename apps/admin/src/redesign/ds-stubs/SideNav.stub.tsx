@@ -130,7 +130,14 @@ function CountBadges({ item, rail }: { item: SideNavItem; rail: boolean }) {
   return (
     <span aria-hidden="true" className={cx('inline-flex gap-1', rail && 'absolute end-0.5 top-0.5')}>
       {shown.map((b, i) => (
-        <Badge key={i} variant={b.tone === 'warning' ? 'warning' : 'neutral'} size="sm">
+        <Badge
+          key={i}
+          variant={b.tone === 'warning' ? 'warning' : 'neutral'}
+          size="sm"
+          // The sidebar board draws the chip with a 4 px corner and a 14.3 px line, and the warning
+          // chip's border in its lightest tint (`ASS/AdminSidebar`).
+          className={cx('rounded-[4px] leading-[14.3px]', b.tone === 'warning' && 'border-[var(--hg-color-warning-100)]')}
+        >
           {b.count > 99 ? '99+' : b.count}
         </Badge>
       ))}

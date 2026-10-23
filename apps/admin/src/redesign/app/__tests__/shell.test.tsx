@@ -245,8 +245,6 @@ describe('routes', () => {
     ['/menu-reviews', 'menu review'],
     ['/menu-reviews/0b1c2d3e-4f50-4a6b-8c7d-9e0f1a2b3c4d', 'menu review'],
     ['/restaurants/0b1c2d3e-4f50-4a6b-8c7d-9e0f1a2b3c4d/menu/items/1c2d3e4f-5061-4b7c-8d9e-0f1a2b3c4d5e', 'menu review'],
-    ['/staff', 'staff accounts'],
-    ['/staff/1c2d3e4f-5061-4b7c-8d9e-0f1a2b3c4d5e', 'staff accounts'],
   ])('support opening %s by its address gets "No permission" (%s)', (route, permission) => {
     renderApp(route, 'SUPPORT_AGENT');
     const heading = screen.getByRole('heading', { level: 1 });
@@ -256,8 +254,25 @@ describe('routes', () => {
     expect(document.querySelector('[data-legacy-screen]')).toBeNull();
   });
 
+  it.each([
+    ['/staff', 'You’re signed in as a support agent, so this page isn’t in your menu.'],
+    [
+      '/staff/1c2d3e4f-5061-4b7c-8d9e-0f1a2b3c4d5e',
+      'This link opens a staff account, and you’re signed in as a support agent, so it isn’t available to you.',
+    ],
+  ])('support opening %s gets the staff page the boards draw: app bar "Staff", a filled "Go to live alerts"', async (route, why) => {
+    renderApp(route, 'SUPPORT_AGENT');
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Staff');
+    expect(screen.getByRole('heading', { level: 2, name: 'Staff accounts are for admins and super admins' })).toBeTruthy();
+    expect(screen.getByText(why)).toBeTruthy();
+    const go = screen.getByRole('button', { name: 'Go to live alerts' });
+    expect(go.getAttribute('data-variant')).toBe('primary');
+    fireEvent.click(go);
+    await waitFor(() => expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Live alerts'));
+  });
+
   it('draws "Back to …" outlined (tertiary), as RV/Shell-Forbidden does, and it goes to the landing page', async () => {
-    renderApp('/staff', 'SUPPORT_AGENT');
+    renderApp('/riders', 'SUPPORT_AGENT');
     const back = screen.getByRole('button', { name: 'Back to live alerts' });
     expect(back.getAttribute('data-variant')).toBe('tertiary');
     fireEvent.click(back);

@@ -29,7 +29,7 @@ import { WHATS_NEW } from '../whatsnew/copy';
 import { WhatsNewNotice } from '../whatsnew/WhatsNewNotice';
 import { WhatsNewPanel } from '../whatsnew/WhatsNewPanel';
 import { useWhatsNew, useWhatsNewApi, WhatsNewProvider, WHATS_NEW_PANEL_ID } from '../whatsnew/WhatsNewProvider';
-import { FORBIDDEN, NOT_FOUND } from './copy';
+import { FORBIDDEN, NOT_FOUND, STAFF_FORBIDDEN } from './copy';
 import { useLanding } from './landing';
 import { navGroupsFor, ROLE_LABEL } from './nav';
 import { PageBarContext, PageTitleContext, type PageBar } from './pageTitle';
@@ -197,8 +197,33 @@ function NavFooter({
  * heading "No permission". Copy verbatim from the board, with the role and the permission filled
  * in; "Back to …" is outlined (tertiary), as the board draws it.
  */
-function Forbidden({ role, permission }: { role: StaffRole | null; permission: string | undefined }) {
+function Forbidden({ role, permission, routeId }: { role: StaffRole | null; permission: string | undefined; routeId: string | undefined }) {
   const back = useLanding();
+  if (routeId === 'staff' || routeId === 'staffMember') {
+    const roleLabel = (role ? ROLE_LABEL[role] : 'signed-out visitor').toLowerCase();
+    return (
+      <div className="flex min-h-0 flex-1 flex-col overflow-auto bg-surface-base pb-6 ps-6 pe-6 pt-[52px]">
+        <section
+          aria-label="Why this page is unavailable"
+          className="flex w-full max-w-[640px] flex-col items-start gap-3 rounded-xl border border-line-decorative bg-surface-raised p-8"
+        >
+          <span className="flex size-8 items-center justify-center text-fg-secondary">
+            <Icon name="lock" size={28} />
+          </span>
+          <h2 className="m-0 text-heading-lg font-semibold text-fg-primary">{STAFF_FORBIDDEN.title}</h2>
+          <p className="m-0 text-body-md text-fg-secondary">
+            {routeId === 'staff' ? STAFF_FORBIDDEN.list(roleLabel) : STAFF_FORBIDDEN.detail(roleLabel)}
+          </p>
+          <p className="m-0 text-body-md text-fg-secondary">{STAFF_FORBIDDEN.help}</p>
+          <div className="pt-1">
+            <Button variant="primary" size="lg" onPress={back.go}>
+              {back.goLabel}
+            </Button>
+          </div>
+        </section>
+      </div>
+    );
+  }
   // Drawn as the board draws it: an outlined card, a 32px lock in text.secondary, a 20px title.
   // ds-request(web): ErrorState outside tables (the board's "Proposed component").
   return (
@@ -252,7 +277,8 @@ function AdminShellFrame() {
 
   const [titleOverride, setTitleOverride] = useState<string | null>(null);
   const [pageBar, setPageBar] = useState<PageBar | null>(null);
-  const pageHeading = forbidden ? FORBIDDEN.heading : notFound ? NOT_FOUND.heading : (titleOverride ?? route?.title ?? '');
+  const staffForbidden = forbidden && (route?.id === 'staff' || route?.id === 'staffMember');
+  const pageHeading = forbidden && !staffForbidden ? FORBIDDEN.heading : notFound ? NOT_FOUND.heading : (titleOverride ?? route?.title ?? '');
   const heading = panelFullArea ? WHATS_NEW.panelTitle : pageHeading;
 
   // The rail on detail workspaces; elsewhere whatever the person last chose on a list page.
@@ -449,14 +475,16 @@ function AdminShellFrame() {
                 >
                   {heading}
                 </h1>
-                {pageBar?.subtitle ? (
-                  <p className={`m-0 truncate text-body-sm ${chrome ? 'text-fg-on-accent opacity-85' : 'text-fg-secondary'}`}>{pageBar.subtitle}</p>
+                {(staffForbidden && route?.id === 'staffMember' ? STAFF_FORBIDDEN.detailSubtitle : pageBar?.subtitle) ? (
+                  <p className={`m-0 truncate text-body-sm ${chrome ? 'text-fg-on-accent opacity-85' : 'text-fg-secondary'}`}>
+                    {staffForbidden && route?.id === 'staffMember' ? STAFF_FORBIDDEN.detailSubtitle : pageBar?.subtitle}
+                  </p>
                 ) : null}
               </div>
             </div>
             {/* Kept mounted (typed input survives) but out of the way while the panel has the whole area. */}
             <div className={panelFullArea ? 'hidden' : 'contents'}>
-              {forbidden ? <Forbidden role={role} permission={route?.permission} /> : <Outlet />}
+              {forbidden ? <Forbidden role={role} permission={route?.permission} routeId={route?.id} /> : <Outlet />}
             </div>
             {narrow ? <WhatsNewPanel layout="page" /> : null}
           </main>

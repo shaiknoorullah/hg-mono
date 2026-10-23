@@ -16,3 +16,17 @@ export const NOT_BUILT = {
   title: 'Not built yet',
   body: (page: string, wp: string) => `${page} comes with ${wp} of the admin redesign. Nothing on this page works yet.`,
 } as const;
+
+/**
+ * The staff pages draw their own 403 (`STF/StaffSupportDenied`, `STF/StaffDetailSupportDenied`):
+ * the app bar keeps the page's name and the card says why in staff terms. Every other route keeps
+ * the generic "No permission" page above, because no board draws a specific one.
+ */
+export const STAFF_FORBIDDEN = {
+  title: 'Staff accounts are for admins and super admins',
+  list: (roleLabel: string) => `You’re signed in as a ${roleLabel}, so this page isn’t in your menu.`,
+  detail: (roleLabel: string) =>
+    `This link opens a staff account, and you’re signed in as a ${roleLabel}, so it isn’t available to you.`,
+  help: 'If you need access, ask a super admin. Changing a role isn’t available in the console yet.',
+  detailSubtitle: 'Opened from a link to one staff account',
+} as const;
