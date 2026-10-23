@@ -1,7 +1,7 @@
 import { expect, test, type Locator, type Page, type Route } from '@playwright/test';
 
 import { at1440, declareUnpairable, expectDesignFor, type BoardFor } from './design';
-import { MOCK_API, MODE, openSignedIn } from './redesign-restaurant.support';
+import { MOCK_API, MODE, freshCheckIn, openSignedIn } from './redesign-restaurant.support';
 import { projectMeta } from './mode';
 
 test.skip(MODE !== 'mock', 'written against the mock server; run with E2E_MODE=mock');
@@ -76,6 +76,7 @@ interface Scene {
 }
 
 async function open(page: Page, path: string, scene: Scene = {}) {
+  await freshCheckIn(page);
   const { profile = 'restaurant_profile_halal_certified', patchProfile = (p) => p, docs = (d) => d } = scene;
   if (scene.profileCall === 'error') await page.route('**/v1/restaurant/profile', failing);
   else if (scene.profileCall === 'never') await page.route('**/v1/restaurant/profile', never);

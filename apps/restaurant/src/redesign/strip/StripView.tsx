@@ -15,6 +15,8 @@ import { formatTime } from '../format/time';
 import { OUTCOME_TILE, WINDOW_SECONDS, acceptName, liveTileLabel, offerSummary } from './copy';
 import { isLive, useNewOrders, type NewOrdersApi, type Offer } from './NewOrdersProvider';
 import { useIsDesktop, useIsPhone } from '../shell/viewport';
+import { isCompactFrame } from '../shell/frame';
+import { AcceptingSwitch } from '../status/AcceptingSwitch';
 
 
 /** Re-render once a second (accessible names carry the time left; never announced). */
@@ -70,6 +72,7 @@ export function StripView() {
   const location = useLocation();
   const isDesktop = useIsDesktop();
   const isPhone = useIsPhone();
+  const compactFrame = isCompactFrame(location.pathname, isPhone);
   const [turning, setTurning] = useState<'idle' | 'on' | 'failed'>('idle');
   const tick = useSecondTick(api.offers.length > 0);
   const { offers, connection: conn, panel } = api;
@@ -169,6 +172,8 @@ export function StripView() {
         now={serverNow}
         isDesktop={isDesktop}
         isPhone={isPhone}
+        slim={compactFrame}
+        trailing={compactFrame ? <AcceptingSwitch /> : undefined}
         flash={live.length > 0 && tick % 2 === 0}
         advanceFocusFrom={api.acceptedHere}
         testId="new-order-strip"

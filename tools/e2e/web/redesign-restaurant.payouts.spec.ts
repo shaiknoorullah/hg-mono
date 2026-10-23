@@ -1,7 +1,7 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
 
 import { declareUnpairable, expectDesignFor, type BoardFor } from './design';
-import { MOCK_API, MODE, openSignedIn } from './redesign-restaurant.support';
+import { MOCK_API, MODE, freshCheckIn, openSignedIn } from './redesign-restaurant.support';
 import { projectMeta } from './mode';
 
 test.skip(MODE !== 'mock', 'written against the mock server; run with E2E_MODE=mock');
@@ -72,6 +72,7 @@ interface Scene {
 
 /** Routes the calls the payouts pages make, then opens `path` signed in as the owner. */
 async function open(page: Page, path: string, scene: Scene = {}) {
+  await freshCheckIn(page);
   const { connect = 'connect_status_complete', profile = 'restaurant_profile_account_live', payouts = [], older = 'none' } = scene;
   const profileBody = await fixture(page, profile);
   await page.route('**/v1/restaurant/profile', (route) => route.fulfill({ json: { data: profileBody } }));

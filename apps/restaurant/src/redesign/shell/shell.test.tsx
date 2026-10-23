@@ -7,7 +7,8 @@ import { consoleRoutes, errorBody, fixture, installFakeApi } from '../test/fakeA
 import { renderRedesign } from '../test/render';
 import { getSession } from '../../lib/api';
 import { formatTime, formatCalendarDate, spokenDuration } from '../format/time';
-import { HEARTBEAT_INTERVAL_MS } from '../data/heartbeat';
+import { HEARTBEAT_INTERVAL_MS, recordHeartbeat } from '../data/heartbeat';
+import { resetDevicePrefs, setDevicePrefs } from '../data/devicePrefs';
 import { signedInLine } from './ConsoleLayout';
 
 afterEach(() => {
@@ -45,6 +46,54 @@ describe('console shell', () => {
     const menu = screen.getByRole('menu', { name: 'Account' });
     expect(within(menu).getByRole('menuitem', { name: 'Sign out…' })).toBeTruthy();
     expect(within(menu).getByRole('menuitem', { name: "What's new" })).toBeTruthy();
+  });
+
+  it('Settings and Payouts draw the connection and sound badges in the app bar and no status bar', async () => {
+    installFakeApi(consoleRoutes());
+    resetDevicePrefs();
+    await renderRedesign('/settings');
+    const badges = await screen.findByTestId('service-badges');
+    expect(within(badges).getByTestId('sound-badge').textContent).toBe('Sound on');
+    // The test page's socket never opens: the badge says so rather than claiming Live.
+    expect(within(badges).getByTestId('health-badge').textContent).toBe('Connecting…');
+    expect(badges.closest('[role="banner"]')).not.toBeNull();
+    expect(screen.queryByTestId('status-bar')).toBeNull();
+    // One Service status region: the badges. The restaurant's name alone sits under the page title.
+    expect(screen.getAllByRole('region', { name: 'Service status' })).toHaveLength(1);
+    const profile = fixture('restaurant_profile');
+    expect(within(screen.getByTestId('top-bar')).getByText(profile.display_name)).toBeTruthy();
+  });
+
+  it('the sound badge follows the order-sound setting of This device, and the health badge opens Screen health', async () => {
+    installFakeApi(consoleRoutes());
+    setDevicePrefs({ soundOff: true });
+    await renderRedesign('/payouts');
+    const badges = await screen.findByTestId('service-badges');
+    expect(within(badges).getByTestId('sound-badge').textContent).toBe('Order sound off');
+    act(() => setDevicePrefs({ soundOff: false }));
+    await waitFor(() => expect(within(badges).getByTestId('sound-badge').textContent).toBe('Sound on'));
+    fireEvent.click(within(badges).getByRole('button', { name: /^Screen health:/ }));
+    expect(await screen.findByRole('complementary', { name: 'Screen health details' })).toBeTruthy();
+    resetDevicePrefs();
+  });
+
+  it('shows the lost connection as a warning with the time, on the compact frame', async () => {
+    installFakeApi(consoleRoutes({ 'POST /v1/restaurant/heartbeat': { status: 503, body: errorBody('SERVICE_UNAVAILABLE') } }));
+    await renderRedesign('/settings');
+    const badges = await screen.findByTestId('service-badges');
+    act(() => {
+      recordHeartbeat(true, Date.now() - 60_000);
+      recordHeartbeat(false);
+      recordHeartbeat(false);
+    });
+    await waitFor(() => expect(within(badges).getByTestId('health-badge').textContent).toMatch(/^Offline · connection lost \d{1,2}:\d{2} (am|pm)$/));
+  });
+
+  it('every other page keeps the status bar and has no service badges', async () => {
+    installFakeApi(consoleRoutes());
+    await renderRedesign('/orders/history');
+    expect(await screen.findByTestId('status-bar')).toBeTruthy();
+    expect(screen.queryByTestId('service-badges')).toBeNull();
   });
 
   it('draws the rail header and footer on the expanded rail only', async () => {
