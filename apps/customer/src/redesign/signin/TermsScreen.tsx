@@ -15,7 +15,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getPublicConfig } from '../api/config';
-import { AppBar, Card, ErrorState, Skeleton, tokens, useTheme, useTypeStyle } from '../ds';
+import { AppBar, Card, ErrorState, Skeleton, TopInsetSpent, tokens, useTheme, useTypeStyle } from '../ds';
 import { useQuery } from '../lib/query';
 import { useNav } from '../navigation/context';
 
@@ -70,7 +70,7 @@ export function TermsScreen({ signedOut = false }: { signedOut?: boolean }): Rea
     </View>
   );
   // Signed out, the Shell already keeps the page inside the safe area.
-  return signedOut ? page : <SafeAreaView style={styles.fill}>{page}</SafeAreaView>;
+  return signedOut ? page : <SafeAreaView style={styles.fill}><TopInsetSpent>{page}</TopInsetSpent></SafeAreaView>;
 }
 
 const styles = StyleSheet.create({

@@ -769,3 +769,19 @@ test('dedupeCaptures leaves distinct boards, unpairable captures and uncovered o
   assert.equal(captures.length, 6);
   assert.deepEqual(duplicates, []);
 });
+
+test("a short mono chip screen readers skip is a designers' note when it is the API's words", async () => {
+  const { NOTE_API_WORDS } = await import('../src/render-refs.mjs');
+  const { hideNotes } = await import('../src/page-scripts.mjs');
+  const api = new RegExp(NOTE_API_WORDS);
+  // What the canvases draw beside a state, to say which API answer it is.
+  for (const note of ['403 ACCOUNT_NOT_ACTIVE', 'blocking_reason profile_incomplete', 'requirements.past_due', 'individual.id_number', 'getOwnMenu failed', 'PAYOUT_FAILED']) {
+    assert.ok(api.test(note), note);
+  }
+  // The UI's own mono text: order ids, pickup codes, times, counts.
+  for (const ui of ['HG-6RN4KP', '20:10', '41:59', '0134', '4821', 'Order HG-6RN4KP', '$42.80', 'Attempt 2']) {
+    assert.ok(!api.test(ui), ui);
+  }
+  // page.evaluate sends hideNotes as source, so it must build the pattern from its argument.
+  assert.match(String(hideNotes), /new RegExp\(apiWords\)/);
+});

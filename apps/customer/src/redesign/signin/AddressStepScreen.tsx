@@ -18,7 +18,7 @@ import { unwrap } from '@hg/api-client';
 import type { Schema } from '@hg/api-client';
 
 import { api } from '../api/client';
-import { Button, Icon, tokens, useTheme, useTypeStyle } from '../ds';
+import { Button, Icon, TopInsetSpent, tokens, useTheme, useTypeStyle } from '../ds';
 import { useNav } from '../navigation/context';
 import { showWelcome } from '../session/session';
 import { useFocusOnMount } from './a11y';
@@ -59,6 +59,7 @@ export function AddressStepScreen(): React.ReactElement {
 
   return (
     <SafeAreaView style={[styles.fill, { backgroundColor: theme.color.surface.base }]} testID="AddressStepScreen">
+      <TopInsetSpent>
       <ScrollView
         contentContainerStyle={{
           flexGrow: 1,
@@ -104,6 +105,7 @@ export function AddressStepScreen(): React.ReactElement {
           You can look at restaurants now. You'll need an address before adding food to your cart.
         </Text>
       </View>
+      </TopInsetSpent>
     </SafeAreaView>
   );
 }
