@@ -167,7 +167,7 @@ compared. Height is described next. A board with any `failedAssets` is `DEFECTIV
 not compare it, because the missing picture is the renderer's and would be charged to the app as a UI
 difference. The diff fails by default: it exits 1 when any pair is FAIL, NO BOARD (including a board whose
 reference recorded errors, and a declared board missing from the manifest), UNCOVERED, DEFECTIVE REFERENCE, NOT COMPARED, BROWSER MISMATCH, NO PROVENANCE or NO LAYOUT;
-UNPAIRABLE, a capture its spec declared cannot be compared, does not fail the run; `--no-strict` reports and exits 0, `--strict` is an accepted
+A second screenshot of a board already captured (a `--captures` directory that holds every screenshot twice, such as `$E2E_OUT` with Maestro's own copies under `maestro/`) is a `duplicates` entry in `results.json`, listed on stdout naming both paths: it is not compared and not counted, so each board counts once, and it fails the run. UNPAIRABLE, a capture its spec declared cannot be compared, does not fail the run; `--no-strict` reports and exits 0, `--strict` is an accepted
 alias of the default, and a crash or usage error exits 2. The summary also lists the uncaptured boards
 (boards of the rendered apps with no capture); that count alone does not fail the run.
 
