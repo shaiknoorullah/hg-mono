@@ -785,3 +785,32 @@ test("a short mono chip screen readers skip is a designers' note when it is the 
   // page.evaluate sends hideNotes as source, so it must build the pattern from its argument.
   assert.match(String(hideNotes), /new RegExp\(apiWords\)/);
 });
+
+test("a small dashed tag is a designers' note; a dashed drop zone or a short badge is product UI", async () => {
+  const { noteTag, hideNotes } = await import('../src/page-scripts.mjs');
+  const box = (over = {}) => ({
+    borderTopStyle: 'dashed', borderRightStyle: 'dashed', borderBottomStyle: 'dashed', borderLeftStyle: 'dashed',
+    borderTopWidth: '1px', fontSize: '12px', ...over,
+  });
+  // The tags the settings boards carry: `border: 1px dashed`, the caption type, running text.
+  assert.ok(noteTag(box(), 12), '"Mapping: verified_at from the current halal certificate document …"');
+  assert.ok(noteTag(box(), 4), '"HalalCertificationPanel (design-system component, reused) …"');
+  // Product UI that is also drawn with a dashed outline.
+  assert.ok(!noteTag(box({ fontSize: '16px', borderTopWidth: '2px' }), 8), 'a file drop zone: body type');
+  assert.ok(!noteTag(box({ borderTopWidth: '3px' }), 8), 'a heavy dashed border');
+  assert.ok(!noteTag(box(), 2), 'a one- or two-word badge ("Not verified")');
+  assert.ok(!noteTag(box({ borderLeftStyle: 'solid' }), 8), 'a dashed top only');
+  assert.ok(!noteTag({ ...box(), borderTopStyle: 'none', borderRightStyle: 'none', borderBottomStyle: 'none', borderLeftStyle: 'none' }, 8), 'no outline');
+  // page.evaluate sends both as source: hideNotes builds the test from its argument, and noteTag stands alone.
+  assert.match(String(hideNotes), /new Function\(`return \(\$\{tagTest\}\)`\)\(\)/);
+  assert.doesNotMatch(String(noteTag).replace(/^[^{]*\{/, ''), /\bimport\b|\bNOTE_/);
+  const rebuilt = new Function(`return (${String(noteTag)})`)();
+  assert.equal(rebuilt(box(), 6), true);
+  assert.equal(rebuilt(box({ fontSize: '14px' }), 6), false);
+});
+
+test('the designers\' note prefixes include the settings boards\' "Mapping:" tag', async () => {
+  const src = readFileSync(new URL('../src/render-refs.mjs', import.meta.url), 'utf8');
+  const prefixes = /const NOTE_PREFIXES = \[([\s\S]*?)\];/.exec(src)[1];
+  assert.match(prefixes, /'Mapping'/);
+});

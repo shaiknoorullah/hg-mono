@@ -2,6 +2,18 @@
 // source text, so every function here is self-contained: no imports, no closures over this module.
 
 /**
+ * Whether a box with these computed styles and this many words is a designers' tag: a dashed outline
+ * on all four sides, 2 px or thinner, around type of 12 px or less, with four words or more. The
+ * canvases draw their tags that way (`border: 1px dashed`, the caption type). Product UI with a dashed
+ * outline is not that small and long: a file drop zone is a large box in body type, and the
+ * "Unverified" badge is one or two words. Sent to the page as source (`hideNotes`), so it stands alone.
+ */
+export function noteTag(cs, words) {
+  const sides = ['Top', 'Right', 'Bottom', 'Left'];
+  return sides.every((side) => cs[`border${side}Style`] === 'dashed') && parseFloat(cs.borderTopWidth) <= 2 && parseFloat(cs.fontSize) <= 12 && words >= 4;
+}
+
+/**
  * The designers' notes: annotation chips and boxes drawn inline on a board ("Needs API: …",
  * "Proposed component: …", "DS issue: …"). They are not UI and they push the layout, so they are
  * hidden before a board is captured; their text goes into the manifest instead.
@@ -17,6 +29,10 @@
  *     of five words or more. The UI's own mono text is codes, ids and times. A shorter mono text
  *     screen readers skip is a note when it is the API's words (`apiWords`: "403
  *     ACCOUNT_NOT_ACTIVE", "requirements.past_due").
+ *   - by its box: a tag drawn as a small dashed outline around running text (`noteTag`, the
+ *     "Mapping: …" and "HalalCertificationPanel (design-system component, reused) …" tags the
+ *     settings boards carry). A dashed outline is a note's, a drop zone's or an unverified badge's;
+ *     only the first is 12 px or less and runs more than three words.
  * The note hidden is the largest element its text opens that holds nothing but running text, so
  * a "Proposed component" badge goes with its badge, and a wrapper that also holds the proposed
  * UI stays.
@@ -27,7 +43,9 @@
  *
  * Returns the hidden notes, `{ kind, text }`, in document order.
  */
-export function hideNotes({ classes, prefixes, weakPrefixes, apiWords }) {
+export function hideNotes({ classes, prefixes, weakPrefixes, apiWords, tagTest }) {
+  // `noteTag` below, sent as source: this function cannot import it.
+  const isNoteTag = tagTest ? new Function(`return (${tagTest})`)() : () => false;
   const strong = new RegExp(`^(${prefixes.join('|')})(\\s*#\\d+)?\\s*[:—–]`);
   const api = apiWords ? new RegExp(apiWords) : null;
   // …or carries one of them further in, when it is set like a note ("Loaded rows only · Needs API: …").
@@ -41,6 +59,11 @@ export function hideNotes({ classes, prefixes, weakPrefixes, apiWords }) {
       const cs = getComputedStyle(e);
       if (/plex mono|monospace/i.test(cs.fontFamily) || cs.outlineStyle === 'dashed' || cs.borderTopStyle === 'dashed') return true;
     }
+    return false;
+  };
+  // A tag: running text inside a small box with a dashed outline on every side.
+  const looksLikeTag = (el, words) => {
+    for (let e = el, i = 0; e && i < 3; e = e.parentElement, i++) if (isNoteTag(getComputedStyle(e), words)) return true;
     return false;
   };
   const marked = [];
@@ -71,7 +94,8 @@ export function hideNotes({ classes, prefixes, weakPrefixes, apiWords }) {
       chip.exec(text) ??
       (weak.test(text) && looksLikeNote(el) ? weak.exec(text) : null) ??
       (inside.test(text) && looksLikeNote(el) ? inside.exec(text) : null) ??
-      (aside ? [text, 'Annotation (mono)'] : null);
+      (aside ? [text, 'Annotation (mono)'] : null) ??
+      (looksLikeTag(el, words) ? [text, 'Annotation (dashed tag)'] : null);
     if (!m) continue;
     // Grow to the parent while the note opens it and everything else in it is running text
     // (`<div><b>Owner decision:</b> …</div>`, a badge around its label); stop at a parent that also
