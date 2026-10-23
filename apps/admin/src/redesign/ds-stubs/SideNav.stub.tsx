@@ -138,13 +138,10 @@ function CountBadges({ item, rail }: { item: SideNavItem; rail: boolean }) {
   );
 }
 
-/** "Review · view only": the qualifier is regular weight, as the board draws it. */
 function GroupHeading({ id, text, hidden }: { id: string; text: string; hidden: boolean }) {
-  const [lead, ...rest] = text.split(' · view only');
   return (
     <h2 id={id} className={cx('m-0 px-3 pb-1 text-body-sm font-bold leading-normal tracking-[0.02em] text-fg-on-accent', hidden && 'sr-only')}>
-      {lead}
-      {rest.length > 0 ? <span className="font-normal"> · view only</span> : null}
+      {text}
     </h2>
   );
 }
