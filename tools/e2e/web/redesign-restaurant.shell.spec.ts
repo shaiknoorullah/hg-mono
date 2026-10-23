@@ -52,6 +52,11 @@ test.describe('restaurant redesign · shell', () => {
     // The restaurant's own name from its profile: the board's sample on the mock, the seeded one on the real API.
     await expect(rail.getByTestId('rail-restaurant')).toHaveText(MODE === 'mock' ? 'Zaytoun Grill' : /\S/);
     await expect(rail.getByTestId('rail-signed-in')).toHaveText('Signed in as the owner');
+    // The wordmark tops the rail, the toggle says "Collapse" and is named "Collapse navigation", and no item names itself twice.
+    await expect(rail.getByRole('img', { name: 'HalalGoes' })).toBeVisible();
+    await expect(page.getByTestId('console-rail-collapse')).toHaveText('Collapse');
+    await expect(page.getByTestId('console-rail-collapse')).toHaveAccessibleName('Collapse navigation');
+    await expect(rail.getByRole('link', { name: /^Payouts/ })).toHaveText('Payouts');
     // The current item is still the inverted tile.
     await expect(rail.getByRole('link', { name: /^Settings/ })).toHaveAttribute('aria-current', 'page');
     await page.getByTestId('console-rail-collapse').click();
