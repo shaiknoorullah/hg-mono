@@ -472,14 +472,16 @@ jobs:
         run: bash tools/e2e/web/serve.sh
 
       # Only the redesign projects: this job exists to take captures, not to run the suite twice.
-      # It does not fail the run on a failing spec — a capture spec that fails has taken no capture,
-      # which design-diff reports as a board with no capture, and that is the number to read. A
-      # crash still fails the job.
+      # This step does not fail on a failing spec: the step after it does, when a spec fails that is
+      # not on the known list, so every spec still runs and every other board keeps its verdict.
+      # One retry, for these captures only: a spec that passes on the retry is flaky, not failing
+      # (the junit report records it as passed and Playwright's own summary counts it as "flaky"),
+      # so a race in one spec does not turn an unrelated pull request red.
       - name: Take the design captures
         run: |
           cd tools/e2e
           E2E_RUN="captures-$E2E_APPS" pnpm exec playwright test --config web/playwright.config.ts \
-            --project "$E2E_APPS-redesign-*" --pass-with-no-tests || echo "::warning::$E2E_APPS capture specs had failures; boards they would have captured are reported as uncaptured"
+            --project "$E2E_APPS-redesign-*" --pass-with-no-tests --retries=1 || echo "::warning::$E2E_APPS capture specs had failures; boards they would have captured are reported as uncaptured"
 
       - name: Summary
         if: always()
@@ -493,9 +495,13 @@ jobs:
       # is also what a board nobody has written a capture for looks like. One is a regression and
       # the other is work not started, so the failures are named rather than left to the diff's
       # count, which cannot tell them apart.
+      #
+      # It also FAILS THE JOB when a spec fails that is not on tools/e2e/web/known-capture-failures.json
+      # (the specs failing on main, each with its issue), and when no report was written. design-diff
+      # runs after a failed captures job (#1082), so a red job here costs no board its verdict.
       - name: The capture specs that failed
         if: always()
-        run: node tools/e2e/web/capture-failures.mjs "$E2E_OUT/playwright" || true
+        run: node tools/e2e/web/capture-failures.mjs "$E2E_OUT/playwright"
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
