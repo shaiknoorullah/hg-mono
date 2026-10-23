@@ -132,6 +132,7 @@ test.describe('restaurant redesign · sign in (mock)', () => {
     await expect(page.getByTestId('support-sentence')).toContainText('Need help signing in? Call partner support on');
     // The boards (Main, Tab-SignIn-1024) draw the form filled in; the capture types what they show.
     await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct-horse-battery');
+    await page.getByLabel(/^Password/).blur(); // the boards draw both fields at rest
     await check(page, info, 'main');
     await page.getByLabel(/^Password/).press('Enter');
     await expect(page).toHaveURL(/\/orders$/);
@@ -278,6 +279,7 @@ test.describe('restaurant redesign · sign in (mock)', () => {
   }
 
   test('Register: default, errors, email taken, terms changed, net error, rate limited, then created', async ({ page }, info) => {
+    await frozenClock(page); // Register-RateLimited draws the wait at 0:38
     await partnerTermsVersion(page);
     await page.goto('/register');
     await expect(page.getByRole('heading', { level: 1, name: 'Register your restaurant' })).toBeVisible();
@@ -307,7 +309,7 @@ test.describe('restaurant redesign · sign in (mock)', () => {
       if (mode === 'taken') return error('EMAIL_ALREADY_REGISTERED', 409)(route);
       if (mode === 'terms') return error('TERMS_VERSION_STALE', 409, { details: { current: '2026-10' } })(route);
       if (mode === 'net') return error('INTERNAL_ERROR', 500)(route);
-      if (mode === 'rate') return error('RATE_LIMITED', 429, { headers: { 'Retry-After': '60' } })(route);
+      if (mode === 'rate') return error('RATE_LIMITED', 429, { headers: { 'Retry-After': '38' } })(route);
       return route.fulfill({ status: 201, json: { data: { restaurant_id: '927cc55c-8ddd-4d9f-a353-353ba2a8982b', email: 'samir@zaytoungrill.ca', onboarding_state: 'REGISTERED' } } });
     });
 
@@ -323,7 +325,13 @@ test.describe('restaurant redesign · sign in (mock)', () => {
     await expect(page.getByRole('checkbox', { name: 'I have read and accept the partner terms' })).toHaveAttribute('aria-checked', 'false');
     await check(page, info, 'register-terms-updated');
 
+    // Register-NetError and Register-RateLimited are drawn before the terms change ("Version 2026-09"), so
+    // the form is opened again, filled in as before, and the terms are still the first ones.
     mode = 'net';
+    await page.goto('/register');
+    await page.getByLabel(/^Restaurant name/).fill('Zaytoun Grill');
+    await page.getByLabel(/^Work email/).fill('samir@zaytoungrill.ca');
+    await page.getByLabel(/^Password/).fill('olive-tree-courtyard');
     await page.getByRole('checkbox', { name: 'I have read and accept the partner terms' }).click();
     await page.getByRole('button', { name: 'Create account' }).click();
     await expect(page.getByTestId('InlineAlert')).toContainText("Your account wasn't created");
