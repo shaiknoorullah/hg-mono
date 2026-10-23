@@ -21,7 +21,7 @@
     "pause_kind": "DURATION",
     "last_heartbeat_at": "2026-08-10T18:32:11.412Z",
     "missed_order_count": 0,
-    "reason": "Closed for a scheduled deep clean. Reopening at 14:00.",
+    "reason": "Orders are paused.",
     "resolvable_by": "RESTAURANT"
   }
 }

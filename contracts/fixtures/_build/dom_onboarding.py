@@ -230,9 +230,17 @@ def _restaurant_onboarding(reg, synth) -> None:
         # Two missed orders in a row switch ordering off by themselves (`..._closed_toggle_auto_off`);
         # none of these states is that one, and a placeholder count would make the console say so.
         av["missed_order_count"] = 0
-        if state == "OPEN":
-            # The server's own sentence for a trading restaurant; the status bar shows it as it is.
-            av["reason"] = "Taking orders until 11:00 pm"
+        # The server's own sentence for each state; the console shows it as it is (the boards' copy).
+        av["reason"] = {
+            "OPEN": "Taking orders until 11:00 pm",
+            "PAUSED": "Orders are paused.",
+            "CLOSED_HOURS": "Closed until 11:00 am tomorrow, when your hours start.",
+            "CLOSED_HOLIDAY": "Closed today for a holiday. You open again tomorrow at 11:00 am.",
+            "CLOSED_TOGGLE": "Ordering is turned off. Customers can see your menu but can't order.",
+            "CLOSED_OFFLINE": "This screen lost its connection to HalalGoes at 6:41 pm, so no new orders are being offered. "
+                              "Check the internet connection. It reconnects by itself.",
+            "CLOSED_SUSPENDED": "No new orders while your account is suspended.",
+        }[state]
         reg.add(
             f"restaurant_open_state_{state.lower()}",
             "onboarding",

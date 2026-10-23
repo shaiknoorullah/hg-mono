@@ -1,7 +1,7 @@
 import { expect, test, type Locator, type Page, type Route } from '@playwright/test';
 
 import { at1440, declareUnpairable, expectDesignFor, type BoardFor } from './design';
-import { MOCK_API, MODE, freshCheckIn, openSignedIn } from './redesign-restaurant.support';
+import { MOCK_API, MODE, boardDate, boardDocuments, freshCheckIn, openSignedIn } from './redesign-restaurant.support';
 import { projectMeta } from './mode';
 
 test.skip(MODE !== 'mock', 'written against the mock server; run with E2E_MODE=mock');
@@ -63,35 +63,6 @@ async function fixture<T = any>(page: Page, name: string): Promise<T> {
 function torontoDate(days: number): string {
   const d = new Date(Date.now() + days * 86_400_000);
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
-}
-
-/**
- * The boards are set on 28 September 2026 ("Today is 28 September 2026" in the settings board's
- * script), so the dates they print are counted from it, not from the day the capture runs: 45 days
- * out is 12 November 2026, 30 is 28 October, 14 is 12 October, and the expired certificate's
- * 12 September is 16 days back. The app takes the state from the profile (`display_state`), not
- * from these dates, so a capture on any later day reads the same.
- */
-const BOARD_TODAY = Date.parse('2026-09-28T12:00:00Z');
-function boardDate(days: number): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(BOARD_TODAY + days * 86_400_000));
-}
-
-/**
- * The documents the settings boards list (`PartDocuments`): the halal certificate is its second
- * version, valid until 12 November 2026; the food safety certificate runs to 30 June 2027 and the owner ID to
- * 4 May 2030; the business licence has no expiry. All four were reviewed on 3 March 2026. The boards list four
- * documents, so the pack's fifth (liability insurance) is left out.
- */
-function boardDocuments(docs: any[]): any[] {
-  const reviewed_at = '2026-03-03T15:00:00.000Z';
-  const sample: Record<string, Record<string, unknown>> = {
-    HALAL_CERTIFICATE: { version: 2, issuer: 'HMA Canada', certificate_number: 'HMA-2025-03317', issued_on: '2025-11-12', valid_until: '2026-11-12' },
-    BUSINESS_LICENCE: { version: 1, valid_until: null },
-    FOOD_SAFETY: { version: 1, valid_until: '2027-06-30' },
-    OWNER_ID: { version: 1, valid_until: '2030-05-04' },
-  };
-  return docs.filter((d) => d.doc_type in sample).map((d) => ({ ...d, ...sample[d.doc_type], reviewed_at }));
 }
 
 interface Scene {

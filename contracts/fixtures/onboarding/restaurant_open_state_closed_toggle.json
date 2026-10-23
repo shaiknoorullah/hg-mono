@@ -21,7 +21,7 @@
     "pause_kind": null,
     "last_heartbeat_at": "2026-08-10T18:32:11.412Z",
     "missed_order_count": 0,
-    "reason": "Closed for a scheduled deep clean. Reopening at 14:00.",
+    "reason": "Ordering is turned off. Customers can see your menu but can't order.",
     "resolvable_by": "RESTAURANT"
   }
 }
