@@ -6,6 +6,7 @@ import { boardSize, captureViewport, widthMismatch } from '@hg/design-diff/captu
 import { captureFile, parseBoardId } from '@hg/design-diff/names';
 import { settle, snapshotLayout } from '@hg/design-diff/page-scripts';
 import { OUT } from '../lib/paths.mjs';
+import { pinCheckedIn } from './redesign-restaurant.support';
 
 /**
  * Areas of the restaurant console whose boards draw the side navigation expanded (labels beside the
@@ -59,6 +60,7 @@ async function expandRailIfDrawnExpanded(page: Page, app: string, area: string):
 export async function expectDesign(page: Page, board: string): Promise<void> {
   const { app, area, board: name } = parseBoardId(board);
   await expandRailIfDrawnExpanded(page, app, area);
+  if (app === 'restaurant') await pinCheckedIn(page);
   const vp = page.viewportSize() ?? { width: 0, height: 0 };
   const root = process.env.E2E_DESIGN_DIR ? path.resolve(process.env.E2E_DESIGN_DIR) : path.join(OUT, 'design-captures');
   const dir = path.join(root, app, `${vp.width}x${vp.height}`);

@@ -1,7 +1,7 @@
 // Which size a web capture is taken at. Run: pnpm --filter @hg/design-diff test:unit
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { MAX_CAPTURE_HEIGHT, boardSizeFromCanvas, captureViewport, widthMismatch } from '../src/capture-size.mjs';
+import { MAX_CAPTURE_HEIGHT, MIN_REFERENCE_HEIGHT, referenceFrame, boardSizeFromCanvas, captureViewport, widthMismatch } from '../src/capture-size.mjs';
 
 test('a board taller than the viewport, at its width, is captured at its own height', () => {
   assert.deepEqual(captureViewport({ width: 320, height: 900 }, { w: 320, h: 3200 }), { width: 320, height: 3200 });
@@ -46,4 +46,14 @@ test('a narrower board than the viewport is not taken either', () => {
 test('no board size known (branch not fetched, board not listed) is taken as before', () => {
   assert.equal(widthMismatch({ width: 1024, height: 768 }, null), null);
   assert.equal(widthMismatch({ width: 1024, height: 768 }, undefined), null);
+});
+
+test('a board shorter than the minimum window is drawn in a taller window and cut to its own size', () => {
+  assert.deepEqual(referenceFrame({ w: 220, h: 32 }), { viewport: { width: 220, height: MIN_REFERENCE_HEIGHT }, clip: { x: 0, y: 0, width: 220, height: 32 } });
+  assert.deepEqual(referenceFrame({ w: 1440, h: 80 }).clip, { x: 0, y: 0, width: 1440, height: 80 });
+});
+
+test('a board that is tall enough is drawn and screenshot exactly as before', () => {
+  assert.deepEqual(referenceFrame({ w: 1440, h: 900 }), { viewport: { width: 1440, height: 900 }, clip: null });
+  assert.deepEqual(referenceFrame({ w: 1216, h: MIN_REFERENCE_HEIGHT }), { viewport: { width: 1216, height: MIN_REFERENCE_HEIGHT }, clip: null });
 });

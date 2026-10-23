@@ -81,7 +81,7 @@ test.describe('redesigned admin · refunds page (mock)', () => {
     await openAdmin(page, '#/refunds', { failed: FAILED });
     await expect(failedGrid(page).getByText('HG-COED-9X')).toBeVisible();
     await page.context().setOffline(true);
-    await expect(page.getByText('You’re offline.')).toBeVisible();
+    await expect(page.getByText('You’re offline.', { exact: true })).toBeVisible();
     await shoot(page, { 1440: 'admin/refunds/RefundsOffline' });
   });
 

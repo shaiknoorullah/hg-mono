@@ -212,7 +212,7 @@ async function sendInvite(page: Page) {
   await page.getByRole('button', { name: /Invite staff/ }).click();
   await page.getByRole('textbox', { name: /Full name/ }).fill('Zainab Hussain');
   await page.getByRole('textbox', { name: /Work email/ }).fill('zainab.hussain@halalgoes.ca');
-  await page.getByRole('radio', { name: 'Admin' }).click();
+  await page.getByRole('radio', { name: 'Admin', exact: true }).click();
   await page.getByRole('button', { name: /Send invite/ }).click();
 }
 
@@ -324,7 +324,7 @@ async function fillInvite(page: Page, name: string, email: string, role?: 'Suppo
   await expect(nameField).toBeVisible();
   if (name) await nameField.fill(name);
   if (email) await page.getByRole('textbox', { name: /Work email/ }).fill(email);
-  if (role) await page.getByRole('radio', { name: role }).click();
+  if (role) await page.getByRole('radio', { name: role, exact: true }).click();
 }
 const send = (page: Page) => page.getByRole('button', { name: /Send invite|Send again/ }).click();
 

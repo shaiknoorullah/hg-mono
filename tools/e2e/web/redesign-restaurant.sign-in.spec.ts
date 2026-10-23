@@ -190,6 +190,8 @@ test.describe('restaurant redesign · sign in (mock)', () => {
     await expect(button).toHaveAttribute('aria-disabled', 'true');
     await expect(button).toHaveAttribute('aria-describedby', 'wait-reason');
     await expect(page.locator('#wait-reason')).toContainText(/You can try again in 0:42/);
+    // The board draws the timer's name as visible text under the countdown.
+    await expect(page.locator('#wait-reason').getByText('until you can try again')).toBeVisible();
     await check(page, info, 'too-many');
   });
 
@@ -204,7 +206,8 @@ test.describe('restaurant redesign · sign in (mock)', () => {
     await expect(page.getByTestId('InlineAlert')).toBeFocused();
     await expect(page.getByRole('link', { name: 'Call partner support' })).toHaveAttribute('href', /^tel:\+/);
     await expect(page.getByRole('button', { name: 'Sign in' })).toHaveAttribute('aria-disabled', 'true');
-    await expect(page.getByRole('timer')).toHaveText('14:00');
+    await expect(page.getByRole('timer')).toHaveText('14:00until you can try again');
+    await expect(page.locator('#wait-reason').getByText('until you can try again')).toBeVisible();
     await check(page, info, 'locked');
     // aria-disabled, yet live: activating it says the wait again and sends nothing.
     let attempts = 0;

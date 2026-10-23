@@ -80,3 +80,28 @@ export function boardSize({ app, area, board }, { ref = CANVAS_REF, cwd } = {}) 
   const text = cache.get(key);
   return text ? boardSizeFromCanvas(text, board) : null;
 }
+
+/**
+ * A window shorter than this is not used to draw a board. Every one of the six boards that timed out
+ * in the first full reference render of restaurant and admin (#854) is a small part of a screen, 32 to
+ * 80 dp high (`HalalState` 220 x 32, `AuthTop` 1440 x 80, `OnbTop` 1440 x 64), and they are the only
+ * boards that short; the two next shortest, at 88 and 108 dp, were drawn. They are not large, so the
+ * cause is not the size of the picture, and a longer timeout would only wait longer.
+ */
+export const MIN_REFERENCE_HEIGHT = 200;
+
+/**
+ * How to draw and screenshot a board of `w` x `h` dp: the window is at least MIN_REFERENCE_HEIGHT
+ * high, and the screenshot is cut to the board (`clip`), so the picture is the board's own size and
+ * nothing else on the page is in it. A board that is tall enough is drawn exactly as before (`clip` null).
+ *
+ * @param {{ w: number, h: number }} board
+ * @returns {{ viewport: { width: number, height: number }, clip: { x: number, y: number, width: number, height: number } | null }}
+ */
+export function referenceFrame(board) {
+  const height = Math.max(board.h, MIN_REFERENCE_HEIGHT);
+  return {
+    viewport: { width: board.w, height },
+    clip: height === board.h ? null : { x: 0, y: 0, width: board.w, height: board.h },
+  };
+}
