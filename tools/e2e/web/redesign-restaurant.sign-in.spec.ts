@@ -156,6 +156,8 @@ test.describe('restaurant redesign · sign in (mock)', () => {
     await expect(button).toHaveAttribute('aria-disabled', 'true');
     await expect(button).toHaveAttribute('aria-describedby', 'wait-reason');
     await expect(page.locator('#wait-reason')).toContainText(/You can try again in (0:5\d|1:00)/);
+    // The board draws the timer's name as visible text under the countdown.
+    await expect(page.locator('#wait-reason').getByText('until you can try again')).toBeVisible();
     await check(page, info, 'too-many');
   });
 
