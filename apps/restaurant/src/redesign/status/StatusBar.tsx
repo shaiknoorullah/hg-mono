@@ -201,7 +201,7 @@ export function StatusBar() {
         <Menu
           label="Pause new orders"
           trigger={
-            <span className="inline-flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5">
               Pause
               <Icon name="back" size={16} className="-rotate-90" />
             </span>

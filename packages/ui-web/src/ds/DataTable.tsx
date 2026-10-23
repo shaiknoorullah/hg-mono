@@ -583,6 +583,8 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
           'ln-grid relative flex flex-col',
           // LyteNyte draws a rule between header cells; the design system's header has none.
           '[&_[data-ln-header-cell=true]]:before:content-none',
+          // The boards' header: a sunken fill and 11 px semibold labels with a little tracking.
+          '[&_[data-ln-header-cell=true]]:bg-surface-sunken [&_[data-ln-header-cell=true]]:text-label-sm [&_[data-ln-header-cell=true]]:font-semibold',
           // Tailwind's preflight (layer base) can load after grid.css (layer ln-grid) and zero the
           // cell padding and row rules; restate them as utilities, from the density tokens.
           '[&_:is([data-ln-cell=true],[data-ln-header-cell=true])]:px-(--hg-density-card-padding)',

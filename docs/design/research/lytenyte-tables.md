@@ -9,8 +9,8 @@ reviewed: 2026-10-23
 
 > **2026-10-23:** `AppBar`, `SideNav` and `Switch` in `packages/ui-web/src/ds/` now draw the restaurant
 > boards' type: 13/19.5 rail labels with no tracking, 1.5 line height on the app bar's title and
-> subtitle (warm off-white on the chrome bar), and a 13/19.5 bold state word on the switch. The tables
-> in this draft are unchanged.
+> subtitle (warm off-white on the chrome bar), and a 13/19.5 bold state word on the switch. The `DataTable` header row is a sunken fill with 11 px bold
+> labels, as the boards draw it; this draft's choice of LyteNyte is unchanged.
 
 > **2026-10-23:** the admin's stand-in grid (`ds-stubs/DataGrid.stub.tsx`) draws its header row as the boards' `DataTable` does: a sunken fill, 8 px above and below, 11 px label text in a heavier weight. This draft's choice of LyteNyte is unchanged.
 
