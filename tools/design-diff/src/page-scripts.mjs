@@ -14,7 +14,9 @@
  *     further in. `weakPrefixes` ("Blocked:", "Note:") also open real UI copy, so they count
  *     only when set like a note;
  *   - by its type: a mono-font sentence that screen readers skip, or a small (12 px or less) one
- *     of five words or more. The UI's own mono text is codes, ids and times.
+ *     of five words or more. The UI's own mono text is codes, ids and times. A shorter mono text
+ *     screen readers skip is a note when it is the API's words (`apiWords`: "403
+ *     ACCOUNT_NOT_ACTIVE", "requirements.past_due").
  * The note hidden is the largest element its text opens that holds nothing but running text, so
  * a "Proposed component" badge goes with its badge, and a wrapper that also holds the proposed
  * UI stays.
@@ -25,8 +27,9 @@
  *
  * Returns the hidden notes, `{ kind, text }`, in document order.
  */
-export function hideNotes({ classes, prefixes, weakPrefixes }) {
+export function hideNotes({ classes, prefixes, weakPrefixes, apiWords }) {
   const strong = new RegExp(`^(${prefixes.join('|')})(\\s*#\\d+)?\\s*[:—–]`);
+  const api = apiWords ? new RegExp(apiWords) : null;
   // …or carries one of them further in, when it is set like a note ("Loaded rows only · Needs API: …").
   const inside = new RegExp(`\\b(${prefixes.join('|')})\\b`);
   const weak = new RegExp(`^(${weakPrefixes.join('|')})\\s*[:—–]`);
@@ -61,7 +64,8 @@ export function hideNotes({ classes, prefixes, weakPrefixes }) {
     const cs = getComputedStyle(el);
     const words = text.split(' ').length;
     const mono = /plex mono|monospace/i.test(cs.fontFamily);
-    const aside = mono && ((el.closest('[aria-hidden="true"]') && words >= 3) || (parseFloat(cs.fontSize) <= 12 && words >= 5));
+    const skipped = el.closest('[aria-hidden="true"]');
+    const aside = mono && ((skipped && (words >= 3 || (api && api.test(text)))) || (parseFloat(cs.fontSize) <= 12 && words >= 5));
     const m =
       strong.exec(text) ??
       chip.exec(text) ??

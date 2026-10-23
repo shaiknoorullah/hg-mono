@@ -6,7 +6,7 @@ covers:
   - .github/workflows/claude.yml
   - .github/workflows/claude-code-review.yml
   - scripts/ci/**
-reviewed: 2026-10-16
+reviewed: 2026-10-23
 ---
 
 # CI on self-hosted runners
@@ -53,7 +53,7 @@ Jobs that hold a secret or a write token never run on our machines.
 | [`docs`](../../.github/workflows/docs.yml) | `doc and PR checks` | `labels` and `weekly`: write tokens |
 | [`migrations`](../../.github/workflows/migrations.yml) | `schema` | |
 
-`contract-kit` also checks the device-lab missions (`pnpm e2e:missions:check`, [tools/e2e/native/README.md](../../tools/e2e/native/README.md)) and the customer app's design captures (`pnpm e2e:boards:check`: every screenshot named after a board names one that exists, and every board is either captured or carries a stated reason — the canvases branch is not fetched in CI, so there it checks the flows against the reasons list only), runs the mock server's unit tests (`pnpm --filter @hg/mock-server test:unit`, how it picks one fixture per operation: [contracts/fixtures/SCENARIOS.md](../../contracts/fixtures/SCENARIOS.md)) and the design-diff harness's (`pnpm --filter @hg/design-diff test:unit`, [tools/design-diff/README.md](../../tools/design-diff/README.md)). All need Node only: no emulator, no adb and no secret, so it stays on `HG_RUNS_ON`.
+`contract-kit` also checks the device-lab missions (`pnpm e2e:missions:check`, [tools/e2e/native/README.md](../../tools/e2e/native/README.md)) and the customer app's design captures (`pnpm e2e:boards:check`: every screenshot named after a board names one that exists, and every board is either captured or carries a stated reason — the canvases branch is not fetched in that step, so there it checks the flows against the reasons list only), the restaurant and admin web captures (`pnpm e2e:web-boards:check`, which does fetch the canvases branch: every declared board must exist on it), runs the mock server's unit tests (`pnpm --filter @hg/mock-server test:unit`, how it picks one fixture per operation: [contracts/fixtures/SCENARIOS.md](../../contracts/fixtures/SCENARIOS.md)) and the design-diff harness's (`pnpm --filter @hg/design-diff test:unit`, [tools/design-diff/README.md](../../tools/design-diff/README.md)). All need Node only: no emulator, no adb and no secret, so it stays on `HG_RUNS_ON`.
 
 The `schema` job applies migrations, runs the invariant tests, proves a full rollback, then resets and checks the local persona database on that job's Postgres. The reset command itself refuses every environment other than local.
 | any of the above, for an untrusted run | | `gate`, `doc and PR checks` and `schema` run only their first step, which fails (see below) |

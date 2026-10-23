@@ -66,14 +66,28 @@ export interface FieldLabelProps {
   testID?: string;
 }
 
-/** The visible label; " *" marks a required field (the control also says "required"). */
+/**
+ * The visible label. A required field adds a separate " *" in the brand ramp, as the Claude Design
+ * Input draws it (its own span, `color-brand-700`). It stays a sibling Text rather than part of the
+ * label's string so the label and the mark are two nodes, as on the board; the control itself says
+ * "required" in its accessibility label.
+ */
 export function FieldLabel({ children, nativeID, required, field, hidden, testID }: FieldLabelProps): React.ReactElement | null {
   if (hidden) return null;
-  return (
-    <Text nativeID={nativeID} testID={testID} variant={field ? 'label.lg' : 'label.md'} tone="secondary">
+  const variant = field ? 'label.lg' : 'label.md';
+  const label = (
+    <Text nativeID={nativeID} testID={testID} variant={variant} tone="secondary">
       {children}
-      {required ? ' *' : ''}
     </Text>
+  );
+  if (!required) return label;
+  return (
+    <View className="flex-row">
+      {label}
+      <Text variant={variant} className="text-brand-700">
+        {' *'}
+      </Text>
+    </View>
   );
 }
 
