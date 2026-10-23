@@ -2,7 +2,7 @@
 covers:
   - .github/workflows/e2e.yml
   - tools/e2e/**
-reviewed: 2026-10-23
+reviewed: 2026-10-24
 ---
 
 # End-to-end flows
@@ -304,7 +304,7 @@ A capture that names a design board says "this screen must match that board". Th
 [design-diff harness](../design-diff/README.md) renders the boards, pairs each capture with its
 board by that name, and judges it (a web capture pixel by pixel, a native one by layout geometry); the flows themselves never fail on it.
 
-- **Admin sidebar counts:** the boards draw 4, 2, 2 and 5 beside the nav items. The admin specs that capture such boards call `routeQueueDepth(page)` (`web/redesign-admin.support.ts`), which adds the `admin.queue_depth` frame to the page's socket; no fixture changes.
+- **Admin sidebar counts:** the boards draw 4, 2, 2 and 5 beside the nav items. The admin specs that capture such boards call `routeQueueDepth(page)` (`web/redesign-admin.support.ts`), which adds the `admin.queue_depth` frame to the page's socket; no fixture changes. The staff 403 step in `redesign-admin.wp1.spec.ts` expects the staff-specific page (app bar "Staff", button "Go to live alerts"); every other forbidden route keeps "No permission".
 - **Playwright:** `await expectDesign(page, '<app>/<area>/<Board>')` (`web/design.ts`), for
   example `expectDesign(page, 'restaurant/sign-in/SignIn-Invalid')`. It saves a full-page
   screenshot and a layout snapshot to `$E2E_OUT/design-captures/<app>/<width>x<height>/`.

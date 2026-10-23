@@ -1,7 +1,7 @@
 ---
 covers:
   - tools/design-diff/**
-reviewed: 2026-10-23
+reviewed: 2026-10-24
 ---
 
 # Design diff
@@ -227,7 +227,7 @@ best first. Those are the boards worth reading pixel by pixel:
 fails, was not compared, or has no capture at all (a capture spec that broke counts). The diff
 itself stays `--no-strict`, so the hundreds of boards not passing yet block nothing; only a board
 that has passed can. Boards that pass and are not listed are printed in the job log, to be added in
-the pull request that makes them pass. Removing one needs its reason in that pull request.
+the pull request that makes them pass. Removing one needs its reason in that pull request. `admin/staff/AcceptInvalid` (the invite-link page) is the first admin board on the list.
 
 ## Phone captures
 

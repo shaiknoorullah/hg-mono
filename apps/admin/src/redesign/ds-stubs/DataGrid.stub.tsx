@@ -172,7 +172,7 @@ export function DataGrid<Row>({
     <div data-testid={testId} className={cx('flex h-full min-h-0 flex-col', className)}>
       <div role="region" aria-label={label} className="min-h-0 flex-1 overflow-auto">
         {body ?? (
-          <table id={gridId} role="grid" aria-labelledby={`${gridId}-caption`} aria-rowcount={rows.length + 1} className="w-full border-collapse text-body-md">
+          <table id={gridId} role="grid" aria-labelledby={`${gridId}-caption`} aria-rowcount={rows.length + 1} className="w-full border-collapse text-[13px] leading-[19.5px]">
             <caption id={`${gridId}-caption`} className={cx('text-start text-label-lg text-fg-primary', !showCaption && 'sr-only')}>
               {label}
             </caption>
@@ -184,7 +184,7 @@ export function DataGrid<Row>({
                     role="columnheader"
                     scope="col"
                     style={col.width !== undefined ? { width: col.width } : undefined}
-                    className={cx('whitespace-nowrap border-b border-line-decorative bg-surface-sunken px-3 py-2 text-label-sm font-semibold leading-normal text-fg-secondary', col.align === 'end' ? 'text-end' : 'text-start')}
+                    className={cx('whitespace-nowrap border-b border-line-decorative bg-surface-sunken px-3 py-2 text-label-sm font-semibold leading-[16.5px] text-fg-secondary', col.align === 'end' ? 'text-end' : 'text-start')}
                   >
                     {col.header}
                   </th>
