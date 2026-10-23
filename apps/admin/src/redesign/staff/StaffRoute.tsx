@@ -25,7 +25,7 @@ import { usePageBar } from '../app/pageTitle';
 import { api } from '../data/api';
 import { useOnline } from '../auth/online';
 import { formatShortDate, formatFullDateTime } from '../data/format';
-import { Badge, Banner, Button, DataGrid, Disclosure, EmptyState, ErrorState, Icon, InlineAlert, Input, Skeleton, SplitPanes, type DataGridColumn } from '../ds';
+import { Badge, Banner, Button, DataGrid, Disclosure, EmptyState, ErrorState, InlineAlert, Input, Skeleton, SplitPanes, type DataGridColumn } from '../ds';
 import { unwrap } from '../../lib/load';
 import { useViewer } from '../verification/shared/useViewer';
 import { LIST } from './copy';
@@ -118,11 +118,15 @@ export default function StaffRoute() {
 
   const ready = load === 'ready';
   // The account count sits in the app bar under the title (boards `STF/*`).
-  usePageBar(ready ? (page.hasMore ? `Showing ${rows.length}` : `${rows.length} staff ${rows.length === 1 ? 'account' : 'accounts'}`) : load === 'loading' ? LIST.loading : undefined);
+  const panelOpen = inviting !== null || staffId !== undefined;
+  usePageBar(
+    ready ? (page.hasMore ? `Showing ${rows.length}` : `${rows.length} staff ${rows.length === 1 ? 'account' : 'accounts'}`) : load === 'loading' ? LIST.loading : undefined,
+    undefined,
+    panelOpen,
+  );
   const shown = useMemo(() => findRows(rows, query, access), [rows, query, access]);
   const notice = ready && access.canInvite ? superAdminNotice(rows, page.hasMore) : ({ kind: 'none' } as const);
   const onlyYou = ready && access.canInvite && !page.hasMore && rows.length === 1 && rows[0]!.id === viewer.accountId;
-  const panelOpen = inviting !== null || staffId !== undefined;
   const selected = staffId ? (rows.find((r) => r.id === staffId) ?? null) : null;
 
   function openInvite(role?: 'SUPER_ADMIN') {
@@ -216,7 +220,7 @@ export default function StaffRoute() {
                 label={access.fullRecord ? LIST.find.label : LIST.find.labelNameOnly}
                 value={query}
                 onValueChange={setQuery}
-                helperText={query.trim() === '' ? LIST.find.help : undefined}
+                helperText={query.trim() !== '' ? LIST.find.help(rows.length) : undefined}
               />
               {query.trim() !== '' ? (
                 <p className="mt-1 flex items-center gap-2 text-body-sm text-fg-secondary" role="status">
@@ -365,31 +369,36 @@ function TimeCell({ iso, empty }: { iso: string | null; empty: string }) {
 
 /** "What the statuses mean" and, closed by default, "What each role can do". */
 function Reference({ showRoles }: { showRoles: boolean }) {
+  // The boards (`STF/Main`) draw the three statuses in three columns under a heading. An expired invite is
+  // a state of "Invited" that the row's badge names, so it has no line of its own.
   return (
-    <div className="flex flex-col gap-1 text-body-sm text-fg-secondary">
-      <p className="m-0 flex flex-wrap gap-x-4 gap-y-1">
-        <span className="font-semibold text-fg-primary">{LIST.statusesTitle}</span>
-        {LIST.statuses.map(([name, body]) => (
-          <span key={name}>
-            <span className="font-semibold">{`${name}:`}</span> {body}
-          </span>
-        ))}
-      </p>
+    <div className="flex flex-col gap-3">
+      <section aria-labelledby="staff-status-key" className="flex flex-col gap-1.5">
+        <h2 id="staff-status-key" className="m-0 text-body-md font-semibold leading-normal text-fg-primary">
+          {LIST.statusesTitle}
+        </h2>
+        <div className="grid grid-cols-3 gap-6 text-body-sm leading-normal text-fg-secondary">
+          {LIST.statuses.map(([name, body]) => (
+            <p key={name} className="m-0">
+              <strong className="font-semibold text-fg-primary">{`${name}:`}</strong> {body}
+            </p>
+          ))}
+        </div>
+      </section>
       {showRoles ? (
-        <Disclosure title={LIST.rolesTitle} headingLevel={3}>
-          <dl className="m-0 flex flex-col gap-2 text-body-sm">
-            {(['SUPPORT_AGENT', 'ADMIN', 'SUPER_ADMIN'] as const).map((role) => (
-              <div key={role}>
-                <dt className="font-semibold text-fg-primary">{ROLE_LABEL[role]}</dt>
-                <dd className="m-0">{LIST.roles[role]}</dd>
-              </div>
-            ))}
-          </dl>
-          <p className="mt-2 flex items-start gap-2">
-            <Icon name="info" size="sm" />
-            {LIST.rolesNote}
-          </p>
-        </Disclosure>
+        <div className="rounded-md border border-line-decorative bg-surface-raised">
+          <Disclosure title={LIST.rolesTitle} headingLevel={3}>
+            <dl className="m-0 grid grid-cols-3 gap-6 text-body-sm leading-normal">
+              {(['SUPPORT_AGENT', 'ADMIN', 'SUPER_ADMIN'] as const).map((role) => (
+                <div key={role} className="flex flex-col gap-1">
+                  <dt className="text-body-md font-semibold text-fg-primary">{ROLE_LABEL[role]}</dt>
+                  <dd className="m-0 text-fg-secondary">{LIST.roles[role]}</dd>
+                </div>
+              ))}
+            </dl>
+            <p className="mt-3 text-body-sm text-fg-secondary">{LIST.rolesNote}</p>
+          </Disclosure>
+        </div>
       ) : null}
     </div>
   );

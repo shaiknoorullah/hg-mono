@@ -155,6 +155,32 @@ describe('SideNav stub', () => {
   });
 });
 
+describe('SideNav stub, counts', () => {
+  const refunds = {
+    key: 'refunds',
+    label: 'Refunds & disputes',
+    shortLabel: 'Refunds',
+    href: '/refunds',
+    count: 2,
+    countLabel: 'failed refunds, 5 open disputes',
+    countTone: 'warning' as const,
+    badges: [
+      { count: 2, tone: 'warning' as const },
+      { count: 5, tone: 'neutral' as const },
+    ],
+  };
+
+  it('draws every chip beside the label when open and only the first at the corner of the rail item', () => {
+    const groups = [{ key: 'operate', items: [refunds] }];
+    const { rerender } = render(<SideNav collapsed={false} groups={groups} />);
+    const open = screen.getByRole('link', { name: 'Refunds & disputes, 2 failed refunds, 5 open disputes' });
+    expect([...open.querySelectorAll('[data-testid="Badge"]')].map((b) => b.textContent)).toEqual(['2', '5']);
+    rerender(<SideNav collapsed groups={groups} />);
+    const rail = screen.getByRole('link', { name: 'Refunds & disputes, 2 failed refunds, 5 open disputes' });
+    expect([...rail.querySelectorAll('[data-testid="Badge"]')].map((b) => b.textContent)).toEqual(['2']);
+  });
+});
+
 describe('DetailPanel stub', () => {
   it('moves focus to its heading on open and returns it to the opener on Close', () => {
     function Harness() {

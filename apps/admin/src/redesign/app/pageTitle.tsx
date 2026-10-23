@@ -24,16 +24,22 @@ export function usePageTitle(title: string | null): void {
 export interface PageBar {
   subtitle?: string;
   back?: { label: string; to: string };
+  /**
+   * A panel is open beside the page (the staff account or the invite form): the nav folds to the
+   * rail so the list keeps its width, and opens again when the panel closes (boards `STF/Invite*`,
+   * `STF/StaffDetail*`).
+   */
+  panel?: boolean;
 }
 
 export const PageBarContext = createContext<(bar: PageBar | null) => void>(() => {});
 
-export function usePageBar(subtitle: string | undefined, back?: { label: string; to: string }): void {
+export function usePageBar(subtitle: string | undefined, back?: { label: string; to: string }, panel = false): void {
   const set = useContext(PageBarContext);
   const label = back?.label;
   const to = back?.to;
   useEffect(() => {
-    set({ ...(subtitle ? { subtitle } : {}), ...(label && to ? { back: { label, to } } : {}) });
+    set({ ...(subtitle ? { subtitle } : {}), ...(label && to ? { back: { label, to } } : {}), ...(panel ? { panel: true } : {}) });
     return () => set(null);
-  }, [set, subtitle, label, to]);
+  }, [set, subtitle, label, to, panel]);
 }

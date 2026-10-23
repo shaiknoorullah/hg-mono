@@ -56,6 +56,46 @@ export async function routeLogin(page: Page, role: StaffRole, opts: { mfa?: bool
   return sent;
 }
 
+/**
+ * The queue depths the boards draw beside the nav items: 4 restaurant applications and 2 rider
+ * applications waiting, 2 failed refunds, 5 open disputes (`ASS/AdminSidebar`, counts "live").
+ */
+export const BOARD_QUEUE_DEPTH = { pending_restaurant_reviews: 4, pending_rider_reviews: 2, failed_refunds: 2, open_disputes: 5 } as const;
+
+/**
+ * Gives the console's live connection the first `admin.queue_depth` frame the boards' sidebar
+ * counts come from. The mock server does not send one unless a realtime script is named, and its
+ * scripts end on zeros; this passes the page's socket through to the mock and adds one frame right
+ * after the page's subscription to `admin:ops` is granted (`contracts/websocket.md` §4).
+ * E2E support only: no fixture is changed.
+ */
+export async function routeQueueDepth(page: Page, depth: Record<string, number> = BOARD_QUEUE_DEPTH): Promise<void> {
+  await page.routeWebSocket(/\/v1\/ws/, (ws) => {
+    const server = ws.connectToServer();
+    server.onMessage((message) => {
+      ws.send(message);
+      try {
+        const frame = JSON.parse(String(message)) as { type?: string; data?: { channel?: string } };
+        if (frame.type === 'subscribed' && frame.data?.channel === 'admin:ops') {
+          ws.send(
+            JSON.stringify({
+              id: '01J9ZQ0000000000000000QDEP',
+              seq: 1,
+              channel: 'admin:ops',
+              type: 'admin.queue_depth',
+              v: 1,
+              ts: new Date().toISOString(),
+              data: depth,
+            }),
+          );
+        }
+      } catch {
+        /* not JSON: nothing to add */
+      }
+    });
+  });
+}
+
 export async function signIn(page: Page): Promise<void> {
   await page.getByLabel('Work email').fill(EMAIL);
   await page.getByRole('textbox', { name: 'Password', exact: true }).fill(PASSWORD);

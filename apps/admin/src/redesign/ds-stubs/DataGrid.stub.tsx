@@ -176,7 +176,7 @@ export function DataGrid<Row>({
             <caption id={`${gridId}-caption`} className={cx('text-start text-label-lg text-fg-primary', !showCaption && 'sr-only')}>
               {label}
             </caption>
-            <thead className="sticky top-0 z-10 bg-surface-raised">
+            <thead className="sticky top-0 z-10 bg-surface-sunken">
               <tr role="row" aria-rowindex={1}>
                 {columns.map((col) => (
                   <th
@@ -184,7 +184,7 @@ export function DataGrid<Row>({
                     role="columnheader"
                     scope="col"
                     style={col.width !== undefined ? { width: col.width } : undefined}
-                    className={cx('h-11 border-b border-line-decorative px-3 text-label-md font-semibold text-fg-secondary', col.align === 'end' ? 'text-end' : 'text-start')}
+                    className={cx('whitespace-nowrap border-b border-line-decorative bg-surface-sunken px-3 py-2 text-label-sm font-semibold leading-normal text-fg-secondary', col.align === 'end' ? 'text-end' : 'text-start')}
                   >
                     {col.header}
                   </th>

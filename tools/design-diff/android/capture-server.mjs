@@ -30,7 +30,7 @@ const run = promisify(execFile);
  * second automation client already attached — never reaches the log. That cost a whole round of
  * diagnosis on https://github.com/shaiknoorullah/hg-mono/issues/966.
  */
-async function adbRun(adb, args) {
+export async function adbRun(adb, args) {
   try {
     return await run('adb', [...adb, ...args], { maxBuffer: 32 * 1024 * 1024 });
   } catch (e) {
@@ -40,7 +40,7 @@ async function adbRun(adb, args) {
 }
 
 /** `adb shell` output, trimmed. */
-async function shell(adb, ...args) {
+export async function shell(adb, ...args) {
   const { stdout } = await adbRun(adb, ['shell', ...args]);
   return stdout.replace(/\r/g, '').trim();
 }
@@ -105,7 +105,7 @@ function takeHierarchy(debugDir, dir, name) {
   return out;
 }
 
-async function capture({ dir, name, appId, serial }) {
+export async function capture({ dir, name, appId, serial }) {
   const adb = serial ? ['-s', serial] : [];
   const remote = '/sdcard/hg-design-capture.xml';
   // The dump runs inside a device shell that always exits 0 and prints the command's own output and
