@@ -75,7 +75,7 @@ export const HELP = {
 /** `STF/SessionLostAuthenticator`, opened from the code step. */
 export const LOST_AUTHENTICATOR = {
   title: 'Lost your authenticator app?',
-  body: 'There are no recovery codes. Ask a super admin to reset your two-step sign-in. They’ll call you back on the phone number on your account and check two account details first, then you sign in with your password and set up your authenticator app again.',
+  body: "There are no recovery codes. Ask a super admin to reset your two-step sign-in. They'll call you back on the phone number on your account and check two account details first, then you sign in with your password and set up your authenticator app again.",
   compromised:
     'If you think someone else has your phone or password, tell a super admin now so they can remove your access while you sort it out.',
   /** Manifest §2.1: until a reset API exists (G-STF-1) the platform on-call engineer resets it. Placeholders: Q12. */
@@ -132,16 +132,16 @@ export const ACCEPT = {
   breached:
     'This password has appeared in a data breach, so it isn’t safe. Choose a different one of at least 12 characters.',
   submit: 'Continue',
-  submitOffline: 'Continue, available when you’re back online',
-  offline: { title: 'You’re offline', body: 'What you typed is still here. Continue works again when you’re back online.' },
+  submitOffline: "Continue, available when you're back online",
+  offline: { title: 'You’re offline', body: "What you typed is still here. Continue works again when you're back online." },
   /** Adapted from `STF/AcceptLookupError` (the lookup itself does not exist: G-AUTH-2). */
   noAnswer: {
     title: 'The server didn’t answer',
-    body: 'Your link hasn’t been used and still works until it expires. Try again in a moment.',
+    body: "Your link hasn't been used and still works until it expires. Try again in a moment.",
   },
-  invalidTitle: 'This invite link doesn’t work',
+  invalidTitle: "This invite link doesn't work",
   invalidBody:
-    'It may be incomplete or mistyped. Open it again from the invite email. If it still doesn’t work, ask the super admin who invited you for a new one.',
+    "It may be incomplete or mistyped. Open it again from the invite email. If it still doesn't work, ask the super admin who invited you for a new one.",
   /**
    * `400 TOKEN_CONSUMED` is one answer for expired and used links, so `STF/AcceptExpired` and
    * `STF/AcceptUsed` merge. D1/Q3: dropped "and a code from your authenticator app";

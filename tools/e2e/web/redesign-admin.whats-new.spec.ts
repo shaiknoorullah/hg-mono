@@ -126,21 +126,21 @@ test.describe('redesigned admin · what’s new (mock)', () => {
 
   test('the panel, as a super admin', async ({ page }) => {
     await open(page);
-    await notice(page).getByRole('button', { name: /See what’s new/ }).click();
+    await notice(page).getByRole('button', { name: /See what's new/ }).click();
     await expect(panel(page)).toContainText('You last looked on console version 0.9.0.');
     await capture(page, 'admin/alerts-sessions-system/WhatsNewPanel');
   });
 
   test('the panel, as an admin: role-filtered', async ({ page }) => {
     await open(page, { role: 'ADMIN' });
-    await notice(page).getByRole('button', { name: /See what’s new/ }).click();
+    await notice(page).getByRole('button', { name: /See what's new/ }).click();
     await expect(panel(page)).toContainText('Showing changes for admins, newest first.');
     await capture(page, 'admin/alerts-sessions-system/WhatsNewAdmin');
   });
 
   test('the panel, as a support agent: role-filtered', async ({ page }) => {
     await open(page, { role: 'SUPPORT_AGENT', hash: '/alerts' });
-    await notice(page).getByRole('button', { name: /See what’s new/ }).click();
+    await notice(page).getByRole('button', { name: /See what's new/ }).click();
     await expect(panel(page)).toContainText('Showing changes for support agents, newest first.');
     await capture(page, 'admin/alerts-sessions-system/WhatsNewSupport');
   });
@@ -149,7 +149,7 @@ test.describe('redesigned admin · what’s new (mock)', () => {
     await open(page, { seen: 'current' });
     await expect(whatsNew(page)).toBeVisible();
     await whatsNew(page).click();
-    await expect(panel(page)).toContainText('You’re up to date');
+    await expect(panel(page)).toContainText("You're up to date");
     await capture(page, 'admin/alerts-sessions-system/WhatsNewUpToDate');
   });
 
@@ -181,7 +181,7 @@ test.describe('redesigned admin · what’s new (mock)', () => {
   test('the notes could not be read', async ({ page }) => {
     await open(page, { chunk: 'fail' });
     await whatsNew(page).click();
-    await expect(panel(page)).toContainText('The release notes couldn’t be read');
+    await expect(panel(page)).toContainText("The release notes couldn't be read");
     await capture(page, 'admin/alerts-sessions-system/WhatsNewError');
   });
 
@@ -190,7 +190,7 @@ test.describe('redesigned admin · what’s new (mock)', () => {
     await expect(notice(page)).toBeVisible();
     await page.context().setOffline(true);
     await whatsNew(page).click();
-    await expect(panel(page)).toContainText('You’re offline, but these notes come with the app, so they still show.');
+    await expect(panel(page)).toContainText("You're offline, but these notes come with the app, so they still show.");
     await capture(page, 'admin/alerts-sessions-system/WhatsNewOffline');
     await page.context().setOffline(false);
   });

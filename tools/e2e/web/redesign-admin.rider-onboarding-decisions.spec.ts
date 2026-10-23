@@ -77,11 +77,13 @@ async function openWith(page: Page, build: (me: string) => Json, how: How = 'ok'
 }
 
 const message = (page: Page) => page.getByLabel(/Message to the rider/);
-const send = (page: Page, name: string) => page.getByRole('button', { name, exact: true }).click();
+// The panel's own button: the page's opener can now carry the same name ("Approve rider", "Reject document").
+const send = (page: Page, name: string) =>
+  page.locator('[data-testid^="DecisionPanel-"], [data-testid="DocumentRejectPanel"]').getByRole('button', { name, exact: true }).click();
 
 async function approvePanel(page: Page, how: How = 'ok') {
   const live = await openWith(page, ready, how);
-  await page.getByRole('button', { name: 'Approve rider…' }).click();
+  await page.getByRole('button', { name: 'Approve rider' }).click();
   await expect(page.getByTestId('DecisionPanel-approve')).toBeVisible();
   return live;
 }
@@ -95,7 +97,7 @@ async function rejectPanel(page: Page, build: (me: string) => Json = (me) => inR
 
 async function changesPanel(page: Page, build: (me: string) => Json = insuranceRejected, how: How = 'ok') {
   const live = await openWith(page, build, how);
-  await page.getByRole('button', { name: 'Request changes…' }).click();
+  await page.getByRole('button', { name: 'Request changes' }).click();
   await expect(page.getByTestId('DecisionPanel-changes')).toBeVisible();
   return live;
 }
@@ -351,7 +353,7 @@ test.describe('redesigned admin · rider decisions (mock)', () => {
   async function rejectDocument(page: Page, how: How = 'ok', build: (me: string) => Json = (me) => inReview(me)) {
     const live = await openWith(page, build, 'ok', {}, how);
     await answerAll(page, 'Passes', { 0: 'Fails' }, { 0: 'Page 2 missing.' });
-    await page.getByRole('button', { name: 'Reject document…' }).click();
+    await page.getByRole('button', { name: 'Reject document' }).click();
     await expect(page.getByTestId('DocumentRejectPanel')).toBeVisible();
     return live;
   }
@@ -408,7 +410,7 @@ test.describe('redesigned admin · rider decisions (mock)', () => {
     const live = await openWith(page, (me) => inReview(me));
     await answerAll(page, 'Passes', { 3: 'Fails' }, { 2: 'Plate matches on page 1.', 3: 'Page 2, section 4 excludes commercial and delivery use.' });
     await page.getByLabel(/Note to the rider \(optional\)/).fill('Your policy excludes commercial and delivery use. Upload a policy that covers it.');
-    await page.getByRole('button', { name: 'Reject document…' }).click();
+    await page.getByRole('button', { name: 'Reject document' }).click();
     await expect(page.getByRole('button', { name: 'Insert my note from the checks' })).toBeVisible();
     expect(live.app).toBeTruthy();
     await choose(page, /Reason/, 'Other');
@@ -419,7 +421,7 @@ test.describe('redesigned admin · rider decisions (mock)', () => {
     const docs = withState(motorisedDocs(FATIMA.id), 'VEHICLE_INSURANCE', { valid_until: '2026-10-07' });
     await openWith(page, (me) => inReview(me, { blockers: ['Vehicle insurance expires in 9 days (needs 14 or more)'] }, docs));
     await answerAll(page, 'Passes', { 4: 'Fails' });
-    await page.getByRole('button', { name: 'Reject document…' }).click();
+    await page.getByRole('button', { name: 'Reject document' }).click();
     await expect(page.getByTestId('DocumentRejectPanel')).toBeVisible();
     await capture(page, { 1440: 'admin/rider-onboarding/DecisionRejectDocumentExpired' });
   });
@@ -429,7 +431,7 @@ test.describe('redesigned admin · rider decisions (mock)', () => {
     await openWith(page, (me) => inReview(me, { blockers: ['Vehicle registration isn’t approved yet', ONE, TWO] }, docs));
     await openDoc(page, /Open Vehicle registration/);
     await answerAll(page, 'Passes', { 2: 'Fails', 4: 'Doesn’t apply' }, { 2: 'The registration reads CKRT 428.' });
-    await page.getByRole('button', { name: 'Reject document…' }).click();
+    await page.getByRole('button', { name: 'Reject document' }).click();
     await expect(page.getByTestId('DocumentRejectPanel')).toBeVisible();
     await capture(page, { 1440: 'admin/rider-onboarding/DecisionRejectDocumentPlate' });
   });

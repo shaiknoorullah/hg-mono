@@ -71,7 +71,7 @@ describe('the address', () => {
 describe('money, as the server sent it', () => {
   it('raises the ledger residual as an incident, and says nothing when the ledger balances', async () => {
     open(order('order_admin_view_ledger_residual'));
-    expect(await screen.findByText('Incident: this order’s ledger doesn’t balance')).toBeTruthy();
+    expect(await screen.findByText("Incident: this order's ledger doesn't balance")).toBeTruthy();
     cleanup();
     open(order('order_admin_view_completed'));
     await screen.findByRole('heading', { name: order('order_admin_view_completed').code });
@@ -202,7 +202,7 @@ describe('the other states of the page', () => {
     let n = 0;
     mockApi({ getOrderAdmin: () => (n++ === 0 ? { status: 500, body: err('INTERNAL_ERROR') } : { data: fixture<Order>('order_admin_view_created') }) });
     renderRedesign(<Route path="/orders/:orderId" element={<OrderRoute />} />, { route: '/orders/0192a4c1-5e7b-7a10-b3c2-9d4e8f117d98' });
-    expect(await screen.findByText('This order didn’t load')).toBeTruthy();
+    expect(await screen.findByText("This order didn't load")).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: /Try again/ }));
     await waitFor(() => expect(screen.getByRole('heading', { name: fixture<Order>('order_admin_view_created').code })).toBeTruthy());
   });

@@ -138,7 +138,7 @@ export function DocumentViewer({
           Zoom out
         </Button>
         <span aria-live="polite" className="min-w-12 text-center text-body-sm tabular-nums text-fg-secondary">
-          {zoom}%
+          {`${zoom}%`}
         </span>
         <Button variant="ghost" size="sm" className={tool} disabled={!ready || zoomIndex >= ZOOMS.length - 1} onPress={zoomIn}>
           Zoom in

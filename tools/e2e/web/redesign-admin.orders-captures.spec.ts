@@ -429,7 +429,7 @@ test.describe('redesigned admin · order workspace (mock)', () => {
 
   test('order, the order does not load', async ({ page }) => {
     await openOrder(page, 'order_admin_view_preparing', { order: fixture('error_internal_error') });
-    await expect(page.getByText('This order didn’t load')).toBeVisible();
+    await expect(page.getByText("This order didn't load")).toBeVisible();
     await capture(page, { 1440: `${OR}OrderDetailError` });
   });
 
@@ -630,7 +630,7 @@ test.describe('redesigned admin · cancel and reveal panels (mock)', () => {
 
   for (const [board, label, answer, expectText, reason] of [
     ['RevealLoading', 'loading', never, 'Loading the order again with the address.', 'Rider can’t find the building. Customer called support.'],
-    ['RevealFailed', 'failed', (route: Route) => route.abort('timedout'), 'The address didn’t load', 'Rider can’t find the building. Customer called support.'],
+    ['RevealFailed', 'failed', (route: Route) => route.abort('timedout'), "The address didn't load", 'Rider can’t find the building. Customer called support.'],
     ['RevealRateLimited', 'too many requests', fixture('error_order_admin_cancel_rate_limited'), 'Too many requests in a short time', 'Rider can’t find the building. Customer called support.'],
     ['RevealTooShort', 'reason too short', fixture('error_validation_failed'), 'Write at least', 'Lost'],
   ] as const) {

@@ -164,7 +164,8 @@ test.describe('redesigned admin · live map (mock)', () => {
   test('stale, the rider’s phone stopped sending four minutes ago', async ({ page }) => {
     await openMap(page, { scene: PICKED_UP(240) });
     await phase(page, 'ready');
-    await expect(page.getByText('may not be where the rider is now')).toBeVisible();
+    // The summary and the rider's row both say it; either shows the warning is drawn.
+    await expect(page.getByText('may not be where the rider is now').first()).toBeVisible();
     await capture(page, 'LiveMapStale');
   });
 

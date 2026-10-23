@@ -37,7 +37,7 @@ describe('Change password', () => {
     render();
     fill('wrong-password-1', 'a-fresh-password-9');
     fireEvent.click(screen.getByRole('button', { name: 'Save new password' }));
-    expect(await screen.findByText('That isn’t your current password.')).toBeTruthy();
+    expect(await screen.findByText("That isn't your current password.")).toBeTruthy();
     expect(getSession().ended).toBeNull();
   });
 

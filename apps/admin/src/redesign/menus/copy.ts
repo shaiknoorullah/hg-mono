@@ -14,7 +14,7 @@ export const REVIEWS = {
     body: 'It was decided, withdrawn or replaced. The queue shows what is still waiting.',
   },
   pickOne: 'Pick a version to read it and decide.',
-  hint: 'Words, photos and dietary and allergen tags wait for review before customers see them.',
+  hint: 'Words, photos and dietary and allergen tags wait for review before customers see them',
   notCertificate:
     'The halal status customers see comes from the restaurant’s approved certificate, never from a menu item. A restaurant can’t tag an item Halal certified.',
   consequence: 'Approving makes this version live at once. Rejecting sends the restaurant your reason word for word; they can fix it and send it again.',

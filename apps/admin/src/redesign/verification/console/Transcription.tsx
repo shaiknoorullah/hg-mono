@@ -247,7 +247,7 @@ export function Transcription({ certificate, application, bodies, bodiesStatus, 
     const issuer = issuerRestriction(certificate.issuing_body);
     const scope = scopeRestriction(certificate.scope);
     if (certificate.certificate_number && issuer && certificate.issuing_body) {
-      return `Saved with ${shortBodyName(certificate.issuing_body.name)}, ${certificate.issuing_body.status === 'PROPOSED' ? 'a proposed body' : `which is ${certificate.issuing_body.status.toLowerCase()} in the registry`}. Issuer accepted can’t pass.`;
+      return `Saved with ${shortBodyName(certificate.issuing_body.name)}, ${certificate.issuing_body.status === 'PROPOSED' ? 'a proposed body' : `which is ${certificate.issuing_body.status.charAt(0)}${certificate.issuing_body.status.slice(1).toLowerCase()} in the registry`}. Issuer accepted can’t pass.`;
     }
     if (certificate.certificate_number && scope && certificate.scope) {
       return `Saved with the scope ${SCOPE_LABEL[certificate.scope]}. It doesn’t pass Scope sufficient: step 2 offers only Fail or Not assessed for that check.`;

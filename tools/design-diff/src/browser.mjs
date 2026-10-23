@@ -19,8 +19,13 @@ import path from 'node:path';
 /** Playwright's browser build number (its `chromium-<n>` folder) that draws boards and captures. */
 export const CHROMIUM_BUILD = 1223;
 
-/** Flags both sides launch with, so a board and a capture rasterise alike. */
-export const LAUNCH_ARGS = ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--disable-dev-shm-usage'];
+/**
+ * Flags both sides launch with, so a board and a capture rasterise alike. `--enable-unsafe-swiftshader`
+ * gives WebGL back in software: with `--disable-gpu` this Chromium (148) has no WebGL at all, so a
+ * screen that draws a map with mapbox-gl (the admin live map, even its flat test style) only ever
+ * reached its error state, and its 17 boards were never captured. It does not touch 2D drawing.
+ */
+export const LAUNCH_ARGS = ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--enable-unsafe-swiftshader', '--disable-dev-shm-usage'];
 
 /** The apps whose captures come from a browser; customer and rider are captured on an Android device. */
 export const BROWSER_APPS = ['restaurant', 'admin'];

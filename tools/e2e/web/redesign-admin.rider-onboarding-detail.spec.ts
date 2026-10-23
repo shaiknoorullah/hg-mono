@@ -300,9 +300,9 @@ test.describe('redesigned admin · rider application (mock)', () => {
     const live: Live = {};
     await openApp(page, { detail: (me) => (live.app ??= inReview(me)), review: reviewing(live) });
     await answerAll(page, 'Passes', { 0: 'Fails' }, { 0: 'Page 2 missing.' });
-    await page.getByRole('button', { name: 'Reject document…' }).click();
+    await page.getByRole('button', { name: 'Reject document' }).click();
     await choose(page, /Reason/, 'Pages missing');
-    await page.getByRole('button', { name: 'Reject document', exact: true }).click();
+    await page.getByTestId('DocumentRejectPanel').getByRole('button', { name: 'Reject document', exact: true }).click();
     await expect(page.getByTestId('hg-toast').getByText('Vehicle insurance rejected')).toBeVisible();
     await capture(page, { 1440: 'admin/rider-onboarding/DetailDocRejected' });
   });
@@ -329,7 +329,7 @@ test.describe('redesigned admin · rider application (mock)', () => {
     await openApp(page, { detail: (me) => (live.app ??= inReview(me, { blockers: ['Work eligibility isn’t approved yet'] }, docs)), review: reviewing(live) });
     await answerAll(page, 'Passes', { 3: 'Doesn’t apply' });
     await approveDocument(page);
-    await expect(page.getByRole('button', { name: 'Approve rider…' })).toBeFocused();
+    await expect(page.getByRole('button', { name: 'Approve rider' })).toBeFocused();
     await capture(page, { 1440: 'admin/rider-onboarding/DetailLastDocApproveOn' });
   });
 

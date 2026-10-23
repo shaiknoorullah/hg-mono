@@ -73,7 +73,7 @@ test.describe('redesigned admin · refunds page (mock)', () => {
     await openAdmin(page, '#/refunds', { failed: FAILED, list: failing });
     await expect(failedGrid(page).getByText('HG-COED-9X')).toBeVisible();
     await find(page, 'HG-7XQ3NE');
-    await expect(page.getByText('The lookup didn’t finish.')).toBeVisible();
+    await expect(page.getByText("The lookup didn't finish.")).toBeVisible();
     await shoot(page, { 1440: 'admin/refunds/RefundsLookupError' });
   });
 

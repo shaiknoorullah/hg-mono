@@ -253,7 +253,7 @@ export default function RefundsRoute() {
         {lookup.kind === 'idle' || lookup.kind === 'invalid' ? (
           <EmptyState icon="search" headingLevel={3} title={PAGE.lookupIdle} description={PAGE.lookupIdleBody} />
         ) : null}
-        {lookup.kind === 'searching' ? <Skeleton variant="lines" count={4} label={`Looking up ${lookup.code}`} /> : null}
+        {lookup.kind === 'searching' ? <Skeleton variant="lines" count={4} label={`Looking up ${lookup.code}…`} /> : null}
         {lookup.kind === 'not-found' ? (
           <EmptyState icon="search" headingLevel={3} title={PAGE.notFound(lookup.code)} description={PAGE.notFoundBody} />
         ) : null}

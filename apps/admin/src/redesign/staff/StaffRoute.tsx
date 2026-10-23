@@ -368,7 +368,7 @@ function Reference({ showRoles }: { showRoles: boolean }) {
         <span className="font-semibold text-fg-primary">{LIST.statusesTitle}</span>
         {LIST.statuses.map(([name, body]) => (
           <span key={name}>
-            <span className="font-semibold">{name}:</span> {body}
+            <span className="font-semibold">{`${name}:`}</span> {body}
           </span>
         ))}
       </p>

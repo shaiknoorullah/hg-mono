@@ -53,7 +53,7 @@ const review = (page: Page) => page.getByRole('region', { name: /Review before m
 /** Starts a refund: the visible button once money has been taken, or the More actions menu before. */
 async function start(page: Page, how: 'button' | 'menu' = 'button') {
   if (how === 'button') {
-    await page.getByRole('button', { name: 'Issue refund', exact: true }).click();
+    await page.getByRole('button', { name: 'Issue refund…', exact: true }).click();
   } else {
     await page.getByRole('button', { name: /More actions/ }).click();
     await page.getByRole('menuitem', { name: /Issue refund/ }).click();

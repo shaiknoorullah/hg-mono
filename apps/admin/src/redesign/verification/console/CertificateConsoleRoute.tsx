@@ -434,7 +434,7 @@ export default function CertificateConsoleRoute() {
               <button type="button" className="text-link underline" onClick={() => focusCheck(o.key)}>
                 {checkTitle(o.key)}
               </button>{' '}
-              ({o.state}){i < still.length - 1 ? ', ' : '.'}
+              (<span>{o.state}</span>){i < still.length - 1 ? ', ' : '.'}
             </span>
           ))}
         </>
@@ -583,7 +583,7 @@ function ClaimLine({ mode, claim, now, claimEndedAt, certificate }: { mode: stri
             Claimed by you ·{' '}
             <Countdown variant="text" size="sm" expiresAt={claim.expiresAt} serverNow={new Date().toISOString()} windowSeconds={3600} criticalThreshold={0} label="left" />
           </span>
-          <span>Ends at {formatTime(claim.expiresAt)}, can’t be extended</span>
+          <span>{`Ends at ${formatTime(claim.expiresAt)}, can’t be extended`}</span>
         </p>
         {claimEndsSoon(claim, now) ? (
           <InlineAlert tone="warning" title={`Your claim ends soon: ${Math.max(1, Math.ceil((Date.parse(claim.expiresAt) - now) / 60_000))} minutes left`}>

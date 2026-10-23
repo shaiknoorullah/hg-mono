@@ -29,7 +29,7 @@ function openOrder(o: Order, role: Role = 'ADMIN', extra: Parameters<typeof mock
 }
 
 async function startRefund() {
-  fireEvent.click(await screen.findByRole('button', { name: 'Issue refund' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Issue refund…' }));
   return screen.findByRole('region', { name: /Issue a refund/ });
 }
 
@@ -189,7 +189,7 @@ describe('the Refunds page', () => {
 
     api.set({ listOrdersAdmin: { status: 503, body: { error: { code: 'INTERNAL_ERROR', message: 'Down.', request_id: '01JTESTREQUEST0000000000000' } } } });
     fireEvent.click(screen.getByRole('button', { name: 'Find order' }));
-    expect(await screen.findByText('The lookup didn’t finish.')).toBeTruthy();
+    expect(await screen.findByText("The lookup didn't finish.")).toBeTruthy();
     expect(screen.getByText(/This is not the same as “no order”/)).toBeTruthy();
     expect(screen.queryByText(/No order has the code/)).toBeNull();
   });
