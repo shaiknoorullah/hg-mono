@@ -23,73 +23,13 @@
     },
     {
       "project": "restaurant-redesign-desktop",
-      "spec": "redesign-restaurant.hours.spec.ts › Hours (mock) › pause: 15, 30 or 60 minutes, each with its end time, none preselected, then \"Pause until closing\"; then resume with a confirm",
-      "issue": 1104
-    },
-    {
-      "project": "restaurant-redesign-desktop",
       "spec": "redesign-restaurant.onboarding-captures.spec.ts › redesigned restaurant · onboarding states (mock) › blocked, the renewed certificate sent",
-      "issue": 1103
-    },
-    {
-      "project": "restaurant-redesign-desktop",
-      "spec": "redesign-restaurant.settings.spec.ts › redesigned restaurant settings · business profile (mock) › a change the server does not accept",
-      "issue": 1102
-    },
-    {
-      "project": "restaurant-redesign-desktop",
-      "spec": "redesign-restaurant.settings.spec.ts › redesigned restaurant settings · business profile (mock) › edit the owner name, saving",
-      "issue": 1102
-    },
-    {
-      "project": "restaurant-redesign-desktop",
-      "spec": "redesign-restaurant.settings.spec.ts › redesigned restaurant settings · business profile (mock) › leaving an edit with changes asks first",
-      "issue": 1102
-    },
-    {
-      "project": "restaurant-redesign-desktop",
-      "spec": "redesign-restaurant.settings.spec.ts › redesigned restaurant settings · business profile (mock) › the owner name saved",
-      "issue": 1102
-    },
-    {
-      "project": "restaurant-redesign-desktop",
-      "spec": "redesign-restaurant.settings.spec.ts › redesigned restaurant settings · upload a halal certificate (mock) › locked while a review is open",
       "issue": 1103
     },
     {
       "project": "restaurant-redesign-tablet",
       "spec": "redesign-restaurant.history.spec.ts › redesigned restaurant · past orders list (mock) › the list does not load",
       "issue": 1104
-    },
-    {
-      "project": "restaurant-redesign-tablet",
-      "spec": "redesign-restaurant.hours.spec.ts › Hours (mock) › pause: 15, 30 or 60 minutes, each with its end time, none preselected, then \"Pause until closing\"; then resume with a confirm",
-      "issue": 1104
-    },
-    {
-      "project": "restaurant-redesign-tablet",
-      "spec": "redesign-restaurant.settings.spec.ts › redesigned restaurant settings · business profile (mock) › a change the server does not accept",
-      "issue": 1102
-    },
-    {
-      "project": "restaurant-redesign-tablet",
-      "spec": "redesign-restaurant.settings.spec.ts › redesigned restaurant settings · business profile (mock) › edit the owner name, saving",
-      "issue": 1102
-    },
-    {
-      "project": "restaurant-redesign-tablet",
-      "spec": "redesign-restaurant.settings.spec.ts › redesigned restaurant settings · business profile (mock) › leaving an edit with changes asks first",
-      "issue": 1102
-    },
-    {
-      "project": "restaurant-redesign-tablet",
-      "spec": "redesign-restaurant.settings.spec.ts › redesigned restaurant settings · business profile (mock) › the owner name saved",
-      "issue": 1102
-    },
-    {
-      "project": "restaurant-redesign-tablet",
-      "spec": "redesign-restaurant.settings.spec.ts › redesigned restaurant settings · upload a halal certificate (mock) › locked while a review is open",
-      "issue": 1103
     }
   ]
 }

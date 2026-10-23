@@ -20,6 +20,7 @@
  */
 import { useSyncExternalStore } from 'react';
 
+import { usePageBar } from '../app/pageTitle';
 import { useOnline } from '../auth/online';
 import { formatFullDateTime, formatShortDateTime, formatTimeWithSeconds } from '../data/format';
 import { getSession, staffRoleOf, subscribeSession } from '../data/session';
@@ -345,6 +346,8 @@ export default function SystemRoute() {
   const role = staffRoleOf(session.principal) ?? 'SUPPORT_AGENT';
   const admin = role !== 'SUPPORT_AGENT';
   const reading = state.latest;
+  // The check time and cadence sit in the app bar under the title, as the boards draw them.
+  usePageBar(reading ? `Checked ${formatFullDateTime(reading.at)} · ${SYSTEM.recheckNote}` : undefined);
 
   // First check still running: skeletons, and the table in its loading state.
   if (!reading) {
@@ -385,11 +388,6 @@ export default function SystemRoute() {
     </section>
   );
 
-  const header = (
-    <p className="m-0 text-body-md text-fg-secondary">
-      Checked <time dateTime={reading.at.toISOString()}>{formatFullDateTime(reading.at)}</time> · {SYSTEM.recheckNote}
-    </p>
-  );
   const announce = (
     <p role="status" className="sr-only">
       {state.announcement ?? ''}
@@ -398,7 +396,6 @@ export default function SystemRoute() {
 
   return (
     <section aria-label="System status" className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto p-3">
-      {header}
       {announce}
       <SmsNotice state={state} />
       {admin ? (

@@ -10,7 +10,7 @@ runs against the redesigned apps.
 | `<app>/redesign/missions/<id>.yaml` | Device-lab missions, one file each ([below](#missions)) |
 | [`mission.schema.json`](mission.schema.json) | The mission format |
 | [`check-missions.mjs`](check-missions.mjs) | Checks every mission in the repo: `pnpm e2e:missions:check` (CI runs it) |
-| [`check-boards.mjs`](check-boards.mjs), [`customer-boards.mjs`](customer-boards.mjs), [`rider-boards.mjs`](rider-boards.mjs) | Which customer and rider design boards a flow captures (`SHOT: design--<area>--<Board>`) and, for every other board, why none can: `pnpm e2e:boards:check` (CI runs it; with `origin/claude/redesign-canvases` fetched it also checks every board is accounted for) |
+| [`check-boards.mjs`](check-boards.mjs), [`customer-boards.mjs`](customer-boards.mjs), [`rider-boards.mjs`](rider-boards.mjs) | Which customer and rider design boards a flow captures (`SHOT: design--<area>--<Board>`) and, for every other board, why none can, or that it is listed in [`boards/<app>.json`](boards) (the boards the capture entry opens against the mock; a board is captured, listed, or unpairable, never two of them): `pnpm e2e:boards:check` (CI runs it; with `origin/claude/redesign-canvases` fetched it also checks every board is accounted for) |
 | [`routes/`](routes/) | GPX routes on the devworld map, made by [`routes/build-routes.mjs`](routes/build-routes.mjs) |
 | [`media/`](media/) | Files a mission may push to the emulator's photo library |
 | [`results-template/report.md`](results-template/report.md) | The report the lab writes per mission run |

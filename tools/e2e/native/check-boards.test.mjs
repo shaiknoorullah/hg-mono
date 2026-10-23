@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { APPS, boardOf, check, shotsIn } from './check-boards.mjs';
+import { APPS, boardOf, check, manifestBoards, shotsIn } from './check-boards.mjs';
 
 const reason = 'No flow reaches this state, and the reason is written out in full.';
 const shot = (name) => ({ shot: name, file: 'customer/redesign/x.yaml', line: 1 });
@@ -45,4 +45,42 @@ test('the messages name the app\'s own boards file and canvases folder', () => {
   const text = check([shot('design--sign-in--Typo')], [], boards, { file: 'rider-boards.mjs', app: 'rider' }).problems.join('\n');
   assert.match(text, /canvases\/rider\/sign-in\/project\/Typo\.dc\.html/);
   assert.match(text, /rider-boards\.mjs gives no reason/);
+});
+
+test('a board listed in the manifest is accounted for without a flow or a reason', () => {
+  const { problems, listed } = check([shot('design--sign-in--Main')], [[/^cart-checkout\//, reason]], boards, { manifest: ['sign-in/Code-dark'] });
+  assert.deepEqual(problems, []);
+  assert.deepEqual([...listed], ['sign-in/Code-dark']);
+});
+
+test('a manifest entry whose board does not exist fails', () => {
+  const text = check([shot('design--sign-in--Main')], [[/-dark$/, reason], [/^cart-checkout\//, reason]], boards, { manifest: ['sign-in/Typo'], app: 'rider' }).problems.join('\n');
+  assert.match(text, /boards\/rider\.json: sign-in\/Typo is not a board on the canvases branch \(canvases\/rider\/sign-in\/project\/Typo\.dc\.html\)/);
+});
+
+test('a manifest entry that a flow also captures fails', () => {
+  const text = check([shot('design--sign-in--Main')], [[/-dark$/, reason], [/^cart-checkout\//, reason]], boards, { manifest: ['sign-in/Main'] }).problems.join('\n');
+  assert.match(text, /boards\/customer\.json: sign-in\/Main is listed, yet a flow captures it/);
+});
+
+test('a manifest entry that is also declared unpairable fails', () => {
+  const text = check([shot('design--sign-in--Main')], [[/-dark$/, reason], [/^cart-checkout\//, reason]], boards, { manifest: ['sign-in/Code-dark'].concat('cart-checkout/Cart-empty') }).problems.join('\n');
+  assert.match(text, /sign-in\/Code-dark is listed, yet customer-boards\.mjs entry 0 declares it unpairable/);
+  assert.match(text, /cart-checkout\/Cart-empty is listed, yet customer-boards\.mjs entry 1 declares it unpairable/);
+});
+
+test('a manifest entry listed twice fails, with or without the branch', () => {
+  assert.match(check([], [], null, { manifest: ['a/B', 'a/B'] }).problems.join('\n'), /a\/B is listed twice/);
+});
+
+test('a board nobody accounts for names the manifest as a way out', () => {
+  assert.match(check([], [], ['sign-in/Main']).problems.join('\n'), /boards\/customer\.json does not list it/);
+});
+
+test('the manifest files exist, are arrays of { board } and agree with the flows and reasons', () => {
+  for (const [app, { flows, rules, file }] of Object.entries(APPS)) {
+    const manifest = manifestBoards(app);
+    const { problems } = check(shotsIn(flows), rules, null, { file, app, manifest });
+    assert.deepEqual(problems, [], `${app}: ${problems.join('; ')}`);
+  }
 });

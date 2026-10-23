@@ -74,9 +74,40 @@ Every response carries what it decided:
 | `X-Mock-Scenario` | the fixture actually served |
 | `X-Mock-Scenario-Source` | `scenario` (you asked) or `default` |
 | `X-Mock-Warning` | you named a scenario that does not exist, or one registered for a different operation |
+| `X-Mock-Frozen-Clock` | the instant every fixture timestamp is relative to (also `frozen_clock` in `/__mock/health`). A client that wants a countdown or an age to read the way the fixture was written sets its clock here |
+| `X-Mock-Directive` | the injection directive that was applied (`delay=2000`, `status=503`), when you asked for one |
 
 A path that is **not** in the contract returns `404 NOT_FOUND` naming the fact. That is the
 point: a frontend that invents an endpoint finds out here, not in staging.
+
+## Injecting a fault: `@` directives
+
+A fixture is what the server answered. It cannot be "did not answer", "answered late" or
+"hung up". A screen that draws its loading, offline or 503 state needs those, and a device
+has no `page.route` to fake them. So a value in the per-operation map may be a **directive**,
+written with a leading `@`:
+
+| Entry | The operation named |
+|---|---|
+| `getOrder=@stall` | never answers (the connection stays open until the client gives up) |
+| `getOrder=@delay=2000` | answers its normal fixture after 2000 ms (at most 60000) |
+| `getOrder=@reset` | closes the connection with no response |
+| `getOrder=@status=503` | answers the contract's error envelope for 503: a fixture for that operation, else a generic one, else a minimal valid `{error: {code, message, request_id}}` |
+
+```bash
+curl -H 'X-Mock-Scenario: getOrder=@stall,getCurrentPrincipal=principal_customer' localhost:4010/v1/orders/any
+```
+
+Rules, so a directive cannot surprise anyone:
+
+- It applies to **the one operation it names** and to nothing else. A request that does not
+  carry it is answered exactly as before.
+- A bare `@stall` (no operation) is refused with `400 VALIDATION_FAILED` for every operation,
+  so a directive can never reach all of them by accident.
+- An unknown or malformed directive (`@hang`, `@delay=abc`, `@status=200`) is a `400
+  VALIDATION_FAILED` whose message names the directives that exist. It never falls back to a
+  fixture.
+- It composes with other entries: `getOrder=@delay=800,listAddresses=order_arrived`.
 
 ## Driving the WebSocket through a lifecycle
 
@@ -160,8 +191,10 @@ already loaded), not to swap the server out.
 |---|---|
 | `src/index.ts` | Express app, envelope, scenario resolution, `/__mock/*` |
 | `src/routes.ts` | Route table built from `contracts/openapi.yaml` at boot |
+| `src/directives.ts` | The `@stall`, `@delay`, `@reset` and `@status` injection directives |
 | `src/fixtures.ts` | Fixture loading and default resolution from `index.json` |
 | `src/ws.ts` | The `websocket.md` mock and the script player |
+| `src/directives.test.ts` | Each directive, an unknown one, and the running server (`pnpm --filter @hg/mock-server test:unit`) |
 | `src/scenarios.test.ts` | Scenario selection and re-stamping, against the real fixture set (`pnpm --filter @hg/mock-server test:unit`) |
 
 Nothing here hardcodes a path, a schema or a scenario name: change the contract or the

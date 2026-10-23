@@ -15,7 +15,6 @@ export const RAIL = {
   reviewRound: (n: number) => `Review round ${n}: sent again after changes`,
   halalHeading: 'Halal certification',
   noHalal: 'No halal certificate on record yet.',
-  supportLead: 'Partner support: ',
 };
 
 export const FRAME = {

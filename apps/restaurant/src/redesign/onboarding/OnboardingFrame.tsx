@@ -6,7 +6,7 @@
  * `halal` object there is no badge at all, never a hopeful one.
  */
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Menu, Wordmark, Icon, IconButton, HalalBadge, ProgressBar, SetupChecklist, TextLink } from '../ds';
+import { Menu, Wordmark, Icon, IconButton, HalalBadge, ProgressBar, SetupChecklist } from '../ds';
 import { useOnboarding } from './context';
 import { STEP_LABEL, halalRailLine, latestDocs, railItems } from './model';
 import { RAIL } from './copy';
@@ -65,7 +65,7 @@ export function SetupTopBar({ businessName, onSignOut }: { businessName: string;
 }
 
 export function SetupRail() {
-  const { status, profile, docs, support } = useOnboarding();
+  const { status, profile, docs } = useOnboarding();
   const [open, setOpen] = useState(readRail);
   useEffect(() => writeRail(open), [open]);
 
@@ -138,12 +138,6 @@ export function SetupRail() {
           </p>
         ) : null}
       </section>
-      {support ? (
-        <p className="m-0 text-body-sm text-fg-secondary">
-          {RAIL.supportLead}
-          <TextLink href={`tel:${support.tel}`}>{support.display}</TextLink>
-        </p>
-      ) : null}
     </aside>
   );
 }

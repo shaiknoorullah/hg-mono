@@ -538,8 +538,8 @@ test.describe('redesigned restaurant settings · upload a halal certificate (moc
     await toDetails(page, { patchProfile: halal('EXPIRED', -14), docs: withDoc('HALAL_CERTIFICATE', { state: 'IN_REVIEW' }) }, { attach: 'locked' });
     await fill(page, 'HMA Canada', 'HMA-2026-09114', 400);
     await save(page);
-    await show(page.getByTestId('renew-refused'));
-    await expect(page.getByTestId('renew-refused')).toBeVisible();
+    await show(page.getByTestId('renew-locked'));
+    await expect(page.getByTestId('renew-locked')).toBeVisible();
     await capture(page, 'restaurant/settings/Renew-Locked');
   });
 });
@@ -584,7 +584,7 @@ test.describe('redesigned restaurant settings · business profile (mock)', () =>
   test('edit the owner name, saving', async ({ page }) => {
     await open(page, '/settings/profile?panel=edit-names', { profile: 'restaurant_profile' });
     await saveRoute(page, 'never');
-    await page.getByLabel('Owner’s first name').fill('Rami');
+    await page.getByRole('textbox', { name: 'Owner first name' }).fill('Rami');
     await edit(page).getByRole('button', { name: 'Save' }).click();
     await expect(edit(page).getByRole('button', { name: 'Save' })).toBeDisabled();
     await capture(page, 'restaurant/settings/Edit-Saving', { settled: false });
@@ -593,7 +593,7 @@ test.describe('redesigned restaurant settings · business profile (mock)', () =>
   test('the owner name saved', async ({ page }) => {
     await open(page, '/settings/profile?panel=edit-names', { profile: 'restaurant_profile' });
     await saveRoute(page);
-    await page.getByLabel('Owner’s first name').fill('Rami');
+    await page.getByRole('textbox', { name: 'Owner first name' }).fill('Rami');
     await edit(page).getByRole('button', { name: 'Save' }).click();
     await expect(page.getByTestId('hg-toast').getByText('Owner name saved')).toBeVisible();
     await capture(page, 'restaurant/settings/Edit-Saved');
@@ -601,7 +601,7 @@ test.describe('redesigned restaurant settings · business profile (mock)', () =>
 
   test('leaving an edit with changes asks first', async ({ page }) => {
     await open(page, '/settings/profile?panel=edit-names', { profile: 'restaurant_profile' });
-    await page.getByLabel('Owner’s first name').fill('Rami');
+    await page.getByRole('textbox', { name: 'Owner first name' }).fill('Rami');
     await edit(page).getByRole('button', { name: 'Cancel' }).click();
     await expect(page.getByTestId('edit-discard')).toBeVisible();
     await capture(page, 'restaurant/settings/Edit-Discard');
@@ -610,7 +610,7 @@ test.describe('redesigned restaurant settings · business profile (mock)', () =>
   test('a change the server does not accept', async ({ page }) => {
     await open(page, '/settings/profile?panel=edit-names', { profile: 'restaurant_profile' });
     await saveRoute(page, { status: 422, code: 'UNKNOWN_FIELD' });
-    await page.getByLabel('Owner’s first name').fill('Rami');
+    await page.getByRole('textbox', { name: 'Owner first name' }).fill('Rami');
     await edit(page).getByRole('button', { name: 'Save' }).click();
     await expect(page.getByTestId('edit-rejected')).toBeVisible();
     await capture(page, 'restaurant/settings/Edit-UnknownField');
