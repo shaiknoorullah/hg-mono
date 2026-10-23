@@ -45,6 +45,11 @@ export interface SideNavItem {
   key: string;
   /** The full name ("Live orders"). */
   label: string;
+  /**
+   * The full accessible name when the visible `label` is shorter ("Live orders" for a rail that
+   * says "Orders"); defaults to `label`. A count is still folded in after it.
+   */
+  name?: string;
   /** Shown under the icon when the rail is collapsed ("Orders"); defaults to `label`. */
   shortLabel?: string;
   href?: string;
@@ -91,6 +96,13 @@ export interface SideNavProps {
   onToggleCollapsed?: (collapsed: boolean) => void;
   /** Alias of `onToggleCollapsed` (admin). */
   onCollapsedChange?: (collapsed: boolean) => void;
+  /**
+   * Visible word beside the toggle's icon when the rail is expanded, when it differs from the
+   * accessible name `collapseLabel` (the restaurant boards draw "Collapse"). Default: `collapseLabel`.
+   */
+  collapseText?: string;
+  /** The toggle's border: `plain` (default, the admin rail) or `outline` (the restaurant boards). */
+  toggleEmphasis?: 'outline' | 'plain';
   /** The toggle's names. Defaults "Collapse menu" and "Expand menu". */
   collapseLabel?: string;
   expandLabel?: string;
@@ -138,12 +150,13 @@ function countOf(item: SideNavItem): number | 'dot' | undefined {
 function accessibleName(item: SideNavItem): string {
   const badge = countOf(item);
   const noun = item.badgeNoun ?? item.countLabel;
-  if (badge === undefined) return item.label;
-  if (badge === 'dot') return `${item.label}, has updates`;
-  if (badge <= 0) return item.label;
+  const base = item.name ?? item.label;
+  if (badge === undefined) return base;
+  if (badge === 'dot') return `${base}, has updates`;
+  if (badge <= 0) return base;
   // The admin's `count` without a noun reads "Orders, 4"; `badge` keeps its "waiting" default.
-  if (noun === undefined && item.badge === undefined) return `${item.label}, ${badge}`;
-  return `${item.label}, ${badge} ${noun ?? 'waiting'}`;
+  if (noun === undefined && item.badge === undefined) return `${base}, ${badge}`;
+  return `${base}, ${badge} ${noun ?? 'waiting'}`;
 }
 
 function glyph(icon: SideNavItem['icon'], active: boolean): ReactNode {
@@ -164,6 +177,8 @@ export function SideNav({
   onToggleCollapsed,
   onCollapsedChange,
   collapseLabel = 'Collapse menu',
+  collapseText,
+  toggleEmphasis = 'plain',
   expandLabel = 'Expand menu',
   railHeader,
   onNavigate,
@@ -313,7 +328,7 @@ export function SideNav({
           {showToggle ? (
             <SidebarFooterButton
               tone={tone}
-              emphasis="plain"
+              emphasis={toggleEmphasis}
               aria-expanded={!collapsed}
               aria-controls={listId}
               aria-label={collapsed ? expandLabel : collapseLabel}
@@ -323,7 +338,7 @@ export function SideNav({
               <span aria-hidden="true" className={cn('inline-flex', collapsed && '-scale-x-100 rtl:scale-x-100')}>
                 <Icon name="back" size="md" />
               </span>
-              {collapsed ? null : <span aria-hidden="true">{collapseLabel}</span>}
+              {collapsed ? null : <span aria-hidden="true">{collapseText ?? collapseLabel}</span>}
             </SidebarFooterButton>
           ) : null}
         </SidebarFooter>

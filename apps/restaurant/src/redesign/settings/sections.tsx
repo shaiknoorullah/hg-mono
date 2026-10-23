@@ -104,9 +104,12 @@ export function HalalSection({ view, profile, onRenew, onSupport }: { view: Hala
             <Button variant="primary" size="lg" disabled={!view.canUpload} aria-describedby={view.uploadReason ? 'renew-reason' : undefined} onPress={onRenew}>
               {view.uploadLabel}
             </Button>
-            <Button variant="tertiary" size="lg" onPress={onSupport}>
-              Contact support
-            </Button>
+            {/* The boards draw the certificate's section without a support button while it is in good standing. */}
+            {view.renewal || view.badge === null || view.badge === 'EXPIRED' ? (
+              <Button variant="tertiary" size="lg" onPress={onSupport}>
+                Contact support
+              </Button>
+            ) : null}
           </div>
         </div>
       ) : (
