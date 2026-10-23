@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { unwrap } from '@hg/api-client';
 
 import { LoginGate } from '../../../App';
-import { BottomNav, Icon, Toast, tokens, useTheme, type BottomNavItem } from '../ds';
+import { BottomNav, Icon, Toast, TopInsetSpent, tokens, useTheme, type BottomNavItem } from '../ds';
 import { api } from '../api/client';
 import { EmailVerifyScreen } from '../account/EmailVerifyScreen';
 import { BlockedScreen } from '../session/BlockedScreen';
@@ -192,7 +192,9 @@ export function Shell(): React.ReactElement {
   if (session.phase === 'signin' && pendingLink?.name === 'emailVerify') {
     return (
       <SafeAreaView style={[styles.fill, { backgroundColor: theme.color.surface.base }]} testID="RedesignSignedOutLink">
+        <TopInsetSpent>
         <EmailVerifyScreen token={pendingLink.token} onSignIn={() => setPendingLink(null)} />
+        </TopInsetSpent>
       </SafeAreaView>
     );
   }
@@ -200,7 +202,9 @@ export function Shell(): React.ReactElement {
   if (session.phase === 'signin' || session.phase === 'verifying') {
     return (
       <SafeAreaView style={[styles.fill, { backgroundColor: theme.color.surface.base }]} testID="RedesignSignedOut">
+        <TopInsetSpent>
         <SignedOut />
+        </TopInsetSpent>
       </SafeAreaView>
     );
   }

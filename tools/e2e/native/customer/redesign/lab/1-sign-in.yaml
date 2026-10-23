@@ -37,10 +37,13 @@ name: customer redesign, sign in (returning customer)
     env:
       SHOT: design--sign-in--SignIn-invalid
       APP_ID: com.halalgoes.customer.dev
+# The boards draw the number ending 0134 (+1 416 555 0134, a 555-01xx fictional number), so the
+# captures use it: SignIn-ready, then the code screens for the challenge it opens. Nothing signs in
+# on it. After the code boards, "Change number" goes back and the seeded customer signs in below.
 - tapOn:
     id: "SignIn-phone-field"
 - eraseText: 20
-- inputText: ${PHONE.slice(-10)}
+- inputText: "4165550134"
 - hideKeyboard
 - runFlow:
     file: ../../../design-capture.yaml
@@ -51,7 +54,7 @@ name: customer redesign, sign in (returning customer)
 - extendedWaitUntil:
     visible: "Enter the 6-digit code"
     timeout: 30000
-- assertVisible: "We sent it to \\+1 .*\\."
+- assertVisible: "We sent it to \\+1 416 555 0134\\."
 - takeScreenshot: redesign-wp1-03-code
 
 # Five digits typed, not yet sent: the code board draws exactly this (48291). Too few digits is
@@ -72,9 +75,25 @@ name: customer redesign, sign in (returning customer)
     env:
       SHOT: design--sign-in--Code-short
       APP_ID: com.halalgoes.customer.dev
+
+# Back to the phone step ("Change number" keeps the digits) and on to the seeded customer.
+- tapOn:
+    id: "Code-change"
+- extendedWaitUntil:
+    visible: "Sign in or create an account"
+    timeout: 15000
+- tapOn:
+    id: "SignIn-phone-field"
+- eraseText: 20
+- inputText: ${PHONE.slice(-10)}
+- hideKeyboard
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "Enter the 6-digit code"
+    timeout: 30000
+- assertVisible: "We sent it to \\+1 .*\\."
 - tapOn:
     id: "Code-input-cell-0"
-- eraseText: 6
 - inputText: ${CODE}
 # No hideKeyboard here: the field kept its focus, so the tap above may not reopen the keyboard,
 # and hideKeyboard with none open sends Back, which leaves the app. Verify sits above the keyboard.

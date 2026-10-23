@@ -9,7 +9,7 @@
  * throws when there is no provider. The context object is resolved once at module load — never per
  * render — so hook order is stable whether or not the module is present.
  */
-import { createContext, useContext } from 'react';
+import { createContext, createElement, useContext, useMemo } from 'react';
 
 export interface Insets {
   top: number;
@@ -46,4 +46,18 @@ export function useTopInset(): number {
 
 export function useBottomInset(): number {
   return useInsets().bottom;
+}
+
+/**
+ * Says "the top inset is already spent" to everything inside it.
+ *
+ * A `SafeAreaView` pads its own children by the status bar's height, but the `AppBar` inside it
+ * reads the same inset again and pads itself a second time: on a 3x phone the bar sat 45 dp too low
+ * (the sign-in code screen's title at y 109 where the board has 64). Wrap what a `SafeAreaView`
+ * holds in this and the `AppBar` sees a top inset of 0. It adds no view of its own.
+ */
+export function TopInsetSpent({ children }: { children: React.ReactNode }): React.ReactElement {
+  const insets = useInsets();
+  const value = useMemo(() => ({ ...insets, top: 0 }), [insets]);
+  return createElement(InsetsContext.Provider, { value }, children);
 }
