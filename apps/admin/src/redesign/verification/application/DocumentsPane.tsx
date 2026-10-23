@@ -191,8 +191,7 @@ function ReviewSection(props: Props & { doc: Document }) {
   return (
     <section aria-labelledby="doc-review-heading" className="flex flex-col gap-3 rounded-md border border-line-decorative p-3" data-testid="DocumentReview">
       <h3 id="doc-review-heading" ref={headingRef} tabIndex={-1} className="text-heading-sm text-fg-primary outline-none">
-        Review: {documentLabel(doc).toLowerCase()}
-        {doc.version > 1 ? `, version ${doc.version}` : ''}
+        {`Review: ${documentLabel(doc).toLowerCase()}${doc.version > 1 ? `, version ${doc.version}` : ''}`}
       </h3>
 
       {reviewProblem ? (

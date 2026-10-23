@@ -328,7 +328,7 @@ describe('shell chrome', () => {
 
   it('shows the offline banner while the browser is offline', () => {
     renderApp('/account');
-    expect(screen.queryByText('You’re offline.')).toBeNull();
+    expect(screen.queryByText("You're offline.")).toBeNull();
     act(() => {
       Object.defineProperty(window.navigator, 'onLine', { configurable: true, get: () => false });
       window.dispatchEvent(new Event('offline'));
@@ -377,9 +377,9 @@ describe('shell chrome', () => {
     expect(nav().getAttribute('data-collapsed')).toBeNull();
   });
 
-  it('draws What’s new as the board does, a button that controls its panel, and an icon slot on every item', () => {
+  it("draws What's new as the board does, a button that controls its panel, and an icon slot on every item", () => {
     renderApp('/account');
-    const whatsNew = screen.getByRole('button', { name: /^What’s new/ });
+    const whatsNew = screen.getByRole('button', { name: /^What's new/ });
     expect(whatsNew.getAttribute('aria-disabled')).toBeNull();
     expect(whatsNew.getAttribute('aria-expanded')).toBe('false');
     // The panel is built in `../../whatsnew`; its tests cover what opens.

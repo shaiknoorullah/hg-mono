@@ -160,8 +160,8 @@ export default function OrderRoute() {
     if (load.kind === 'error') {
       return (
         <ErrorState
-          title="This order didn’t load"
-          description="The server didn’t answer in time. Nothing was changed. Try again, or pick another order from the list."
+          title="This order didn't load"
+          description="The server didn't answer in time. Nothing was changed. Try again, or pick another order from the list."
           onRetry={() => void read(false)}
         />
       );
@@ -181,7 +181,7 @@ export default function OrderRoute() {
                   setPanel('refund');
                 }}
               >
-                Issue refund
+                Issue refund…
               </Button>
             ) : null}
             <Menu label="More actions" triggerText="More actions" items={actions} align="end" disabled={!online} />

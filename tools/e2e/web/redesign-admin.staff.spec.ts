@@ -51,7 +51,7 @@ test.describe('redesigned admin · staff list (mock)', () => {
 
   test('the list does not load', async ({ page }) => {
     await openStaff(page, '#/staff', { rows: 'error' });
-    await expect(page.getByText('Staff accounts didn’t load')).toBeVisible();
+    await expect(page.getByText("Staff accounts didn't load")).toBeVisible();
     await shoot(page, { 1440: 'admin/staff/StaffError' });
   });
 
@@ -63,7 +63,7 @@ test.describe('redesigned admin · staff list (mock)', () => {
 
   test('admin, the list does not load', async ({ page }) => {
     await openStaff(page, '#/staff', { role: 'ADMIN', rows: 'error' });
-    await expect(page.getByText('Staff accounts didn’t load')).toBeVisible();
+    await expect(page.getByText("Staff accounts didn't load")).toBeVisible();
     await shoot(page, { 1440: 'admin/staff/StaffAdminError' });
   });
 
@@ -96,7 +96,7 @@ test.describe('redesigned admin · staff list (mock)', () => {
     await openStaff(page, '#/staff', { hasMore: true, more: 'error' });
     await listed(page);
     await page.getByRole('button', { name: 'Load more' }).click();
-    await expect(page.getByText('The next accounts didn’t load')).toBeVisible();
+    await expect(page.getByText("The next accounts didn't load")).toBeVisible();
     await shoot(page, { 1440: 'admin/staff/StaffLoadMoreFailed' });
   });
 
@@ -196,7 +196,7 @@ test.describe('redesigned admin · staff account panel (mock)', () => {
 
   test('opened from a link that matches no loaded account', async ({ page }) => {
     await openStaff(page, detail('ffffffff-0000-4000-8000-000000000000'));
-    await expect(page.getByText('This account couldn’t be opened')).toBeVisible();
+    await expect(page.getByText("This account couldn't be opened")).toBeVisible();
     await shoot(page, { 1440: 'admin/staff/StaffDetailDeepLinkError' });
   });
 
@@ -231,7 +231,7 @@ test.describe('redesigned admin · inviting staff (mock)', () => {
     await openStaff(page, '#/staff', { create: refuse(403, 'FORBIDDEN', 'No access.') });
     await listed(page);
     await sendInvite(page);
-    await expect(page.getByText('You can’t invite staff any more')).toBeVisible();
+    await expect(page.getByText("You can't invite staff any more")).toBeVisible();
     await shoot(page, { 1440: 'admin/staff/InviteForbidden' });
   });
 
@@ -312,7 +312,7 @@ test.describe('redesigned admin · accepting an invite (mock)', () => {
 
   test('a link with no token', async ({ page }) => {
     await page.goto('/accept-invite');
-    await expect(page.getByRole('heading', { level: 1, name: 'This invite link doesn’t work' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: "This invite link doesn't work" })).toBeVisible();
     await shoot(page, { 1440: 'admin/staff/AcceptInvalid' });
   });
 });
@@ -404,7 +404,7 @@ test.describe('redesigned admin · the invite form and accounts without two-step
     await listed(page);
     await fillInvite(page, 'Zainab Hussain', 'zainab.hussain@halalgoes.ca', 'Admin');
     await send(page);
-    await expect(page.getByText('We couldn’t confirm the invite was sent')).toBeVisible();
+    await expect(page.getByText("We couldn't confirm the invite was sent")).toBeVisible();
     await shoot(page, { 1440: 'admin/staff/InviteFailed' });
   });
 
@@ -417,7 +417,7 @@ test.describe('redesigned admin · the invite form and accounts without two-step
     await listed(page);
     await fillInvite(page, 'Zainab Hussain', 'zainab.hussain@halalgoes.ca', 'Admin');
     await send(page);
-    await expect(page.getByText('We couldn’t confirm the invite was sent')).toBeVisible();
+    await expect(page.getByText("We couldn't confirm the invite was sent")).toBeVisible();
     await shoot(page, { 1440: 'admin/staff/InviteOfflineSubmit' });
   });
 

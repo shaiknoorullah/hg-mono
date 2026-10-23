@@ -137,7 +137,7 @@ export function CancelPanel({ order, isSupport, onClose, onCancelled, onReload }
       {blocked ? (
         <InlineAlert tone="warning" title="Only an admin can cancel after the restaurant accepts">
           The restaurant accepted it{order.accepted_at ? ` at ${formatTime(order.accepted_at)}` : ''}. Support agents can cancel only before the restaurant accepts. After that the payment has been captured, and cancelling issues a refund,
-          which needs an admin. Next step: ask an admin to cancel {order.code}. Copy your notes first so they don’t have to ask the customer again.
+          which needs an admin. Next step: ask an admin to cancel {order.code}. Copy your notes first so they don't have to ask the customer again.
         </InlineAlert>
       ) : (
         <div className="flex flex-col gap-4">

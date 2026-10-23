@@ -1,7 +1,7 @@
 ---
 covers:
   - tools/design-diff/**
-reviewed: 2026-10-22
+reviewed: 2026-10-23
 ---
 
 # Design diff
@@ -43,6 +43,8 @@ no connected group of differing pixels over `maxRegionPx` — and the percentage
 Those are the boards closest to passing, so that is the line worth reading first.
 
 **CI runs this on every `e2e-full` or `e2e` run**, in the `design-diff` job of `.github/workflows/e2e.yml`: it renders the boards, compares the captures the `flows` job uploaded, writes the per-area verdict table to the job summary and uploads the HTML report as the `design-diff` artifact. It compares with `--no-strict`, so a failing board reports rather than failing the run — no board passes yet, and a gate that is red before the first one is fixed blocks every merge and tells nobody anything. A regression gate comes once there is something to protect ([#1034](https://github.com/shaiknoorullah/hg-mono/issues/1034)).
+
+**The phone apps are compared in CI too, when the run took native captures** (`e2e-full`, nightly, dispatch; an `e2e`-label run has none, and the native steps are skipped before any board is drawn). After the web comparison the same job stages `screenshots/customer` and `screenshots/rider` from the `flows` artifact into `design-captures-native/`, renders only the customer and rider boards into `design-refs-native/`, and runs a second `diff.mjs --no-strict` into `design-diff-native/`. The bars are cut by `insets.json`, which the `flows` job measures on the emulator right after `design-size.sh` (`tools/e2e/android/measure-insets.sh`, `dumpsys window`); if that was not measured the stock `--profile phone-390` is used. Density is not an option here: each capture's `.capture.json` records it (`wm density`, 3 at 480 dpi). Its verdict table goes to the job summary under "Design fidelity, native", its findings to the log, and `design-diff-native/` is in the `design-diff` artifact. A native crash does not turn the web verdicts red (`continue-on-error`).
 
 Paths are relative to `tools/design-diff/`, where pnpm runs the scripts. On a machine where
 Playwright's own Chromium is not installed, set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` to a
@@ -120,7 +122,7 @@ any other non-PASS verdict. Retake such a capture. Android captures (customer, r
 browser, so this rule is for the web apps (restaurant, admin) only; see "Native boards" below. Why 1223: playwright 1.50.1 ships build 1155, which cannot parse
 `var(--icon-md)` in an SVG `width`, so most sign-in boards do not render on it.
 
-**Launching Chromium.** Chromium always starts with `--no-sandbox --disable-setuid-sandbox --disable-gpu --disable-dev-shm-usage`, because on hosts that cannot start Chromium's sandbox the first page died at once and the renderer looked like a hang rather than a failure. The launch has a 60 second timeout, and both settle waits are bounded at 30 seconds, so a wedged page gives up and says so instead of hanging for ever.
+**Launching Chromium.** Chromium always starts with `--no-sandbox --disable-setuid-sandbox --disable-gpu --enable-unsafe-swiftshader --disable-dev-shm-usage`, because on hosts that cannot start Chromium's sandbox the first page died at once and the renderer looked like a hang rather than a failure. `--enable-unsafe-swiftshader` keeps WebGL, in software: without it, under `--disable-gpu`, this Chromium has none, and a screen drawing a map with mapbox-gl (the admin live map) never left its error state. The launch has a 60 second timeout, and both settle waits are bounded at 30 seconds, so a wedged page gives up and says so instead of hanging for ever.
 
 ## Compare
 

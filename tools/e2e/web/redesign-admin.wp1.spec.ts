@@ -143,7 +143,7 @@ for (const vp of VIEWPORTS) {
           // Every item fits without scrolling the item list (the footer never covers it).
           if (vp.width < 1280) await expect(link).toBeInViewport({ ratio: 1 });
         }
-        const whatsNew = page.getByRole('button', { name: /What’s new/ });
+        const whatsNew = page.getByRole('button', { name: /What's new/ });
         // A button that opens the What's new panel (redesign-admin.whats-new.spec.ts drives it).
         await expect(whatsNew).not.toHaveAttribute('aria-disabled', 'true');
         await expect(whatsNew).toHaveAttribute('aria-expanded', 'false');
@@ -357,7 +357,7 @@ for (const vp of VIEWPORTS) {
 
       await step(page, 'invalid-link', async () => {
         await page.goto('/accept-invite');
-        await expect(page.getByRole('heading', { level: 1, name: 'This invite link doesn’t work' })).toBeVisible();
+        await expect(page.getByRole('heading', { level: 1, name: "This invite link doesn't work" })).toBeVisible();
       });
 
       await step(page, 'set-password', async () => {

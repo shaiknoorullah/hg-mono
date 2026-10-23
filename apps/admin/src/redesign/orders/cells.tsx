@@ -80,7 +80,7 @@ export function DeadlineCell({
     return (
       <span className="flex flex-col items-start gap-1">
         <span className="text-body-sm font-bold tabular-nums text-fg-primary">0:00, passed {Math.max(0, Math.round(-remaining / 1000))} s ago</span>
-        <span className="text-body-sm text-fg-secondary">{DEADLINE_DUE[state] ?? 'Due now'}. Waiting for the server.</span>
+        <span className="text-body-sm text-fg-secondary">{`${DEADLINE_DUE[state] ?? 'Due now'}. Waiting for the server.`}</span>
       </span>
     );
   }

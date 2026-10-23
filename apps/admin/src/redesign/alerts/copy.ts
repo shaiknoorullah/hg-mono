@@ -19,9 +19,9 @@ export const ALERTS = {
     shown: (n: number) => `${n} new ${n === 1 ? 'alert' : 'alerts'} shown at the top.`,
     reconnecting: { badge: 'Reconnecting', text: (at: string) => `Reconnecting. Not live; the list below is as of ${at}.` },
     offline: { badge: 'Offline', text: (at: string) => `Not live. The list below is as of ${at}.` },
-    gap: (at: string) => `Connected again at ${at}. Some alerts from the gap couldn’t be replayed.`,
+    gap: (at: string) => `Connected again at ${at}. Some alerts from the gap couldn't be replayed.`,
   },
-  held: (n: number) => `${n} new ${n === 1 ? 'alert' : 'alerts'}. They’re held while your pointer or focus is in the list, so rows don’t move.`,
+  held: (n: number) => `${n} new ${n === 1 ? 'alert' : 'alerts'}. They're held while your pointer or focus is in the list, so rows don't move.`,
   show: (n: number) => `Show ${n} new ${n === 1 ? 'alert' : 'alerts'}`,
   lost: {
     title: (at: string | null) => (at ? `Connection lost at ${at}.` : 'The live connection isn’t open.'),
@@ -32,13 +32,13 @@ export const ALERTS = {
   },
   offline: {
     title: 'You’re offline.',
-    body: 'New alerts can’t arrive until your connection returns. Alerts will be replayed if the server still has them.',
+    body: "New alerts can't arrive until your connection returns. Alerts will be replayed if the server still has them.",
   },
   gapBanner: (from: string, to: string) =>
-    `Reconnected at ${to}. Some alerts from ${from}–${to} couldn’t be replayed. Reload to replay recent alerts again.`,
+    `Reconnected at ${to}. Some alerts from ${from}–${to} couldn't be replayed. Reload to replay recent alerts again.`,
   reload: 'Reload',
-  truncated: 'Older alerts from the last 7 days couldn’t be replayed.',
-  end: { whole: 'That’s everything from the last 7 days.', recent: 'That’s everything the live connection could replay.' },
+  truncated: "Older alerts from the last 7 days couldn't be replayed.",
+  end: { whole: "That's everything from the last 7 days.", recent: "That's everything the live connection could replay." },
   empty: {
     title: 'No recent alerts',
     body: 'New alerts appear here as they happen. You can leave this page open while you work elsewhere; high-severity alerts also show as a banner on every page.',
@@ -50,7 +50,7 @@ export const ALERTS = {
   filteredEmptyNone: (kind: string) => ({ title: `No recent ${kind}`, body: 'Nothing of this kind has arrived. Show all kinds to see everything.' }),
   showAll: 'Show all kinds',
   failed: {
-    title: 'Live alerts can’t connect',
+    title: "Live alerts can't connect",
     body: (at: string) =>
       `The live connection was refused 5 times in a row, most recently at ${at}. Queue counts and the high-severity banner are paused too.`,
     other: (at: string) =>
@@ -122,8 +122,8 @@ export const ALERTS = {
     copyId: 'Copy order ID',
     copied: 'Copied',
     openOrder: 'Open order',
-    openRestaurant: 'Open this restaurant’s orders',
-    openRider: 'Open this rider’s active orders',
+    openRestaurant: "Open this restaurant's orders",
+    openRider: "Open this rider's active orders",
     record: 'Onboarding record',
     runbook: 'Open the platform runbook',
     notFoundTitle: 'This alert isn’t in the list',
@@ -132,12 +132,12 @@ export const ALERTS = {
     recon: {
       check: 'Open the order and check its payment history against the two amounts above.',
       runbook: 'Follow the reconciliation steps in the runbook before you change anything on the order.',
-      escalate: 'If the customer was charged more than the order, or the order can’t be matched, call the platform on-call engineer.',
+      escalate: "If the customer was charged more than the order, or the order can't be matched, call the platform on-call engineer.",
     },
     webhook: {
       runbook: 'Follow the payment-webhook steps in the runbook.',
       call: 'Call the platform on-call engineer now and give them the time above.',
-      customers: 'While it lasts, customers’ payments may not confirm right away. Don’t promise a refund until the order updates.',
+      customers: "While it lasts, customers' payments may not confirm right away. Don't promise a refund until the order updates.",
     },
     high: {
       runbook: 'Follow the runbook for this kind of alert.',

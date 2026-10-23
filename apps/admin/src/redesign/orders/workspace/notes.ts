@@ -30,7 +30,7 @@ const DEADLINE_NOTE: Readonly<Partial<Record<OrderState, string>>> = {
   DELIVERED:
     'Settles about 2 minutes after delivery, then moves to Completed. If settlement fails it retries with backoff and pages on-call; the order never sits without a deadline.',
   DISPUTED:
-    'At this deadline it escalates to senior ops and gets another 24 hours, up to 3 times. After the third it resolves automatically in the customer’s favour.',
+    "At this deadline it escalates to senior ops and gets another 24 hours, up to 3 times. After the third it resolves automatically in the customer's favour.",
 };
 
 /** True while a failed refund holds settlement of a delivered order. */
