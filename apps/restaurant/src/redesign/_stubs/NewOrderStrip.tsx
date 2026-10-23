@@ -295,6 +295,7 @@ export function NewOrderStrip({ status, rule, tiles, empty, compact, now, isDesk
             ref={headingRef}
             tabIndex={-1}
             role={loading ? 'status' : undefined}
+            aria-label={loading ? 'Loading new orders' : undefined}
             className="hg-focus m-0 whitespace-nowrap text-label-lg outline-none"
           >
             {title}

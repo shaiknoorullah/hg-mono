@@ -151,7 +151,7 @@ describe('new-order strip', () => {
     );
     await renderRedesign('/payouts/history');
     // Loading keeps its words, in the same one-row strip.
-    const loading = await screen.findByRole('status', { name: /^Loading new orders/ });
+    const loading = await screen.findByRole('status', { name: 'Loading new orders' });
     expect(loading.closest('[data-slim-row]')).not.toBeNull();
     release();
     expect(await screen.findByText('No orders waiting')).toBeTruthy();
@@ -236,7 +236,7 @@ describe('keyboard: keys act only on the focused tile', () => {
   it('A with focus on the page, in a text field or on a button does not accept; on the tile it does', async () => {
     const o = pending('A7K2', 132);
     const api = installFakeApi(routesFor([o], { [`POST /v1/restaurant/orders/${o.id}/accept`]: accepted(o) }));
-    await renderRedesign('/payouts/history');
+    await renderRedesign('/orders/history');
     const tile = await findTile('A7K2');
 
     key(document.body, 'a');
