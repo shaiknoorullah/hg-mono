@@ -75,7 +75,7 @@ export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(function Switch
           ) : null}
         </label>
 
-        <span id={stateId} className="shrink-0 text-label-md text-fg-secondary">
+        <span id={stateId} className={cx('shrink-0 text-body-sm font-semibold leading-normal', checked ? 'text-fg-primary' : 'text-fg-secondary')}>
           {checked ? stateLabel.on : stateLabel.off}
         </span>
 

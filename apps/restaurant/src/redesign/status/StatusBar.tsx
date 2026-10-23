@@ -200,7 +200,12 @@ export function StatusBar() {
       ) : (
         <Menu
           label="Pause new orders"
-          trigger={<span>Pause</span>}
+          trigger={
+            <span className="inline-flex items-center gap-2">
+              Pause
+              <Icon name="back" size={16} className="-rotate-90" />
+            </span>
+          }
           variant="tonal"
           align="end"
           disabled={view.pause === 'menu-disabled' || pending !== null}
