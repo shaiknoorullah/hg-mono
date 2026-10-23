@@ -4,7 +4,7 @@ covers:
   - scripts/release/**
   - apps/customer/app.config.js
   - apps/rider/app.config.js
-reviewed: 2026-10-22
+reviewed: 2026-10-23
 ---
 
 # Releasing the apps
@@ -58,6 +58,13 @@ No build this page describes turns it on:
   before the build when either flag is not `"0"` or a committed `.env` file turns one on, and
   again after it, on the APK's JavaScript bundle or the web `dist`, when the flag shows compiled
   on (the `hg-redesign:on` marker, or an inlined env object with the flag at `"1"`).
+
+The native design captures have a dev-only entry behind a third flag, `EXPO_PUBLIC_HG_CAPTURE`
+([issue 1141](https://github.com/shaiknoorullah/hg-mono/issues/1141)). It is never on in a release:
+`app-env.cjs` refuses a prod build with it set, `redesign-off.cjs` fails the build when it is
+set to anything but unset, empty or `"0"` (or a committed `.env` file turns it on), and fails the
+bundle when it holds the entry's link host, the string `__capture`. The workflow leaves the flag
+unset; unlike the redesign flags it is not pinned to `"0"`.
 
 EAS profiles (below) do not set the flag, which leaves it off. A shell that exports it as `"1"`
 would turn it on in an EAS build; only one with `APP_ENV=prod` refuses.

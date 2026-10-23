@@ -27,7 +27,7 @@ name: e2e
 #   capture   the redesign flag on and EXPO_PUBLIC_HG_CAPTURE=1, built against the mock server
 #             (10.0.2.2:4010) instead of the real stack: the build the native design captures
 #             open boards in (https://github.com/shaiknoorullah/hg-mono/issues/1141). Made for an
-#             app that has a boards manifest, tools/e2e/native/boards/<app>.json. Every other
+#             app that has a capture entry, apps/<app>/src/redesign/capture/entry.ts. Every other
 #             APK is checked to contain no capture entry.
 #
 # Trust rules:
@@ -91,10 +91,14 @@ jobs:
       mode: ${{ steps.plan.outputs.mode }}
       apks: ${{ steps.apks.outputs.apks }}
     steps:
-      # Only the flow folders, to see which apps have redesign flows; nothing here is run.
+      # Only the flow folders and the capture entries, to see which apps have redesign flows and
+      # a capture entry; nothing here is run.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          sparse-checkout: tools/e2e/native
+          sparse-checkout: |
+            tools/e2e/native
+            apps/customer/src/redesign/capture
+            apps/rider/src/redesign/capture
           persist-credentials: false
 
       - id: plan
@@ -127,7 +131,7 @@ jobs:
       # The APKs to build: each app's legacy one, and a redesign one (EXPO_PUBLIC_HG_REDESIGN=1)
       # beside it for an app with flows in tools/e2e/native/<app>/redesign/ (missions/ excepted),
       # and a capture one (redesign on, EXPO_PUBLIC_HG_CAPTURE=1, against the mock) for an app with
-      # a boards manifest, tools/e2e/native/boards/<app>.json.
+      # a capture entry, apps/<app>/src/redesign/capture/entry.ts.
       - id: apks
         run: |
           entries=()
@@ -137,7 +141,7 @@ jobs:
               entries+=("{\"app\":\"$app\",\"variant\":\"redesign\",\"flag\":\"1\"}")
               echo "Redesign APK: **$app**" >>"$GITHUB_STEP_SUMMARY"
             fi
-            if [ -f "tools/e2e/native/boards/$app.json" ]; then
+            if [ -f "apps/$app/src/redesign/capture/entry.ts" ]; then
               entries+=("{\"app\":\"$app\",\"variant\":\"capture\",\"flag\":\"1\"}")
               echo "Capture APK: **$app**" >>"$GITHUB_STEP_SUMMARY"
             fi

@@ -1179,6 +1179,7 @@ These are not features, but any of them missing invalidates the features above. 
 | X-6 | Every screen has an explicit empty state, error state, and loading state; loading is data-driven, not a 1-second timer | today a global skeleton auto-hides after 1 s regardless of data |
 | X-7 | No dead routes: every rendered navigation affordance resolves, asserted by a route-coverage test | today seven account rows have no `onPress` and several routes 404 |
 | X-8 | Currency, phone country code, map defaults and flags all agree with the launch market | today prices are `$`, phone is forced `+91`, the flag is Canadian, map fallbacks are Hyderabad and Dubai |
+| X-9 | The design-capture entry (`hgcustomer://__capture`, `apps/customer/src/redesign/capture/`) exists only in a build made with `EXPO_PUBLIC_HG_CAPTURE=1`, never in a release bundle, and opens real screens only | the native design captures need a screen in a given state ([issue 1141](https://github.com/shaiknoorullah/hg-mono/issues/1141)); a release build is checked for the string `__capture` |
 
 ---
 
