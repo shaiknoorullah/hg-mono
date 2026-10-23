@@ -43,6 +43,7 @@ test.describe('restaurant redesign · shell', () => {
   });
 
   test('the expanded rail has the header and footer the boards draw; the collapsed rail has neither', async ({ page }) => {
+    test.skip((page.viewportSize()?.width ?? 0) < 1280, 'the rail expands only on desktop; tablet keeps the 72 px rail');
     await openSignedIn(page, '/settings');
     const rail = page.getByTestId('console-rail');
     await expect(rail.getByText('Restaurant partner')).toHaveCount(0);
