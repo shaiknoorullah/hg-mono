@@ -395,7 +395,7 @@ export function karahiApp(c: Ctx, over: Json = {}): Json {
       display_name: 'Karahi House',
       account_state: 'PENDING',
       onboarding_state: 'DOCUMENTS_REVIEW',
-      address: { ...b.profile.address, line1: '3025 Kennedy Road', line2: 'Unit 4', city: 'Scarborough', province: 'ON', postal_code: 'M1V 1S3' },
+      address: { ...b.profile.address, line1: '3025 Kennedy Rd', line2: 'Unit 4', city: 'Toronto', province: 'ON', postal_code: 'M1V 1S3' },
       halal: { display_state: 'UNVERIFIED', certifying_body_name: null, expires_on: null },
     },
     documents: reviewDocs(),

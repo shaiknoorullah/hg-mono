@@ -2114,27 +2114,37 @@ def _admin_orders(reg, synth) -> None:
                             chargeback, customer_order, order_admin_view)
     from world import halal_badge
 
-    halal_by_state = {"CANCELLED": "EXPIRING_SOON", "REJECTED": "EXPIRED", "FAILED": "UNVERIFIED"}
+    from content import BOARD_ADMIN_ORDERS
+    from dom_orders import board_restaurant
+
     rows = []
     for state in ORDER_STATES:
         order = customer_order(state, label=f"admin-list-{state.lower()}")
         order["code"] = customer_order(state)["code"]
         row = _summary(order)
         row["id"] = uuid_for(f"order:{state.lower()}")
-        if state in halal_by_state:
-            row["restaurant"]["halal"] = halal_badge(halal_by_state[state])
-        if state == "RESOLVED":
-            row["restaurant"].pop("halal", None)
+        # The orders the admin boards list (`BOARD_ADMIN_ORDERS`): the same row, with the board's
+        # code, restaurant, items, total and time. A deadline only where the board counts one down.
+        code, restaurant, halal, count, names, total, placed, secs = BOARD_ADMIN_ORDERS[state]
+        row.update(
+            code=code,
+            restaurant=board_restaurant(row["restaurant"], restaurant, halal),
+            item_count=count,
+            first_item_names=names,
+            total_cents=total,
+            placed_at=placed,
+        )
+        if secs is not None:
+            row["deadline_at"] = ts(secs)
         rows.append(row)
     reg.add(
         "order_admin_list_every_state",
         "orders",
         "array<OrderSummary>",
-        "`listOrdersAdmin` with one order in each of the 14 `OrderState` values. The "
-        "restaurants' halal badges cover all four `HalalDisplayState` values (cancelled: "
-        "expiring soon, rejected: expired, failed: unverified) and the resolved order's "
-        "restaurant has no `halal` object at all: no badge, never an optimistic one, and "
-        "never red.",
+        "`listOrdersAdmin` with one order in each of the 14 `OrderState` values, the orders "
+        "the admin boards list. The restaurants' halal badges cover all four "
+        "`HalalDisplayState` values (the ready and failed orders' restaurants have no `halal` "
+        "object at all: no badge, never an optimistic one, and never red).",
         rows,
         operations=["listOrdersAdmin"],
         meta={"next_cursor": None, "has_more": False, "total": len(rows)},
