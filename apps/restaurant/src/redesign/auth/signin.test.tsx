@@ -195,7 +195,7 @@ describe('sign in · refusals (branch on error.code)', () => {
     const signInButton = screen.getByRole('button', { name: 'Sign in' });
     expect(signInButton.getAttribute('aria-disabled')).toBe('true');
     expect(signInButton.getAttribute('aria-describedby')).toBe('wait-reason');
-    expect(screen.getByRole('timer').textContent).toMatch(/^1[45]:\d\d$/);
+    expect(screen.getByRole('timer').querySelector('[data-wait-time]')!.textContent).toMatch(/^1[45]:\d\d$/);
     expect((screen.getByLabelText(/^Password/) as HTMLInputElement).value).toBe('');
     expect(screen.getByText(/^Partner support:/)).toBeTruthy();
   });

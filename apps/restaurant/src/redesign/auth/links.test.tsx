@@ -48,7 +48,7 @@ describe('check your email', () => {
     const button = screen.getByRole('button', { name: 'Send a new link' });
     expect(button.getAttribute('aria-disabled')).toBe('true');
     expect(button.getAttribute('aria-describedby')).toBe('wait-reason');
-    expect(document.getElementById('wait-reason')!.textContent).toBe('You can send another in 1:00');
+    expect(document.getElementById('wait-reason')!.textContent).toBe('You can send another in 1:00until you can try again');
   });
 
   it('DailyLimit: a 429 whose Retry-After is over a minute is the daily limit', async () => {
