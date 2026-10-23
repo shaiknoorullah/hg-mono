@@ -31,7 +31,7 @@ export interface MenuProps {
   triggerLabel?: string;
   items: readonly MenuItemDef[];
   align?: 'start' | 'end';
-  variant?: 'tonal' | 'plain' | 'chrome';
+  variant?: 'tonal' | 'plain' | 'chrome' | 'outline';
   disabled?: boolean;
   className?: string;
   testId?: string;
@@ -43,6 +43,8 @@ export interface MenuProps {
 const TRIGGER = {
   tonal: 'bg-surface-subtle text-fg-primary border border-line-interactive',
   plain: 'bg-transparent text-fg-primary',
+  /** Bordered, no fill: the setup top bar's account email. */
+  outline: 'bg-transparent text-fg-primary border border-line-interactive',
   chrome: 'bg-transparent text-fg-on-accent border border-transparent',
 } as const;
 

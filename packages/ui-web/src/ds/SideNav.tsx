@@ -222,13 +222,13 @@ export function SideNav({
       style={!collapsed && expandedWidth !== undefined ? { width: expandedWidth, ...style } : style}
     >
       {top || (header && !collapsed) ? (
-        <SidebarHeader className={cn(collapsed && 'items-center px-2')}>
+        <SidebarHeader className={cn(collapsed && 'items-center px-2 pb-2')}>
           {top}
           {header && !collapsed ? <div className="text-body-sm">{header}</div> : null}
         </SidebarHeader>
       ) : null}
 
-      <SidebarContent id={listId} className={cn(collapsed && 'px-0.5')}>
+      <SidebarContent id={listId}>
         {groups.map((group, index) => {
           const groupLabel = group.label ?? group.heading;
           return (
@@ -255,7 +255,7 @@ export function SideNav({
                 const content = (
                   <>
                     {glyph(item.icon, active)}
-                    <span className={cn('min-w-0', collapsed ? 'max-w-18 hyphens-auto [overflow-wrap:anywhere] leading-tight' : 'flex-1 truncate')}>{visible}</span>
+                    <span className={cn('min-w-0', collapsed ? 'max-w-18 hyphens-auto' : 'flex-1 truncate')}>{visible}</span>
                     {count}
                   </>
                 );

@@ -54,8 +54,17 @@ export function SetupTopBar({ businessName, onSignOut }: { businessName: string;
       <Menu
         label="Account"
         triggerLabel={email ? `Account menu, ${email}` : businessName ? `Account: ${businessName}` : 'Account'}
-        trigger={email ? <span className="text-body-md" data-testid="account-email">{email}</span> : <Icon name="profile" size={22} />}
-        variant="plain"
+        trigger={
+          email ? (
+            <span className="inline-flex items-center gap-1.5">
+              <span data-testid="account-email">{email}</span>
+              <Icon name="back" size={16} className="-rotate-90" />
+            </span>
+          ) : (
+            <Icon name="profile" size={22} />
+          )
+        }
+        variant={email ? 'outline' : 'plain'}
         align="end"
         items={[{ key: 'signout', label: 'Sign out', onSelect: onSignOut }]}
         testId="account-menu"

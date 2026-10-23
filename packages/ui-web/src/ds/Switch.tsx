@@ -83,7 +83,7 @@ export function Switch({
         <span
           id={stateId}
           aria-hidden="true"
-          className={cn('text-label-md font-semibold', checked ? 'text-fg-primary' : 'text-fg-secondary')}
+          className={cn('text-body-sm font-semibold leading-normal', checked ? 'text-fg-primary' : 'text-fg-secondary')}
         >
           {checked ? words.on : words.off}
         </span>

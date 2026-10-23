@@ -166,7 +166,7 @@ Same contract as `Input`. Adds `rows`, `autoGrow`, `maxLength` with a visible co
 
 **States.** Track `border.strong` off / `color.brand.600` on (3:1 track-vs-surface required, WCAG 1.4.11). `loading` = thumb spinner, switch stays in the **old** position until the server confirms — an optimistic switch that snaps back is the single worst pattern for a rider toggling offline.
 
-**Accessibility.** `role="switch"` + `aria-checked`. On/off state is never conveyed by thumb position alone: the row carries a text state ("Online" / "Offline"). Rider going offline while `ON_DELIVERY` is rejected server-side (`409 ACTIVE_DELIVERY_IN_PROGRESS`) — the switch reverts and a `Toast` explains, offering `go_offline_after_delivery`.
+**Accessibility.** `role="switch"` + `aria-checked`. The state word is 13 px bold in the primary ink when on and the secondary ink when off (the restaurant boards' "Accepting orders"). On/off state is never conveyed by thumb position alone: the row carries a text state ("Online" / "Offline"). Rider going offline while `ON_DELIVERY` is rejected server-side (`409 ACTIVE_DELIVERY_IN_PROGRESS`) — the switch reverts and a `Toast` explains, offering `go_offline_after_delivery`.
 
 ---
 

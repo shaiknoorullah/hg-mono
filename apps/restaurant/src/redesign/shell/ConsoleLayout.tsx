@@ -203,10 +203,8 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
               header="Restaurant partner"
               footer={railFooter}
               brand={<RailBrand collapsed={!expanded} />}
-              collapseLabel="Collapse navigation"
               collapseText="Collapse"
               toggleEmphasis="outline"
-              expandLabel="Expand navigation"
               onToggleCollapsed={
                 isDesktop && !anyPanelOpen
                   ? (collapsed) => {
@@ -234,7 +232,7 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
                 {compactFrame ? <ServiceBadges /> : null}
                 <Menu
                   label="Account"
-                  triggerLabel={ownerName ? `Account: ${ownerName}, owner` : 'Account'}
+                  triggerLabel="Account menu"
                   trigger={<Icon name="profile" size={22} />}
                   variant="plain"
                   align="end"

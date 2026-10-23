@@ -13,7 +13,7 @@ import { pinCheckedIn } from './redesign-restaurant.support';
  * icons) whenever nothing is open beside the page. The app opens with the rail collapsed to icons,
  * the same state the live orders boards draw (their `nav` setting defaults to "collapsed"), and keeps
  * the owner's choice; a board drawn expanded is a different state of the same screen, so the capture
- * puts the app in it by pressing the rail's own "Expand navigation" button, as the owner would. Where the
+ * puts the app in it by pressing the rail's own "Expand menu" button, as the owner would. Where the
  * board draws the rail collapsed, which is every board with a panel open, the app has already
  * collapsed it and withdrawn the button, so nothing is pressed. See https://github.com/shaiknoorullah/hg-mono/issues/967.
  */

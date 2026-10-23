@@ -1,10 +1,12 @@
 ---
 covers:
   - apps/restaurant/src/**
-reviewed: 2026-10-16
+reviewed: 2026-10-23
 ---
 
 # Restaurant app — live updates and rider map
+
+> Update 2026-10-23: while orders wait, the service status bar shows a "Ringing · N waiting" link to the new-orders strip, from the strip's own count; the screen-health and open-state badges use the design system's own badge.
 
 > Update 2026-10-16: the settings upload sheets for the other documents (food safety, business
 > licence, owner ID) and the halal renewal panel mount the onboarding provider, so a document
