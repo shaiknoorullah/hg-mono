@@ -16,6 +16,7 @@
 import { createServer } from 'node:http';
 import cors from 'cors';
 import express, { type NextFunction, type Request, type Response } from 'express';
+import { planDirective, statusBody } from './directives.js';
 import { FixtureStore } from './fixtures.js';
 import { loadRoutes, matchRoute, type Route } from './routes.js';
 import { attachRealtime } from './ws.js';
@@ -134,6 +135,7 @@ app.get('/__mock/health', (_req, res) => {
       operations: routes.length,
       base_path: basePath,
       websocket: WS_PATH,
+      frozen_clock: store.manifest.frozen_clock ?? null,
     },
   });
 });
@@ -162,6 +164,9 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
   res.set('X-Mock-Operation-Id', route.operationId);
   res.set('X-Mock-Contract-Version', route.version);
+  // The instant every fixture timestamp is relative to, so a client can put its own clock there
+  // and a countdown or an "expires in 200 days" reads the way the fixtures were written.
+  if (store.manifest.frozen_clock) res.set('X-Mock-Frozen-Clock', store.manifest.frozen_clock);
 
   // Idempotency-Key is `required: true` on every money-mutating and durable-creating
   // operation, so a client that omits it must fail here rather than in production.
@@ -178,6 +183,36 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   }
 
   const requested = requestedScenario(req);
+
+  // Injection directives (`getOrder=@stall`). Nothing here runs unless the request asked for it.
+  const plan = planDirective(route.operationId, requested);
+  let delayMs = 0;
+  if (plan.kind === 'invalid') {
+    res.status(400).json(errorEnvelope('VALIDATION_FAILED', plan.message));
+    return;
+  }
+  if (plan.kind === 'directive') {
+    const { directive } = plan;
+    log(`${route.operationId}: @${directive.kind}${'ms' in directive ? `=${directive.ms}` : ''}${'status' in directive ? `=${directive.status}` : ''}`);
+    if (directive.kind === 'stall') {
+      // Never answered. The socket stays open until the client gives up.
+      return;
+    }
+    if (directive.kind === 'reset') {
+      req.socket.destroy();
+      return;
+    }
+    if (directive.kind === 'status') {
+      const { body, scenario } = statusBody(store, route.operationId, directive.status, ulid());
+      res.set('X-Mock-Directive', `status=${directive.status}`);
+      if (scenario) res.set('X-Mock-Scenario', scenario);
+      res.status(directive.status).json(body);
+      return;
+    }
+    delayMs = directive.ms;
+    res.set('X-Mock-Directive', `delay=${directive.ms}`);
+  }
+
   const { fixture, source, warning } = store.resolve(route.operationId, requested);
   // A diagnostic must never take down the response it is diagnosing. Header values
   // are latin-1 only, so one typographic dash in a warning string threw
@@ -243,7 +278,8 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     res.status(status).json(body);
   };
 
-  if (LATENCY_MS > 0) setTimeout(respond, LATENCY_MS);
+  const wait = LATENCY_MS + delayMs;
+  if (wait > 0) setTimeout(respond, wait);
   else respond();
 });
 

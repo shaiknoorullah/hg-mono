@@ -151,19 +151,20 @@ export class FixtureStore {
       };
     }
     if (request) {
+      // `@stall`, `@delay=..` and the like are injection directives (directives.ts), not names.
       const unknown = [...request.byOperation.values(), ...request.bare].filter(
-        (name) => !this.byScenario.has(name),
+        (name) => !name.startsWith('@') && !this.byScenario.has(name),
       );
       const warning = unknown.length
         ? `unknown scenario ${unknown.map((name) => `\`${name}\``).join(', ')} - see GET /__mock/scenarios`
         : undefined;
       const paired = request.byOperation.get(operationId);
-      if (paired !== undefined) {
+      if (paired !== undefined && !paired.startsWith('@')) {
         const fixture = this.byScenario.get(paired);
         return fixture ? { fixture, source: 'scenario', warning } : { source: 'none', warning };
       }
       const candidates = this.byOperation.get(operationId) ?? [];
-      const matched = request.bare.find((name) => candidates.includes(name));
+      const matched = request.bare.find((name) => !name.startsWith('@') && candidates.includes(name));
       if (matched) return { fixture: this.byScenario.get(matched), source: 'scenario', warning };
       const fallback = this.defaultFor(operationId);
       if (!fallback) return { source: 'none', warning };

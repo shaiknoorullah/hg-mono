@@ -262,7 +262,7 @@ was. They sign in once per persona per worker (sign-in is rate-limited per accou
 world without them (the CI seed world); the suspended one opens the editor and saves nothing.
 In mock mode the spec answers the hours `PUT` and the availability `PATCH` with `page.route`,
 echoing what was sent, because the mock forgets every write.
-The settings capture for a pause until closing still reads the time, because the Settings Orders card does not use `pause_kind` yet ([#989](https://github.com/shaiknoorullah/hg-mono/issues/989)).
+The settings capture for a pause until closing still reads the time, because the Settings Orders card does not use `pause_kind` yet ([#989](https://github.com/shaiknoorullah/hg-mono/issues/989)). Spec text and labels follow the boards' copy, so a field is found by its role and name (`getByRole('textbox', { name: 'Owner first name' })`), not `getByLabel`, which also matches the account menu's `aria-label`.
 
 **Run it locally:**
 
@@ -354,7 +354,7 @@ board by that name, and judges it (a web capture pixel by pixel, a native one by
   The customer boards that no flow captures, each with its reason, are in
   [`native/customer-boards.mjs`](native/customer-boards.mjs); `pnpm e2e:boards:check` fails on a capture named for a
   board that does not exist, and (with `origin/claude/redesign-canvases` fetched) on a board that is neither captured nor
-  given a reason. A new flow screenshot of a board's screen should be named for it; a screen with no board stays unnamed. The seven App settings boards are built but unpaired: the location states are the phone's permission, which no flow sets before it captures.
+  given a reason. A board can also be listed in [`native/boards/<app>.json`](native/boards) (an empty list for now): the boards the capture entry will open against the mock ([issue 1141](https://github.com/shaiknoorullah/hg-mono/issues/1141)). A board is captured by a flow, listed, or unpairable, never two of them, and a listed board must exist. A new flow screenshot of a board's screen should be named for it; a screen with no board stays unnamed. The seven App settings boards are built but unpaired: the location states are the phone's permission, which no flow sets before it captures.
 
   **The rider app is measured the same way.** The rider redesign flows (`native/rider/redesign/`, and `lab/`)
   call the same `design-capture.yaml` at every screen that has a board: 70 of the rider's 652 boards
