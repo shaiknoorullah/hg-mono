@@ -94,6 +94,8 @@ describe('console shell', () => {
     await renderRedesign('/orders/history');
     expect(await screen.findByTestId('status-bar')).toBeTruthy();
     expect(screen.queryByTestId('service-badges')).toBeNull();
+  });
+
   it('draws the rail header and footer on the expanded rail only', async () => {
     installFakeApi(consoleRoutes());
     localStorage.setItem('hg_restaurant_rail_expanded_v1', '1');
