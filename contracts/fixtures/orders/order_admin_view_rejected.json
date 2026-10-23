@@ -13,20 +13,20 @@
   ],
   "payload": {
     "id": "19852393-9845-48a5-a46d-37fc07a822d9",
-    "code": "HG-REED-8X",
+    "code": "HG-4T7MXB",
     "state": "REJECTED",
     "state_since": "2026-08-10T18:40:41.412Z",
     "deadline_at": null,
     "server_time": "2026-08-10T18:42:11.412Z",
     "quote_id": "8329e462-3e88-4e0b-aba8-441733b8e95e",
     "restaurant": {
-      "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
-      "name": "Karachi Kitchen",
+      "id": "f0bb7864-43b7-4db7-a212-e5b8e2031dad",
+      "name": "Anatolia Kebab House",
       "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
       "halal": {
-        "display_state": "CERTIFIED",
+        "display_state": "EXPIRING_SOON",
         "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
-        "expires_on": "2027-03-09"
+        "expires_on": "2026-08-28"
       }
     },
     "lines": [

@@ -1508,6 +1508,41 @@ def _restaurant_owned_menu(reg) -> None:
     )
 
 
+# The payouts the restaurant boards draw (restaurant/payouts `PartPayoutTable` and
+# `PartPayoutDetail`): seven weeks, one in each state, the open week starting Monday 14 September
+# 2026. (id suffix, Monday of the week, state, amount in cents, orders in it, paid on)
+BOARD_PAYOUTS = [
+    (7, "2026-09-14", "DRAFT", 186450, 58, None),
+    (6, "2026-09-07", "READY", 289400, 126, None),
+    (5, "2026-08-31", "TRANSFERRING", 412300, 184, None),
+    (4, "2026-08-24", "TRANSFERRED", 338700, 151, None),
+    (3, "2026-08-17", "HELD", 305100, 147, None),
+    (2, "2026-08-10", "FAILED", 297800, 143, None),
+    (1, "2026-08-03", "PAID", 281200, 139, "2026-08-11"),
+]
+# The one older week the boards' "end of the list" shows, after the first seven.
+BOARD_OLDER_PAYOUT = (0, "2026-07-27", "PAID", 264900, 131, "2026-08-04")
+
+
+def board_payout(suffix: int, monday: str, state: str, cents: int, orders: int, paid_on) -> dict:
+    # A Toronto week runs from Monday 00:00 (04:00 UTC in summer) for seven days.
+    start = dt.datetime.fromisoformat(monday).replace(hour=4, tzinfo=dt.timezone.utc)
+    end = start + dt.timedelta(days=7)
+    return {
+        "id": f"0192f1c0-11aa-7e00-8b10-{suffix:012d}",
+        "period_start": _iso(start),
+        "period_end": _iso(end),
+        "amount_cents": cents,
+        "currency": "CAD",
+        "state": state,
+        "hold_reason": "Held while HalalGoes reviews a disputed order from this period." if state == "HELD" else None,
+        "entry_count": orders,
+        # Paid into the bank at 9:00 am Toronto on the day the board gives.
+        "paid_at": f"{paid_on}T13:00:00.000Z" if paid_on else None,
+        "failure_message": "The bank returned the transfer." if state == "FAILED" else None,
+    }
+
+
 def _restaurant_payouts(reg) -> None:
     def payout(label, state, weeks_ago, amount, entries):
         row = _payout(f"restaurant:{label}", state, weeks_ago, amount, entries)
@@ -1515,15 +1550,7 @@ def _restaurant_payouts(reg) -> None:
             row["hold_reason"] = "Payouts are paused while Stripe checks the business details."
         return row
 
-    every = [payout(*row) for row in [
-        ("every-draft", "DRAFT", 0, 0, 0),
-        ("every-ready", "READY", 1, 184250, 61),
-        ("every-transferring", "TRANSFERRING", 2, 201475, 67),
-        ("every-transferred", "TRANSFERRED", 3, 176830, 58),
-        ("every-held", "HELD", 4, 193115, 64),
-        ("every-failed", "FAILED", 5, 168940, 55),
-        ("every-paid", "PAID", 6, 188320, 62),
-    ]]
+    every = [board_payout(*row) for row in BOARD_PAYOUTS]
     reg.add(
         "restaurant_payout_history_every_state",
         "rider",
@@ -2087,27 +2114,37 @@ def _admin_orders(reg, synth) -> None:
                             chargeback, customer_order, order_admin_view)
     from world import halal_badge
 
-    halal_by_state = {"CANCELLED": "EXPIRING_SOON", "REJECTED": "EXPIRED", "FAILED": "UNVERIFIED"}
+    from content import BOARD_ADMIN_ORDERS
+    from dom_orders import board_restaurant
+
     rows = []
     for state in ORDER_STATES:
         order = customer_order(state, label=f"admin-list-{state.lower()}")
         order["code"] = customer_order(state)["code"]
         row = _summary(order)
         row["id"] = uuid_for(f"order:{state.lower()}")
-        if state in halal_by_state:
-            row["restaurant"]["halal"] = halal_badge(halal_by_state[state])
-        if state == "RESOLVED":
-            row["restaurant"].pop("halal", None)
+        # The orders the admin boards list (`BOARD_ADMIN_ORDERS`): the same row, with the board's
+        # code, restaurant, items, total and time. A deadline only where the board counts one down.
+        code, restaurant, halal, count, names, total, placed, secs = BOARD_ADMIN_ORDERS[state]
+        row.update(
+            code=code,
+            restaurant=board_restaurant(row["restaurant"], restaurant, halal),
+            item_count=count,
+            first_item_names=names,
+            total_cents=total,
+            placed_at=placed,
+        )
+        if secs is not None:
+            row["deadline_at"] = ts(secs)
         rows.append(row)
     reg.add(
         "order_admin_list_every_state",
         "orders",
         "array<OrderSummary>",
-        "`listOrdersAdmin` with one order in each of the 14 `OrderState` values. The "
-        "restaurants' halal badges cover all four `HalalDisplayState` values (cancelled: "
-        "expiring soon, rejected: expired, failed: unverified) and the resolved order's "
-        "restaurant has no `halal` object at all: no badge, never an optimistic one, and "
-        "never red.",
+        "`listOrdersAdmin` with one order in each of the 14 `OrderState` values, the orders "
+        "the admin boards list. The restaurants' halal badges cover all four "
+        "`HalalDisplayState` values (the ready and failed orders' restaurants have no `halal` "
+        "object at all: no badge, never an optimistic one, and never red).",
         rows,
         operations=["listOrdersAdmin"],
         meta={"next_cursor": None, "has_more": False, "total": len(rows)},

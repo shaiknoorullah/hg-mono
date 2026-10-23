@@ -23,7 +23,7 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { resolveBrowser } from './browser.mjs';
 import { referenceFrame } from './capture-size.mjs';
-import { hideNotes, settle, snapshotLayout, surfaceOfImages } from './page-scripts.mjs';
+import { hideNotes, noteTag, settle, snapshotLayout, surfaceOfImages } from './page-scripts.mjs';
 import { TOKENS, WORDMARK_UPLOADS, wordmarkSvg } from './wordmark.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -47,7 +47,7 @@ const NOTE_CLASSES = ['gap-tag', 'api-tag', 'api-box', 'oq-tag', 'anno-tag', 'hg
 const NOTE_PREFIXES = [
   'Needs design-system fix', 'Open conflict for the owner', 'Later-version features are out', 'Contract to confirm',
   'Design-system issue', 'Proposed component', 'Not for approval', 'DS change logged', 'Proposed variant', 'Spec payout rule',
-  'Contract change', 'DS fix recorded', 'Annotation only', 'Needs decision', 'Owner decision', 'Contract today', 'Component gap',
+  'Contract change', 'DS fix recorded', 'Annotation only', 'Mapping', 'Needs decision', 'Owner decision', 'Contract today', 'Component gap',
   'Needs content', 'Open question', 'Specimen only', 'Later version', 'Needs asset', 'Annotation', 'Copy rule', 'Needs API', 'DS issue',
 ];
 // …and words real copy may open with too, a note only when set like one (mono, dashed):
@@ -180,7 +180,7 @@ async function render(browser, base, job, out, wordmarks) {
     });
     await page.goto(base + job.url, { waitUntil: 'networkidle', timeout: 45_000 });
     if (!(await within(page.evaluate(settle, { quietMs: 400, maxMs: 10_000 }), 30_000, 'settle'))) rec.errors.push('still changing after 10 s');
-    rec.notes = await page.evaluate(hideNotes, { classes: NOTE_CLASSES, prefixes: NOTE_PREFIXES, weakPrefixes: NOTE_WEAK_PREFIXES, apiWords: NOTE_API_WORDS });
+    rec.notes = await page.evaluate(hideNotes, { classes: NOTE_CLASSES, prefixes: NOTE_PREFIXES, weakPrefixes: NOTE_WEAK_PREFIXES, apiWords: NOTE_API_WORDS, tagTest: String(noteTag) });
     await within(page.evaluate(settle, { quietMs: 150, maxMs: 3_000 }), 30_000, 'settle');
     if (!rec.theme) {
       const t = await page.evaluate(() => document.querySelector('[data-theme]')?.getAttribute('data-theme'));

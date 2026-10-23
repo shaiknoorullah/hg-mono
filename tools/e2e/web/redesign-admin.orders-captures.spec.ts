@@ -109,8 +109,51 @@ async function capture(page: Page, board: BoardFor, { idle = true }: { idle?: bo
 const scrollToEnd = (page: Page) => page.locator('div.h-px[aria-hidden="true"]').first().scrollIntoViewIfNeeded();
 
 const EVERY_STATE = fixture('order_admin_list_every_state');
-const DISPUTED_PAGES = async (route: Route, cursor: string | null) =>
-  serve(route, cursor ? 'order_admin_list_disputed_page_2' : 'order_admin_list_disputed_page_1');
+/**
+ * The open disputes the disputes boards list (`OrdersGrid`): four on the first page and, on the boards
+ * that load the rest, two more behind it. [code, restaurant, halal state, items, first two item names,
+ * total in cents, placed at (UTC), seconds to the dispute deadline]. The fixtures' disputed pages are 20 and 7
+ * generated rows, which unit tests count; the captures take the boards' rows in the same shape.
+ */
+type Dispute = [string, string, string | null, number, string[], number, string, number];
+const DISPUTES_FIRST: Dispute[] = [
+  ['HG-9KD2WA', 'Zaytoun Grill', 'CERTIFIED', 1, ['Mixed grill platter'], 1749, '2026-09-28T20:12:00.000Z', 150000],
+  ['HG-3KX7PB', 'Lahori Tandoor', 'CERTIFIED', 3, ['Chicken karahi', 'Naan'], 3874, '2026-09-28T01:03:00.000Z', 88000],
+  ['HG-8PW3KC', 'Sham Shawarma', null, 2, ['Chicken shawarma plate', 'Hummus'], 2450, '2026-09-27T16:30:00.000Z', 41000],
+  ['HG-6MH2QD', 'Anatolia Kebab House', 'EXPIRING_SOON', 1, ['Adana kebab plate'], 2199, '2026-09-26T22:47:00.000Z', 9000],
+];
+const DISPUTES_SECOND: Dispute[] = [
+  ['HG-5KR2VE', 'Bismillah Kitchen', 'UNVERIFIED', 2, ['Haleem', 'Naan'], 2240, '2026-09-26T17:05:00.000Z', 120000],
+  ['HG-1QZ9TA', 'Mandi Express', 'EXPIRED', 1, ['Lamb mandi'], 3299, '2026-09-25T23:40:00.000Z', 16000],
+];
+const HALAL_BODY = 'Halal Monitoring Authority (HMA Canada)';
+
+/** `paged`: the first four have two more behind them; otherwise those four are every open dispute. */
+async function boardDisputes(route: Route, cursor: string | null, paged = false): Promise<void> {
+  const response = await route.fetch({ headers: { ...route.request().headers(), 'x-mock-scenario': 'order_admin_list_disputed_page_1' } });
+  const body = (await response.json()) as { data: Record<string, any>[]; meta?: Record<string, unknown> };
+  const rows = cursor ? DISPUTES_SECOND : DISPUTES_FIRST;
+  const data = rows.map(([code, name, halal, count, names, total, placed, secs], i) => ({
+    ...body.data[0],
+    id: `0192b1c0-0000-7000-8000-${String(cursor ? 100 + i : i + 1).padStart(12, '0')}`,
+    code,
+    restaurant: {
+      id: `0192b1c0-0000-7000-8000-${String(900 + code.charCodeAt(4)).padStart(12, '0')}`,
+      name,
+      logo_image_url: body.data[0]!.restaurant.logo_image_url,
+      ...(halal ? { halal: { display_state: halal, certifying_body_name: halal === 'UNVERIFIED' ? null : HALAL_BODY, expires_on: halal === 'UNVERIFIED' ? null : '2027-03-09' } } : {}),
+    },
+    item_count: count,
+    first_item_names: names,
+    total_cents: total,
+    placed_at: placed,
+    deadline_at: new Date(FROZEN_CLOCK.getTime() + secs * 1000).toISOString(),
+  }));
+  const more = paged && !cursor;
+  await route.fulfill({ response, json: { ...body, data, meta: { ...body.meta, next_cursor: more ? 'board-second-page' : null, has_more: more, total: null } } });
+}
+const DISPUTED_PAGES = (route: Route, cursor: string | null) => boardDisputes(route, cursor);
+const DISPUTED_FIRST_OF_TWO = (route: Route, cursor: string | null) => boardDisputes(route, cursor, true);
 const EMPTY = (route: Route) => route.fulfill({ json: { data: [], meta: { next_cursor: null, has_more: false } } });
 const FAILS = (route: Route) => serve(route, 'error_internal_error');
 const SESSION_ENDED = (route: Route) => serve(route, 'error_session_expired');
@@ -303,13 +346,13 @@ test.describe('redesigned admin · disputes list (mock)', () => {
   });
 
   test('disputes, the rest are loading', async ({ page }) => {
-    await open(page, '#/disputes', { list: (route, cursor) => (cursor ? never() : serve(route, 'order_admin_list_disputed_page_1')) });
+    await open(page, '#/disputes', { list: (route, cursor) => (cursor ? never() : DISPUTED_FIRST_OF_TWO(route, cursor)) });
     await expect(page.getByText(/Loading the rest of the open disputes/)).toBeVisible();
     await capture(page, { 1440: `${OR}DisputesLoadingMore` }, { idle: false });
   });
 
   test('disputes, loading the rest failed', async ({ page }) => {
-    await open(page, '#/disputes', { list: (route, cursor) => (cursor ? serve(route, 'error_internal_error') : serve(route, 'order_admin_list_disputed_page_1')) });
+    await open(page, '#/disputes', { list: (route, cursor) => (cursor ? serve(route, 'error_internal_error') : DISPUTED_FIRST_OF_TWO(route, cursor)) });
     await expect(page.getByText(/aren’t in deadline order/)).toBeVisible();
     await capture(page, { 1440: `${OR}DisputesLoadMoreFailed` });
   });
@@ -338,7 +381,7 @@ test.describe('redesigned admin · disputes list (mock)', () => {
   test('disputes, session ended, list kept', async ({ page }) => {
     let ended = false;
     await open(page, '#/disputes', {
-      list: (route, cursor) => (ended ? SESSION_ENDED(route) : serve(route, cursor ? 'order_admin_list_disputed_page_2' : 'order_admin_list_disputed_page_1')),
+      list: (route, cursor) => (ended ? SESSION_ENDED(route) : DISPUTED_PAGES(route, cursor)),
     });
     await expect(page.getByText(/That’s every open dispute/)).toBeVisible();
     ended = true;

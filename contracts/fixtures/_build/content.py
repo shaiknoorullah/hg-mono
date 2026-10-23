@@ -727,6 +727,9 @@ class Content:
 BOARD_RESTAURANT_PROFILE = {
     "legal_name": "Zaytoun Grill Holdings Inc.",
     "display_name": "Zaytoun Grill",
+    "description": "Charcoal grills, shawarma and mezze from a family kitchen. Everything is cooked to order over real charcoal.",
+    "avg_prep_minutes": 20,
+    "delivery_radius_m": 7000,
     "owner_first_name": "Samir",
     "owner_last_name": "Haddad",
     "phone_e164": "+14165550134",
@@ -742,3 +745,33 @@ BOARD_RESTAURANT_PROFILE = {
         "longitude": -79.2972,
     },
 }
+
+
+# The orders the admin console's orders boards list (admin/orders `OrdersGrid`): one in each of the
+# 14 order states, set on the evening of 28 September 2026 (the times are Toronto, EDT).
+# state -> (code, restaurant, halal display state or None, item count, first two item names,
+#           total in cents, placed at in UTC, seconds to its deadline or None)
+BOARD_ADMIN_ORDERS = {
+    "CREATED": ("HG-8F3K2Q", "Zaytoun Grill", "CERTIFIED", 2, ["Chicken shawarma plate", "Garlic sauce"], 3150, "2026-09-28T22:52:00.000Z", 812),
+    "AUTHORIZED": ("HG-4WY6BR", "Lahori Tandoor", "CERTIFIED", 3, ["Chicken karahi", "Naan"], 3874, "2026-09-28T22:51:00.000Z", 40),
+    "RESTAURANT_PENDING": ("HG-3MW9FD", "Anatolia Kebab House", "EXPIRING_SOON", 1, ["Adana kebab plate"], 2199, "2026-09-28T22:50:00.000Z", 142),
+    "PREPARING": ("HG-6RN4KP", "Zaytoun Grill", "CERTIFIED", 2, ["Mixed grill platter", "Fattoush"], 4396, "2026-09-28T22:44:00.000Z", 1210),
+    "READY_FOR_PICKUP": ("HG-2PH6RC", "Sham Shawarma", None, 1, ["Beef shawarma wrap"], 1450, "2026-09-28T22:31:00.000Z", 95),
+    "PICKED_UP": ("HG-1CV7HS", "Lahori Tandoor", "CERTIFIED", 4, ["Nihari", "Seekh kebab"], 3620, "2026-09-28T22:22:00.000Z", 3900),
+    "ARRIVED": ("HG-0QA5GM", "Anatolia Kebab House", "EXPIRING_SOON", 3, ["Lahmacun", "Ayran"], 1880, "2026-09-28T22:15:00.000Z", 410),
+    "DELIVERED": ("HG-7XQ3NE", "Zaytoun Grill", "CERTIFIED", 2, ["Chicken shawarma plate", "Falafel wrap"], 2698, "2026-09-28T21:58:00.000Z", 70),
+    "COMPLETED": ("HG-5BZ8JT", "Mandi Express", "EXPIRED", 2, ["Lamb mandi", "Salad"], 4210, "2026-09-28T00:40:00.000Z", None),
+    "CANCELLED": ("HG-7DT1PZ", "Lahori Tandoor", "CERTIFIED", 1, ["Chicken biryani"], 1899, "2026-09-28T21:40:00.000Z", None),
+    "REJECTED": ("HG-4T7MXB", "Anatolia Kebab House", "EXPIRING_SOON", 2, ["Iskender", "Pide"], 3199, "2026-09-28T21:34:00.000Z", None),
+    "FAILED": ("HG-9TK3MA", "Sham Shawarma", None, 1, ["Chicken shawarma plate"], 1650, "2026-09-28T21:20:00.000Z", None),
+    "DISPUTED": ("HG-9KD2WA", "Zaytoun Grill", "CERTIFIED", 1, ["Mixed grill platter"], 1749, "2026-09-28T20:12:00.000Z", 150000),
+    "RESOLVED": ("HG-2GK9VN", "Bismillah Kitchen", "UNVERIFIED", 3, ["Haleem", "Naan"], 2240, "2026-09-26T23:05:00.000Z", None),
+}
+
+
+# The halal certificate the settings boards draw. They are set on 28 September 2026 and the
+# certificate they show runs to 12 November 2026; the reminder boards move its expiry to 28 October
+# (30 days out) and the expired board to 12 September. Dates are written out, not counted from the
+# fixtures' own clock, so a capture shows the board's text whatever day it runs.
+BOARD_HALAL_BODY = "HMA Canada"
+BOARD_HALAL_EXPIRY = {"CERTIFIED": "2026-11-12", "EXPIRING_SOON": "2026-10-28", "EXPIRED": "2026-09-12"}

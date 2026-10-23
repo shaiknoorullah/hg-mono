@@ -2,7 +2,7 @@
   "scenario": "order_admin_list_every_state",
   "domain": "orders",
   "schema": "array<OrderSummary>",
-  "describes": "`listOrdersAdmin` with one order in each of the 14 `OrderState` values. The restaurants' halal badges cover all four `HalalDisplayState` values (cancelled: expiring soon, rejected: expired, failed: unverified) and the resolved order's restaurant has no `halal` object at all: no badge, never an optimistic one, and never red.",
+  "describes": "`listOrdersAdmin` with one order in each of the 14 `OrderState` values, the orders the admin boards list. The restaurants' halal badges cover all four `HalalDisplayState` values (the ready and failed orders' restaurants have no `halal` object at all: no badge, never an optimistic one, and never red).",
   "operations": [
     "listOrdersAdmin"
   ],
@@ -21,11 +21,11 @@
   "payload": [
     {
       "id": "e3776764-8f8d-4a7f-a9c5-e0f888a86302",
-      "code": "HG-CRED-7X",
+      "code": "HG-8F3K2Q",
       "state": "CREATED",
       "restaurant": {
-        "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
-        "name": "Karachi Kitchen",
+        "id": "7e89a6c8-a842-44cb-a6f7-3af15ae6adfa",
+        "name": "Zaytoun Grill",
         "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
         "halal": {
           "display_state": "CERTIFIED",
@@ -33,23 +33,23 @@
           "expires_on": "2027-03-09"
         }
       },
-      "item_count": 3,
+      "item_count": 2,
       "first_item_names": [
-        "Chicken Biryani",
-        "Beef Nihari"
+        "Chicken shawarma plate",
+        "Garlic sauce"
       ],
-      "total_cents": 10684,
+      "total_cents": 3150,
       "currency": "CAD",
-      "placed_at": "2026-08-10T18:40:41.412Z",
-      "deadline_at": "2026-08-10T18:55:41.412Z"
+      "placed_at": "2026-09-28T22:52:00.000Z",
+      "deadline_at": "2026-08-10T18:55:43.412Z"
     },
     {
       "id": "21954fad-92ce-4c5d-ac11-69271e1a8e13",
-      "code": "HG-AUED-10X",
+      "code": "HG-4WY6BR",
       "state": "AUTHORIZED",
       "restaurant": {
-        "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
-        "name": "Karachi Kitchen",
+        "id": "1d02ed4c-99cb-4f56-a890-405e957bf601",
+        "name": "Lahori Tandoor",
         "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
         "halal": {
           "display_state": "CERTIFIED",
@@ -59,45 +59,44 @@
       },
       "item_count": 3,
       "first_item_names": [
-        "Chicken Biryani",
-        "Beef Nihari"
+        "Chicken karahi",
+        "Naan"
       ],
-      "total_cents": 10684,
+      "total_cents": 3874,
       "currency": "CAD",
-      "placed_at": "2026-08-10T18:10:11.412Z",
-      "deadline_at": "2026-08-10T18:55:11.412Z"
+      "placed_at": "2026-09-28T22:51:00.000Z",
+      "deadline_at": "2026-08-10T18:42:51.412Z"
     },
     {
       "id": "face3cd1-a4e2-4dbe-ab64-2b3ebe4953d0",
-      "code": "HG-RENG-18X",
+      "code": "HG-3MW9FD",
       "state": "RESTAURANT_PENDING",
       "restaurant": {
-        "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
-        "name": "Karachi Kitchen",
+        "id": "f0bb7864-43b7-4db7-a212-e5b8e2031dad",
+        "name": "Anatolia Kebab House",
         "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
         "halal": {
-          "display_state": "CERTIFIED",
+          "display_state": "EXPIRING_SOON",
           "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
-          "expires_on": "2027-03-09"
+          "expires_on": "2026-08-28"
         }
       },
-      "item_count": 3,
+      "item_count": 1,
       "first_item_names": [
-        "Chicken Biryani",
-        "Beef Nihari"
+        "Adana kebab plate"
       ],
-      "total_cents": 10684,
+      "total_cents": 2199,
       "currency": "CAD",
-      "placed_at": "2026-08-10T18:10:11.412Z",
-      "deadline_at": "2026-08-10T18:44:31.412Z"
+      "placed_at": "2026-09-28T22:50:00.000Z",
+      "deadline_at": "2026-08-10T18:44:33.412Z"
     },
     {
       "id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
-      "code": "HG-4K2M-9T",
+      "code": "HG-6RN4KP",
       "state": "PREPARING",
       "restaurant": {
-        "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
-        "name": "Karachi Kitchen",
+        "id": "7e89a6c8-a842-44cb-a6f7-3af15ae6adfa",
+        "name": "Zaytoun Grill",
         "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
         "halal": {
           "display_state": "CERTIFIED",
@@ -105,47 +104,41 @@
           "expires_on": "2027-03-09"
         }
       },
-      "item_count": 3,
+      "item_count": 2,
       "first_item_names": [
-        "Chicken Biryani",
-        "Beef Nihari"
+        "Mixed grill platter",
+        "Fattoush"
       ],
-      "total_cents": 10684,
+      "total_cents": 4396,
       "currency": "CAD",
-      "placed_at": "2026-08-10T18:10:11.412Z",
-      "deadline_at": "2026-08-10T18:51:11.412Z"
+      "placed_at": "2026-09-28T22:44:00.000Z",
+      "deadline_at": "2026-08-10T19:02:21.412Z"
     },
     {
       "id": "b0def6df-be67-49a5-aaa1-e81420a22abd",
-      "code": "HG-REUP-16X",
+      "code": "HG-2PH6RC",
       "state": "READY_FOR_PICKUP",
       "restaurant": {
-        "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
-        "name": "Karachi Kitchen",
-        "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
-        "halal": {
-          "display_state": "CERTIFIED",
-          "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
-          "expires_on": "2027-03-09"
-        }
+        "id": "90d3b35b-4eaf-42a1-a279-a0ea87e0b6e3",
+        "name": "Sham Shawarma",
+        "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp"
       },
-      "item_count": 3,
+      "item_count": 1,
       "first_item_names": [
-        "Chicken Biryani",
-        "Beef Nihari"
+        "Beef shawarma wrap"
       ],
-      "total_cents": 10684,
+      "total_cents": 1450,
       "currency": "CAD",
-      "placed_at": "2026-08-10T18:10:11.412Z",
-      "deadline_at": "2026-08-10T18:48:11.412Z"
+      "placed_at": "2026-09-28T22:31:00.000Z",
+      "deadline_at": "2026-08-10T18:43:46.412Z"
     },
     {
       "id": "abbb948c-d80a-4a97-a5e6-cf2528dfe677",
-      "code": "HG-PIUP-9X",
+      "code": "HG-1CV7HS",
       "state": "PICKED_UP",
       "restaurant": {
-        "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
-        "name": "Karachi Kitchen",
+        "id": "1d02ed4c-99cb-4f56-a890-405e957bf601",
+        "name": "Lahori Tandoor",
         "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
         "halal": {
           "display_state": "CERTIFIED",
@@ -153,95 +146,23 @@
           "expires_on": "2027-03-09"
         }
       },
-      "item_count": 3,
+      "item_count": 4,
       "first_item_names": [
-        "Chicken Biryani",
-        "Beef Nihari"
+        "Nihari",
+        "Seekh kebab"
       ],
-      "total_cents": 10684,
+      "total_cents": 3620,
       "currency": "CAD",
-      "placed_at": "2026-08-10T18:10:11.412Z",
-      "deadline_at": "2026-08-10T18:55:11.412Z"
+      "placed_at": "2026-09-28T22:22:00.000Z",
+      "deadline_at": "2026-08-10T19:47:11.412Z"
     },
     {
       "id": "bee5aa2f-f2c8-4daa-a537-43bd6aab45e6",
-      "code": "HG-ARED-7X",
+      "code": "HG-0QA5GM",
       "state": "ARRIVED",
       "restaurant": {
-        "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
-        "name": "Karachi Kitchen",
-        "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
-        "halal": {
-          "display_state": "CERTIFIED",
-          "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
-          "expires_on": "2027-03-09"
-        }
-      },
-      "item_count": 3,
-      "first_item_names": [
-        "Chicken Biryani",
-        "Beef Nihari"
-      ],
-      "total_cents": 10684,
-      "currency": "CAD",
-      "placed_at": "2026-08-10T18:10:11.412Z",
-      "deadline_at": "2026-08-10T18:46:11.412Z"
-    },
-    {
-      "id": "86e927df-0e4c-41b4-a4da-74b86551a63a",
-      "code": "HG-DEED-9X",
-      "state": "DELIVERED",
-      "restaurant": {
-        "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
-        "name": "Karachi Kitchen",
-        "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
-        "halal": {
-          "display_state": "CERTIFIED",
-          "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
-          "expires_on": "2027-03-09"
-        }
-      },
-      "item_count": 3,
-      "first_item_names": [
-        "Chicken Biryani",
-        "Beef Nihari"
-      ],
-      "total_cents": 10684,
-      "currency": "CAD",
-      "placed_at": "2026-08-10T18:10:11.412Z",
-      "deadline_at": "2026-08-10T19:12:11.412Z"
-    },
-    {
-      "id": "d1435528-5730-4b9a-a635-98014dc0201a",
-      "code": "HG-COED-9X",
-      "state": "COMPLETED",
-      "restaurant": {
-        "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
-        "name": "Karachi Kitchen",
-        "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
-        "halal": {
-          "display_state": "CERTIFIED",
-          "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
-          "expires_on": "2027-03-09"
-        }
-      },
-      "item_count": 3,
-      "first_item_names": [
-        "Chicken Biryani",
-        "Beef Nihari"
-      ],
-      "total_cents": 10684,
-      "currency": "CAD",
-      "placed_at": "2026-08-10T18:10:11.412Z",
-      "deadline_at": null
-    },
-    {
-      "id": "58c6e6d6-187f-4b02-a2ff-584a2f49c6a5",
-      "code": "HG-CAED-9X",
-      "state": "CANCELLED",
-      "restaurant": {
-        "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
-        "name": "Karachi Kitchen",
+        "id": "f0bb7864-43b7-4db7-a212-e5b8e2031dad",
+        "name": "Anatolia Kebab House",
         "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
         "halal": {
           "display_state": "EXPIRING_SOON",
@@ -251,21 +172,45 @@
       },
       "item_count": 3,
       "first_item_names": [
-        "Chicken Biryani",
-        "Beef Nihari"
+        "Lahmacun",
+        "Ayran"
       ],
-      "total_cents": 10684,
+      "total_cents": 1880,
       "currency": "CAD",
-      "placed_at": "2026-08-10T18:10:11.412Z",
-      "deadline_at": null
+      "placed_at": "2026-09-28T22:15:00.000Z",
+      "deadline_at": "2026-08-10T18:49:01.412Z"
     },
     {
-      "id": "19852393-9845-48a5-a46d-37fc07a822d9",
-      "code": "HG-REED-8X",
-      "state": "REJECTED",
+      "id": "86e927df-0e4c-41b4-a4da-74b86551a63a",
+      "code": "HG-7XQ3NE",
+      "state": "DELIVERED",
       "restaurant": {
-        "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
-        "name": "Karachi Kitchen",
+        "id": "7e89a6c8-a842-44cb-a6f7-3af15ae6adfa",
+        "name": "Zaytoun Grill",
+        "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+        "halal": {
+          "display_state": "CERTIFIED",
+          "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+          "expires_on": "2027-03-09"
+        }
+      },
+      "item_count": 2,
+      "first_item_names": [
+        "Chicken shawarma plate",
+        "Falafel wrap"
+      ],
+      "total_cents": 2698,
+      "currency": "CAD",
+      "placed_at": "2026-09-28T21:58:00.000Z",
+      "deadline_at": "2026-08-10T18:43:21.412Z"
+    },
+    {
+      "id": "d1435528-5730-4b9a-a635-98014dc0201a",
+      "code": "HG-5BZ8JT",
+      "state": "COMPLETED",
+      "restaurant": {
+        "id": "effcdcdf-904a-4d8f-a3c4-2a92126b6d71",
+        "name": "Mandi Express",
         "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
         "halal": {
           "display_state": "EXPIRED",
@@ -273,23 +218,111 @@
           "expires_on": "2026-08-01"
         }
       },
-      "item_count": 3,
+      "item_count": 2,
       "first_item_names": [
-        "Chicken Biryani",
-        "Beef Nihari"
+        "Lamb mandi",
+        "Salad"
       ],
-      "total_cents": 10684,
+      "total_cents": 4210,
       "currency": "CAD",
-      "placed_at": "2026-08-10T18:10:11.412Z",
+      "placed_at": "2026-09-28T00:40:00.000Z",
+      "deadline_at": null
+    },
+    {
+      "id": "58c6e6d6-187f-4b02-a2ff-584a2f49c6a5",
+      "code": "HG-7DT1PZ",
+      "state": "CANCELLED",
+      "restaurant": {
+        "id": "1d02ed4c-99cb-4f56-a890-405e957bf601",
+        "name": "Lahori Tandoor",
+        "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+        "halal": {
+          "display_state": "CERTIFIED",
+          "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+          "expires_on": "2027-03-09"
+        }
+      },
+      "item_count": 1,
+      "first_item_names": [
+        "Chicken biryani"
+      ],
+      "total_cents": 1899,
+      "currency": "CAD",
+      "placed_at": "2026-09-28T21:40:00.000Z",
+      "deadline_at": null
+    },
+    {
+      "id": "19852393-9845-48a5-a46d-37fc07a822d9",
+      "code": "HG-4T7MXB",
+      "state": "REJECTED",
+      "restaurant": {
+        "id": "f0bb7864-43b7-4db7-a212-e5b8e2031dad",
+        "name": "Anatolia Kebab House",
+        "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+        "halal": {
+          "display_state": "EXPIRING_SOON",
+          "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+          "expires_on": "2026-08-28"
+        }
+      },
+      "item_count": 2,
+      "first_item_names": [
+        "Iskender",
+        "Pide"
+      ],
+      "total_cents": 3199,
+      "currency": "CAD",
+      "placed_at": "2026-09-28T21:34:00.000Z",
       "deadline_at": null
     },
     {
       "id": "ca26cb66-950d-4c39-a919-3bb5477168fa",
-      "code": "HG-FAED-6X",
+      "code": "HG-9TK3MA",
       "state": "FAILED",
       "restaurant": {
-        "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
-        "name": "Karachi Kitchen",
+        "id": "90d3b35b-4eaf-42a1-a279-a0ea87e0b6e3",
+        "name": "Sham Shawarma",
+        "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp"
+      },
+      "item_count": 1,
+      "first_item_names": [
+        "Chicken shawarma plate"
+      ],
+      "total_cents": 1650,
+      "currency": "CAD",
+      "placed_at": "2026-09-28T21:20:00.000Z",
+      "deadline_at": null
+    },
+    {
+      "id": "2e24b9a3-5c76-42e3-aaf9-18534b201ae9",
+      "code": "HG-9KD2WA",
+      "state": "DISPUTED",
+      "restaurant": {
+        "id": "7e89a6c8-a842-44cb-a6f7-3af15ae6adfa",
+        "name": "Zaytoun Grill",
+        "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+        "halal": {
+          "display_state": "CERTIFIED",
+          "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+          "expires_on": "2027-03-09"
+        }
+      },
+      "item_count": 1,
+      "first_item_names": [
+        "Mixed grill platter"
+      ],
+      "total_cents": 1749,
+      "currency": "CAD",
+      "placed_at": "2026-09-28T20:12:00.000Z",
+      "deadline_at": "2026-08-12T12:22:11.412Z"
+    },
+    {
+      "id": "4511b0fb-62e9-4ba8-a2a1-bc223976290e",
+      "code": "HG-2GK9VN",
+      "state": "RESOLVED",
+      "restaurant": {
+        "id": "7d62ed08-0e92-46cd-ab7a-70e7473dd240",
+        "name": "Bismillah Kitchen",
         "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
         "halal": {
           "display_state": "UNVERIFIED",
@@ -299,55 +332,12 @@
       },
       "item_count": 3,
       "first_item_names": [
-        "Chicken Biryani",
-        "Beef Nihari"
+        "Haleem",
+        "Naan"
       ],
-      "total_cents": 10684,
+      "total_cents": 2240,
       "currency": "CAD",
-      "placed_at": "2026-08-10T18:10:11.412Z",
-      "deadline_at": null
-    },
-    {
-      "id": "2e24b9a3-5c76-42e3-aaf9-18534b201ae9",
-      "code": "HG-DIED-8X",
-      "state": "DISPUTED",
-      "restaurant": {
-        "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
-        "name": "Karachi Kitchen",
-        "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
-        "halal": {
-          "display_state": "CERTIFIED",
-          "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
-          "expires_on": "2027-03-09"
-        }
-      },
-      "item_count": 3,
-      "first_item_names": [
-        "Chicken Biryani",
-        "Beef Nihari"
-      ],
-      "total_cents": 10684,
-      "currency": "CAD",
-      "placed_at": "2026-08-10T18:10:11.412Z",
-      "deadline_at": "2026-08-12T18:42:11.412Z"
-    },
-    {
-      "id": "4511b0fb-62e9-4ba8-a2a1-bc223976290e",
-      "code": "HG-REED-8X",
-      "state": "RESOLVED",
-      "restaurant": {
-        "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
-        "name": "Karachi Kitchen",
-        "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp"
-      },
-      "item_count": 3,
-      "first_item_names": [
-        "Chicken Biryani",
-        "Beef Nihari"
-      ],
-      "total_cents": 10684,
-      "currency": "CAD",
-      "placed_at": "2026-08-10T18:10:11.412Z",
+      "placed_at": "2026-09-26T23:05:00.000Z",
       "deadline_at": null
     }
   ]

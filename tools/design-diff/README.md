@@ -91,7 +91,10 @@ boxes — and a native board **is** judged on its layout, so there it can change
 "DS issue: …") that are not UI and push the layout. They are hidden before the screenshot and kept
 in the manifest (`src/page-scripts.mjs`, `hideNotes`): by the classes the canvases use only for
 notes, by their opening words, by small mono-font sentences, and by mono chips screen readers skip
-that hold the API's words ("403 ACCOUNT_NOT_ACTIVE", "requirements.past_due"). The outlines drawn around
+that hold the API's words ("403 ACCOUNT_NOT_ACTIVE", "requirements.past_due"), and by small dashed tags
+(`noteTag`: a dashed outline on all four sides, type of 12 px or less, four words or more; the settings
+boards' "Mapping: …" tag). A file drop zone is dashed too but large, in body type; a badge such as
+"Not verified" is dashed but short, so neither is hidden. The outlines drawn around
 proposed components go too, and so does the margin a box kept for a chip hung above it. The rules
 are heuristics over today's canvases; a note they miss shows up in the diff as text "only in the
 design".

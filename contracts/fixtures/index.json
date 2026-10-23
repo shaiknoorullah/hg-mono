@@ -7105,7 +7105,7 @@
       "scenario": "restaurant_profile_halal_certified",
       "domain": "onboarding",
       "schema": "RestaurantProfile",
-      "describes": "`getRestaurantProfile` with `halal.display_state: CERTIFIED`. Halal certified, valid for months.",
+      "describes": "`getRestaurantProfile` with `halal.display_state: CERTIFIED`. Halal certified, valid until 12 November 2026.",
       "operations": [
         "getRestaurantProfile"
       ],
@@ -7120,7 +7120,7 @@
       "scenario": "restaurant_profile_halal_expired",
       "domain": "onboarding",
       "schema": "RestaurantProfile",
-      "describes": "`getRestaurantProfile` with `halal.display_state: EXPIRED`. Certificate expired 3 days ago: the restaurant is hidden from customers (`account_state: DELISTED`). Cool slate, never red.",
+      "describes": "`getRestaurantProfile` with `halal.display_state: EXPIRED`. Certificate expired on 12 September 2026: the restaurant is hidden from customers (`account_state: DELISTED`). Cool slate, never red.",
       "operations": [
         "getRestaurantProfile"
       ],
@@ -7135,7 +7135,7 @@
       "scenario": "restaurant_profile_halal_expiring_soon",
       "domain": "onboarding",
       "schema": "RestaurantProfile",
-      "describes": "`getRestaurantProfile` with `halal.display_state: EXPIRING_SOON`. Certificate expires in 12 days: the console shows the renewal banner. Customers still see the dated badge.",
+      "describes": "`getRestaurantProfile` with `halal.display_state: EXPIRING_SOON`. Certificate expires on 28 October 2026: the console shows the renewal banner. Customers still see the dated badge.",
       "operations": [
         "getRestaurantProfile"
       ],
@@ -7473,7 +7473,7 @@
       "scenario": "order_admin_list_every_state",
       "domain": "orders",
       "schema": "array<OrderSummary>",
-      "describes": "`listOrdersAdmin` with one order in each of the 14 `OrderState` values. The restaurants' halal badges cover all four `HalalDisplayState` values (cancelled: expiring soon, rejected: expired, failed: unverified) and the resolved order's restaurant has no `halal` object at all: no badge, never an optimistic one, and never red.",
+      "describes": "`listOrdersAdmin` with one order in each of the 14 `OrderState` values, the orders the admin boards list. The restaurants' halal badges cover all four `HalalDisplayState` values (the ready and failed orders' restaurants have no `halal` object at all: no badge, never an optimistic one, and never red).",
       "operations": [
         "listOrdersAdmin"
       ],

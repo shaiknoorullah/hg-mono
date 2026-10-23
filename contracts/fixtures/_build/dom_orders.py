@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from content import DAY, HOUR, MINUTE, ts
+from content import BOARD_ADMIN_ORDERS, DAY, HOUR, MINUTE, ts
 from dom_catalogue import KARACHI, standard_quote_lines
 from money import (
     internal_money,
@@ -746,11 +746,28 @@ def _restaurant_orders(reg, synth) -> None:
     )
 
 
+def board_restaurant(restaurant: dict, name: str, halal: str | None) -> dict:
+    """`restaurant` renamed to a board's restaurant, with the halal badge the board shows (none for `None`)."""
+    from world import halal_badge
+
+    out = {**restaurant, "id": uuid_for(f"restaurant:board:{name}"), "name": name}
+    if halal is None:
+        out.pop("halal", None)
+    else:
+        out["halal"] = halal_badge(halal)
+    return out
+
+
 def order_admin_view(synth, state: str, *, base_over: dict | None = None, **over: Any) -> dict:
     """`OrderAdminView` of the state's canonical order (shared with batch 2)."""
     lines = standard_quote_lines()
     priced = price_quote(lines, tip_cents=700)
     base = customer_order(state, **(base_over or {}))
+    if not (base_over or {}).get("code"):
+        # The order the admin boards show in this state: its code and restaurant.
+        code, restaurant, halal, *_ = BOARD_ADMIN_ORDERS[state]
+        base["code"] = code
+        base["restaurant"] = board_restaurant(base["restaurant"], restaurant, halal)
     # The support projection never carries the customer's delivery code: it is always
     # null, so nobody at HalalGoes can read a code out to a rider (security review on
     # #183, https://github.com/shaiknoorullah/hg-mono/issues/183).
