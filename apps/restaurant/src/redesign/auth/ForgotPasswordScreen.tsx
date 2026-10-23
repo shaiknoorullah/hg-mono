@@ -55,7 +55,7 @@ export function ForgotPasswordScreen() {
           intro={
             <>
               {FORGOT.sentBefore}
-              <strong className="text-fg-primary">{sentTo}</strong>
+              <strong>{sentTo}</strong>
               {FORGOT.sentAfter}
             </>
           }
