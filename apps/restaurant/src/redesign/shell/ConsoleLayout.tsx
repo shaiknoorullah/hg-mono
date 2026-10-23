@@ -30,6 +30,15 @@ import { useIsDesktop, useIsPhone } from './viewport';
 
 const RAIL_KEY = 'hg_restaurant_rail_expanded_v1';
 
+/** The line under the restaurant's name in the rail's footer: who is signed in (rail boards, `PartRail`). */
+export function signedInLine(roles: ReadonlyArray<{ role: string }> | undefined): string | null {
+  const has = (role: string) => roles?.some((r) => r.role === role) ?? false;
+  if (has('RESTAURANT_OWNER')) return 'Signed in as the owner';
+  if (has('RESTAURANT_MANAGER')) return 'Signed in as a manager';
+  if (has('RESTAURANT_STAFF')) return 'Signed in as staff';
+  return null;
+}
+
 function readRailPref(): boolean {
   try {
     return localStorage.getItem(RAIL_KEY) === '1';
@@ -52,7 +61,7 @@ export interface ConsoleLayoutProps {
 }
 
 export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
-  const { profile } = useConsole();
+  const { profile, core } = useConsole();
   const location = useLocation();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
@@ -91,6 +100,18 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
   const city = p?.address?.city;
   const subtitle = p ? [p.display_name, city].filter(Boolean).join(' · ') : undefined;
   const ownerName = p ? [p.owner_first_name, p.owner_last_name].filter(Boolean).join(' ') : '';
+
+  // The rail's header and footer exist on the expanded rail only; the 72 px rail has no room for text.
+  const signedIn = signedInLine(core.data?.principal.roles);
+  const railFooter =
+    expanded && p?.display_name ? (
+      <>
+        <strong className="block text-label-md font-semibold" data-testid="rail-restaurant">
+          {p.display_name}
+        </strong>
+        {signedIn ? <span className="block" data-testid="rail-signed-in">{signedIn}</span> : null}
+      </>
+    ) : undefined;
 
   const closeShellPanel = useCallback(() => {
     const next = new URLSearchParams(params);
@@ -169,6 +190,8 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
               activeKey={active}
               collapsed={!expanded}
               expandedWidth={232}
+              header="Restaurant partner"
+              footer={railFooter}
               collapseLabel="Collapse navigation"
               expandLabel="Expand navigation"
               onToggleCollapsed={
