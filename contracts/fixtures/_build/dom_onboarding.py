@@ -5,7 +5,7 @@ from __future__ import annotations
 import copy
 from typing import Any
 
-from content import DAY, DISHES, HOUR, IMAGE_BASE, ISSUING_BODIES, MINUTE, day, ts
+from content import BOARD_RESTAURANT_PROFILE, DAY, DISHES, HOUR, IMAGE_BASE, ISSUING_BODIES, MINUTE, day, ts
 from synth import int_for, ulid_for, uuid_for
 from world import certification_panel, public_address, slug
 
@@ -147,7 +147,7 @@ def _restaurant_onboarding(reg, synth) -> None:
         "A submitted restaurant profile: Ontario address, CRA-form GST/HST number, "
         "America/Toronto. Server-controlled fields (`is_approved`, `account_state`, "
         "`commission_rate_bps`, anything `_cents`) do not exist on this DTO at all.",
-        synth.make("RestaurantProfile", "restaurant-profile"),
+        {**synth.make("RestaurantProfile", "restaurant-profile"), **copy.deepcopy(BOARD_RESTAURANT_PROFILE)},
         operations=["getRestaurantProfile", "submitRestaurantProfile"],
         tags=["restaurant"],
     )
