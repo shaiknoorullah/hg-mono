@@ -69,7 +69,7 @@ export interface NewOrderStripProps {
   /**
    * The compact frame (Settings and Payouts, board `PartNewOrders`): while nothing waits, the strip is
    * one 64 px row, "No orders waiting" and what the strip does, with `trailing` (the Accepting orders
-   * switch) at its end. Orders waiting keep the tiles; loading and the closed states keep their words.
+   * switch) at its end, in every open state. Orders waiting keep the tiles.
    */
   slim?: boolean;
   trailing?: ReactNode;
@@ -277,8 +277,10 @@ export function NewOrderStrip({ status, rule, tiles, empty, compact, now, isDesk
 
   if (slim && (status === 'loading' || status === 'empty' || tiles.length === 0)) {
     const loading = status === 'loading';
-    const title = loading ? 'Loading new orders…' : (empty?.title ?? 'No orders waiting');
-    const body = loading ? null : (empty?.body ?? 'New orders appear here on every page, with the time left to accept.');
+    // The boards draw these two lines in every state, closed ones included; why orders are off is
+    // said by the switch beside them (its note), and `empty.action` (Resume now, Turn on, Edit hours) stays.
+    const title = loading ? 'Loading new orders…' : 'No orders waiting';
+    const body = loading ? null : 'New orders appear here on every page, with the time left to accept.';
     return (
       <section
         ref={rootRef}
@@ -289,7 +291,7 @@ export function NewOrderStrip({ status, rule, tiles, empty, compact, now, isDesk
       >
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <span aria-hidden="true" className="shrink-0 text-fg-secondary">
-            <GlyphIcon name={empty?.icon ?? 'orders'} size={24} />
+            <GlyphIcon name="orders" size={24} />
           </span>
           <h2
             ref={headingRef}

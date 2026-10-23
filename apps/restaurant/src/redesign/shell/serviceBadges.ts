@@ -21,6 +21,13 @@ export function checkedInAgo(ms: number): string {
   return `${Math.floor(s / 3600)} h ago`;
 }
 
+/** The later of this screen's last good heartbeat and the server's record of the last one (any screen). */
+export function latestCheckIn(local: number | null, serverIso: string | null | undefined): number | null {
+  const server = serverIso ? Date.parse(serverIso) : NaN;
+  const latest = Math.max(local ?? 0, Number.isNaN(server) ? 0 : server);
+  return latest > 0 ? latest : null;
+}
+
 export function connectionBadge(
   c: ConnectionView,
   opts: { firstLoadFailed: boolean; lastOkAt: number | null; now: number; timeZone?: string },

@@ -2,7 +2,7 @@
  * The compact frame's badge words (board `PartTop`) and which pages draw the compact frame.
  */
 import { describe, expect, it } from 'vitest';
-import { checkedInAgo, connectionBadge, soundBadge } from './serviceBadges';
+import { checkedInAgo, connectionBadge, latestCheckIn, soundBadge } from './serviceBadges';
 import { isCompactFrame } from './frame';
 
 const live = { kind: 'live', since: null } as const;
@@ -42,6 +42,17 @@ describe('time since the last check-in', () => {
     expect(checkedInAgo(60_000)).toBe('1 min ago');
     expect(checkedInAgo(3_600_000)).toBe('1 h ago');
     expect(checkedInAgo(-5_000)).toBe('0 s ago');
+  });
+});
+
+describe('last check-in', () => {
+  it('is the later of this screen\'s heartbeat and the server\'s record, and null when neither exists', () => {
+    const server = new Date(NOW - 30_000).toISOString();
+    expect(latestCheckIn(NOW - 5_000, server)).toBe(NOW - 5_000);
+    expect(latestCheckIn(null, server)).toBe(NOW - 30_000);
+    expect(latestCheckIn(NOW - 60_000, server)).toBe(NOW - 30_000);
+    expect(latestCheckIn(null, null)).toBeNull();
+    expect(latestCheckIn(null, 'not a date')).toBeNull();
   });
 });
 

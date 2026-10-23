@@ -182,6 +182,17 @@ describe('new-order strip', () => {
     expect(await api.callsTo('PATCH /v1/restaurant/availability')[0]!.json()).toEqual({ is_accepting_orders: false });
   });
 
+  it('on Payouts a paused or closed restaurant still reads "No orders waiting", with the action and the switch note', async () => {
+    installFakeApi(routesFor([], { 'GET /v1/restaurant/availability': 'restaurant_open_state_paused' }));
+    await renderRedesign('/payouts/history');
+    const strip = await screen.findByTestId('new-order-strip');
+    expect(await within(strip).findByText('No orders waiting')).toBeTruthy();
+    expect(within(strip).getByText('New orders appear here on every page, with the time left to accept.')).toBeTruthy();
+    expect(within(strip).queryByText(/Paused until/)).toBeNull();
+    expect(within(strip).getByRole('button', { name: 'Resume now' })).toBeTruthy();
+    expect(within(strip).getByRole('switch', { name: /^Accepting orders/ })).toBeTruthy();
+  });
+
   it('waiting orders keep the tiles on Payouts, and the tall card stays on Live orders history', async () => {
     installFakeApi(routesFor([pending('A7K2', 132)]));
     await renderRedesign('/payouts/history');
@@ -693,18 +704,18 @@ describe('strip around the board', () => {
   it('rule line and empty card follow the open state', async () => {
     const o = pending('A7K2', 120);
     installFakeApi(routesFor([o], { 'GET /v1/restaurant/availability': 'restaurant_open_state_paused' }));
-    await renderRedesign('/payouts/history');
+    await renderRedesign('/orders/history');
     expect(await screen.findByText('Paused. These arrived before the pause and still need an answer.')).toBeTruthy();
     cleanup();
     installFakeApi(routesFor([], { 'GET /v1/restaurant/availability': 'restaurant_open_state_paused' }));
-    await renderRedesign('/payouts/history');
+    await renderRedesign('/orders/history');
     expect(await screen.findByText('Paused until 2:32 pm')).toBeTruthy();
     expect(screen.getByText('New orders resume at 2:32 pm. Orders in progress still need finishing.')).toBeTruthy();
     // The status bar (live board) has its own Resume now; this one is the strip's empty card.
     expect(within(screen.getByTestId('new-order-strip')).getByRole('button', { name: 'Resume now' })).toBeTruthy();
     cleanup();
     installFakeApi(routesFor([pending('B3M9', 100)], { 'GET /v1/restaurant/availability': 'restaurant_open_state_closed_toggle' }));
-    await renderRedesign('/payouts/history');
+    await renderRedesign('/orders/history');
     expect(await screen.findByText('Arrived before you turned orders off. Each keeps its full 3 minutes.')).toBeTruthy();
   });
 

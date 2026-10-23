@@ -147,17 +147,31 @@ export function torontoDateIn(days: number): string {
 }
 
 /**
+ * A restaurant whose last check-in was just now, whatever the mock's availability fixture says (its
+ * `last_heartbeat_at` is a fixed past date). The app bar's "checked in … ago" counts from it. Register
+ * it before a spec's own availability route, which takes precedence.
+ */
+export async function freshCheckIn(page: Page): Promise<void> {
+  await page.route('**/v1/restaurant/availability', async (route) => {
+    if (route.request().method() !== 'GET') return route.fallback();
+    const res = await route.fetch();
+    const body = (await res.json()) as { data?: Record<string, unknown> };
+    return route.fulfill({ response: res, json: { ...body, data: { ...body.data, last_heartbeat_at: new Date().toISOString() } } });
+  });
+}
+
+/**
  * The board's app bar says "Live · checked in 12 s ago"; a live page says however long it has been
- * since its last heartbeat. Before a capture, move the page's clock (which then stands still) so the
- * time since the last good check-in reads `seconds`, as the board's sample does. Does nothing when
- * the badge is not the live one (offline, connecting, or a page without the compact frame's badges).
+ * since its last check-in. Before a capture, move the page's clock (which then stands still) so the
+ * time reads `seconds`, as the board's sample does. Does nothing when the badge is not the live one
+ * (offline, connecting, or a page without the compact frame's badges).
  */
 export async function pinCheckedIn(page: Page, seconds = 12): Promise<void> {
   const badge = page.getByTestId('health-badge').first();
   const shown = async (): Promise<number | null> => {
     const text = (await badge.textContent({ timeout: 1000 }).catch(() => null)) ?? '';
-    const m = /^Live · checked in (\d+) s ago$/.exec(text.trim());
-    return m ? Number(m[1]) : null;
+    const m = /^Live · checked in (\d+) (s|min|h) ago$/.exec(text.trim());
+    return m ? Number(m[1]) * { s: 1, min: 60, h: 3600 }[m[2] as 's' | 'min' | 'h'] : null;
   };
   let n = await shown();
   if (n === null) return;

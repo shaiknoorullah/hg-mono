@@ -18,7 +18,7 @@ import { useHeartbeatHealth } from '../data/heartbeat';
 import { useAvailability } from '../data/availability';
 import { formatTime } from '../format/time';
 import { useHalalBadge } from '../status/useHalalBadge';
-import { connectionBadge, soundBadge } from './serviceBadges';
+import { connectionBadge, latestCheckIn, soundBadge } from './serviceBadges';
 import { useFirstLoadFailed, useStale } from './stale';
 
 /** Re-render once a second while `active`, so "checked in 12 s ago" keeps counting. */
@@ -43,11 +43,14 @@ export function ServiceBadges() {
   const prefs = useDevicePrefs();
   const { halal, restaurantId } = useHalalBadge();
   const [params, setParams] = useSearchParams();
-  const now = useNow(connection.kind === 'live' && beat.lastOkAt !== null);
+  const now = useNow(connection.kind === 'live');
 
+  // The last check-in is the later of this screen's own heartbeat (it starts once the screen went
+  // live on Live orders) and the server's record of the restaurant's last heartbeat from any screen.
+  const lastOkAt = latestCheckIn(beat.lastOkAt, availability.data?.last_heartbeat_at);
   const health = connectionBadge(connection, {
     firstLoadFailed: availability.status === 'error' || pageLoadFailed,
-    lastOkAt: beat.lastOkAt,
+    lastOkAt,
     now,
     timeZone: timezone,
   });
