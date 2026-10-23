@@ -3,7 +3,7 @@
  * 1440×900 and tablet 1024×768 (the `redesign` projects), flag on.
  */
 import { expect, test } from '@playwright/test';
-import { documentScrolls, openSignedIn } from './redesign-restaurant.support';
+import { MODE, documentScrolls, openSignedIn } from './redesign-restaurant.support';
 
 const ROUTES = [
   { path: '/orders', nav: 'Live orders' },
@@ -40,6 +40,23 @@ test.describe('restaurant redesign · shell', () => {
     const skip = page.getByRole('link', { name: 'Skip to new orders' });
     await expect(skip).toBeFocused();
     await expect(skip).toHaveAttribute('href', '#new-orders');
+  });
+
+  test('the expanded rail has the header and footer the boards draw; the collapsed rail has neither', async ({ page }) => {
+    test.skip((page.viewportSize()?.width ?? 0) < 1280, 'the rail expands only on desktop; tablet keeps the 72 px rail');
+    await openSignedIn(page, '/settings');
+    const rail = page.getByTestId('console-rail');
+    await expect(rail.getByText('Restaurant partner')).toHaveCount(0);
+    await page.getByTestId('console-rail-collapse').click();
+    await expect(rail.getByText('Restaurant partner')).toBeVisible();
+    // The restaurant's own name from its profile: the board's sample on the mock, the seeded one on the real API.
+    await expect(rail.getByTestId('rail-restaurant')).toHaveText(MODE === 'mock' ? 'Zaytoun Grill' : /\S/);
+    await expect(rail.getByTestId('rail-signed-in')).toHaveText('Signed in as the owner');
+    // The current item is still the inverted tile.
+    await expect(rail.getByRole('link', { name: /^Settings/ })).toHaveAttribute('aria-current', 'page');
+    await page.getByTestId('console-rail-collapse').click();
+    await expect(rail.getByText('Restaurant partner')).toHaveCount(0);
+    await expect(rail.getByTestId('rail-restaurant')).toHaveCount(0);
   });
 
   test('sign out asks to stop orders first, and Stay signed in keeps the console', async ({ page }) => {
