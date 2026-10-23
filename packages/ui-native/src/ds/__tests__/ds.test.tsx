@@ -290,7 +290,9 @@ describe('forms (N3) keep the live props and the money rules', () => {
     expect([group.props.role, group.props.accessibilityLabel]).toEqual(['radiogroup', 'Size, required']);
     expect(group.props.accessibilityHint).toBe('Choose a size');
     for (const radio of screen.getAllByRole('radio')) expect(radio.props.accessibilityHint).toBeUndefined();
-    expect(screen.getByText('Size *')).toBeTruthy();
+    // The label and its required mark are two nodes, as on the board.
+    expect(screen.getByText('Size')).toBeTruthy();
+    expect(screen.getByText('*', { exact: false })).toBeTruthy();
   });
 
   it('option prices go through Price with sign always, in integer cents, and join the option name', () => {

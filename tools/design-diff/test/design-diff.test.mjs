@@ -14,7 +14,7 @@ import { parseInsets } from '../src/insets.mjs';
 import { compareLayouts } from '../src/layout-diff.mjs';
 import { parseBoardId, parseCaptureFile } from '../src/names.mjs';
 import { canvas, writePng } from '../src/png.mjs';
-import { TOLERANCE, compareNative, deltaE } from '../src/native-geometry.mjs';
+import { TOLERANCE, compareNative, deltaE, sampleInk } from '../src/native-geometry.mjs';
 import { parseHierarchy, snapshotFromHierarchy } from '../src/uiautomator.mjs';
 
 const WHITE = [255, 255, 255, 255];
@@ -462,6 +462,19 @@ test('native geometry: a board never passes on nothing measured or on mostly mis
   assert.ok(deltaE([0, 0, 0], [255, 255, 255]) > 99 && deltaE([10, 10, 10], [10, 10, 10]) === 0);
 });
 
+test('native geometry: a text\'s ink is the core of its strokes, not their subpixel-antialiased edge', () => {
+  const CREAM = [255, 250, 234, 255];
+  const stroke = [0x4a, 0x4e, 0x48, 255];
+  const blueEdge = [0x4a, 0x4e, 0x66, 255]; // red and green subpixels inked, blue half
+  const redEdge = [0x8a, 0x4e, 0x48, 255];
+  // A 6 px stroke with a 1 px edge on each side, the way Chromium draws subpixel text.
+  const png = paint(paint(paint(canvas(30, 10, CREAM), 12, 0, 6, 10, stroke), 18, 0, 1, 10, blueEdge), 11, 0, 1, 10, redEdge);
+  const box = { x: 0, y: 0, w: 30, h: 10 };
+  assert.ok(deltaE(CREAM, blueEdge) > deltaE(CREAM, stroke), 'the edge is further in colour than the ink');
+  assert.deepEqual(sampleInk(png, box, 1), [0x4a, 0x4e, 0x48]);
+  assert.equal(sampleInk(canvas(30, 10, CREAM), box, 1), null, 'no ink, no colour');
+});
+
 test('diff.mjs: a native pair is decided by geometry; identical pixels do not pass it, and a hierarchy is what it needs', () => {
   const dir = mkdtempSync(path.join(tmpdir(), 'dd-'));
   const refs = path.join(dir, 'refs');
@@ -722,4 +735,20 @@ test('the box key ignores hidden notes, and snapshotLayout stays self-contained'
   const shownText = new Function(`${src.slice(src.indexOf('const shownText'), src.indexOf('const boxes'))} return shownText;`)();
   assert.equal(shownText(e([t('Sign in'), e([t('Proposed component: AppBar')], true)])), 'Sign in');
   assert.equal(shownText(e([t('a'), e([t('b')]), t('c')])), 'abc');
+});
+
+test("a short mono chip screen readers skip is a designers' note when it is the API's words", async () => {
+  const { NOTE_API_WORDS } = await import('../src/render-refs.mjs');
+  const { hideNotes } = await import('../src/page-scripts.mjs');
+  const api = new RegExp(NOTE_API_WORDS);
+  // What the canvases draw beside a state, to say which API answer it is.
+  for (const note of ['403 ACCOUNT_NOT_ACTIVE', 'blocking_reason profile_incomplete', 'requirements.past_due', 'individual.id_number', 'getOwnMenu failed', 'PAYOUT_FAILED']) {
+    assert.ok(api.test(note), note);
+  }
+  // The UI's own mono text: order ids, pickup codes, times, counts.
+  for (const ui of ['HG-6RN4KP', '20:10', '41:59', '0134', '4821', 'Order HG-6RN4KP', '$42.80', 'Attempt 2']) {
+    assert.ok(!api.test(ui), ui);
+  }
+  // page.evaluate sends hideNotes as source, so it must build the pattern from its argument.
+  assert.match(String(hideNotes), /new RegExp\(apiWords\)/);
 });

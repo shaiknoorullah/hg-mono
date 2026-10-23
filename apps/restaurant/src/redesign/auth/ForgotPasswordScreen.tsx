@@ -3,7 +3,7 @@
  * `requestPasswordReset` answers 200 whatever the address, so "Sent" never says whether an
  * account exists. Retrying after a failure is safe: the same answer every time.
  */
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useLocation } from 'react-router-dom';
 import { client } from '../data/client';
 import { Button, GlyphIcon, InlineAlert, Input, StateCard, StateCardHeading, SupportSentence, TextLink } from '../ds';
@@ -19,10 +19,9 @@ export function ForgotPasswordScreen() {
   const [failed, setFailed] = useState(0);
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [fieldError, setFieldError] = useState<string | undefined>();
-  const emailRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (fieldError) emailRef.current?.focus();
+    if (fieldError) document.getElementById('forgot-email')?.focus();
   }, [fieldError]);
 
   async function send(e: FormEvent) {
@@ -56,7 +55,7 @@ export function ForgotPasswordScreen() {
           intro={
             <>
               {FORGOT.sentBefore}
-              <strong className="text-fg-primary">{sentTo}</strong>
+              <strong>{sentTo}</strong>
               {FORGOT.sentAfter}
             </>
           }
@@ -83,13 +82,13 @@ export function ForgotPasswordScreen() {
             </InlineAlert>
           ) : null}
           <Input
-            ref={emailRef}
+            id="forgot-email"
             label={FORGOT.email}
             variant="email"
             autoComplete="username"
             value={email}
             readOnly={sending}
-            onChange={(v) => {
+            onValueChange={(v) => {
               setEmail(v);
               if (fieldError) setFieldError(undefined);
             }}

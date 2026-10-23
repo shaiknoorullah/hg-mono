@@ -67,8 +67,13 @@ export function sampleFill(png, r, scale) {
 }
 
 /**
- * The colour of the ink in a text's box: the pixel furthest from the box's background (its most
- * common colour). Returns null when nothing in the box differs visibly from the background.
+ * The colour of the ink in a text's box: of the pixels that differ visibly from the box's background
+ * (its most common colour), the one furthest from it in lightness. Lightness, not colour distance:
+ * Chromium draws the board with subpixel antialiasing, which edges each stroke with pixels that keep
+ * the ink's red and green but not its blue (or the reverse), and on a cream background such an edge
+ * is further in colour than the ink itself (#4A4E66 read for #4A4E48). The device draws greyscale.
+ * Text no lighter or darker than its background falls back to colour distance. Returns null when
+ * nothing in the box differs visibly from the background.
  */
 export function sampleInk(png, r, scale) {
   const x0 = Math.max(0, Math.floor(r.x * scale));
@@ -83,13 +88,19 @@ export function sampleInk(png, r, scale) {
   }
   if (!seen.size) return null;
   const bg = [...seen.values()].sort((a, b) => b[0] - a[0])[0][1];
+  const bgL = lab(bg)[0];
   let far = null;
   let best = 0;
+  let ink = null;
+  let inkL = 0;
   for (const [, p] of seen.values()) {
     const d = deltaE(bg, p);
     if (d > best) [best, far] = [d, p];
+    const l = Math.abs(lab(p)[0] - bgL);
+    if (d >= 5 && l > inkL) [inkL, ink] = [l, p];
   }
-  return best >= 5 ? far : null;
+  if (best < 5) return null;
+  return inkL >= 5 ? ink : far;
 }
 
 const num = (n) => String(Math.round(n * 10) / 10);

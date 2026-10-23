@@ -54,7 +54,9 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
       type={type}
       data-slot="input"
       className={cn(
-        'h-full min-w-0 flex-1 self-stretch border-0 bg-transparent p-0 font-ui text-body-md text-fg-primary outline-none',
+        // Body-md size at the browser's normal leading: the Claude Design Input sets the font size
+        // and no line height, where the body-md type style alone would set 22.5 px.
+        'h-full min-w-0 flex-1 self-stretch border-0 bg-transparent p-0 font-ui text-body-md leading-[normal] text-fg-primary outline-none',
         'placeholder:text-fg-placeholder read-only:cursor-default aria-disabled:cursor-not-allowed',
         className,
       )}

@@ -7,6 +7,7 @@
  * (drawn in the legacy prefix slot); `testId`. The label is always visible.
  *
  * Drawing differences handled here, so fields match the live DS and the boards:
+ * - the field corner is `radius.md` (12 px), not the legacy 8 px;
  * - the field fill is `surface.raised` (white), not the legacy cream `control.bg`; a read-only
  *   field (the in-flight state) is `surface.subtle`; helper text is `text.secondary` (contrast);
  * - `otp` is drawn as the live DS draws it: ONE outlined field, fit to its content (~270px),
@@ -75,6 +76,8 @@ const FIELD_FILL = cx(
   '[&_[data-hg-state]:not([data-hg-state=disabled])]:bg-surface-raised',
   '[&_[data-hg-state]:has(input:read-only)]:bg-surface-subtle',
   '[&_[id$=-helper]]:text-fg-secondary',
+  // The DS field's corner is `radius-md` (12 px); the legacy box is `rounded-sm` (8 px).
+  '[&_[data-hg-state]]:rounded-md',
 );
 
 const OTP_LENGTH = 6;

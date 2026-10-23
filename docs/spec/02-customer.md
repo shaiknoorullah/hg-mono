@@ -3,7 +3,7 @@ covers:
   - apps/customer/**
   - services/hg/internal/account/**
   - services/hg/internal/addresses/**
-reviewed: 2026-10-22
+reviewed: 2026-10-23
 ---
 
 # HalalGoes — CUSTOMER Domain Specification
@@ -77,6 +77,8 @@ The rules in this spec apply to both. With the flag on:
 ### 0.6 Redesign build flag (design system, Oct 2026)
 
 `EXPO_PUBLIC_HG_REDESIGN=1` builds the app with the rebuilt design system: NativeWind 4 and React Native Reusables components from `@hg/ui-native/lib`. The flag is read when the app is built. Without it, `index.js` mounts the usual `App.tsx` and the bundle contains no redesign module: no NativeWind, no css-interop, no Reanimated JavaScript. With it, `index.js` mounts `src/redesign/RedesignApp.tsx`. That root loads the generated `global.customer.css`, adds the `@rn-primitives/portal` host that overlays render into, and keeps NativeWind's colour scheme in step with `ThemeProvider`: both follow the phone. Only `src/redesign/**` and `packages/ui-native/src/lib/**` compile their JSX through NativeWind (`babel.config.js`). The native `react-native-reanimated` and `react-native-worklets` libraries are linked into every APK; the full end-to-end run covers them.
+
+The redesigned screens take `Input` from `@hg/ui-native/ds` (the `+1` prefix and `416 555 0134` format on the phone field, the required mark as its own node) and wrap what a `SafeAreaView` holds in `TopInsetSpent`, so the app bar is not padded by the status bar twice. The tip field is a `text` field with `inputMode="decimal"`, so "60.00" stays 6000 cents.
 
 ---
 
