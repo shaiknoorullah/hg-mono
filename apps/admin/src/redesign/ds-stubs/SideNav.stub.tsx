@@ -203,7 +203,7 @@ export function SideNav({
           ) : null}
         </>
       ) : (
-        {/* 32 px below the header: the sidebar board leaves that gap before the first group. */}
+        // 32 px below the header: the sidebar board leaves that gap before the first group.
         <div className="flex items-start gap-2 pb-8 pt-1 ps-1.5">
           <div className="flex min-w-0 grow flex-col gap-1.5">{header}</div>
           {onCollapsedChange ? (
