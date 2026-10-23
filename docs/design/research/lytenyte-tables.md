@@ -9,8 +9,8 @@ reviewed: 2026-10-24
 
 > **2026-10-23:** `AppBar`, `SideNav` and `Switch` in `packages/ui-web/src/ds/` now draw the restaurant
 > boards' type: 13/19.5 rail labels with no tracking, 1.5 line height on the app bar's title and
-> subtitle (warm off-white on the chrome bar), and a 13/19.5 bold state word on the switch. The `DataTable` header row is a sunken fill with 11 px bold
-> labels, as the boards draw it; this draft's choice of LyteNyte is unchanged.
+> subtitle (warm off-white on the chrome bar), and a 13/19.5 bold state word on the switch. The tables
+> in this draft are unchanged.
 
 > **2026-10-23:** the sidebar count chips in `ds-stubs/SideNav.stub.tsx` take a 4 px corner and a 14.3 px line, as `ASS/AdminSidebar` draws them; no table choice here changes.
 
