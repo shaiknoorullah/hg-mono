@@ -378,6 +378,9 @@ in its `.capture.json` and reported as uncovered. Three helpers in `web/design.t
   The restaurant console opens with its side navigation collapsed to icons; for the areas whose
   boards draw it expanded (menu-hours, settings, payouts) `expectDesign` first presses the rail's
   own expand button, unless a panel is open (the rail is then collapsed on the board and the app).
+  The Settings and Payouts boards draw "Live · checked in 12 s ago" in the app bar; a live page says how
+  long since its last heartbeat, so those two specs call `pinCheckedIn` (`redesign-restaurant.support.ts`)
+  before the capture, which fixes the page's clock so the badge reads 12 s as the board's sample does.
 - **Tall boards.** A board taller than the viewport, drawn at the viewport's width, is captured at
   its own height. The consoles lay out in a frame as tall as the window (a 100vh shell with a scrolling region
   inside), so the document never scrolls and `fullPage` adds nothing: the screenshot stopped at the window
