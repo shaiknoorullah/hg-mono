@@ -166,6 +166,10 @@ before this change keeps its old binding until those three containers are recrea
 Outside `local`, the binary refuses to boot if any dependency still points at `localhost`, if
 `HG_MINIO_PRESIGN_BASE_URL` is unset or not `https` (every signed link is a bearer credential),
 or if `HG_SMS_PROVIDER=twilio` with incomplete creds — misconfig fails loudly, never silently.
+It also refuses a secret still holding a `change-me` placeholder from `.env.example`, a missing or
+all-zero `HG_APP_DATA_KEY`, an `HG_OTP_PEPPER` shorter than 32 bytes, and one key reused as another:
+generate each with `openssl rand`. Any secret can come from a file instead (`NAME_FILE`, mode 0400,
+owned by user ID 65532), which keeps it out of `docker inspect`; `deploy/.env.example` lists them.
 
 Leave `HG_DEADLINE_RUNNER_HOLD=false`. Set it to `true` only for a failover or a restore: the order
 deadline runner then starts held and fires nothing until ops inserts a `deadline_runner_release`
