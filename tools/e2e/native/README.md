@@ -16,6 +16,49 @@ runs against the redesigned apps.
 | [`results-template/report.md`](results-template/report.md) | The report the lab writes per mission run |
 | [`../reality/`](../reality/README.md) | The allow-listed helpers that apply a mission's reality steps |
 
+## Captures against the mock
+
+Most of the customer and rider boards draw a state no flow can reach: a request that never answers, a 5xx, a
+forced sign-out, a screen nothing opens. The **capture** APK reaches them. It is the redesigned app built with
+`EXPO_PUBLIC_HG_CAPTURE=1` against the contract mock (`pnpm mock`, `10.0.2.2:4010`), with a dev-only entry
+(`apps/<app>/src/redesign/capture/entry.ts`) that signs in a fixture session, sets the mock scenario, moves the
+clock to the fixtures' frozen clock and opens the board's real screen through the app's own navigation. The plan
+and the reasons: [issue 1141](https://github.com/shaiknoorullah/hg-mono/issues/1141).
+
+| Path | What |
+|---|---|
+| [`boards/<app>.json`](boards) | One entry per board the entry opens: `board` (`<area>/<Board>`), `route`, `params`, `scenario` (a per-operation map of fixtures and the mock's `@stall`, `@delay`, `@reset`, `@status` directives, [tools/mock-server/README.md](../../mock-server/README.md#picking-a-state)), `clock`, `device` (`<light\|dark>-390-100`), `volatile` (text that changes by itself, such as an offer's countdown, blanked when deciding the screen has settled) and `note` |
+| [`capture/run.mjs`](capture/run.mjs) | The runner: `node tools/e2e/native/capture/run.mjs --app rider --out <dir> [--apk <capture apk>] [--shard 1/2] [--only <regex>] [--list]` |
+| [`capture/lib.mjs`](capture/lib.mjs) | Its pure parts (manifest, link, the app's log, "settled"), tested by `capture/lib.test.mjs` (`pnpm e2e:boards:check`) |
+
+The `native-captures` job of the [e2e workflow](../../../.github/workflows/e2e.yml) runs it on an emulator, one
+job per app and shard, only when the emulator runs (`e2e-full` label, nightly, dispatch). Its captures join the
+flows' in the "Design fidelity, native" table.
+
+**How a board is taken.** The runner stops the app, opens `hg<app>://__capture?board=…&route=…&params=…&scenario=…`
+and waits for the app's log to say it acted on the link (`[capture] <board>: …`) or refused it (`[capture]
+nothing opened. <why>`). It then waits until the view hierarchy is the same three reads in a row, 700 ms apart
+(never a fixed sleep), takes the screenshot, dumps the hierarchy and provenance with the capture server the
+flows use ([`capture-server.mjs`](../../design-diff/android/capture-server.mjs)), and keeps the capture only if that
+hierarchy is the settled one. The files are `design--<area>--<Board>.png` with `.capture.json` and
+`.hierarchy.xml` beside them, the pair the design diff reads. A link the entry refuses, an app that never
+answers or crashes, and a screen that never settles are **failed captures with their reason**: the runner exits
+1 and names each in the job summary. None is skipped quietly, so a board is listed in the manifest only when it
+captures.
+
+**What "captured" proves, and what it does not.** It proves one screen, in one state, matches its board: the
+real screen, the real navigator and the real data hooks, fed by the mock. It does **not** prove the backend
+answers that way, that a user can reach the state, or that a journey works: the `flows` job (real stack) and
+`tools/e2e/api` keep doing that. A list of 1,000 captured boards is not 1,000 end-to-end journeys.
+
+A board is in exactly one of three places ([`check-boards.mjs`](check-boards.mjs)): captured by a flow,
+listed in `boards/<app>.json`, or declared unpairable with a reason in `customer-boards.mjs` /
+`rider-boards.mjs`. The pilot lists the rider's `shift-offers` states (Home loading, failing, on a delivery,
+blocked, offline) and the customer's forced sign-out screens (`sign-in/Blocked-*`) with the loading, failing and
+empty states of Home, Browse, Orders, Addresses and Account. The customer's `sign-in/Code-*` boards are not
+among them: the entry refuses `code` (a step inside the sign-in flow that owns its state), and the rider's
+offer outcomes need a tap or a countdown at a chosen second.
+
 ## The device lab
 
 Cloud containers cannot run an Android emulator, so the redesigned apps are tested on an emulator

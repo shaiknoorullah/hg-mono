@@ -1,1 +1,116 @@
-[]
+[
+  {
+    "board": "sign-in/Blocked-banned",
+    "route": "home",
+    "scenario": "listRestaurants=error_account_banned",
+    "device": "light-390-100"
+  },
+  {
+    "board": "sign-in/Blocked-unavailable",
+    "route": "home",
+    "scenario": "listRestaurants=error_account_not_active",
+    "device": "light-390-100"
+  },
+  {
+    "board": "sign-in/Blocked-midsession",
+    "route": "home",
+    "scenario": "listRestaurants=error_account_suspended",
+    "device": "light-390-100"
+  },
+  {
+    "board": "sign-in/Blocked-expired",
+    "route": "home",
+    "scenario": "listRestaurants=@status=401,refreshSession=error_session_expired",
+    "device": "light-390-100"
+  },
+  {
+    "board": "sign-in/Blocked-revoked",
+    "route": "home",
+    "scenario": "listRestaurants=@status=401,refreshSession=error_session_revoked",
+    "device": "light-390-100"
+  },
+  {
+    "board": "sign-in/Blocked-security",
+    "route": "home",
+    "scenario": "listRestaurants=@status=401,refreshSession=error_refresh_reuse_detected",
+    "device": "light-390-100"
+  },
+  {
+    "board": "discover-order/Home-loading",
+    "route": "home",
+    "scenario": "listRestaurants=@stall",
+    "device": "light-390-100"
+  },
+  {
+    "board": "discover-order/Home-error",
+    "route": "home",
+    "scenario": "listRestaurants=@status=500",
+    "device": "light-390-100"
+  },
+  {
+    "board": "discover-order/Home-nothing-in-range",
+    "route": "home",
+    "scenario": "listRestaurants=restaurant_list_empty",
+    "device": "light-390-100"
+  },
+  {
+    "board": "discover-order/Browse-loading",
+    "route": "browse",
+    "scenario": "listRestaurants=@stall",
+    "device": "light-390-100"
+  },
+  {
+    "board": "discover-order/Browse-error",
+    "route": "browse",
+    "scenario": "listRestaurants=@status=500",
+    "device": "light-390-100"
+  },
+  {
+    "board": "track-after/Orders-Loading",
+    "route": "orders",
+    "scenario": "listOrders=@stall",
+    "device": "light-390-100"
+  },
+  {
+    "board": "track-after/Orders-Error",
+    "route": "orders",
+    "scenario": "listOrders=@status=500",
+    "device": "light-390-100"
+  },
+  {
+    "board": "track-after/Orders-Empty",
+    "route": "orders",
+    "scenario": "listOrders=order_list_empty",
+    "device": "light-390-100"
+  },
+  {
+    "board": "account/Addresses-loading",
+    "route": "addresses",
+    "scenario": "listAddresses=@stall",
+    "device": "light-390-100"
+  },
+  {
+    "board": "account/Addresses-error",
+    "route": "addresses",
+    "scenario": "listAddresses=@status=500",
+    "device": "light-390-100"
+  },
+  {
+    "board": "account/Addresses-empty",
+    "route": "addresses",
+    "scenario": "listAddresses=addresses_empty",
+    "device": "light-390-100"
+  },
+  {
+    "board": "account/Account-loading",
+    "route": "account",
+    "scenario": "getCustomerProfile=@stall",
+    "device": "light-390-100"
+  },
+  {
+    "board": "account/Account-error",
+    "route": "account",
+    "scenario": "getCustomerProfile=@status=500",
+    "device": "light-390-100"
+  }
+]

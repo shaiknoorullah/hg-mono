@@ -437,6 +437,106 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+  # The phone apps' design captures against the contract mock (https://github.com/shaiknoorullah/hg-mono/issues/1141).
+  #
+  # The boards listed in tools/e2e/native/boards/<app>.json are screens in a state the flows cannot reach (a
+  # request that never answers, a 5xx, a forced sign-out). The capture APK (apk job, variant capture) is built
+  # against the mock and opens each board's screen through its capture entry; tools/e2e/native/capture/run.mjs
+  # drives it with plain adb. What a capture proves, and what it does not: tools/e2e/native/README.md,
+  # "Captures against the mock".
+  #
+  # Mock only: no compose stack, no seed, no Go, no Maestro, so a shard needs the emulator and little else. Its
+  # own job beside `flows`, which keeps the real stack. One shard per app for now; raise `shards` (and add the
+  # shard numbers) when a manifest grows past what fits in 45 minutes, about 20 s a board.
+  native-captures:
+    needs: [plan, apk]
+    if: >-
+      !cancelled() && needs.plan.outputs.mode == 'all' && needs.apk.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { app: customer, shard: 1, shards: 1 }
+          - { app: rider, shard: 1, shards: 1 }
+    name: native-captures (${{ matrix.app }}, shard ${{ matrix.shard }}/${{ matrix.shards }})
+    env:
+      E2E_OUT: ${{ github.workspace }}/e2e-out
+      APP: ${{ matrix.app }}
+      SHARD: ${{ matrix.shard }}/${{ matrix.shards }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Let the emulator use KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      # Only the mock and what it needs: the runner itself uses nothing but Node.
+      - name: Install
+        run: pnpm install --frozen-lockfile --filter @hg/mock-server...
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: e2e-apk-${{ matrix.app }}-capture
+          path: ${{ env.E2E_OUT }}/apk
+
+      # The mock, on the port the capture APK was built for (10.0.2.2:4010 from the emulator).
+      - name: Serve the contract mock
+        run: |
+          mkdir -p "$E2E_OUT/logs"
+          nohup pnpm mock >"$E2E_OUT/logs/mock-server.log" 2>&1 &
+          for _ in $(seq 1 60); do
+            curl -fsS http://localhost:4010/__mock/health >"$E2E_OUT/logs/mock-health.json" 2>/dev/null && break
+            sleep 1
+          done
+          curl -fsS http://localhost:4010/__mock/health || { echo "::error::pnpm mock did not answer on :4010"; cat "$E2E_OUT/logs/mock-server.log"; exit 1; }
+          echo
+
+      - name: Take the captures on the emulator
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          ram-size: 3072M
+          disk-size: 4096M
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          # The same device as the flows (390 x 844 dp at 3x, tools/e2e/android/design-size.sh) with its bars
+          # measured; the runner installs the capture APK, takes each board and exits 1 when any failed. The log
+          # is kept either way, for the failures that say only "the app never logged the capture link".
+          script: adb shell settings put global hide_error_dialogs 1 && bash tools/e2e/android/design-size.sh && bash tools/e2e/android/measure-insets.sh && adb logcat -G 16M && { node tools/e2e/native/capture/run.mjs --app "$APP" --apk "$E2E_OUT/apk/$APP-capture.apk" --shard "$SHARD" --out "$E2E_OUT/native-mock"; rc=$?; adb logcat -d -v time ReactNativeJS:V AndroidRuntime:E '*:S' >"$E2E_OUT/logs/logcat-$APP.txt" 2>&1 || true; exit $rc; }
+
+      - name: Summary
+        if: always()
+        run: |
+          n=$(find "$E2E_OUT/native-mock" -name 'design--*.png' 2>/dev/null | wc -l)
+          echo "native captures against the mock ($APP, shard $SHARD): $n screenshots"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: native-captures-${{ matrix.app }}-${{ matrix.shard }}
+          path: |
+            ${{ env.E2E_OUT }}/native-mock
+            ${{ env.E2E_OUT }}/insets.json
+            ${{ env.E2E_OUT }}/logs
+          if-no-files-found: warn
+          retention-days: 14
+
   # The design captures, taken against the mock.
   #
   # The boards draw states the real stack cannot produce on demand — a failed payout, an expired
@@ -552,7 +652,7 @@ jobs:
   # Its own job, not a step in `flows`: it needs no emulator, no stack and no APKs, and a 20-minute
   # emulator run should not wait on rendering boards.
   design-diff:
-    needs: [plan, flows, captures]
+    needs: [plan, flows, captures, native-captures]
     # On the captures, not on the flows. Whether a screen matches its board and whether a journey
     # works against the real stack are different questions, and the boards' own states are reached
     # through the mock — so a broken API should not also cost the fidelity verdicts. It did: #1040
@@ -621,6 +721,15 @@ jobs:
           merge-multiple: true
           path: ${{ env.E2E_OUT }}/design-captures
 
+      # The phone apps' captures taken against the mock (the native-captures job): one artifact per app and
+      # shard, merged. Absent on a run without the emulator, which is not an error.
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        continue-on-error: true
+        with:
+          pattern: native-captures-*
+          merge-multiple: true
+          path: ${{ env.E2E_OUT }}/native-mock-in
+
       # Every board of the apps whose captures a browser takes, not only the areas captured: the
       # count of boards with no capture at all is the coverage figure, and rendering only what was
       # captured would report it as zero.
@@ -687,9 +796,18 @@ jobs:
         if: always()
         run: |
           mkdir -p "$E2E_OUT/design-captures-native"
+          # Two sources per app, with no board in both (check-boards.mjs): the flows' screenshots (real
+          # stack) and the captures taken against the mock (native-captures job).
           for app in customer rider; do
-            if [ -d "$E2E_OUT/screenshots/$app" ]; then cp -R "$E2E_OUT/screenshots/$app" "$E2E_OUT/design-captures-native/$app"; fi
+            dst="$E2E_OUT/design-captures-native/$app"
+            if [ -d "$E2E_OUT/screenshots/$app" ]; then mkdir -p "$dst" && cp -R "$E2E_OUT/screenshots/$app/." "$dst/"; fi
+            if [ -d "$E2E_OUT/native-mock-in/native-mock/$app" ]; then
+              mkdir -p "$dst" && cp -R "$E2E_OUT/native-mock-in/native-mock/$app/." "$dst/"
+              echo "mock captures, $app: $(find "$E2E_OUT/native-mock-in/native-mock/$app" -name 'design--*.png' | wc -l)"
+            fi
           done
+          # The bars were measured on the flows' emulator, else on the captures' (the same device).
+          if [ ! -s "$E2E_OUT/insets.json" ] && [ -s "$E2E_OUT/native-mock-in/insets.json" ]; then cp "$E2E_OUT/native-mock-in/insets.json" "$E2E_OUT/insets.json"; fi
           n=$(find "$E2E_OUT/design-captures-native" -name 'design--*.png' 2>/dev/null | wc -l)
           echo "native design captures: $n"
           echo "present=$([ "$n" -gt 0 ] && echo true || echo false)" >>"$GITHUB_OUTPUT"
