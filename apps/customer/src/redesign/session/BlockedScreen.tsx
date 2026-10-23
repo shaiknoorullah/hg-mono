@@ -25,7 +25,7 @@ import Constants from 'expo-constants';
 
 import { logout, signOut } from '../api/auth';
 import { callSupport, useSupport, type Support } from '../api/config';
-import { Button, Icon, Wordmark, tokens, useTheme, useTypeStyle } from '../ds';
+import { Button, Icon, TopInsetSpent, Wordmark, tokens, useTheme, useTypeStyle } from '../ds';
 import { useFocusOnMount } from '../signin/a11y';
 import { clearForced, type ForcedKind, type ForcedRoute } from './forced';
 
@@ -222,6 +222,7 @@ export function BlockedScreen({ forced }: { forced: ForcedRoute }): React.ReactE
 
   return (
     <SafeAreaView style={[styles.fill, { backgroundColor: theme.color.surface.base }]} testID={`Blocked-${forced.kind}`}>
+      <TopInsetSpent>
       <ScrollView
         contentContainerStyle={{
           flexGrow: 1,
@@ -254,6 +255,7 @@ export function BlockedScreen({ forced }: { forced: ForcedRoute }): React.ReactE
         </View>
       </ScrollView>
       <View style={{ paddingHorizontal: tokens.space['4'], paddingBottom: tokens.space['4'], gap: tokens.space['3'] }}>{footer}</View>
+      </TopInsetSpent>
     </SafeAreaView>
   );
 }

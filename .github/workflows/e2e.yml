@@ -474,11 +474,14 @@ jobs:
       # Only the redesign projects: this job exists to take captures, not to run the suite twice.
       # This step does not fail on a failing spec: the step after it does, when a spec fails that is
       # not on the known list, so every spec still runs and every other board keeps its verdict.
+      # One retry, for these captures only: a spec that passes on the retry is flaky, not failing
+      # (the junit report records it as passed and Playwright's own summary counts it as "flaky"),
+      # so a race in one spec does not turn an unrelated pull request red.
       - name: Take the design captures
         run: |
           cd tools/e2e
           E2E_RUN="captures-$E2E_APPS" pnpm exec playwright test --config web/playwright.config.ts \
-            --project "$E2E_APPS-redesign-*" --pass-with-no-tests || echo "::warning::$E2E_APPS capture specs had failures; boards they would have captured are reported as uncaptured"
+            --project "$E2E_APPS-redesign-*" --pass-with-no-tests --retries=1 || echo "::warning::$E2E_APPS capture specs had failures; boards they would have captured are reported as uncaptured"
 
       - name: Summary
         if: always()

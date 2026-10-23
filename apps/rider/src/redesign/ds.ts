@@ -10,3 +10,6 @@
  * their own (`apps/*\/src/components/**` is closed; constitution §1).
  */
 export * from '@hg/ui-native';
+
+// The live Input: a separate required mark, the fixed +1 prefix on tel, and the rider's 56 field.
+export { Input } from '@hg/ui-native/ds';

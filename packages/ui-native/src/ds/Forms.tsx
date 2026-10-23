@@ -84,6 +84,8 @@ export interface InputProps extends DsCommon {
   /** Visible counter; announces what is left from 80% and at the limit. Needs maxLength. */
   characterCount?: boolean;
   autoComplete?: string;
+  /** `decimal` opens the decimal keyboard and keeps the text as typed, point included: for an amount on a `text` field (the `numeric` variant strips the point). */
+  inputMode?: 'decimal';
   /** otp only: 6 cells (sign-in, default) or 4 (the rider's handover code). */
   cells?: 4 | 6;
   /** `false` when an ErrorSummary already announced the form's errors: the line stays, silent. */
@@ -194,8 +196,8 @@ export function Input(props: InputProps) {
       maxLength={props.maxLength}
       counter={props.characterCount}
       secure={variant === 'password'}
-      keyboardType={KEYBOARD[variant]}
-      inputMode={variant === 'numeric' ? 'numeric' : variant === 'tel' ? 'tel' : variant === 'email' ? 'email' : undefined}
+      keyboardType={props.inputMode === 'decimal' && variant === 'text' ? 'decimal-pad' : KEYBOARD[variant]}
+      inputMode={props.inputMode === 'decimal' && variant === 'text' ? 'decimal' : variant === 'numeric' ? 'numeric' : variant === 'tel' ? 'tel' : variant === 'email' ? 'email' : undefined}
       autoComplete={(props.autoComplete ?? AUTOCOMPLETE[variant]) as never}
       autoCapitalize={variant === 'email' || variant === 'password' ? 'none' : undefined}
       autoCorrect={variant === 'email' || variant === 'password' || variant === 'tel' ? false : undefined}

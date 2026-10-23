@@ -102,6 +102,7 @@ jobs:
             # scenario.go: the checker reads devworld's scenario names from it.
             missions:
               - 'tools/e2e/native/**'
+              - 'tools/e2e/web/**'
               - 'tools/e2e/reality/**'
               - 'services/hg/internal/devworld/scenario.go'
               - 'package.json'
@@ -223,6 +224,14 @@ jobs:
       #     for the full check.
       - name: customer design captures
         run: pnpm e2e:boards:check
+
+      # 4d. The restaurant and admin web captures name boards that exist on the canvases branch,
+      #     including ids a spec builds from a prefix constant (#962, #1007). Unlike 4c this needs the
+      #     branch, so it is fetched here; a typo in a declaration fails the run.
+      - name: web design captures
+        run: |
+          git fetch --depth=1 origin claude/redesign-canvases:refs/remotes/origin/claude/redesign-canvases
+          pnpm e2e:web-boards:check
 
       # 5. The mock actually boots and serves the contract. It runs in its own process
       #    group, so the cleanup step below stops all of it.

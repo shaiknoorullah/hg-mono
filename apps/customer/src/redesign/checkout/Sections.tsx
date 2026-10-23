@@ -111,7 +111,10 @@ export function TipCard({
         {choice.kind === 'other' ? (
           <Input
             label="Tip amount"
-            variant="numeric"
+            // `text`, not `numeric`: the numeric variant strips the decimal point, so "60.00" would
+            // be sent as 600000 cents. The decimal keyboard still opens.
+            variant="text"
+            inputMode="decimal"
             prefix={<Text style={[small, { color: theme.color.text.secondary }]}>$</Text>}
             value={choice.text}
             onChange={(text) => onChoice({ kind: 'other', text })}

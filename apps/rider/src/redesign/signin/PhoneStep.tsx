@@ -102,7 +102,7 @@ export function PhoneStep({ digits, onDigits, signedOut, online, support, onSent
             <Text accessibilityRole="header" style={{ ...h1, color: theme.color.text.primary }}>
               {PHONE.title}
             </Text>
-            <Text style={{ ...lead, color: theme.color.text.primary }}>{PHONE.lead}</Text>
+            <Text style={{ ...lead, color: theme.color.text.secondary }}>{PHONE.lead}</Text>
           </View>
         </View>
         {/* ds-request(native): Input size field (56) — SO Main (lg is 52 today) */}

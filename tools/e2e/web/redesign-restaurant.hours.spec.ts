@@ -499,11 +499,16 @@ test.describe('Hours (real API)', () => {
       await page.getByTestId('right-now').getByRole('button', { name: 'Pause new orders' }).click();
       const item = page.getByRole('menuitem', { name: /^Pause for 15 minutes \(until / });
       const label = (await item.textContent())!;
-      const until = /until (\d{1,2}:\d{2} (?:am|pm))/.exec(label)![1];
+      const until = /until (\d{1,2}:\d{2} (?:am|pm))/.exec(label)![1]!;
       await item.click();
       await expect(badge).toHaveText('Paused');
-      // The label read back from the server names the same end time the menu item offered.
-      await expect(page.getByTestId('right-now-reason')).toHaveText(`Paused until ${until}.`);
+      // The label read back from the server names the end time the menu item offered, or the minute
+      // after it: the menu computes now + 15 minutes when it is drawn and the server when the request
+      // lands, so a minute boundary between the two moves the server's by one (#1086).
+      const reason = page.getByTestId('right-now-reason');
+      await expect(reason).toHaveText(/^Paused until /);
+      const said = ((await reason.textContent()) ?? '').replace(/\s+/g, ' ').trim();
+      expect([`Paused until ${until}.`, `Paused until ${minuteAfter(until)}.`]).toContain(said);
       await shot(page, 'real-paused');
       await page.getByTestId('right-now').getByRole('button', { name: 'Resume now' }).click();
       await page.getByRole('group', { name: 'Resume new orders now?' }).getByRole('button', { name: 'Resume now' }).click();
@@ -539,3 +544,13 @@ test.describe('Hours (real API)', () => {
     await shot(page, 'real-suspended-editing');
   });
 });
+
+/** "12:59 pm" -> "1:00 pm": the minute after a time as the console words it (h:mm am|pm, 12-hour). */
+function minuteAfter(time: string): string {
+  const m = /^(\d{1,2}):(\d{2}) (am|pm)$/.exec(time);
+  if (!m) throw new Error(`not a time the console words: ${time}`);
+  let minutes = ((Number(m[1]) % 12) + (m[3] === 'pm' ? 12 : 0)) * 60 + Number(m[2]) + 1;
+  minutes %= 24 * 60;
+  const h24 = Math.floor(minutes / 60);
+  return `${h24 % 12 === 0 ? 12 : h24 % 12}:${String(minutes % 60).padStart(2, '0')} ${h24 < 12 ? 'am' : 'pm'}`;
+}

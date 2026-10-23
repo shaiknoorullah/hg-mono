@@ -93,6 +93,9 @@ const type = (el: HTMLElement, value: string) => {
 
 describe('Hours: view', () => {
   it('shows the week Monday first in 12-hour time, ranges past midnight badged, today marked, and the special dates', async () => {
+    // Pinned, so that which row carries the Today badge does not depend on the day the test runs
+    // (or on Toronto midnight falling between the render and the assertion, #938).
+    clockAt(MONDAY_NOON);
     setup();
     const table = await openHours();
     const rows = within(table).getAllByRole('row').slice(1);
@@ -110,9 +113,9 @@ describe('Hours: view', () => {
     expect(within(friday).getByText('Past midnight')).toBeTruthy();
     expect(within(table).getByRole('row', { name: /Sunday/ }).textContent).toContain('12:00 pm – 9:00 pm');
     expect(screen.getByText('Eastern time (America/Toronto).')).toBeTruthy();
-    // Today's row carries the Today badge.
-    const weekday = new Intl.DateTimeFormat('en-CA', { weekday: 'long', timeZone: TZ }).format(new Date());
-    expect(within(within(table).getByRole('row', { name: new RegExp(weekday) })).getByText('Today')).toBeTruthy();
+    // Today's row carries the Today badge: the clock is pinned to a Monday.
+    expect(within(within(table).getByRole('row', { name: /Monday/ })).getByText('Today')).toBeTruthy();
+    expect(within(table).getAllByText('Today')).toHaveLength(1);
     const special = screen.getByRole('region', { name: 'Special dates' });
     expect(within(special).getByText('Friday 25 December 2026')).toBeTruthy();
     expect(within(special).getByText('4:00 pm – 10:00 pm')).toBeTruthy();
