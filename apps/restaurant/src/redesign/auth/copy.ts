@@ -66,8 +66,10 @@ export const SIGN_IN = {
   reuseTitle: 'We signed you out on every device',
   reuseIntro: 'Sign in again on each device to keep receiving orders.',
   reuseAlertTitle: 'Every session ended, including kitchen tablets',
-  reuseBody: (phone: string) =>
-    `Something looked like a copied sign-in, so we ended every session. Sign in again on each one. If you didn’t expect this, call partner support on ${phone} after signing in.`,
+  // SignIn-ReuseDetected: the phone is its own link between these two (straight apostrophe, as drawn).
+  reuseBodyBefore:
+    "Something looked like a copied sign-in, so we ended every session. Sign in again on each one. If you didn't expect this, call partner support on ",
+  reuseBodyAfter: ' after signing in.',
   reuseBodyNoSupport:
     'Something looked like a copied sign-in, so we ended every session. Sign in again on each one. If you didn’t expect this, contact HalalGoes after signing in.',
   notRestaurantTitle: "This isn't a restaurant account",
