@@ -9,7 +9,7 @@ const customer = require('../../apps/customer/app.config.js');
 const rider = require('../../apps/rider/app.config.js');
 
 const PROD_API = 'https://api.halalgoes.com';
-const BUILD_VARS = ['APP_ENV', 'APP_VERSION', 'API_BASE_URL', 'EXPO_PUBLIC_API_BASE_URL', 'EXPO_PUBLIC_HG_REDESIGN', 'VITE_HG_REDESIGN'];
+const BUILD_VARS = ['APP_ENV', 'APP_VERSION', 'API_BASE_URL', 'EXPO_PUBLIC_API_BASE_URL', 'EXPO_PUBLIC_HG_REDESIGN', 'VITE_HG_REDESIGN', 'EXPO_PUBLIC_HG_CAPTURE'];
 
 /** Evaluate an app config with exactly these build variables set, then put the old ones back. */
 function configWith(config, vars) {
@@ -93,5 +93,18 @@ test('the redesign flag: off unless a dev build asks for "1"; a prod build is al
   for (const config of [customer, rider]) {
     assert.throws(() => configWith(config, { ...prodVars, EXPO_PUBLIC_HG_REDESIGN: '1' }), /redesign/);
     assert.doesNotThrow(() => configWith(config, { ...prodVars, EXPO_PUBLIC_HG_REDESIGN: '0' }));
+  }
+});
+
+test('the design-capture entry: a dev build may carry it; a prod build refuses it, even from an app config', () => {
+  assert.doesNotThrow(() => resolveEnvironment('dev', { EXPO_PUBLIC_HG_CAPTURE: '1' }));
+  for (const off of [undefined, '', '0']) {
+    assert.doesNotThrow(() => resolveEnvironment('prod', { APP_VERSION: '1.0.0', EXPO_PUBLIC_HG_CAPTURE: off }), String(off));
+  }
+  assert.throws(() => resolveEnvironment('prod', { APP_VERSION: '1.0.0', EXPO_PUBLIC_HG_CAPTURE: '1' }), /design-capture/);
+  const prodVars = { APP_ENV: 'prod', APP_VERSION: '1.0.0', EXPO_PUBLIC_API_BASE_URL: PROD_API };
+  for (const config of [customer, rider]) {
+    assert.throws(() => configWith(config, { ...prodVars, EXPO_PUBLIC_HG_CAPTURE: '1' }), /design-capture/);
+    assert.doesNotThrow(() => configWith(config, prodVars));
   }
 });

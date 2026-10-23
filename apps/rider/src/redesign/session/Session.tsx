@@ -15,6 +15,7 @@ import * as React from 'react';
 import { unwrap } from '@hg/api-client';
 
 import { isAuthed, subscribe } from '../../token';
+import { captureEntry } from '../capture';
 import { rider } from '../data/client';
 import { outbox } from '../data/outbox';
 import { useApiQuery } from '../data/query';
@@ -119,6 +120,8 @@ function Routed({ decision }: { decision: GateDecision }): React.ReactElement {
       return (
         <Navigator initialFlow={flowFor(decision)}>
           <FlowFollower decision={decision} />
+          {/* Native design captures only (EXPO_PUBLIC_HG_CAPTURE=1): opens the board's screen. */}
+          {captureEntry ? <captureEntry.CaptureFollower /> : null}
           <Shell />
         </Navigator>
       );

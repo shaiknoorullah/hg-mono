@@ -249,9 +249,20 @@ flow gets `PHONE` (the app's persona), `RESTAURANT`, `DISH`, `EXPIRED_RESTAURANT
 `LONGITUDE`, and `CODE` when the folder has a `1-ask-for-code.yaml` (run first, with the code read
 from the API's log). Each redesign spec runs twice against one world (desktop, then tablet), so it
 must not depend on state the other pass changed.
+
 Only the app under test is running on the emulator: `run.sh` force-stops the rider app once the
 cross-app flow has its offer, and the other app before each app's redesign flows. The cross-app
 rider stays online on the server, though, so a redesign flow must not assume no rider is online.
+
+**The capture APK** is a third build, `<app>-capture.apk`, made in the same runs for an app that has a capture entry: the redesign build with `EXPO_PUBLIC_HG_CAPTURE=1`, pointed at the contract mock
+(`10.0.2.2:4010`, `pnpm mock`) instead of the real stack. It carries a dev-only entry, `hgcustomer://__capture?...` or
+`hgrider://__capture?...`, that signs in a fixture session, sets the mock scenario the API client sends, moves the app's clock to the fixtures'
+frozen clock and opens one screen with the app's own navigation (`apps/<app>/src/redesign/capture/`; the mock's `@stall`, `@delay`, `@reset`
+and `@status` directives put a request in flight or fail it, [mock README](../mock-server/README.md)). It is a navigator and session shim, not a
+screen: the screens and requests after it are the real ones, so a capture proves a screen in a state matches its board, not that the backend answers
+that way (the flows and the API journeys do that). Release builds cannot carry it: the `apk` job fails any other APK whose bundle contains
+`__capture`, and `scripts/release/redesign-off.cjs` refuses a release build with the flag set or that string in the bundle
+([issue 1141](https://github.com/shaiknoorullah/hg-mono/issues/1141); the runner that drives it is a later step).
 
 **Specs that change the shared restaurant** (2026-10-10, `redesign-restaurant.hours.spec.ts`):
 in real mode the Hours journeys read the restaurant's hours and open state through the API first

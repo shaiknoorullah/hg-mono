@@ -16,6 +16,7 @@ import { LoginGate } from '../../../App';
 import { BottomNav, Icon, Toast, TopInsetSpent, tokens, useTheme, type BottomNavItem } from '../ds';
 import { api } from '../api/client';
 import { EmailVerifyScreen } from '../account/EmailVerifyScreen';
+import { captureEntry } from '../capture';
 import { BlockedScreen } from '../session/BlockedScreen';
 import { useForcedRoute } from '../session/forced';
 import { clearWelcome, useSession } from '../session/session';
@@ -169,16 +170,22 @@ export function Shell(): React.ReactElement {
 
   React.useEffect(() => {
     let live = true;
-    void Linking.getInitialURL()
-      .then((url) => {
-        const route = routeForUrl(url);
-        if (live && route) setPendingLink(route);
-      })
-      .catch(() => {});
-    const sub = Linking.addEventListener('url', ({ url }) => {
+    // A deep link opens its route. In a capture build (EXPO_PUBLIC_HG_CAPTURE=1, never a release)
+    // the capture link does too, after it has set the session, scenario and clock.
+    const open = (url: string | null): void => {
       const route = routeForUrl(url);
-      if (route) setPendingLink(route);
-    });
+      if (route) {
+        if (live) setPendingLink(route);
+      } else if (captureEntry) {
+        void captureEntry.openCapture(url).then((captured) => {
+          if (live && captured) setPendingLink(captured);
+        });
+      }
+    };
+    void Linking.getInitialURL()
+      .then((url) => open(url))
+      .catch(() => {});
+    const sub = Linking.addEventListener('url', ({ url }) => open(url));
     return () => {
       live = false;
       sub.remove();

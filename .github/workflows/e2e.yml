@@ -24,6 +24,11 @@ name: e2e
 #             that has such specs or flows, so it costs nothing until a track adds one. Redesign
 #             APKs, like every APK, are built only when the emulator runs (e2e-full, nightly, Run
 #             workflow with all).
+#   capture   the redesign flag on and EXPO_PUBLIC_HG_CAPTURE=1, built against the mock server
+#             (10.0.2.2:4010) instead of the real stack: the build the native design captures
+#             open boards in (https://github.com/shaiknoorullah/hg-mono/issues/1141). Made for an
+#             app that has a capture entry, apps/<app>/src/redesign/capture/entry.ts. Every other
+#             APK is checked to contain no capture entry.
 #
 # Trust rules:
 # - Read-only token (contents: read; the plan job also reads past runs). No job reads a secret:
@@ -62,6 +67,8 @@ env:
   EXPO_NO_TELEMETRY: 1
   # The emulator reaches the runner at 10.0.2.2; Traefik publishes the API on 8080.
   E2E_DEVICE_API_URL: http://10.0.2.2:8080
+  # The capture APK talks to the contract mock (`pnpm mock`, port 4010), not to the stack.
+  E2E_DEVICE_MOCK_URL: http://10.0.2.2:4010
   MAESTRO_VERSION: 2.10.0
   MAESTRO_SHA256: 29b675e10cc12080e445e9bfb2e2b4e4dfb9c0f2e30d5884120d258b5e1cd991
 
@@ -84,10 +91,14 @@ jobs:
       mode: ${{ steps.plan.outputs.mode }}
       apks: ${{ steps.apks.outputs.apks }}
     steps:
-      # Only the flow folders, to see which apps have redesign flows; nothing here is run.
+      # Only the flow folders and the capture entries, to see which apps have redesign flows and
+      # a capture entry; nothing here is run.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          sparse-checkout: tools/e2e/native
+          sparse-checkout: |
+            tools/e2e/native
+            apps/customer/src/redesign/capture
+            apps/rider/src/redesign/capture
           persist-credentials: false
 
       - id: plan
@@ -118,7 +129,9 @@ jobs:
           echo "Flows this run: **$mode**" >>"$GITHUB_STEP_SUMMARY"
 
       # The APKs to build: each app's legacy one, and a redesign one (EXPO_PUBLIC_HG_REDESIGN=1)
-      # beside it for an app with flows in tools/e2e/native/<app>/redesign/ (missions/ excepted).
+      # beside it for an app with flows in tools/e2e/native/<app>/redesign/ (missions/ excepted),
+      # and a capture one (redesign on, EXPO_PUBLIC_HG_CAPTURE=1, against the mock) for an app with
+      # a capture entry, apps/<app>/src/redesign/capture/entry.ts.
       - id: apks
         run: |
           entries=()
@@ -127,6 +140,10 @@ jobs:
             if compgen -G "tools/e2e/native/$app/redesign/*.yaml" >/dev/null; then
               entries+=("{\"app\":\"$app\",\"variant\":\"redesign\",\"flag\":\"1\"}")
               echo "Redesign APK: **$app**" >>"$GITHUB_STEP_SUMMARY"
+            fi
+            if [ -f "apps/$app/src/redesign/capture/entry.ts" ]; then
+              entries+=("{\"app\":\"$app\",\"variant\":\"capture\",\"flag\":\"1\"}")
+              echo "Capture APK: **$app**" >>"$GITHUB_STEP_SUMMARY"
             fi
           done
           echo "apks=[$(IFS=,; echo "${entries[*]}")]" >>"$GITHUB_OUTPUT"
@@ -144,10 +161,12 @@ jobs:
     env:
       APP: ${{ matrix.app }}
       VARIANT: ${{ matrix.variant }}
-      # legacy: off, as release 1.0 ships; redesign: on. app-env.cjs passes it to the build.
+      # legacy: off, as release 1.0 ships; redesign and capture: on. app-env.cjs passes it to the build.
       EXPO_PUBLIC_HG_REDESIGN: ${{ matrix.flag }}
-      # customer.apk, or customer-redesign.apk beside it.
-      APK_NAME: ${{ matrix.app }}${{ matrix.variant == 'redesign' && '-redesign' || '' }}
+      # The design-capture entry: in the capture APK only, empty (off) in the others.
+      EXPO_PUBLIC_HG_CAPTURE: ${{ matrix.variant == 'capture' && '1' || '' }}
+      # customer.apk, or customer-redesign.apk and customer-capture.apk beside it.
+      APK_NAME: ${{ matrix.app }}${{ matrix.variant != 'legacy' && format('-{0}', matrix.variant) || '' }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -159,7 +178,7 @@ jobs:
         with:
           path: out/
           # Bump the leading version when the build steps below change.
-          key: e2e-apk-v1-${{ matrix.app }}${{ matrix.variant == 'redesign' && '-redesign' || '' }}-${{ hashFiles(format('apps/{0}/**', matrix.app), 'packages/**', 'scripts/release/app-env.cjs', 'pnpm-lock.yaml', 'tools/e2e/android/**') }}
+          key: e2e-apk-v1-${{ matrix.app }}${{ matrix.variant != 'legacy' && format('-{0}', matrix.variant) || '' }}-${{ hashFiles(format('apps/{0}/**', matrix.app), 'packages/**', 'scripts/release/app-env.cjs', 'pnpm-lock.yaml', 'tools/e2e/android/**') }}
 
       - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
         if: steps.cache.outputs.cache-hit != 'true'
@@ -186,7 +205,7 @@ jobs:
       - name: Point the build at the runner's API
         if: steps.cache.outputs.cache-hit != 'true'
         env:
-          API_BASE_URL: ${{ env.E2E_DEVICE_API_URL }}
+          API_BASE_URL: ${{ matrix.variant == 'capture' && env.E2E_DEVICE_MOCK_URL || env.E2E_DEVICE_API_URL }}
         run: node scripts/release/app-env.cjs dev --print | tee -a "$GITHUB_ENV"
 
       - name: Generate the native project
@@ -225,9 +244,22 @@ jobs:
             || fail "the APK does not allow cleartext HTTP to $EXPO_PUBLIC_API_BASE_URL"
           # The legacy APK is what release 1.0 ships: the same guard as release-builds.yml. The
           # redesign one reports whether its bundle carries the flag-on marker.
+          # The design-capture entry is in the capture APK and in no other: its link host,
+          # `__capture`, is in the bundle only when EXPO_PUBLIC_HG_CAPTURE was "1" at build time.
+          if [ "$VARIANT" = capture ]; then
+            grep -aqF '__capture' "$RUNNER_TEMP/index.android.bundle" \
+              || fail "the capture APK has no capture entry: the bundle does not contain __capture"
+            echo "::notice title=$APP capture APK::the bundle carries the capture entry (__capture) and talks to $EXPO_PUBLIC_API_BASE_URL"
+          else
+            ! grep -aqF '__capture' "$RUNNER_TEMP/index.android.bundle" \
+              || fail "the $VARIANT APK carries the capture entry: the bundle contains __capture"
+            echo "::notice title=$APP $VARIANT APK::no capture entry in the bundle (__capture is absent)"
+          fi
           if [ "$VARIANT" = legacy ]; then
             node scripts/release/redesign-off.cjs bundle "$RUNNER_TEMP/index.android.bundle" \
               || fail "the legacy APK has the redesign flag on"
+          elif [ "$VARIANT" = capture ]; then
+            echo "::notice title=$APP capture APK::redesign flag on, as the captures need"
           elif grep -aqF 'hg-redesign:on' "$RUNNER_TEMP/index.android.bundle"; then
             echo "::notice title=$APP redesign APK::the bundle carries the marker hg-redesign:on"
           else

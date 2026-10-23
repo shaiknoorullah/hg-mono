@@ -10,12 +10,14 @@
  * failure, like no signal. One call can take longer by passing its own fetch:
  * `rider.POST(path, { ..., fetch: trackedFetchWithin(60_000) })`.
  *
- * No `mockScenario` here: scenario switching belongs to tests (`test/mockApi.ts`), never to a
- * screen (rider manifest WP0: "remove demo scenario pickers").
+ * No screen picks a mock scenario (rider manifest WP0: "remove demo scenario pickers"). The one
+ * `mockScenario` is read from `../../mockScenario`, which only the capture entry sets, in a build
+ * made for the native design captures; tests use `test/mockApi.ts`.
  */
 import { createHgClient, type HgClient } from '@hg/api-client';
 
 import { API_BASE_URL, onUnauthorized } from '../../api';
+import { getMockScenario } from '../../mockScenario';
 import { getToken } from '../../token';
 import { reportReachable, reportTransportFailure } from './connectivity';
 
@@ -81,5 +83,6 @@ export const rider: HgClient = createHgClient({
   clientSurface: 'rider-app',
   clientVersion: CLIENT_VERSION,
   onUnauthorized,
+  mockScenario: getMockScenario,
   fetch: trackedFetch,
 });
