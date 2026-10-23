@@ -32,6 +32,8 @@ The full list of journeys still to cover is the harness plan in
 | A pull request with the **`e2e` label** | The web flows only, on every push while the label is on. No APK build and no emulator: those take the longest ([below](#what-it-costs)). Without the label no job starts |
 | A pull request with the **`e2e-full` label** | Every flow, emulator included, on every push while the label is on. The by-hand run for a pull request: a workflow can only be started from the Actions tab once it is on `main`. Remove the label when done |
 
+**Beside the flows, `native-captures`** (emulator runs only): the customer and rider boards that no flow reaches, taken against the mock with the capture APK, one job per app (`native-captures (rider, shard 1/1)`). Its captures are merged with the flows' into "Design fidelity, native". See [The capture APK](#redesign) and the [native README](native/README.md#captures-against-the-mock).
+
 **Beside the flows, `captures`.** The boards draw states the real stack cannot produce on demand — a
 failed payout, an expired certificate, a refused upload — so the specs that capture them are written
 against the mock and skip when `E2E_MODE` is real. The `flows` job runs the real stack, so a
@@ -262,7 +264,7 @@ and `@status` directives put a request in flight or fail it, [mock README](../mo
 screen: the screens and requests after it are the real ones, so a capture proves a screen in a state matches its board, not that the backend answers
 that way (the flows and the API journeys do that). Release builds cannot carry it: the `apk` job fails any other APK whose bundle contains
 `__capture`, and `scripts/release/redesign-off.cjs` refuses a release build with the flag set or that string in the bundle
-([issue 1141](https://github.com/shaiknoorullah/hg-mono/issues/1141); the runner that drives it is a later step).
+([issue 1141](https://github.com/shaiknoorullah/hg-mono/issues/1141)). The `native-captures` job drives it: it installs the capture APK on an emulator beside `pnpm mock` (no compose stack, no seed), and `native/capture/run.mjs` opens each board listed in [`native/boards/<app>.json`](native/boards) by its capture link, waits for the screen to settle, and writes the `design--<area>--<Board>.png` pair the native design diff reads ([native README](native/README.md#captures-against-the-mock)). A board that cannot be opened or never settles fails the job with its reason. It runs only when the emulator runs, like `flows`, one job per app and shard, about 20 s a board.
 
 **Specs that change the shared restaurant** (2026-10-10, `redesign-restaurant.hours.spec.ts`):
 in real mode the Hours journeys read the restaurant's hours and open state through the API first
@@ -355,7 +357,7 @@ board by that name, and judges it (a web capture pixel by pixel, a native one by
   The customer boards that no flow captures, each with its reason, are in
   [`native/customer-boards.mjs`](native/customer-boards.mjs); `pnpm e2e:boards:check` fails on a capture named for a
   board that does not exist, and (with `origin/claude/redesign-canvases` fetched) on a board that is neither captured nor
-  given a reason. A board can also be listed in [`native/boards/<app>.json`](native/boards) (an empty list for now): the boards the capture entry will open against the mock ([issue 1141](https://github.com/shaiknoorullah/hg-mono/issues/1141)). A board is captured by a flow, listed, or unpairable, never two of them, and a listed board must exist. A new flow screenshot of a board's screen should be named for it; a screen with no board stays unnamed. The seven App settings boards are built but unpaired: the location states are the phone's permission, which no flow sets before it captures.
+  given a reason. A board can also be listed in [`native/boards/<app>.json`](native/boards) (the pilot: 16 rider and 19 customer boards): the boards the capture entry opens against the mock ([issue 1141](https://github.com/shaiknoorullah/hg-mono/issues/1141)). A board is captured by a flow, listed, or unpairable, never two of them, and a listed board must exist. A new flow screenshot of a board's screen should be named for it; a screen with no board stays unnamed. The seven App settings boards are built but unpaired: the location states are the phone's permission, which no flow sets before it captures.
 
   **The rider app is measured the same way.** The rider redesign flows (`native/rider/redesign/`, and `lab/`)
   call the same `design-capture.yaml` at every screen that has a board: 70 of the rider's 652 boards

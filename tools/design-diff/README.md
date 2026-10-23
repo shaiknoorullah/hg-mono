@@ -312,6 +312,14 @@ What the harness does for a native capture:
   The pixel figure is kept in `results.json` as `informationalSharedHeightMismatchPct` and never sets a verdict:
   no native board passes on pixels.
 
+**Where native captures come from.** Two places, never the same board twice
+(`tools/e2e/native/check-boards.mjs`): the Maestro flows (real stack, `design-capture.yaml`), and the
+`native-captures` job, which opens boards listed in `tools/e2e/native/boards/<app>.json` on the capture APK
+against the mock (`tools/e2e/native/capture/run.mjs`). The runner is not inside a flow, so its
+`uiautomator dump` works: it writes the `.hierarchy.xml` and `.capture.json` itself, through
+`android/capture-server.mjs`'s `capture()`, once the screen has settled. The e2e workflow's `design-diff`
+job merges both into `design-captures-native/<app>/`.
+
 **How a capture is measured.**
 
 1. The hierarchy becomes dp (`src/uiautomator.mjs`): bounds in px divided by `density`, with the
