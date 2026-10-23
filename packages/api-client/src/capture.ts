@@ -8,10 +8,12 @@
  * holds no app route and not the link's host: those are the apps' own.
  */
 
-/** Tokens the mock accepts for any bearer; the scenario decides who the principal is. */
+/** The access token the mock accepts for any bearer; the scenario decides who the principal is. */
 export const CAPTURE_ACCESS_TOKEN = 'capture-fixture-access';
+/** The refresh token the fixture session holds beside the access token. */
 export const CAPTURE_REFRESH_TOKEN = 'capture-fixture-refresh';
 
+/** What a capture link's query asks for, once read. */
 export interface CaptureQuery {
   board: string | null;
   /** Params for the route, from the link's JSON `params` (undefined when it has none). */
@@ -22,6 +24,7 @@ export interface CaptureQuery {
   clock: string | undefined;
 }
 
+/** `readCaptureQuery`'s answer: the query's values, or why the link is refused. */
 export type CaptureQueryResult = ({ ok: true } & CaptureQuery) | { ok: false; why: string };
 
 /** The refusal message for a link, naming the board when the link has one. */
