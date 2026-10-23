@@ -16,11 +16,11 @@
     "open_state": "CLOSED_TOGGLE",
     "is_accepting_orders": false,
     "within_hours": true,
-    "next_closing_at": "2026-08-11T02:00:00.000Z",
+    "next_closing_at": "2026-08-11T03:00:00.000Z",
     "pause_until": null,
     "pause_kind": null,
     "last_heartbeat_at": "2026-08-10T18:32:11.412Z",
-    "missed_order_count": 19,
+    "missed_order_count": 0,
     "reason": "Closed for a scheduled deep clean. Reopening at 14:00.",
     "resolvable_by": "RESTAURANT"
   }

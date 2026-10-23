@@ -2,7 +2,7 @@
   "scenario": "connect_status_complete",
   "domain": "platform",
   "schema": "ConnectStatus",
-  "describes": "Stripe Connect fully onboarded: payouts enabled, nothing due.",
+  "describes": "Stripe Connect fully onboarded: payouts enabled, nothing due now or later. The bank account ends 4821 and pays weekly, as the payouts boards say.",
   "operations": [
     "getConnectStatus",
     "createConnectAccount"
@@ -13,21 +13,18 @@
     "money"
   ],
   "payload": {
-    "stripe_account_id": "Stripe Account Id",
+    "stripe_account_id": "acct_1QkR7mE8xVn2LbQ1",
     "charges_enabled": true,
     "payouts_enabled": true,
     "details_submitted": true,
     "requirements": {
       "currently_due": [],
-      "eventually_due": [
-        "Eventually Due",
-        "Eventually Due"
-      ],
+      "eventually_due": [],
       "past_due": [],
-      "disabled_reason": "Disabled Reason",
-      "deadline": "2026-08-17T18:42:11.412Z"
+      "disabled_reason": null,
+      "deadline": null
     },
-    "bank_last4": "Bank Last4",
+    "bank_last4": "4821",
     "payout_interval": "WEEKLY"
   }
 }

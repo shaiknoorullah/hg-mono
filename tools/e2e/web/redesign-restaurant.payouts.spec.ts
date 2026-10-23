@@ -59,9 +59,40 @@ async function fixture<T = any>(page: Page, name: string): Promise<T> {
   return (await res.json()).data.payload;
 }
 
+/**
+ * What Stripe asks for in the payouts boards (`ScreenPayouts`): the website address is past due,
+ * the bank account and the owner's photo ID are needed by 3 October 2026, the business tax number
+ * can wait. `DUE_SOON` is the same with nothing past due; `STILL` is one thing, with no date.
+ */
+const LATER = ['company.tax_id'];
+const SETUP = {
+  past_due: ['business_profile.url'],
+  currently_due: ['business_profile.url', 'external_account', 'individual.verification.document'],
+  eventually_due: ['business_profile.url', 'external_account', 'individual.verification.document', ...LATER],
+  deadline: '2026-10-03T12:00:00.000Z',
+};
+const DUE_SOON = { ...SETUP, past_due: [], currently_due: ['external_account', 'individual.verification.document'], eventually_due: ['external_account', 'individual.verification.document', ...LATER] };
+const STILL = { past_due: [], currently_due: ['external_account'], eventually_due: [], deadline: null };
+
+/** The one older week the boards' end of the list shows, after the seven of the first page (`BOARD_OLDER_PAYOUT` in the fixtures' builder). */
+const OLDER_PAYOUT: Payout = {
+  id: '0192f1c0-11aa-7e00-8b10-000000000000',
+  period_start: '2026-07-27T04:00:00.000Z',
+  period_end: '2026-08-03T04:00:00.000Z',
+  amount_cents: 264900,
+  currency: 'CAD',
+  state: 'PAID',
+  hold_reason: null,
+  entry_count: 131,
+  paid_at: '2026-08-04T13:00:00.000Z',
+  failure_message: null,
+};
+
 interface Scene {
   /** A `connect_status_*` fixture, or how the call goes wrong. */
   connect?: string | 'none' | 'error' | 'never';
+  /** What Stripe asks for, when a board draws a list the fixture does not (`SETUP`, `DUE_SOON`, `STILL`). */
+  requirements?: Record<string, unknown>;
   /** A `restaurant_profile_account_*` fixture; the live account when left out. */
   profile?: string;
   /** The first page of the history. */
@@ -73,17 +104,18 @@ interface Scene {
 /** Routes the calls the payouts pages make, then opens `path` signed in as the owner. */
 async function open(page: Page, path: string, scene: Scene = {}) {
   await freshCheckIn(page);
-  const { connect = 'connect_status_complete', profile = 'restaurant_profile_account_live', payouts = [], older = 'none' } = scene;
+  const { connect = 'connect_status_complete', profile = 'restaurant_profile_account_live', payouts = [], older = 'none', requirements } = scene;
   const profileBody = await fixture(page, profile);
   await page.route('**/v1/restaurant/profile', (route) => route.fulfill({ json: { data: profileBody } }));
   if (connect === 'none') await page.route('**/v1/connect/status', notFound);
   else if (connect === 'error') await page.route('**/v1/connect/status', failing);
   else if (connect === 'never') await page.route('**/v1/connect/status', never);
   else {
-    const body = await fixture(page, connect);
+    const fixed = await fixture(page, connect);
+    const body = requirements ? { ...fixed, requirements: { ...fixed.requirements, ...requirements } } : fixed;
     await page.route('**/v1/connect/status', (route) => route.fulfill({ json: { data: body } }));
   }
-  const olderPage = (await fixture<Payout[]>(page, 'restaurant_payout_history_page_2')).slice(0, 3);
+  const olderPage = [OLDER_PAYOUT];
   await page.route(PAYOUTS_LIST, async (route) => {
     const cursor = new URL(route.request().url()).searchParams.get('cursor');
     if (cursor) {
@@ -174,34 +206,34 @@ test.describe('redesigned restaurant · payout account (mock)', () => {
   });
 
   test('on hold until Stripe has what it needs', async ({ page }) => {
-    await open(page, '/payouts', { connect: 'connect_status_currently_due' });
+    await open(page, '/payouts', { connect: 'connect_status_currently_due', requirements: SETUP });
     await expect(page.getByTestId('banner-held')).toBeVisible();
     await capture(page, { 1440: 'restaurant/payouts/Payouts-SetupIncomplete' });
   });
 
   test("Stripe's exact list in the panel", async ({ page }) => {
-    await open(page, '/payouts', { connect: 'connect_status_past_due' });
+    await open(page, '/payouts', { connect: 'connect_status_past_due', requirements: SETUP });
     await page.getByRole('button', { name: "See Stripe's exact list" }).first().click();
     await expect(page.getByTestId('stripe-list-panel')).toBeVisible();
     await capture(page, { 1440: 'restaurant/payouts/Payouts-SetupList' });
   });
 
   test('Stripe needs something by a date, payouts still on', async ({ page }) => {
-    await open(page, '/payouts', { connect: 'connect_status_due_with_deadline' });
+    await open(page, '/payouts', { connect: 'connect_status_due_with_deadline', requirements: DUE_SOON });
     await expect(page.getByTestId('banner-due-soon')).toBeVisible();
     await capture(page, { 1440: 'restaurant/payouts/Payouts-DueSoon' });
   });
 
   test('opening Stripe', async ({ page }) => {
     await page.route('**/v1/connect/onboarding-link', never);
-    await open(page, '/payouts', { connect: 'connect_status_currently_due' });
+    await open(page, '/payouts', { connect: 'connect_status_currently_due', requirements: SETUP });
     await page.getByRole('button', { name: 'Finish payout setup in Stripe' }).click();
     await capture(page, { 1440: 'restaurant/payouts/Payouts-StripeOpening' }, { settled: false });
   });
 
   test('Stripe could not be opened', async ({ page }) => {
     await page.route('**/v1/connect/onboarding-link', failing);
-    await open(page, '/payouts', { connect: 'connect_status_currently_due' });
+    await open(page, '/payouts', { connect: 'connect_status_currently_due', requirements: SETUP });
     await page.getByRole('button', { name: 'Finish payout setup in Stripe' }).click();
     await expect(page.getByTestId('problem-link')).toBeVisible();
     await capture(page, { 1440: 'restaurant/payouts/Payouts-StripeError' });
@@ -209,14 +241,14 @@ test.describe('redesigned restaurant · payout account (mock)', () => {
 
   test('setup is not available yet', async ({ page }) => {
     await page.route('**/v1/connect/onboarding-link', conflict);
-    await open(page, '/payouts', { connect: 'connect_status_currently_due' });
+    await open(page, '/payouts', { connect: 'connect_status_currently_due', requirements: SETUP });
     await page.getByRole('button', { name: 'Finish payout setup in Stripe' }).click();
     await expect(page.getByTestId('problem-step-na')).toBeVisible();
     await capture(page, { 1440: 'restaurant/payouts/Payouts-Stripe409' });
   });
 
   test('back from Stripe, still checking', async ({ page }) => {
-    await open(page, '/payouts/return', { connect: 'connect_status_pending_verification' });
+    await open(page, '/payouts/return', { connect: 'connect_status_pending_verification', requirements: SETUP });
     await expect(page.getByTestId('banner-checking')).toBeVisible();
     await capture(page, { 1440: 'restaurant/payouts/Payouts-StripeReturn-Checking' });
   });
@@ -228,7 +260,7 @@ test.describe('redesigned restaurant · payout account (mock)', () => {
   });
 
   test('back from Stripe, still needs something', async ({ page }) => {
-    await open(page, '/payouts/return', { connect: 'connect_status_currently_due' });
+    await open(page, '/payouts/return', { connect: 'connect_status_currently_due', requirements: STILL });
     await expect(page.getByTestId('banner-held')).toBeVisible();
     await capture(page, { 1440: 'restaurant/payouts/Payouts-StripeReturn-Still' });
   });
@@ -337,23 +369,23 @@ test.describe('redesigned restaurant · one payout (mock)', () => {
   });
 
   test('on hold, account suspended', async ({ page }) => {
-    await openPayout(page, 'HELD', { profile: 'restaurant_profile_account_suspended' }, (p) => ({ ...p, ...week('2026-09-07') }));
+    await openPayout(page, 'HELD', { profile: 'restaurant_profile_account_suspended' }, (p) => ({ ...p, ...week('2026-09-07'), amount_cents: 289400, entry_count: 126, hold_reason: 'Held while this account is suspended.' }));
     await capture(page, { 1440: 'restaurant/payouts/PayoutDetail-OnHoldSuspended' });
   });
 
   test('on hold, account banned', async ({ page }) => {
-    await openPayout(page, 'HELD', { profile: 'restaurant_profile_account_banned' }, (p) => ({ ...p, ...week('2026-09-07') }));
+    await openPayout(page, 'HELD', { profile: 'restaurant_profile_account_banned' }, (p) => ({ ...p, ...week('2026-09-07'), amount_cents: 289400, entry_count: 126, hold_reason: 'Held while this account is banned.' }));
     await capture(page, { 1440: 'restaurant/payouts/PayoutDetail-OnHoldBanned' });
   });
 
   test('on hold for Stripe setup, earlier week', async ({ page }) => {
-    await openPayout(page, 'HELD', { connect: 'connect_status_currently_due' }, (p) => ({ ...p, ...week('2026-08-31') }));
+    await openPayout(page, 'HELD', { connect: 'connect_status_currently_due' }, (p) => ({ ...p, ...week('2026-08-31'), amount_cents: 212300, entry_count: 97, hold_reason: 'Payouts are not enabled on your Stripe account yet.' }));
     await expect(page.getByTestId('held-setup')).toBeVisible();
     await capture(page, { 1440: 'restaurant/payouts/PayoutDetail-OnHoldSetup-Aug31' });
   });
 
   test('on hold for Stripe setup', async ({ page }) => {
-    await openPayout(page, 'HELD', { connect: 'connect_status_currently_due' }, (p) => ({ ...p, ...week('2026-09-07') }));
+    await openPayout(page, 'HELD', { connect: 'connect_status_currently_due' }, (p) => ({ ...p, ...week('2026-09-07'), amount_cents: 289400, entry_count: 126, hold_reason: 'Payouts are not enabled on your Stripe account yet.' }));
     await expect(page.getByTestId('held-setup')).toBeVisible();
     await capture(page, { 1440: 'restaurant/payouts/PayoutDetail-OnHoldSetup-Sep7' });
   });

@@ -1508,6 +1508,41 @@ def _restaurant_owned_menu(reg) -> None:
     )
 
 
+# The payouts the restaurant boards draw (restaurant/payouts `PartPayoutTable` and
+# `PartPayoutDetail`): seven weeks, one in each state, the open week starting Monday 14 September
+# 2026. (id suffix, Monday of the week, state, amount in cents, orders in it, paid on)
+BOARD_PAYOUTS = [
+    (7, "2026-09-14", "DRAFT", 186450, 58, None),
+    (6, "2026-09-07", "READY", 289400, 126, None),
+    (5, "2026-08-31", "TRANSFERRING", 412300, 184, None),
+    (4, "2026-08-24", "TRANSFERRED", 338700, 151, None),
+    (3, "2026-08-17", "HELD", 305100, 147, None),
+    (2, "2026-08-10", "FAILED", 297800, 143, None),
+    (1, "2026-08-03", "PAID", 281200, 139, "2026-08-11"),
+]
+# The one older week the boards' "end of the list" shows, after the first seven.
+BOARD_OLDER_PAYOUT = (0, "2026-07-27", "PAID", 264900, 131, "2026-08-04")
+
+
+def board_payout(suffix: int, monday: str, state: str, cents: int, orders: int, paid_on) -> dict:
+    # A Toronto week runs from Monday 00:00 (04:00 UTC in summer) for seven days.
+    start = dt.datetime.fromisoformat(monday).replace(hour=4, tzinfo=dt.timezone.utc)
+    end = start + dt.timedelta(days=7)
+    return {
+        "id": f"0192f1c0-11aa-7e00-8b10-{suffix:012d}",
+        "period_start": _iso(start),
+        "period_end": _iso(end),
+        "amount_cents": cents,
+        "currency": "CAD",
+        "state": state,
+        "hold_reason": "Held while HalalGoes reviews a disputed order from this period." if state == "HELD" else None,
+        "entry_count": orders,
+        # Paid into the bank at 9:00 am Toronto on the day the board gives.
+        "paid_at": f"{paid_on}T13:00:00.000Z" if paid_on else None,
+        "failure_message": "The bank returned the transfer." if state == "FAILED" else None,
+    }
+
+
 def _restaurant_payouts(reg) -> None:
     def payout(label, state, weeks_ago, amount, entries):
         row = _payout(f"restaurant:{label}", state, weeks_ago, amount, entries)
@@ -1515,15 +1550,7 @@ def _restaurant_payouts(reg) -> None:
             row["hold_reason"] = "Payouts are paused while Stripe checks the business details."
         return row
 
-    every = [payout(*row) for row in [
-        ("every-draft", "DRAFT", 0, 0, 0),
-        ("every-ready", "READY", 1, 184250, 61),
-        ("every-transferring", "TRANSFERRING", 2, 201475, 67),
-        ("every-transferred", "TRANSFERRED", 3, 176830, 58),
-        ("every-held", "HELD", 4, 193115, 64),
-        ("every-failed", "FAILED", 5, 168940, 55),
-        ("every-paid", "PAID", 6, 188320, 62),
-    ]]
+    every = [board_payout(*row) for row in BOARD_PAYOUTS]
     reg.add(
         "restaurant_payout_history_every_state",
         "rider",

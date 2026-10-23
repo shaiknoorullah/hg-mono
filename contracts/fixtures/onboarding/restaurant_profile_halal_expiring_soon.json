@@ -2,7 +2,7 @@
   "scenario": "restaurant_profile_halal_expiring_soon",
   "domain": "onboarding",
   "schema": "RestaurantProfile",
-  "describes": "`getRestaurantProfile` with `halal.display_state: EXPIRING_SOON`. Certificate expires in 12 days: the console shows the renewal banner. Customers still see the dated badge.",
+  "describes": "`getRestaurantProfile` with `halal.display_state: EXPIRING_SOON`. Certificate expires on 28 October 2026: the console shows the renewal banner. Customers still see the dated badge.",
   "operations": [
     "getRestaurantProfile"
   ],
@@ -41,8 +41,8 @@
     "onboarding_state": "ACTIVE",
     "halal": {
       "display_state": "EXPIRING_SOON",
-      "certifying_body_name": "Halal Monitoring Authority",
-      "expires_on": "2026-08-22"
+      "certifying_body_name": "HMA Canada",
+      "expires_on": "2026-10-28"
     },
     "commission_rate_bps": 0
   }

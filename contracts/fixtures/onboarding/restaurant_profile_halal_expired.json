@@ -2,7 +2,7 @@
   "scenario": "restaurant_profile_halal_expired",
   "domain": "onboarding",
   "schema": "RestaurantProfile",
-  "describes": "`getRestaurantProfile` with `halal.display_state: EXPIRED`. Certificate expired 3 days ago: the restaurant is hidden from customers (`account_state: DELISTED`). Cool slate, never red.",
+  "describes": "`getRestaurantProfile` with `halal.display_state: EXPIRED`. Certificate expired on 12 September 2026: the restaurant is hidden from customers (`account_state: DELISTED`). Cool slate, never red.",
   "operations": [
     "getRestaurantProfile"
   ],
@@ -41,8 +41,8 @@
     "onboarding_state": "ACTIVE",
     "halal": {
       "display_state": "EXPIRED",
-      "certifying_body_name": "Halal Monitoring Authority",
-      "expires_on": "2026-08-07"
+      "certifying_body_name": "HMA Canada",
+      "expires_on": "2026-09-12"
     },
     "commission_rate_bps": 0
   }
