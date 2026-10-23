@@ -74,7 +74,8 @@ async function foodSafety(page: Page, version = 1) {
 
 /** Opens the decision panel named by its button and returns it. */
 async function openPanel(page: Page, button: string, region: RegExp | string) {
-  await page.getByRole('button', { name: button }).click();
+  // The Halal strip repeats Request changes… when there is no certificate record: the row of decisions comes first.
+  await page.getByRole('button', { name: button }).first().click();
   const panel = page.getByRole('region', { name: region });
   await expect(panel).toBeVisible();
   return panel;
@@ -164,13 +165,13 @@ test.describe('redesigned admin · application workspace (mock)', () => {
 
   test('changes requested, waiting on the restaurant', async ({ page }) => {
     await openApp(page, { app: (c) => changesRequested(c) });
-    await expect(page.getByText('Changes requested. It returns to the queue when they resubmit.')).toBeVisible();
+    await expect(page.getByTestId('DecisionRecord').getByText('Changes requested. It returns to the queue when they resubmit.')).toBeVisible();
     await capture(page, { 1440: 'admin/restaurant-verification/App-ChangesRequested' });
   });
 
   test('withdrawn', async ({ page }) => {
     await openApp(page, { app: (c) => karahiApp(c, { onboarding_state: 'WITHDRAWN', assigned_admin_id: null, review_lock_expires_at: null }) });
-    await expect(page.getByText('The restaurant withdrew this application.')).toBeVisible();
+    await expect(page.getByTestId('DecisionRecord').getByText('The restaurant withdrew this application.')).toBeVisible();
     await capture(page, { 1440: 'admin/restaurant-verification/App-Withdrawn' });
   });
 
@@ -222,7 +223,7 @@ test.describe('redesigned admin · application workspace (mock)', () => {
       await review.getByRole('radiogroup', { name: label }).getByRole('radio', { name: 'Pass' }).check();
     }
     await review.getByRole('button', { name: 'Approve document' }).click();
-    await expect(page.getByText('Food safety certificate approved')).toBeVisible();
+    await expect(page.getByTestId('hg-toast').getByText('Food safety certificate approved')).toBeVisible();
     await page.getByRole('button', { name: /^Open Halal certificate, version 1/ }).click();
     await capture(page, { 1440: 'admin/restaurant-verification/App-Success' });
   });

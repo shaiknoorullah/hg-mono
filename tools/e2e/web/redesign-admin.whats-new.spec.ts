@@ -75,6 +75,11 @@ async function open(page: Page, { role = 'SUPER_ADMIN', hash = '/staff', seen = 
 }
 
 const whatsNew = (page: Page) => page.getByTestId('whats-new-trigger');
+/** Whether the sidebar says there is news: the New badge when open, the label's hint on the 72px rail (which draws no badge). */
+const hasNew = (page: Page, yes = true) =>
+  expect
+    .poll(async () => /\bNew\b|updates since you last looked/.test(`${await whatsNew(page).innerText()} ${(await whatsNew(page).getAttribute('aria-label')) ?? ''}`))
+    .toBe(yes);
 const notice = (page: Page) => page.getByRole('region', { name: 'Console update' });
 const panel = (page: Page) => page.getByTestId('whats-new-panel');
 
@@ -104,7 +109,7 @@ test.describe('redesigned admin · what’s new (mock)', () => {
     await open(page);
     await notice(page).getByRole('button', { name: 'Not now' }).click();
     await expect(notice(page)).toHaveCount(0);
-    await expect(whatsNew(page)).toContainText('New');
+    await hasNew(page);
     await capture(page, 'admin/alerts-sessions-system/WhatsNewAfterNotNow');
   });
 
@@ -119,7 +124,7 @@ test.describe('redesigned admin · what’s new (mock)', () => {
       window.location.hash = '#/staff';
     });
     await expect(page.locator('#app-bar-heading')).toHaveText('Staff');
-    await expect(whatsNew(page)).toContainText('New');
+    await hasNew(page);
     await expect(notice(page)).toHaveCount(0);
     await capture(page, 'admin/alerts-sessions-system/WhatsNewReturns');
   });
@@ -160,7 +165,7 @@ test.describe('redesigned admin · what’s new (mock)', () => {
     await page.keyboard.press('Escape');
     await expect(panel(page)).toHaveCount(0);
     await expect(whatsNew(page)).toBeFocused();
-    await expect(whatsNew(page)).not.toContainText('New');
+    await hasNew(page, false);
     await capture(page, 'admin/alerts-sessions-system/WhatsNewFocusReturn');
   });
 
@@ -203,9 +208,9 @@ test.describe('redesigned admin · what’s new (mock)', () => {
     await open(page, { chunk: { until } });
     await page.getByRole('button', { name: 'Invite staff' }).click();
     await expect(page.getByRole('heading', { name: 'Invite a staff member' })).toBeVisible();
-    await page.getByLabel('Full name').fill('Idris Okafor');
+    await page.getByRole('textbox', { name: /Full name/ }).fill('Idris Okafor');
     arrive();
-    await expect(whatsNew(page)).toContainText('New');
+    await hasNew(page);
     await expect(notice(page)).toHaveCount(0);
     await capture(page, 'admin/alerts-sessions-system/WhatsNewQueued');
     // The invite is cancelled: the notice shows.
