@@ -81,7 +81,7 @@ test.describe('redesigned admin · staff list (mock)', () => {
 
   test('a support agent has no permission', async ({ page }) => {
     await openStaff(page, '#/staff', { role: 'SUPPORT_AGENT' });
-    await expect(page.getByText('You don’t have permission for this')).toBeVisible();
+    await expect(page.getByText('Staff accounts are for admins and super admins')).toBeVisible();
     await shoot(page, { 1440: 'admin/staff/StaffSupportDenied' });
   });
 
@@ -202,7 +202,7 @@ test.describe('redesigned admin · staff account panel (mock)', () => {
 
   test('opened from a link by a support agent', async ({ page }) => {
     await openStaff(page, detail(ID.maryam), { role: 'SUPPORT_AGENT' });
-    await expect(page.getByText('You don’t have permission for this')).toBeVisible();
+    await expect(page.getByText('Staff accounts are for admins and super admins')).toBeVisible();
     await shoot(page, { 1440: 'admin/staff/StaffDetailSupportDenied' });
   });
 });

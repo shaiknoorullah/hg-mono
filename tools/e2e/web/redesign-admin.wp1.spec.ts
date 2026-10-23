@@ -255,19 +255,16 @@ for (const vp of VIEWPORTS) {
         await page.evaluate(() => {
           window.location.hash = '#/staff';
         });
-        await expect(appBar(page)).toHaveText('No permission');
+        // Staff draws its own page (`STF/StaffSupportDenied`): the app bar keeps "Staff".
+        await expect(appBar(page)).toHaveText('Staff');
         await expect(appBar(page)).toBeFocused();
-        await expect(page.getByText('You don’t have permission for this')).toBeVisible();
-        await expect(
-          page.getByText(
-            'Your role, Support agent, doesn’t include the permission this page needs: staff accounts. Nothing was changed. If you need it, ask a super admin.',
-          ),
-        ).toBeVisible();
-        await expect(page.getByRole('button', { name: 'Back to live alerts' })).toBeVisible();
+        await expect(page.getByText('Staff accounts are for admins and super admins')).toBeVisible();
+        await expect(page.getByText("You're signed in as a support agent, so this page isn't in your menu.")).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Go to live alerts' })).toBeVisible();
       });
 
       await step(page, 'back-to-landing', async () => {
-        await page.getByRole('button', { name: 'Back to live alerts' }).click();
+        await page.getByRole('button', { name: 'Go to live alerts' }).click();
         await expect(appBar(page)).toHaveText('Live alerts');
       });
     });

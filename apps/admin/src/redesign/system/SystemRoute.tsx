@@ -22,7 +22,7 @@ import { useSyncExternalStore } from 'react';
 
 import { usePageBar } from '../app/pageTitle';
 import { useOnline } from '../auth/online';
-import { formatFullDateTime, formatShortDateTime, formatTimeWithSeconds } from '../data/format';
+import { formatDateTimeWithYear, formatFullDateTime, formatTimeWithSeconds } from '../data/format';
 import { getSession, staffRoleOf, subscribeSession } from '../data/session';
 import { Badge, Button, Icon, InlineAlert, Skeleton, SplitPanes, type AnyIconName } from '../ds';
 import { SYSTEM } from './copy';
@@ -69,7 +69,7 @@ function VersionLine({ reading }: { reading: Reading }) {
     <p className="m-0 text-body-md text-fg-secondary">
       API version <span className="font-mono text-fg-primary">{reading.health.version}</span>
       {' · running since '}
-      <time dateTime={reading.health.startedAt}>{formatShortDateTime(reading.health.startedAt)}</time>
+      <time dateTime={reading.health.startedAt}>{formatDateTimeWithYear(reading.health.startedAt)}</time>
     </p>
   );
 }
@@ -88,7 +88,7 @@ function failing(reading: Reading): DependencyName[] {
 
 function Heading({ children, icon }: { children: string; icon?: AnyIconName }) {
   return (
-    <h2 className="m-0 flex items-center gap-2 text-heading-sm text-fg-primary">
+    <h2 className="m-0 flex items-center gap-2 text-[18px] leading-[27px] font-semibold text-fg-primary">
       {icon ? <Icon name={icon} size="md" /> : null}
       {children}
     </h2>
@@ -266,7 +266,7 @@ function VersionTail({ reading }: { reading: Reading }) {
   return (
     <p className="m-0 mt-2 text-body-md text-fg-secondary">
       API version <span className="font-mono text-fg-primary">{reading.health.version}</span> · running since{' '}
-      <time dateTime={reading.health.startedAt}>{formatShortDateTime(reading.health.startedAt)}</time> (the liveness check still answers)
+      <time dateTime={reading.health.startedAt}>{formatDateTimeWithYear(reading.health.startedAt)}</time> (the liveness check still answers)
     </p>
   );
 }
@@ -283,14 +283,14 @@ function badgeFor(name: DependencyName, reading: Reading | null, stale: boolean)
 /** What the API needs to work (admins only). Never claims a state the server did not give. */
 function DependencyTable({ shown, stale }: { shown: Reading | null; stale: boolean }) {
   return (
-    <table className="w-full border-collapse text-start text-body-md">
-      <caption className="sr-only">{SYSTEM.tableCaption}</caption>
+    <table className="w-full border-collapse text-start text-[13px] leading-[19.5px]">
+      <caption className="px-3 py-2 text-start text-[15px] leading-[22.5px] font-semibold text-fg-primary">{SYSTEM.tableCaption}</caption>
       <thead>
-        <tr className="border-b border-line-decorative text-start text-label-md text-fg-secondary">
-          <th scope="col" className="px-3 py-2 text-start font-semibold">{SYSTEM.columns.name}</th>
-          <th scope="col" className="px-3 py-2 text-start font-semibold">{SYSTEM.columns.role}</th>
-          <th scope="col" className="px-3 py-2 text-start font-semibold">{SYSTEM.columns.status}</th>
-          <th scope="col" className="px-3 py-2 text-start font-semibold">{SYSTEM.columns.detail}</th>
+        <tr className="border-b border-line-decorative bg-surface-sunken text-start text-[11px] leading-[16.5px] tracking-[0.4px] text-fg-secondary">
+          <th scope="col" className="h-[33px] px-3 py-0 text-start font-semibold">{SYSTEM.columns.name}</th>
+          <th scope="col" className="h-[33px] px-3 py-0 text-start font-semibold">{SYSTEM.columns.role}</th>
+          <th scope="col" className="h-[33px] px-3 py-0 text-start font-semibold">{SYSTEM.columns.status}</th>
+          <th scope="col" className="h-[33px] px-3 py-0 text-start font-semibold">{SYSTEM.columns.detail}</th>
         </tr>
       </thead>
       <tbody>
@@ -299,7 +299,7 @@ function DependencyTable({ shown, stale }: { shown: Reading | null; stale: boole
           return (
             <tr key={name} className="border-b border-line-decorative align-top">
               <th scope="row" className="px-3 py-2 text-start font-semibold text-fg-primary">{SYSTEM.dependencies[name].name}</th>
-              <td className="px-3 py-2 text-fg-secondary">{SYSTEM.dependencies[name].role}</td>
+              <td className="px-3 py-2 text-fg-primary">{SYSTEM.dependencies[name].role}</td>
               <td className="px-3 py-2">{badge}</td>
               <td className="px-3 py-2 text-fg-secondary">{detail ?? SYSTEM.none}</td>
             </tr>
@@ -401,7 +401,7 @@ export default function SystemRoute() {
       {admin ? (
         <SplitPanes
           panes={[
-            { id: 'system-status-pane', label: 'status', content: left, defaultSize: 520, minSize: 320 },
+            { id: 'system-status-pane', label: 'status', content: left, defaultSize: 502, minSize: 320 },
             {
               id: 'system-deps-pane',
               label: 'what the API needs',

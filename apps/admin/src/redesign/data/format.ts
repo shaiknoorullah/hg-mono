@@ -57,6 +57,14 @@ export function formatShortDateTime(value: string | Date | null | undefined, now
   return `${formatShortDate(d, now)}, ${formatTime(d)}`;
 }
 
+/** "27 Sep 2026, 10:10 pm": a date with its year and a time, no weekday or zone (the system status version line). */
+export function formatDateTimeWithYear(value: string | Date | null | undefined): string {
+  const d = parse(value);
+  if (!d) return '';
+  const p = parts(d, { day: 'numeric', month: 'short', year: 'numeric' });
+  return `${p['day']} ${(p['month'] ?? '').replace('.', '')} ${p['year']}, ${formatTime(d)}`;
+}
+
 /** "14 October 2026". */
 export function formatLongDate(value: string | Date | null | undefined): string {
   // A calendar date ("2027-03-09": a certificate's expiry) has no time or zone. Read as midnight UTC

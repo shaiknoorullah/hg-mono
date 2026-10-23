@@ -16,6 +16,7 @@ import { useId, type MouseEvent, type ReactNode } from 'react';
 
 import { Badge } from './adapters/Badge.adapter';
 import { Icon, type AnyIconName } from './adapters/Icon.adapter';
+import { boardBadge } from './internal/boardBadge';
 import { cx } from './internal/cx';
 import { FOCUS_ON_CHROME } from './internal/focus';
 
@@ -130,7 +131,14 @@ function CountBadges({ item, rail }: { item: SideNavItem; rail: boolean }) {
   return (
     <span aria-hidden="true" className={cx('inline-flex gap-1', rail && 'absolute end-0.5 top-0.5')}>
       {shown.map((b, i) => (
-        <Badge key={i} variant={b.tone === 'warning' ? 'warning' : 'neutral'} size="sm">
+        <Badge
+          key={i}
+          variant={b.tone === 'warning' ? 'warning' : 'neutral'}
+          size="sm"
+          // The sidebar board draws the chip with a 4 px corner and a 14.3 px line, and the warning
+          // chip's border in its lightest tint (`ASS/AdminSidebar`).
+          style={boardBadge(b.tone === 'warning' ? 'warning' : 'neutral', '14.3px')}
+        >
           {b.count > 99 ? '99+' : b.count}
         </Badge>
       ))}
@@ -196,7 +204,8 @@ export function SideNav({
           ) : null}
         </>
       ) : (
-        <div className="flex items-start gap-2 pb-2 pt-1 ps-1.5">
+        // 32 px below the header: the sidebar board leaves that gap before the first group.
+        <div className="flex items-start gap-2 pb-8 pt-1 ps-1.5">
           <div className="flex min-w-0 grow flex-col gap-1.5">{header}</div>
           {onCollapsedChange ? (
             <button

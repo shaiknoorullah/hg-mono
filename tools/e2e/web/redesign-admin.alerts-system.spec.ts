@@ -23,7 +23,7 @@ const ASS = 'admin/alerts-sessions-system/';
 const READY = {
   data: { ready: true, dependencies: ['postgres', 'redis', 'minio', 'stripe'].map((name) => ({ name, ready: true, detail: null })) },
 };
-const HEALTH = { data: { status: 'ok', version: '0.18.3', started_at: '2026-09-27T22:10:00.000Z' } };
+const HEALTH = { data: { status: 'ok', version: '0.18.3', started_at: '2026-09-28T02:10:00.000Z' } };
 const ENVELOPE_503 = { error: { code: 'SERVICE_UNAVAILABLE', message: 'Service not ready.', request_id: 'req_e2e' } };
 
 interface Probes {
