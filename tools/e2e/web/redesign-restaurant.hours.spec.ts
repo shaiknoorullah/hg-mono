@@ -499,7 +499,7 @@ test.describe('Hours (real API)', () => {
       await page.getByTestId('right-now').getByRole('button', { name: 'Pause new orders' }).click();
       const item = page.getByRole('menuitem', { name: /^Pause for 15 minutes \(until / });
       const label = (await item.textContent())!;
-      const until = /until (\d{1,2}:\d{2} (?:am|pm))/.exec(label)![1];
+      const until = /until (\d{1,2}:\d{2} (?:am|pm))/.exec(label)![1]!;
       await item.click();
       await expect(badge).toHaveText('Paused');
       // The label read back from the server names the end time the menu item offered, or the minute
