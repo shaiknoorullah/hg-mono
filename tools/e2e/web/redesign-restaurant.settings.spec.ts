@@ -583,7 +583,7 @@ test.describe('redesigned restaurant settings · business profile (mock)', () =>
   test('edit the owner name, saving', async ({ page }) => {
     await open(page, '/settings/profile?panel=edit-names', { profile: 'restaurant_profile' });
     await saveRoute(page, 'never');
-    await page.getByLabel('Owner first name').fill('Rami');
+    await page.getByRole('textbox', { name: 'Owner first name' }).fill('Rami');
     await edit(page).getByRole('button', { name: 'Save' }).click();
     await expect(edit(page).getByRole('button', { name: 'Save' })).toBeDisabled();
     await capture(page, 'restaurant/settings/Edit-Saving', { settled: false });
@@ -592,7 +592,7 @@ test.describe('redesigned restaurant settings · business profile (mock)', () =>
   test('the owner name saved', async ({ page }) => {
     await open(page, '/settings/profile?panel=edit-names', { profile: 'restaurant_profile' });
     await saveRoute(page);
-    await page.getByLabel('Owner first name').fill('Rami');
+    await page.getByRole('textbox', { name: 'Owner first name' }).fill('Rami');
     await edit(page).getByRole('button', { name: 'Save' }).click();
     await expect(page.getByTestId('hg-toast').getByText('Owner name saved')).toBeVisible();
     await capture(page, 'restaurant/settings/Edit-Saved');
@@ -600,7 +600,7 @@ test.describe('redesigned restaurant settings · business profile (mock)', () =>
 
   test('leaving an edit with changes asks first', async ({ page }) => {
     await open(page, '/settings/profile?panel=edit-names', { profile: 'restaurant_profile' });
-    await page.getByLabel('Owner first name').fill('Rami');
+    await page.getByRole('textbox', { name: 'Owner first name' }).fill('Rami');
     await edit(page).getByRole('button', { name: 'Cancel' }).click();
     await expect(page.getByTestId('edit-discard')).toBeVisible();
     await capture(page, 'restaurant/settings/Edit-Discard');
@@ -609,7 +609,7 @@ test.describe('redesigned restaurant settings · business profile (mock)', () =>
   test('a change the server does not accept', async ({ page }) => {
     await open(page, '/settings/profile?panel=edit-names', { profile: 'restaurant_profile' });
     await saveRoute(page, { status: 422, code: 'UNKNOWN_FIELD' });
-    await page.getByLabel('Owner first name').fill('Rami');
+    await page.getByRole('textbox', { name: 'Owner first name' }).fill('Rami');
     await edit(page).getByRole('button', { name: 'Save' }).click();
     await expect(page.getByTestId('edit-rejected')).toBeVisible();
     await capture(page, 'restaurant/settings/Edit-UnknownField');
