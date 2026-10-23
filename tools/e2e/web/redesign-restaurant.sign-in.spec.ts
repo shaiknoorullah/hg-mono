@@ -79,6 +79,35 @@ function error(code: string, status: number, extra: { details?: unknown; headers
     });
 }
 
+/**
+ * The register boards draw "Version 2026-09" as the partner terms; the mock's public config says
+ * 2026-05-01. The contract only calls `terms_version` a string, so the capture serves the board's
+ * value on the config read, as the real server would once the terms were published.
+ */
+async function partnerTermsVersion(page: Page) {
+  await page.route('**/v1/config/public', async (route) => {
+    const res = await route.fetch();
+    const body = await res.json();
+    await route.fulfill({ response: res, json: { ...body, data: { ...body.data, terms_version: '2026-09' } } });
+  });
+}
+
+/**
+ * Submits with a pointer click on the form's submit button. Pressing Enter sets the browser's keyboard
+ * modality, so the focus the app moves to an alert would draw a focus ring that the boards, which draw the
+ * alert at rest, do not have. A test that checks the keyboard presses Enter itself.
+ */
+async function submitForm(page: Page) {
+  await page.locator('form button[type="submit"]').first().click();
+}
+
+/** The sign-in boards' moment, with time standing still: a countdown reads the same at every capture. */
+async function frozenClock(page: Page) {
+  const at = new Date('2026-09-28T12:00:00Z');
+  await page.clock.install({ time: at });
+  await page.clock.setFixedTime(at);
+}
+
 async function fillSignIn(page: Page, email: string, password: string) {
   await page.getByLabel(/^Email/).fill(email);
   await page.getByLabel(/^Password/).fill(password);
@@ -101,8 +130,10 @@ test.describe('restaurant redesign · sign in (mock)', () => {
     await expect(page.getByText('Restaurant partner')).toBeVisible();
     await expect(page.getByRole('navigation')).toHaveCount(0);
     await expect(page.getByTestId('support-sentence')).toContainText('Need help signing in? Call partner support on');
+    // The boards (Main, Tab-SignIn-1024) draw the form filled in; the capture types what they show.
+    await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct-horse-battery');
+    await page.getByLabel(/^Password/).blur(); // the boards draw both fields at rest
     await check(page, info, 'main');
-    await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct horse battery');
     await page.getByLabel(/^Password/).press('Enter');
     await expect(page).toHaveURL(/\/orders$/);
     await expect(page.getByTestId('console-rail')).toBeVisible();
@@ -111,7 +142,7 @@ test.describe('restaurant redesign · sign in (mock)', () => {
   test('Submitting: the form is busy and the button shows progress', async ({ page }, info) => {
     await page.route('**/v1/auth/login', () => undefined); // never answers
     await page.goto('/login');
-    await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct horse battery');
+    await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct-horse-battery');
     await page.getByRole('button', { name: 'Sign in' }).click();
     await expect(page.locator('form[aria-busy="true"]')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Sign in' })).toHaveAttribute('aria-busy', 'true');
@@ -123,7 +154,7 @@ test.describe('restaurant redesign · sign in (mock)', () => {
     await page.route('**/v1/auth/login', error('INVALID_CREDENTIALS', 401));
     await page.goto('/login');
     await fillSignIn(page, 'samir@zaytoungrill.ca', 'wrong password!');
-    await page.getByLabel(/^Password/).press('Enter');
+    await submitForm(page);
     const alert = page.getByTestId('InlineAlert');
     await expect(alert).toContainText('Email or password is incorrect');
     await expect(alert).toBeFocused();
@@ -135,8 +166,8 @@ test.describe('restaurant redesign · sign in (mock)', () => {
   test('Unverified: Send a new link opens Check your email in its wait', async ({ page }, info) => {
     await page.route('**/v1/auth/login', error('INVALID_CREDENTIALS', 401, { details: { email_verification_required: true } }));
     await page.goto('/login');
-    await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct horse battery');
-    await page.getByLabel(/^Password/).press('Enter');
+    await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct-horse-battery');
+    await submitForm(page);
     await expect(page.getByText('Confirm your email to sign in')).toBeVisible();
     await check(page, info, 'unverified');
     await page.getByRole('button', { name: 'Send a new link' }).click();
@@ -147,28 +178,33 @@ test.describe('restaurant redesign · sign in (mock)', () => {
   });
 
   test('TooMany: Try again waits for Retry-After', async ({ page }, info) => {
-    await page.route('**/v1/auth/login', error('RATE_LIMITED', 429, { headers: { 'Retry-After': '60' } }));
+    // SignIn-TooMany draws the wait 18 seconds in: 0:42 of the minute. The clock stands still, so the
+    // countdown reads what the board reads.
+    await frozenClock(page);
+    await page.route('**/v1/auth/login', error('RATE_LIMITED', 429, { headers: { 'Retry-After': '42' } }));
     await page.goto('/login');
-    await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct horse battery');
-    await page.getByLabel(/^Password/).press('Enter');
+    await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct-horse-battery');
+    await submitForm(page);
     await expect(page.getByText('Too many attempts from this device')).toBeVisible();
     const button = page.getByRole('button', { name: 'Try again' });
     await expect(button).toHaveAttribute('aria-disabled', 'true');
     await expect(button).toHaveAttribute('aria-describedby', 'wait-reason');
-    await expect(page.locator('#wait-reason')).toContainText(/You can try again in (0:5\d|1:00)/);
+    await expect(page.locator('#wait-reason')).toContainText(/You can try again in 0:42/);
     await check(page, info, 'too-many');
   });
 
   test('Locked (backend 429 ACCOUNT_TEMPORARILY_LOCKED): focus on the alert, Call partner support, 15-minute wait', async ({ page }, info) => {
-    await page.route('**/v1/auth/login', error('ACCOUNT_TEMPORARILY_LOCKED', 429, { headers: { 'Retry-After': '900' } }));
+    // SignIn-Locked draws the 15-minute lock a minute in: 14:00. The clock stands still.
+    await frozenClock(page);
+    await page.route('**/v1/auth/login', error('ACCOUNT_TEMPORARILY_LOCKED', 429, { headers: { 'Retry-After': '840' } }));
     await page.goto('/login');
     await expect(page.getByTestId('support-sentence')).toBeVisible();
-    await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct horse battery');
-    await page.getByLabel(/^Password/).press('Enter');
+    await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct-horse-battery');
+    await submitForm(page);
     await expect(page.getByTestId('InlineAlert')).toBeFocused();
     await expect(page.getByRole('link', { name: 'Call partner support' })).toHaveAttribute('href', /^tel:\+/);
     await expect(page.getByRole('button', { name: 'Sign in' })).toHaveAttribute('aria-disabled', 'true');
-    await expect(page.getByRole('timer')).toHaveText(/^1[45]:\d\d$/);
+    await expect(page.getByRole('timer')).toHaveText('14:00');
     await check(page, info, 'locked');
     // aria-disabled, yet live: activating it says the wait again and sends nothing.
     let attempts = 0;
@@ -179,15 +215,15 @@ test.describe('restaurant redesign · sign in (mock)', () => {
     // would see it as disabled; a keyboard or screen-reader user can still activate it).
     await page.getByRole('button', { name: 'Sign in' }).focus();
     await page.keyboard.press('Enter');
-    await expect(page.getByTestId('announcer-polite')).toHaveText(/^You can try again in 1[45] minutes/);
+    await expect(page.getByTestId('announcer-polite')).toHaveText(/^You can try again in 14 minutes/);
     expect(attempts).toBe(0);
   });
 
   test('Offline and server-busy share the Offline layout', async ({ page }, info) => {
     await page.route('**/v1/auth/login', (route) => route.abort('internetdisconnected'));
     await page.goto('/login');
-    await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct horse battery');
-    await page.getByLabel(/^Password/).press('Enter');
+    await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct-horse-battery');
+    await submitForm(page);
     await expect(page.getByTestId('InlineAlert')).toContainText("We couldn't reach HalalGoes");
     await expect(page.getByTestId('InlineAlert')).toBeFocused();
     await check(page, info, 'offline');
@@ -202,16 +238,22 @@ test.describe('restaurant redesign · sign in (mock)', () => {
     await page.goto('/login?signed_out=expired&return_to=%2Forders');
     await expect(page.getByRole('heading', { name: "You've been signed out" })).toBeVisible();
     await expect(page.getByTestId('InlineAlert')).toContainText('will time out after 3 minutes');
+    // The board draws the email the owner was signed in with, no field focused.
+    await page.getByLabel(/^Email/).fill('samir@zaytoungrill.ca');
+    await page.getByLabel(/^Email/).blur();
+    await page.getByLabel(/^Email/).blur();
     await check(page, info, 'session-expired');
     await page.goto('/login?signed_out=reuse-detected');
     await expect(page.getByRole('heading', { name: 'We signed you out on every device' })).toBeVisible();
+    await page.getByLabel(/^Email/).fill('samir@zaytoungrill.ca');
+    await page.getByLabel(/^Email/).blur();
     await check(page, info, 'reuse-detected');
   });
 
   test('NotRestaurant: the mock’s customer grant is refused and explained', async ({ page }, info) => {
     await page.goto('/login');
-    await fillSignIn(page, 'amina@example.ca', 'correct horse battery');
-    await page.getByLabel(/^Password/).press('Enter');
+    await fillSignIn(page, 'samir.h@gmail.com', 'correct-horse-battery');
+    await submitForm(page);
     await expect(page.getByRole('heading', { name: "This isn't a restaurant account" })).toBeVisible();
     await check(page, info, 'not-restaurant');
     await page.getByRole('button', { name: 'Sign in with a different email' }).click();
@@ -226,8 +268,8 @@ test.describe('restaurant redesign · sign in (mock)', () => {
     test(`Account card: ${code}`, async ({ page }, info) => {
       await page.route('**/v1/auth/login', error(code, status));
       await page.goto('/login');
-      await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct horse battery');
-      await page.getByLabel(/^Password/).press('Enter');
+      await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct-horse-battery');
+      await submitForm(page);
       await expect(page.getByRole('heading', { name: title })).toBeVisible();
       await expect(page.getByTestId('support-block')).toBeVisible();
       await check(page, info, state);
@@ -237,12 +279,18 @@ test.describe('restaurant redesign · sign in (mock)', () => {
   }
 
   test('Register: default, errors, email taken, terms changed, net error, rate limited, then created', async ({ page }, info) => {
+    await frozenClock(page); // Register-RateLimited draws the wait at 0:38
+    await partnerTermsVersion(page);
     await page.goto('/register');
     await expect(page.getByRole('heading', { level: 1, name: 'Register your restaurant' })).toBeVisible();
     await expect(page.getByText(/^Version /)).toBeVisible();
     await expect(page.getByRole('checkbox', { name: 'I have read and accept the partner terms' })).toHaveAttribute('aria-checked', 'false');
     await check(page, info, 'register-default');
 
+    // Register-Errors draws a one-letter name, an email without its ending and a short password.
+    await page.getByLabel(/^Restaurant name/).fill('Z');
+    await page.getByLabel(/^Work email/).fill('samir@zaytoungrill');
+    await page.getByLabel(/^Password/).fill('shawarma');
     await page.getByRole('button', { name: 'Create account' }).click();
     const summary = page.getByTestId('InlineAlert');
     await expect(summary).toContainText('4 things need changing before we can create your account');
@@ -251,7 +299,7 @@ test.describe('restaurant redesign · sign in (mock)', () => {
 
     await page.getByLabel(/^Restaurant name/).fill('Zaytoun Grill');
     await page.getByLabel(/^Work email/).fill('samir@zaytoungrill.ca');
-    await page.getByLabel(/^Password/).fill('a long kitchen password');
+    await page.getByLabel(/^Password/).fill('olive-tree-courtyard');
     await page.getByRole('checkbox', { name: 'I have read and accept the partner terms' }).click();
 
     const keys: string[] = [];
@@ -261,7 +309,7 @@ test.describe('restaurant redesign · sign in (mock)', () => {
       if (mode === 'taken') return error('EMAIL_ALREADY_REGISTERED', 409)(route);
       if (mode === 'terms') return error('TERMS_VERSION_STALE', 409, { details: { current: '2026-10' } })(route);
       if (mode === 'net') return error('INTERNAL_ERROR', 500)(route);
-      if (mode === 'rate') return error('RATE_LIMITED', 429, { headers: { 'Retry-After': '60' } })(route);
+      if (mode === 'rate') return error('RATE_LIMITED', 429, { headers: { 'Retry-After': '38' } })(route);
       return route.fulfill({ status: 201, json: { data: { restaurant_id: '927cc55c-8ddd-4d9f-a353-353ba2a8982b', email: 'samir@zaytoungrill.ca', onboarding_state: 'REGISTERED' } } });
     });
 
@@ -270,14 +318,20 @@ test.describe('restaurant redesign · sign in (mock)', () => {
     await check(page, info, 'register-email-taken');
 
     mode = 'terms';
-    await page.getByLabel(/^Work email/).fill('owner@zaytoungrill.ca');
+    await page.getByLabel(/^Work email/).fill('samir@zaytoungrill.ca');
     await page.getByRole('button', { name: 'Create account' }).click();
     await expect(page.getByTestId('InlineAlert')).toContainText('The partner terms have changed');
     await expect(page.getByText('Read the updated partner terms')).toBeVisible();
     await expect(page.getByRole('checkbox', { name: 'I have read and accept the partner terms' })).toHaveAttribute('aria-checked', 'false');
     await check(page, info, 'register-terms-updated');
 
+    // Register-NetError and Register-RateLimited are drawn before the terms change ("Version 2026-09"), so
+    // the form is opened again, filled in as before, and the terms are still the first ones.
     mode = 'net';
+    await page.goto('/register');
+    await page.getByLabel(/^Restaurant name/).fill('Zaytoun Grill');
+    await page.getByLabel(/^Work email/).fill('samir@zaytoungrill.ca');
+    await page.getByLabel(/^Password/).fill('olive-tree-courtyard');
     await page.getByRole('checkbox', { name: 'I have read and accept the partner terms' }).click();
     await page.getByRole('button', { name: 'Create account' }).click();
     await expect(page.getByTestId('InlineAlert')).toContainText("Your account wasn't created");
@@ -296,12 +350,13 @@ test.describe('restaurant redesign · sign in (mock)', () => {
     await page.route('**/v1/auth/register/restaurant', (route) =>
       route.fulfill({ status: 201, json: { data: { restaurant_id: '927cc55c-8ddd-4d9f-a353-353ba2a8982b', email: 'samir@zaytoungrill.ca', onboarding_state: 'REGISTERED' } } }),
     );
+    await partnerTermsVersion(page);
     await page.goto('/register');
     await page.getByLabel(/^Restaurant name/).fill('Zaytoun Grill');
     await page.getByLabel(/^Work email/).fill('samir@zaytoungrill.ca');
-    await page.getByLabel(/^Password/).fill('a long kitchen password');
+    await page.getByLabel(/^Password/).fill('olive-tree-courtyard');
     await page.getByRole('checkbox', { name: 'I have read and accept the partner terms' }).click();
-    await page.getByLabel(/^Password/).press('Enter');
+    await submitForm(page);
     await expect(page).toHaveURL(/\/check-email$/);
     await expect(page.getByTestId('check-email-card')).toContainText('Open the link we sent to samir@zaytoungrill.ca to continue setting up Zaytoun Grill.');
     await check(page, info, 'check-email-default');
@@ -310,6 +365,7 @@ test.describe('restaurant redesign · sign in (mock)', () => {
 
   test('Register reflows at 320px (400% zoom): one column, no sideways scroll', async ({ page }, info) => {
     await page.setViewportSize({ width: 320, height: 640 });
+    await partnerTermsVersion(page);
     await page.goto('/register');
     await expect(page.getByRole('heading', { name: 'Register your restaurant' })).toBeVisible();
     await expect(page.getByText('Restaurant partner')).toBeHidden();
@@ -320,8 +376,8 @@ test.describe('restaurant redesign · sign in (mock)', () => {
     await page.route('**/v1/auth/login', error('INVALID_CREDENTIALS', 401, { details: { email_verification_required: true } }));
     await page.route('**/v1/auth/email/resend', error('RATE_LIMITED', 429, { headers: { 'Retry-After': '86400' } }));
     await page.goto('/login');
-    await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct horse battery');
-    await page.getByLabel(/^Password/).press('Enter');
+    await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct-horse-battery');
+    await submitForm(page);
     await page.getByRole('button', { name: 'Send a new link' }).click();
     await expect(page.getByText("You've asked for 5 links today")).toBeVisible();
     await check(page, info, 'check-email-daily');
@@ -365,7 +421,7 @@ test.describe('restaurant redesign · sign in (mock)', () => {
     await expect(page.getByRole('heading', { name: 'This link has expired' })).toBeVisible();
     await check(page, info, 'verify-expired');
     await page.getByLabel(/^Email/).fill('samir@zaytoungrill.ca');
-    await page.getByLabel(/^Email/).press('Enter');
+    await submitForm(page);
     await expect(page.getByTestId('InlineAlert')).toContainText("We couldn't send a new link");
     await check(page, info, 'verify-expired-error');
 
@@ -405,20 +461,20 @@ test.describe('restaurant redesign · sign in (mock)', () => {
     await page.goto(`/reset-password?token=${token}`);
     await expect(page.getByRole('heading', { name: 'Set a new password' })).toBeVisible();
     await check(page, info, 'reset');
-    await page.getByLabel(/^New password/).fill('password1234567');
-    await page.getByLabel(/^New password/).press('Enter');
+    await page.getByLabel(/^New password/).fill('password1234');
+    await submitForm(page);
     await expect(page.getByText('This password appears in known data breaches. Choose a different one.')).toBeVisible();
     await expect(page.getByLabel(/^New password/)).toBeFocused();
     await check(page, info, 'reset-password-error');
     mode = 'ok';
     await page.getByLabel(/^New password/).fill('a much better kitchen passphrase');
-    await page.getByLabel(/^New password/).press('Enter');
+    await submitForm(page);
     await expect(page.getByRole('heading', { name: 'Your new password is set' })).toBeVisible();
     await check(page, info, 'reset-done');
     mode = 'consumed';
     await page.goto(`/reset-password?token=${token}`);
     await page.getByLabel(/^New password/).fill('a much better kitchen passphrase');
-    await page.getByLabel(/^New password/).press('Enter');
+    await submitForm(page);
     await expect(page.getByRole('heading', { name: 'This link doesn’t work any more' })).toBeVisible();
     await check(page, info, 'reset-link-invalid');
   });
