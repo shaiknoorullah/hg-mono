@@ -10,6 +10,11 @@
 // canvases/<app>/<area>/project/<Board>.dc.html on the canvases branch. The flows of an app are
 // native/<app>/redesign/**; the boards it cannot capture are in customer-boards.mjs and rider-boards.mjs.
 //
+// A third way to account for a board: listed in boards/<app>.json, the manifest of boards the capture
+// entry opens against the mock (a list of { board: "<area>/<Board>", ... }). A listed board must exist,
+// be listed once, and be neither captured by a flow nor declared unpairable; otherwise the two lists
+// could both claim a board and neither be right.
+//
 // Without the branch (a CI checkout does not fetch it) only the flows and the boards files are
 // checked against each other; with it, every board is accounted for. --require-ref fails when the
 // branch is missing. Exit 0 when sound, 1 with one line per problem, 2 on a usage error.
@@ -28,6 +33,22 @@ export const APPS = {
   customer: { flows: join(here, 'customer', 'redesign'), rules: CUSTOMER_UNPAIRABLE, file: 'customer-boards.mjs' },
   rider: { flows: join(here, 'rider', 'redesign'), rules: RIDER_UNPAIRABLE, file: 'rider-boards.mjs' },
 };
+/** The boards the capture entry opens for `app`: the `board` of each entry in boards/<app>.json. */
+export function manifestBoards(app) {
+  const file = join(here, 'boards', `${app}.json`);
+  let entries;
+  try {
+    entries = JSON.parse(readFileSync(file, 'utf8'));
+  } catch (e) {
+    throw new Error(`${relative(here, file)} cannot be read as JSON (${e.code ?? e.message}); an app with no listed boards has [] there`);
+  }
+  if (!Array.isArray(entries)) throw new Error(`${relative(here, file)} must be a JSON array of { board } entries`);
+  return entries.map((e, i) => {
+    if (typeof e?.board !== 'string' || !/^[^/]+\/[^/]+$/.test(e.board)) throw new Error(`${relative(here, file)} entry ${i}: "board" must be "<area>/<Board>"`);
+    return e.board;
+  });
+}
+
 const SHOT = /^\s*(?:-\s*takeScreenshot:|SHOT:)\s*(design--\S+?)\s*$/;
 
 /** Every `design--…` screenshot name a flow takes, with the file it is in. */
@@ -60,10 +81,12 @@ export const boardOf = (shot) => {
  * @param {{ shot: string, file: string, line: number }[]} shots
  * @param {[RegExp, string][]} rules
  * @param {string[] | null} boards  "<area>/<Board>" for every board of the app, or null when the branch is not at hand
- * @param {{ file?: string, app?: string }} [names]  the rules file and the app, for the messages
+ * @param {{ file?: string, app?: string, manifest?: string[] }} [names]  the rules file and the app, for the messages;
+ *   `manifest` is the "<area>/<Board>" of every entry in boards/<app>.json
  */
 export function check(shots, rules, boards, names = {}) {
-  const { file = 'customer-boards.mjs', app = 'customer' } = names;
+  const { file = 'customer-boards.mjs', app = 'customer', manifest = [] } = names;
+  const manifestFile = `boards/${app}.json`;
   const problems = [];
   const paired = new Map();
   for (const s of shots) {
@@ -84,16 +107,25 @@ export function check(shots, rules, boards, names = {}) {
     const r = ruleOf(id);
     if (r >= 0) problems.push(`${where}: ${id} is captured, yet ${file} entry ${r} declares it unpairable (${rules[r][0]})`);
   }
-  if (!boards) return { problems, paired, unpairable: null };
+  const listed = new Set();
+  for (const id of manifest) {
+    if (listed.has(id)) problems.push(`${manifestFile}: ${id} is listed twice`);
+    listed.add(id);
+    if (paired.has(id)) problems.push(`${manifestFile}: ${id} is listed, yet a flow captures it (${paired.get(id)}); it is one or the other`);
+    const r = ruleOf(id);
+    if (r >= 0) problems.push(`${manifestFile}: ${id} is listed, yet ${file} entry ${r} declares it unpairable (${rules[r][0]}); it is one or the other`);
+  }
+  if (!boards) return { problems, paired, unpairable: null, listed };
 
   const known = new Set(boards);
   for (const [id, where] of paired) if (!known.has(id)) problems.push(`${where}: ${id} is not a board on the canvases branch (canvases/${app}/${id.replace('/', '/project/')}.dc.html)`);
   const used = new Set();
   const unpairable = new Map();
+  for (const id of listed) if (!known.has(id)) problems.push(`${manifestFile}: ${id} is not a board on the canvases branch (canvases/${app}/${id.replace('/', '/project/')}.dc.html)`);
   for (const id of boards) {
-    if (paired.has(id)) continue;
+    if (paired.has(id) || listed.has(id)) continue;
     const r = ruleOf(id);
-    if (r < 0) problems.push(`${id}: no flow captures it and ${file} gives no reason; capture it, or add an entry saying why it cannot be`);
+    if (r < 0) problems.push(`${id}: no flow captures it, ${manifestFile} does not list it and ${file} gives no reason; capture it, list it, or add an entry saying why it cannot be`);
     else {
       used.add(r);
       unpairable.set(id, r);
@@ -102,7 +134,7 @@ export function check(shots, rules, boards, names = {}) {
   rules.forEach(([re], i) => {
     if (!used.has(i)) problems.push(`${file} entry ${i} (${re}) matches no board that is not captured; it is stale or shadowed`);
   });
-  return { problems, paired, unpairable };
+  return { problems, paired, unpairable, listed };
 }
 
 /** "<area>/<Board>" of every board of `app` on `ref`, or null when the ref cannot be read. */
@@ -139,25 +171,33 @@ function main() {
       console.error(`No ${app} boards on ${ref}. Fetch it first: git fetch origin claude/redesign-canvases`);
       process.exit(2);
     }
-    const { problems, paired, unpairable } = check(shotsIn(flows), rules, boards, { file, app });
+    let manifest;
+    try {
+      manifest = manifestBoards(app);
+    } catch (e) {
+      failed = true;
+      console.error(`${app}: 1 problem:\n  ${e.message}`);
+      continue;
+    }
+    const { problems, paired, unpairable, listed } = check(shotsIn(flows), rules, boards, { file, app, manifest });
     if (problems.length) {
       failed = true;
       console.error(`${app}: ${problems.length} problem${problems.length === 1 ? '' : 's'}:\n  ${problems.join('\n  ')}`);
       continue;
     }
     if (!boards) {
-      console.log(`${app}: ${paired.size} captures name well-formed boards and none is declared unpairable. ${ref} is not available, so whether the boards exist, and whether every board is accounted for, was not checked.`);
+      console.log(`${app}: ${paired.size} captures name well-formed boards, ${listed.size} are listed in the manifest and none is declared unpairable. ${ref} is not available, so whether the boards exist, and whether every board is accounted for, was not checked.`);
       continue;
     }
     const byArea = {};
     for (const id of boards) {
       const area = id.split('/')[0];
-      byArea[area] ??= { boards: 0, paired: 0, unpairable: 0 };
+      byArea[area] ??= { boards: 0, paired: 0, listed: 0, unpairable: 0 };
       byArea[area].boards += 1;
-      byArea[area][paired.has(id) ? 'paired' : 'unpairable'] += 1;
+      byArea[area][paired.has(id) ? 'paired' : listed.has(id) ? 'listed' : 'unpairable'] += 1;
     }
-    console.log(`${boards.length} ${app} boards on ${ref}: ${paired.size} captured, ${unpairable.size} unpairable with a reason`);
-    for (const [area, n] of Object.entries(byArea)) console.log(`  ${area.padEnd(20)} ${String(n.boards).padStart(3)} boards  ${String(n.paired).padStart(2)} captured  ${String(n.unpairable).padStart(3)} unpairable`);
+    console.log(`${boards.length} ${app} boards on ${ref}: ${paired.size} captured, ${listed.size} listed in the manifest, ${unpairable.size} unpairable with a reason`);
+    for (const [area, n] of Object.entries(byArea)) console.log(`  ${area.padEnd(20)} ${String(n.boards).padStart(3)} boards  ${String(n.paired).padStart(2)} captured  ${String(n.listed).padStart(3)} listed  ${String(n.unpairable).padStart(3)} unpairable`);
   }
   if (failed) process.exit(1);
 }
