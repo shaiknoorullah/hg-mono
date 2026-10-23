@@ -3,7 +3,7 @@
  * 1440×900 and tablet 1024×768 (the `redesign` projects), flag on.
  */
 import { expect, test } from '@playwright/test';
-import { documentScrolls, openSignedIn } from './redesign-restaurant.support';
+import { MODE, documentScrolls, openSignedIn } from './redesign-restaurant.support';
 
 const ROUTES = [
   { path: '/orders', nav: 'Live orders' },
@@ -48,7 +48,8 @@ test.describe('restaurant redesign · shell', () => {
     await expect(rail.getByText('Restaurant partner')).toHaveCount(0);
     await page.getByTestId('console-rail-collapse').click();
     await expect(rail.getByText('Restaurant partner')).toBeVisible();
-    await expect(rail.getByTestId('rail-restaurant')).toHaveText('Zaytoun Grill');
+    // The restaurant's own name from its profile: the board's sample on the mock, the seeded one on the real API.
+    await expect(rail.getByTestId('rail-restaurant')).toHaveText(MODE === 'mock' ? 'Zaytoun Grill' : /\S/);
     await expect(rail.getByTestId('rail-signed-in')).toHaveText('Signed in as the owner');
     // The current item is still the inverted tile.
     await expect(rail.getByRole('link', { name: /^Settings/ })).toHaveAttribute('aria-current', 'page');
