@@ -699,9 +699,9 @@ export function DraftPane({ draft, row, api }: { draft: Draft; row: RowView; api
         <span className="text-body-sm text-fg-secondary">{ROW.formNote}</span>
       </div>
       {meta.isHalal ? (
-        <Input label={ROW.issuer} id={`${meta.id}-issuer`} value={draft.values.issuer} helperText={ROW.issuerHelp} onChange={(v: string) => api.setValue(type, 'issuer', v)} />
+        <Input label={ROW.issuer} id={`${meta.id}-issuer`} value={draft.values.issuer} helperText={ROW.issuerHelp} onValueChange={(v: string) => api.setValue(type, 'issuer', v)} />
       ) : null}
-      <Input label={meta.numberLabel} id={`${meta.id}-number`} value={draft.values.certificateNumber} onChange={(v: string) => api.setValue(type, 'certificateNumber', v)} />
+      <Input label={meta.numberLabel} id={`${meta.id}-number`} value={draft.values.certificateNumber} onValueChange={(v: string) => api.setValue(type, 'certificateNumber', v)} />
       <DateField label={ROW.issued} id={`${meta.id}-issued`} value={draft.values.issuedOn} helperText={ROW.issuedHelp} onChange={(v) => api.setValue(type, 'issuedOn', v)} />
       <DateField
         label={meta.validLabel}

@@ -222,7 +222,8 @@ test.describe('redesigned admin · application workspace (mock)', () => {
       await review.getByRole('radiogroup', { name: label }).getByRole('radio', { name: 'Pass' }).check();
     }
     await review.getByRole('button', { name: 'Approve document' }).click();
-    await expect(page.getByText('Food safety certificate approved')).toBeVisible();
+    // The toast and the screen-reader announcement both carry the words; the toast is the one to see.
+    await expect(page.getByTestId('hg-toast').getByText('Food safety certificate approved')).toBeVisible();
     await page.getByRole('button', { name: /^Open Halal certificate, version 1/ }).click();
     await capture(page, { 1440: 'admin/restaurant-verification/App-Success' });
   });

@@ -473,7 +473,7 @@ export function SpecialDatePanel({ target, hours, today, editingWeek, startRemov
               This date is in effect now. If you remove it, your weekly hours apply today ({weeklyOn(today)}), so you open straight away.
             </p>
           ) : null}
-          <Input label="Reason (optional)" value={reason} onChange={(v: string) => setReason(v)} helperText="Shown on your Hours screen." readOnly={saving} maxLength={120} />
+          <Input label="Reason (optional)" value={reason} onValueChange={(v: string) => setReason(v)} helperText="Shown on your Hours screen." readOnly={saving} maxLength={120} />
         </div>
       </DetailPanel>
     </div>

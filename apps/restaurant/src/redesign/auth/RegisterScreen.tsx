@@ -271,7 +271,7 @@ export function RegisterScreen() {
             helperText={REGISTER.nameHelp}
             autoComplete="organization"
             value={name}
-            onChange={(v) => {
+            onValueChange={(v) => {
               setName(v);
               clear('name');
             }}
@@ -285,7 +285,7 @@ export function RegisterScreen() {
             variant="email"
             autoComplete="email"
             value={email}
-            onChange={(v) => {
+            onValueChange={(v) => {
               setEmail(v);
               clear('email');
             }}
@@ -299,7 +299,7 @@ export function RegisterScreen() {
             variant="password"
             autoComplete="new-password"
             value={password}
-            onChange={(v) => {
+            onValueChange={(v) => {
               setPassword(v);
               clear('password');
             }}

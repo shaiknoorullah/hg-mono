@@ -158,10 +158,9 @@ function ExpiredLink() {
   const [sending, setSending] = useState(false);
   const [failed, setFailed] = useState(0);
   const [fieldError, setFieldError] = useState<string | undefined>();
-  const emailRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (fieldError) emailRef.current?.focus();
+    if (fieldError) document.getElementById('verify-email')?.focus();
   }, [fieldError]);
 
   async function send(e: FormEvent) {
@@ -204,13 +203,13 @@ function ExpiredLink() {
           </InlineAlert>
         ) : null}
         <Input
-          ref={emailRef}
+          id="verify-email"
           label={VERIFY.email}
           variant="email"
           autoComplete="email"
           value={email}
           readOnly={sending}
-          onChange={(v) => {
+          onValueChange={(v) => {
             setEmail(v);
             if (fieldError) setFieldError(undefined);
           }}
