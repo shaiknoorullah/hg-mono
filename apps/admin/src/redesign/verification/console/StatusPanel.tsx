@@ -96,7 +96,7 @@ export function DecidedStatus({ certificate, application, action }: { certificat
 export function SupportSummary({ certificate, application }: { certificate: Certificate; application: Application | null }) {
   const reason = certificate.rejection_reason_code ? REJECTION_LABEL[certificate.rejection_reason_code] : null;
   return (
-    <div className="flex min-h-0 flex-1 items-start justify-center overflow-auto p-6" data-testid="SupportSummary">
+    <div className="flex min-h-0 flex-1 items-start justify-start overflow-auto p-3" data-testid="SupportSummary">
       <Card variant="outlined" radius="lg" padding="20px" style={{ maxWidth: 760, width: '100%' }}>
         <div className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center gap-3">

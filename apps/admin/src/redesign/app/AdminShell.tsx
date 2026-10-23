@@ -22,7 +22,7 @@ import { Outlet, useHref, useLocation, useNavigate } from 'react-router-dom';
 import { Badge, Banner, Button, Icon, IconButton, NavDrawer, SideNav, SideNavIconSlot, Wordmark } from '../ds';
 import { api } from '../data/api';
 import { getSession, staffRoleOf, subscribeSession, type StaffRole } from '../data/session';
-import { queueCountsNote, useQueueDepth } from '../realtime/queueDepth';
+import { queueCountsNote, queueCountsPhase, useQueueDepth } from '../realtime/queueDepth';
 import { useSystemStatusPolling } from '../system/status';
 import { useSystemBanners } from '../system/banners';
 import { WHATS_NEW } from '../whatsnew/copy';
@@ -87,6 +87,7 @@ function NavFooter({
   onSignOut,
   signingOut,
   countsNote,
+  countsStale,
   onWhatsNew,
 }: {
   collapsed: boolean;
@@ -97,6 +98,8 @@ function NavFooter({
   onSignOut: () => void;
   signingOut: boolean;
   countsNote: string | null;
+  /** Only a stale count line is drawn: the boards draw nothing while counts are still arriving. */
+  countsStale: boolean;
   /** Runs after What's new is pressed (the drawer closes behind it). */
   onWhatsNew?: () => void;
 }) {
@@ -105,7 +108,7 @@ function NavFooter({
   return (
     <div className={collapsed ? 'flex w-full flex-col items-center gap-1' : 'flex w-full flex-col gap-1'}>
       {countsNote ? (
-        <p data-testid="queue-counts-note" className={collapsed ? 'sr-only' : 'px-2 pb-1 text-body-sm text-fg-on-accent'}>
+        <p data-testid="queue-counts-note" className={collapsed || !countsStale ? 'sr-only' : 'px-2 pb-1 text-body-sm text-fg-on-accent'}>
           {countsNote}
         </p>
       ) : null}
@@ -133,7 +136,7 @@ function NavFooter({
             <Badge variant="brand" appearance="solid" size="sm">
               {WHATS_NEW.newBadge}
             </Badge>
-            <span className="sr-only">{WHATS_NEW.newHint}</span>
+            <span className={collapsed || !countsStale ? 'sr-only' : 'px-2 pb-1 text-body-sm text-fg-on-accent'}>{WHATS_NEW.newHint}</span>
           </>
         ) : null}
       </button>
@@ -312,6 +315,7 @@ function AdminShellFrame() {
       onSignOut={() => void signOut()}
       signingOut={signingOut}
       countsNote={queueCountsNote(queue)}
+      countsStale={queueCountsPhase(queue) === 'stale'}
       {...(afterWhatsNew ? { onWhatsNew: afterWhatsNew } : {})}
     />
   );
@@ -388,7 +392,7 @@ function AdminShellFrame() {
               className={
                 chrome
                   ? 'hg-on-accent flex min-h-14 shrink-0 items-center gap-2 bg-surface-chrome px-4 text-fg-on-accent'
-                  : 'flex min-h-14 shrink-0 items-center gap-3 border-b border-line-decorative bg-surface-raised px-4'
+                  : 'flex min-h-14 shrink-0 items-center gap-2 border-b border-transparent bg-surface-raised px-4'
               }
             >
               {panelFullArea ? (
@@ -407,7 +411,7 @@ function AdminShellFrame() {
                   Open navigation
                 </Button>
               ) : null}
-              {chrome && pageBar?.back ? (
+              {pageBar?.back ? (
                 <span className="-ms-2 inline-flex shrink-0 text-current [&_button]:text-current">
                   <IconButton icon="back" accessibilityLabel={pageBar.back.label} variant="plain" size="md" onPress={() => navigate(pageBar.back!.to)} />
                 </span>
@@ -421,7 +425,9 @@ function AdminShellFrame() {
                 >
                   {heading}
                 </h1>
-                {chrome && pageBar?.subtitle ? <p className="m-0 truncate text-body-sm text-fg-on-accent opacity-85">{pageBar.subtitle}</p> : null}
+                {pageBar?.subtitle ? (
+                  <p className={`m-0 truncate text-body-sm ${chrome ? 'text-fg-on-accent opacity-85' : 'text-fg-secondary'}`}>{pageBar.subtitle}</p>
+                ) : null}
               </div>
             </div>
             {/* Kept mounted (typed input survives) but out of the way while the panel has the whole area. */}

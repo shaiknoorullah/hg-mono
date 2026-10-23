@@ -17,7 +17,7 @@ import type { Schema } from '@hg/api-client';
 
 import { formatLongDate, formatTime } from '../../data/format';
 import { Button, DocumentViewer, EmptyState, ErrorState, KeyValueList, Skeleton, type KeyValueItem } from '../../ds';
-import { usePageTitle } from '../../app/pageTitle';
+import { usePageBar, usePageTitle } from '../../app/pageTitle';
 import { useDocumentUrl } from '../application/useDocumentUrl';
 import { useCertificateLoad } from '../shared/useCertificateLoad';
 import { SCOPE_LABEL } from '../console/model';
@@ -56,6 +56,12 @@ export default function CertificateViewerRoute() {
   const url = useDocumentUrl(certificate?.document_id ?? null, mayOpen && hasDocument);
 
   usePageTitle('Certificate scan');
+  // The way back and the certificate's name sit in the app bar, as the viewer boards draw them.
+  const barName = load.data?.application?.display_name ?? 'Halal certificate';
+  usePageBar(
+    certificate ? (hasDocument ? `${barName} · ${certificate.certificate_number ?? 'not transcribed yet'}` : `${barName} · no document`) : undefined,
+    certificate ? { label: 'Back to verification', to: `/certificates/${certificateId}` } : undefined,
+  );
 
   if (load.status === 'loading') {
     return (
@@ -88,26 +94,10 @@ export default function CertificateViewerRoute() {
     );
   }
 
-  const name = load.data?.application?.display_name ?? 'Halal certificate';
-  const subtitle = hasDocument ? `${name} · ${certificate.certificate_number ?? 'not transcribed yet'}` : `${name} · no document`;
-
-  const header = (
-    <header className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-line-decorative bg-surface-raised px-4 py-2" data-testid="ViewerHeader">
-      <Button variant="ghost" size="sm" iconStart="back" href={consoleHref}>
-        Back to verification
-      </Button>
-      <div className="min-w-0">
-        <h2 className="text-heading-sm text-fg-primary">Certificate scan</h2>
-        <p className="text-body-sm text-fg-secondary">{subtitle}</p>
-      </div>
-    </header>
-  );
-
   // A support agent: the role does not include document contents, so nothing was requested.
   if (!mayOpen) {
     return (
       <div className="flex min-h-0 flex-1 flex-col" data-testid="CertificateViewer" data-state="forbidden">
-        {header}
         <div className={CENTRED}>
           <div className={PANEL}>
             <EmptyState
@@ -129,7 +119,6 @@ export default function CertificateViewerRoute() {
   if (!hasDocument) {
     return (
       <div className="flex min-h-0 flex-1 flex-col" data-testid="CertificateViewer" data-state="none">
-        {header}
         <div className={CENTRED}>
           <div className={PANEL}>
             <EmptyState
@@ -153,7 +142,6 @@ export default function CertificateViewerRoute() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col" data-testid="CertificateViewer" data-state={url.status}>
-      {header}
       <div className="flex min-h-0 flex-1 gap-3 p-3 max-[900px]:flex-col max-[900px]:overflow-auto">
         <div className="flex min-h-[420px] min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-line-decorative bg-surface-raised">
           <DocumentViewer

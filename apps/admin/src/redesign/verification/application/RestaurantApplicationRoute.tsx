@@ -19,7 +19,7 @@ import { api } from '../../data/api';
 import { useMutation } from '../../data/mutation';
 import { Button, DocumentViewer, EmptyState, ErrorState, Icon, InlineAlert, SplitPanes, useToast } from '../../ds';
 import { unwrap, useLoad } from '../../../lib/load';
-import { usePageTitle } from '../../app/pageTitle';
+import { usePageBar } from '../../app/pageTitle';
 import { formatTime } from '../../data/format';
 import { claimOf } from '../shared/claim';
 import { errorCode } from '../shared/errors';
@@ -57,7 +57,8 @@ export default function RestaurantApplicationRoute() {
   const load = useLoad<Application>(fetcher);
   const app = load.data;
 
-  usePageTitle(app?.display_name ?? null);
+  // The board's app bar: the route title, the restaurant's name under it, a way back (`App`).
+  usePageBar(app?.display_name, app ? { label: 'Back to restaurant applications', to: '/restaurants' } : undefined);
 
   const now = useNow(app?.review_lock_expires_at);
   const claim = app ? claimOf(app, viewer.accountId, now) : ({ kind: 'unclaimed' } as const);

@@ -180,6 +180,8 @@ describe('queue counts (admin.queue_depth only)', () => {
     act(() => sockets[0]!.open());
     expect(sockets[0]!.sent).toContainEqual({ type: 'subscribe', channel: 'admin:ops' });
     expect(screen.getByTestId('queue-counts-note').textContent).toBe('Connected. Counts arrive with the next change.');
+    // The boards draw nothing while counts are still arriving: the line stays for screen readers only.
+    expect(screen.getByTestId('queue-counts-note').className).toContain('sr-only');
     expect(navLinkNames()).toContain('Restaurant applications');
 
     act(() =>
