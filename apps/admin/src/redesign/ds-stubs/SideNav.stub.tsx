@@ -136,7 +136,7 @@ function CountBadges({ item, rail }: { item: SideNavItem; rail: boolean }) {
           size="sm"
           // The sidebar board draws the chip with a 4 px corner and a 14.3 px line, and the warning
           // chip's border in its lightest tint (`ASS/AdminSidebar`).
-          className={cx('rounded-[4px] leading-[14.3px]', b.tone === 'warning' && 'border-[var(--hg-color-warning-100)]')}
+          className={cx('rounded-[4px] leading-[14.3px]', b.tone === 'warning' && 'border-[color:var(--hg-color-warning-100)]')}
         >
           {b.count > 99 ? '99+' : b.count}
         </Badge>
