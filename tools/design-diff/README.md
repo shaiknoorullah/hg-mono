@@ -90,7 +90,8 @@ boxes — and a native board **is** judged on its layout, so there it can change
 **The designers' notes.** Boards carry inline notes ("Needs API: …", "Proposed component: …",
 "DS issue: …") that are not UI and push the layout. They are hidden before the screenshot and kept
 in the manifest (`src/page-scripts.mjs`, `hideNotes`): by the classes the canvases use only for
-notes, by their opening words, and by small mono-font sentences. The outlines drawn around
+notes, by their opening words, by small mono-font sentences, and by mono chips screen readers skip
+that hold the API's words ("403 ACCOUNT_NOT_ACTIVE", "requirements.past_due"). The outlines drawn around
 proposed components go too, and so does the margin a box kept for a chip hung above it. The rules
 are heuristics over today's canvases; a note they miss shows up in the diff as text "only in the
 design".
@@ -328,8 +329,11 @@ What the harness does for a native capture:
    words; its position and size are compared. A view the hierarchy does not list (React Native
    flattens views that only lay out) is counted as unmeasured, not failed.
 6. Colour is read from pixels on both sides, the same way: a box's fill is the median of four points
-   just inside its edges, a text's ink is the pixel furthest from its background. (A hierarchy dump
-   carries no colours; reading both pictures also covers fills with transparency.)
+   just inside its edges, a text's ink is the pixel furthest from its background in lightness. Not in
+   colour: Chromium draws the board's text with subpixel antialiasing, whose tinted stroke edges are
+   further from a cream background than the ink is, so the furthest pixel by colour read #4A4E66 for
+   #4A4E48. (A hierarchy dump carries no colours; reading both pictures also covers fills with
+   transparency.)
 7. The board is `FAIL` when any measurement is outside the tolerance, when fewer than 80 % of the
    board's visible texts are in the capture, or when nothing could be matched at all.
 

@@ -42,7 +42,7 @@ its own app (`E2E_APPS`) and uploading `design-captures-mock-<app>`; `design-dif
 it existed, the first run that produced verdicts compared **4** boards where the one run done by
 hand compared **143** ([#1049](https://github.com/shaiknoorullah/hg-mono/issues/1049)).
 
-A failing capture spec fails that job only if it is **new**. [`web/known-capture-failures.json`](web/known-capture-failures.json) lists the specs that fail on `main` today, each by Playwright project (`admin-redesign-desktop`, `restaurant-redesign-tablet` …), spec file and title, with the issue that tracks it, and [`web/capture-failures.mjs`](web/capture-failures.mjs) fails the job when a spec fails that is not on it, or when no report was written. A spec that fails on tablet only is not hidden by a desktop entry. A listed spec that now passes is printed in the job summary, to be removed in the pull request that fixes it; add an entry only with its issue. The same ratchet as the [design-diff regression gate](../design-diff/README.md#the-regression-gate) ([#1093](https://github.com/shaiknoorullah/hg-mono/issues/1093)). The step that runs the specs still does not stop at the first failure, so every spec runs and every other board keeps its verdict, and `design-diff` runs after a red captures job. Failures are also named in the summary, because a spec that fails takes no capture and the diff reports a board with no capture as "uncaptured", which is exactly how it reports a board nobody has written a capture for. One is a regression and the other is work not started. A crash still fails the job.
+A failing capture spec fails that job only if it is **new**. [`web/known-capture-failures.json`](web/known-capture-failures.json) lists the specs that fail on `main` today, each by Playwright project (`admin-redesign-desktop`, `restaurant-redesign-tablet` …), spec file and title, with the issue that tracks it, and [`web/capture-failures.mjs`](web/capture-failures.mjs) fails the job when a spec fails that is not on it, or when no report was written. A spec that fails on tablet only is not hidden by a desktop entry. A listed spec that now passes is printed in the job summary, to be removed in the pull request that fixes it; add an entry only with its issue. The same ratchet as the [design-diff regression gate](../design-diff/README.md#the-regression-gate) ([#1093](https://github.com/shaiknoorullah/hg-mono/issues/1093)). The step that runs the specs retries a failing spec once (`--retries=1`, captures only): a spec that passes on the retry counts as passing and shows as "flaky" in Playwright's summary, so a race does not turn an unrelated pull request red, and a flaky spec is never added to the list. The step still does not stop at the first failure, so every spec runs and every other board keeps its verdict, and `design-diff` runs after a red captures job. Failures are also named in the summary, because a spec that fails takes no capture and the diff reports a board with no capture as "uncaptured", which is exactly how it reports a board nobody has written a capture for. One is a regression and the other is work not started. A crash still fails the job.
 
 Real-mode captures are written to `design-captures-real` and are **not** compared. Three boards are
 declared by both a real-mode and a mock-mode spec, measured, and nothing dedupes by board
@@ -324,7 +324,8 @@ board by that name, and judges it (a web capture pixel by pixel, a native one by
 
   **8 of the 19 are taken in CI**: the 3 in `1-first-run.yaml`, and the 5 in `lab/1-sign-in.yaml`, which `lab_for_ci`
   in [`run.sh`](run.sh) names because it takes captures and needs nothing CI lacks. It runs **in place of**
-  `redesign/1-sign-in.yaml`, being the same journey with the captures added, so the run signs in once. The other 11 are
+  `redesign/1-sign-in.yaml`, being the same journey with the captures added, so the run signs in once.
+  The boards draw the number ending 0134 (+1 416 555 0134), so both sign-in flows type it for the boards up to the code screens and sign in as the seeded user afterwards (customer: "Change number"; rider: "Use a different number"). The rider flow sends three wrong codes first, so the incorrect-code board shows "2 tries left" as drawn. The other 11 are
   in lab flows that need devworld, so they are taken in the device lab until CI has it
   ([#1030](https://github.com/shaiknoorullah/hg-mono/issues/1030)).
   What let any of them run in CI was measuring the width: the CI emulator is a
@@ -409,7 +410,7 @@ in its `.capture.json` and reported as uncovered. Three helpers in `web/design.t
   in that state's place.
 - `stepper(app, prefix, boards)` takes the declarations of a step-by-step spec by step name.
 
-`node tools/e2e/web/check-boards.mjs` checks that every declared board exists on the canvases branch.
+`pnpm e2e:web-boards:check` (`node tools/e2e/web/check-boards.mjs` and its test) checks that every declared board exists on the canvases branch; CI runs it in the `contract-kit` job. It reads ids written out in full, ids built from a prefix constant (`${OR}OrdersEmpty`), and the names in a spec's table when the id is `${OR}${board}`; fetch the branch first (`git fetch origin claude/redesign-canvases`).
 
 `<area>` is the canvas folder (`sign-in`, `live-orders`) and `<Board>` the board's file name
 without `.dc.html`, as the canvas's `canvas.json` lists it. Then:

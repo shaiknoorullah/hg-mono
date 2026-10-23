@@ -12,7 +12,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { cents, formatCents, type Schema } from '@hg/api-client';
-import { Badge, Button, Card, EmptyState, Icon, Input, ResizeHandle, Select, useToast } from '../ds';
+import { Badge, Button, Card, EmptyState, Icon, ResizeHandle, Select, SearchInput, useToast } from '../ds';
 import { useConsole } from '../data/console';
 import { serverNow } from '../data/serverClock';
 import { errorCode } from '../data/useServerResource';
@@ -567,7 +567,7 @@ export function MenuPage() {
       <div className="flex flex-wrap items-end gap-3">
         <div role="search" aria-label="Find items" className="flex min-w-0 flex-1 flex-wrap items-end gap-3">
           <div className="w-[280px] max-w-full">
-            <Input
+            <SearchInput
               label="Search this menu"
               hideLabel
               placeholder="Search this menu"

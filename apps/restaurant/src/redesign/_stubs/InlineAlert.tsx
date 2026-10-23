@@ -73,7 +73,7 @@ export function InlineAlert({ tone, title, children, icon, blocking = false, ite
       data-tone={tone}
       className={`hg-focus flex items-start gap-3 rounded-[12px] border px-4 py-3 text-body-md ${t.box}`}
     >
-      <span className={`mt-0.5 inline-flex shrink-0 ${t.icon}`}>
+      <span className={`inline-flex shrink-0 ${t.icon}`}>
         <GlyphIcon name={icon ?? t.glyph} size="md" />
       </span>
       <div className="flex min-w-0 flex-1 flex-col gap-1 leading-normal">

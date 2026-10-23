@@ -1,7 +1,24 @@
 {
   "note": "Boards that have passed on main. The design-diff job fails a run in which any of them is not PASS (src/gate.mjs). Add a board here in the pull request that makes it pass; remove one only with the reason in that pull request.",
   "boards": [
+    "restaurant/sign-in/Forgot-Error",
+    "restaurant/sign-in/Forgot-Password",
+    "restaurant/sign-in/Forgot-Sent",
+    "restaurant/sign-in/Main",
     "restaurant/sign-in/Reset-Done",
-    "restaurant/sign-in/Verify-Used"
+    "restaurant/sign-in/Reset-LinkInvalid",
+    "restaurant/sign-in/SignIn-Invalid",
+    "restaurant/sign-in/SignIn-LockedPermanent",
+    "restaurant/sign-in/SignIn-NotActive",
+    "restaurant/sign-in/SignIn-NotRestaurant",
+    "restaurant/sign-in/SignIn-Offline",
+    "restaurant/sign-in/SignIn-SessionExpired",
+    "restaurant/sign-in/SignIn-Suspended",
+    "restaurant/sign-in/SignIn-Unverified",
+    "restaurant/sign-in/Tab-SignIn-1024",
+    "restaurant/sign-in/Verify-Expired",
+    "restaurant/sign-in/Verify-ExpiredError",
+    "restaurant/sign-in/Verify-Used",
+    "restaurant/sign-in/Verify-Working"
   ]
 }

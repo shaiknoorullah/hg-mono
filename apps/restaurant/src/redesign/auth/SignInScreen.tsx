@@ -9,7 +9,7 @@
  * `return_to`, else `getRestaurantOnboardingStatus` (DONE → /orders, anything else →
  * /onboarding). The client never works out an onboarding step itself.
  */
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import type { Schema } from '@hg/api-client';
 import { client, keepSession, resetSignedOut } from '../data/client';
@@ -125,8 +125,6 @@ export function SignInScreen() {
   const [failures, setFailures] = useState(0);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [resending, setResending] = useState(false);
-  const emailRef = useRef<HTMLInputElement>(null);
-  const passwordRef = useRef<HTMLInputElement>(null);
 
   const waiting = (problem?.kind === 'too-many' || problem?.kind === 'locked' || problem?.kind === 'busy') && problem.wait !== null;
 
@@ -141,8 +139,8 @@ export function SignInScreen() {
   }, [announce]);
 
   useEffect(() => {
-    if (fieldErrors.email) emailRef.current?.focus();
-    else if (fieldErrors.password) passwordRef.current?.focus();
+    if (fieldErrors.email) document.getElementById('signin-email')?.focus();
+    else if (fieldErrors.password) document.getElementById('signin-password')?.focus();
   }, [fieldErrors]);
 
   async function routeAfterSignIn() {
@@ -290,7 +288,20 @@ export function SignInScreen() {
       if (arrival === 'reuse-detected')
         return (
           <InlineAlert key={alertKey} tone="warning" icon="lock" blocking title={SIGN_IN.reuseAlertTitle}>
-            <span>{support ? SIGN_IN.reuseBody(support.display) : SIGN_IN.reuseBodyNoSupport}</span>
+            {support ? (
+              <span>
+                {SIGN_IN.reuseBodyBefore}
+                <a
+                  href={`tel:${support.tel}`}
+                  className="hg-focus font-semibold text-feedback-warning-tint-text underline decoration-1 underline-offset-2"
+                >
+                  {support.display}
+                </a>
+                {SIGN_IN.reuseBodyAfter}
+              </span>
+            ) : (
+              <span>{SIGN_IN.reuseBodyNoSupport}</span>
+            )}
             <span>{SIGN_IN.ordersAtRisk(responseWindow)}</span>
           </InlineAlert>
         );
@@ -347,24 +358,24 @@ export function SignInScreen() {
   const fields = (
     <>
       <Input
-        ref={emailRef}
+        id="signin-email"
         label={SIGN_IN.email}
         variant="email"
         autoComplete="username"
         value={email}
-        onChange={(v) => {
+        onValueChange={(v) => {
           setEmail(v);
           if (fieldErrors.email) setFieldErrors((f) => ({ ...f, email: undefined }));
         }}
         errorText={fieldErrors.email}
       />
       <Input
-        ref={passwordRef}
+        id="signin-password"
         label={SIGN_IN.password}
         variant="password"
         autoComplete="current-password"
         value={password}
-        onChange={(v) => {
+        onValueChange={(v) => {
           setPassword(v);
           if (fieldErrors.password) setFieldErrors((f) => ({ ...f, password: undefined }));
         }}
@@ -374,7 +385,7 @@ export function SignInScreen() {
   );
 
   const forgotLine = (
-    <p className="m-0 text-body-sm text-fg-secondary">
+    <p className="m-0 text-body-sm leading-normal text-fg-secondary">
       {COMMON.forgotBefore}
       <TextLink to="/forgot-password" state={{ email: email.trim() }}>
         {COMMON.forgotLink}
@@ -551,9 +562,9 @@ function OutcomeView({
           <Button variant="primary" size="lg" fullWidth onPress={onStartOver}>
             {SIGN_IN.differentEmail}
           </Button>
-          <p className="m-0 text-center text-body-md">
-            <TextLink to="/register">{COMMON.registerLink}</TextLink>
-          </p>
+          <TextLink to="/register" variant="standalone">
+            {COMMON.registerLink}
+          </TextLink>
         </StateCard>
         <SupportSentence contact={support} lead={SUPPORT.sentenceBefore} />
       </>

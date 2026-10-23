@@ -24,7 +24,7 @@ import type { Schema } from '@hg/api-client';
 
 import { signOut } from '../api/auth';
 import { api } from '../api/client';
-import { AppBar, Banner, Button, Checkbox, Icon, Input, Skeleton, tokens, useTheme, useTypeStyle } from '../ds';
+import { AppBar, Banner, Button, Checkbox, Icon, Input, Skeleton, TopInsetSpent, tokens, useTheme, useTypeStyle } from '../ds';
 import { useConnectivity } from '../lib/connectivity';
 import { NavContext } from '../navigation/context';
 import { finishProfileCapture } from '../session/session';
@@ -214,6 +214,7 @@ export function YourDetailsScreen({ fromCart = false }: { fromCart?: boolean }):
 
   return (
     <SafeAreaView style={[styles.fill, { backgroundColor: theme.color.surface.base }]} testID="YourDetailsScreen">
+      <TopInsetSpent>
       <KeyboardAvoidingView behavior="padding" style={styles.fill}>
         <AppBar
           title="Your details"
@@ -274,6 +275,7 @@ export function YourDetailsScreen({ fromCart = false }: { fromCart?: boolean }):
           </Button>
         </View>
       </KeyboardAvoidingView>
+      </TopInsetSpent>
     </SafeAreaView>
   );
 }

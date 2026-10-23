@@ -243,7 +243,7 @@ test.describe('restaurant redesign · new-order strip', () => {
     await goLive(page, info);
     await tile(page, 'A7K2').focus();
     await page.keyboard.press('Enter');
-    // On the tablet the past-order panel is also an aside of that name; the offer is the one under test.
+    // Other panels (a past order, the order's own details) are asides of the same name; the offer is the one under test.
     const panel = page.getByTestId('offer-panel');
     await expect(panel).toBeVisible();
     await expect(panel.getByRole('heading', { name: 'A7K2' })).toBeFocused();

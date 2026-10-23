@@ -325,18 +325,18 @@ function SectionFields({ open, v, set, err }: FieldsProps) {
   if (open === 'names') {
     return (
       <>
-        <Input id="display_name" label="Name customers see" value={v.display_name} onChange={(x: string) => set('display_name', x)} {...opt(err('display_name'))} />
-        <Input id="legal_name" label="Legal business name" value={v.legal_name} helperText={PROFILE.legalHelp} onChange={(x: string) => set('legal_name', x)} {...opt(err('legal_name'))} />
-        <Input id="owner_first_name" label="Owner’s first name (optional)" value={v.owner_first_name} onChange={(x: string) => set('owner_first_name', x)} {...opt(err('owner_first_name'))} />
-        <Input id="owner_last_name" label="Owner’s last name (optional)" value={v.owner_last_name} onChange={(x: string) => set('owner_last_name', x)} {...opt(err('owner_last_name'))} />
+        <Input id="display_name" label="Name customers see" value={v.display_name} onValueChange={(x: string) => set('display_name', x)} {...opt(err('display_name'))} />
+        <Input id="legal_name" label="Legal business name" value={v.legal_name} helperText={PROFILE.legalHelp} onValueChange={(x: string) => set('legal_name', x)} {...opt(err('legal_name'))} />
+        <Input id="owner_first_name" label="Owner’s first name (optional)" value={v.owner_first_name} onValueChange={(x: string) => set('owner_first_name', x)} {...opt(err('owner_first_name'))} />
+        <Input id="owner_last_name" label="Owner’s last name (optional)" value={v.owner_last_name} onValueChange={(x: string) => set('owner_last_name', x)} {...opt(err('owner_last_name'))} />
       </>
     );
   }
   if (open === 'contact') {
     return (
       <>
-        <Input id="phone" variant="tel" label="Business phone" value={v.phone} helperText={PROFILE.phoneHelp} onChange={(x: string) => set('phone', x)} {...opt(err('phone_e164'))} />
-        <Input id="public_phone" variant="tel" label="Phone customers can call (optional)" value={v.public_phone} onChange={(x: string) => set('public_phone', x)} {...opt(err('public_phone_e164'))} />
+        <Input id="phone" variant="tel" label="Business phone" value={v.phone} helperText={PROFILE.phoneHelp} onValueChange={(x: string) => set('phone', x)} {...opt(err('phone_e164'))} />
+        <Input id="public_phone" variant="tel" label="Phone customers can call (optional)" value={v.public_phone} onValueChange={(x: string) => set('public_phone', x)} {...opt(err('public_phone_e164'))} />
       </>
     );
   }
@@ -348,13 +348,13 @@ function SectionFields({ open, v, set, err }: FieldsProps) {
         <p className="m-0 text-body-sm text-fg-secondary" data-testid="cuisine-gap">
           {PROFILE.cuisineGap}
         </p>
-        <Input id="prep" variant="numeric" label="Usual preparation time, in minutes" value={v.avg_prep_minutes} onChange={(x: string) => set('avg_prep_minutes', x.replace(/\D/g, ''))} {...opt(err('avg_prep_minutes'))} />
+        <Input id="prep" variant="numeric" label="Usual preparation time, in minutes" value={v.avg_prep_minutes} onValueChange={(x: string) => set('avg_prep_minutes', x.replace(/\D/g, ''))} {...opt(err('avg_prep_minutes'))} />
       </>
     );
   }
   return (
     <>
-      <Input id="gst" label="GST/HST number (optional)" value={v.gst_hst_number} helperText={PROFILE.gstHelp} onChange={(x: string) => set('gst_hst_number', x)} {...opt(err('gst_hst_number'))} />
+      <Input id="gst" label="GST/HST number (optional)" value={v.gst_hst_number} helperText={PROFILE.gstHelp} onValueChange={(x: string) => set('gst_hst_number', x)} {...opt(err('gst_hst_number'))} />
       <Select label="Time zone" options={[{ value: 'America/Toronto', label: 'Eastern Time (Toronto)' }]} value={v.timezone} onChange={(x) => set('timezone', x)} />
     </>
   );
@@ -462,11 +462,11 @@ function LocationFields({ v, set, err }: Omit<FieldsProps, 'open'>) {
         ) : null}
         {placing ? <span role="status" className="text-body-sm text-fg-secondary">Finding your address…</span> : null}
       </div>
-      <Input id="line1" label="Street address" value={v.line1} onChange={(x: string) => set('line1', x)} {...opt(err('line1'))} />
-      <Input id="line2" label="Unit (optional)" value={v.line2} onChange={(x: string) => set('line2', x)} />
-      <Input id="city" label="City" value={v.city} onChange={(x: string) => set('city', x)} {...opt(err('city'))} />
+      <Input id="line1" label="Street address" value={v.line1} onValueChange={(x: string) => set('line1', x)} {...opt(err('line1'))} />
+      <Input id="line2" label="Unit (optional)" value={v.line2} onValueChange={(x: string) => set('line2', x)} />
+      <Input id="city" label="City" value={v.city} onValueChange={(x: string) => set('city', x)} {...opt(err('city'))} />
       <Select label="Province" options={[{ value: 'ON', label: 'Ontario' }]} value={v.province} onChange={(x) => set('province', x)} />
-      <Input id="postal" label="Postal code" value={v.postal_code} onChange={(x: string) => set('postal_code', x)} {...opt(err('postal_code'))} />
+      <Input id="postal" label="Postal code" value={v.postal_code} onValueChange={(x: string) => set('postal_code', x)} {...opt(err('postal_code'))} />
       <div className="flex flex-col gap-1">
         <button
           id="pin"

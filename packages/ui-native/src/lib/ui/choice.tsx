@@ -212,10 +212,17 @@ export function ChoiceGroup({ legend, hideLegend, role, required, hint, error, d
       className="gap-1"
     >
       {hideLegend ? null : (
-        <Text testID={`${testID}-legend`} variant={field ? 'heading.sm' : 'label.lg'}>
-          {legend}
-          {required ? ' *' : ''}
-        </Text>
+        <View className="flex-row">
+          <Text testID={`${testID}-legend`} variant={field ? 'heading.sm' : 'label.lg'}>
+            {legend}
+          </Text>
+          {required ? (
+            // The mark is its own brand-coloured node, as the board draws it (and as FieldLabel does).
+            <Text variant={field ? 'heading.sm' : 'label.lg'} className="text-brand-700">
+              {' *'}
+            </Text>
+          ) : null}
+        </View>
       )}
       {hint ? (
         <Text testID={`${testID}-hint`} variant={field ? 'body.md' : 'body.sm'} tone="secondary">

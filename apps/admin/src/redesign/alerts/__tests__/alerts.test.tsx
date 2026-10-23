@@ -281,6 +281,19 @@ describe('Live alerts: why alerts are not arriving, one screen for each cause th
     expect(within(screen.getByRole('grid')).getAllByRole('row').length).toBeGreaterThan(1);
   });
 
+  it('an open that reaches the store after the session ended does not take the sign-in dialog away', () => {
+    renderAlerts();
+    feed();
+    act(() => {
+      setAlertsConnection('offline');
+      setAlertsFailure({ kind: 'reauth', at: new Date('2026-08-10T19:05:00Z') });
+      // The status arrives through an effect, so the open of the connection just ended can land late.
+      setAlertsConnection('open');
+    });
+    expect(getAlerts().failure?.kind).toBe('reauth');
+    expect(screen.getByRole('dialog', { name: 'Sign in again to keep receiving alerts' })).toBeTruthy();
+  });
+
   it('signing in again restarts the connection with a fresh ticket, and the dialog goes away', async () => {
     const api = mockApi();
     api.set({

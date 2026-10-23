@@ -49,15 +49,24 @@ export interface RenderRedesignOptions {
   live?: boolean;
   /** Below 768 px: the shared DOM shims match no media query, so this one matches the phone query. */
   phone?: boolean;
+  /** At least 1280 px wide: the shared DOM shims match no media query, so this one matches the desktop query. */
+  desktop?: boolean;
 }
 
-export async function renderRedesign(path: string, { signedIn = true, live = false, phone = false }: RenderRedesignOptions = {}) {
+export async function renderRedesign(path: string, { signedIn = true, live = false, phone = false, desktop = false }: RenderRedesignOptions = {}) {
   installDomShims();
   if (phone) {
     const shim = window.matchMedia;
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
       value: (query: string) => ({ ...shim(query), matches: query.includes('max-width: 767') }),
+    });
+  }
+  if (desktop) {
+    const shim = window.matchMedia;
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: (query: string) => ({ ...shim(query), matches: query.includes('min-width: 1280px') }),
     });
   }
   resetServerClock();

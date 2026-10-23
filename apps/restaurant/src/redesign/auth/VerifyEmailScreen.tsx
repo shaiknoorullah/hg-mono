@@ -76,15 +76,14 @@ export function VerifyEmailScreen() {
     case 'working':
       return (
         <StateCard testId="verify-working">
+          {/* Verify-Working: heading, status and bar are siblings 24 px apart, the bar 16 px further down. */}
           <div className="flex flex-col gap-6">
             <StateCardHeading title={VERIFY.workingTitle} intro={VERIFY.workingBody} />
-            <div className="mt-4 flex flex-col gap-3">
-              <p role="status" className="m-0 text-label-lg text-fg-primary">
-                {VERIFY.workingStatus}
-              </p>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-line-decorative" aria-hidden="true">
-                <div className="h-full w-2/5 animate-pulse rounded-full bg-fg-secondary" />
-              </div>
+            <p role="status" className="m-0 text-label-lg text-fg-primary">
+              {VERIFY.workingStatus}
+            </p>
+            <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-line-decorative" aria-hidden="true">
+              <div className="h-full w-2/5 animate-pulse rounded-full bg-fg-secondary" />
             </div>
           </div>
         </StateCard>
@@ -158,10 +157,9 @@ function ExpiredLink() {
   const [sending, setSending] = useState(false);
   const [failed, setFailed] = useState(0);
   const [fieldError, setFieldError] = useState<string | undefined>();
-  const emailRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (fieldError) emailRef.current?.focus();
+    if (fieldError) document.getElementById('verify-email')?.focus();
   }, [fieldError]);
 
   async function send(e: FormEvent) {
@@ -204,13 +202,13 @@ function ExpiredLink() {
           </InlineAlert>
         ) : null}
         <Input
-          ref={emailRef}
+          id="verify-email"
           label={VERIFY.email}
           variant="email"
           autoComplete="email"
           value={email}
           readOnly={sending}
-          onChange={(v) => {
+          onValueChange={(v) => {
             setEmail(v);
             if (fieldError) setFieldError(undefined);
           }}

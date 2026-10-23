@@ -50,7 +50,10 @@ export function SupportBlock({
       data-testid="support-block"
     >
       <p className="m-0 text-label-md text-fg-secondary">{label}</p>
-      <TextLink href={`tel:${contact.tel}`} className="text-heading-sm">
+      <TextLink
+        href={`tel:${contact.tel}`}
+        className="inline-flex min-h-11 items-center self-start text-heading-sm"
+      >
         {contact.display}
       </TextLink>
       {contact.hours ? (
@@ -79,7 +82,9 @@ export function SupportSentence({
       data-testid={testId}
     >
       {lead}
-      <TextLink href={`tel:${contact.tel}`}>{contact.display}</TextLink>
+      <TextLink href={`tel:${contact.tel}`} variant="plain">
+        {contact.display}
+      </TextLink>
       {contact.hours ? `, ${contact.hours}.` : "."}
     </p>
   );

@@ -20,7 +20,7 @@ import { PortalHost } from '@rn-primitives/portal';
 import { useHgFonts } from '@hg/ui-native/fonts';
 import { HgColorSchemeBridge } from '@hg/ui-native/lib';
 
-import { ThemeProvider } from './ds';
+import { ThemeProvider, TopInsetSpent } from './ds';
 import { outbox } from './data/outbox';
 import { SessionGate } from './session/Session';
 import { DS_GALLERY_ENABLED, DsGalleryRoot } from './DsGalleryRoot';
@@ -34,7 +34,9 @@ export function RedesignRoot({ children }: { children: React.ReactNode }): React
         <HgColorSchemeBridge />
         <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
         <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
+          <TopInsetSpent>
           {children}
+          </TopInsetSpent>
         </SafeAreaView>
       </ThemeProvider>
     </SafeAreaProvider>

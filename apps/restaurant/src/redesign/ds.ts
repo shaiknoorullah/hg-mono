@@ -13,7 +13,6 @@ export {
   Button,
   IconButton,
   Icon,
-  Input,
   Textarea,
   Select,
   Checkbox,
@@ -30,6 +29,13 @@ export {
   TooltipProvider,
   Popover,
 } from '@hg/ui-web/primitives';
+// The text field is the design system's own `Input` (white `surface-raised` box, 12 px
+// `radius-md`), which is what the boards draw. The older primitive paints a cream, 8 px box.
+export { Input } from '@hg/ui-web/ds';
+export type { InputProps } from '@hg/ui-web/ds';
+// The primitive stays for the one field the DS `Input` cannot draw: the Menu search box, which
+// hides its label (the DS field always shows one).
+export { Input as SearchInput } from '@hg/ui-web/primitives';
 export type { ButtonProps, IconName, RadioOption, SelectOption } from '@hg/ui-web/primitives';
 
 export { HalalBadge, formatAbsoluteDate, reportHalalClientError } from '@hg/ui-web/certification';
