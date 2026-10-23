@@ -410,7 +410,7 @@ in its `.capture.json` and reported as uncovered. Three helpers in `web/design.t
   in that state's place.
 - `stepper(app, prefix, boards)` takes the declarations of a step-by-step spec by step name.
 
-`node tools/e2e/web/check-boards.mjs` checks that every declared board exists on the canvases branch.
+`pnpm e2e:web-boards:check` (`node tools/e2e/web/check-boards.mjs` and its test) checks that every declared board exists on the canvases branch; CI runs it in the `contract-kit` job. It reads ids written out in full, ids built from a prefix constant (`${OR}OrdersEmpty`), and the names in a spec's table when the id is `${OR}${board}`; fetch the branch first (`git fetch origin claude/redesign-canvases`).
 
 `<area>` is the canvas folder (`sign-in`, `live-orders`) and `<Board>` the board's file name
 without `.dc.html`, as the canvas's `canvas.json` lists it. Then:
