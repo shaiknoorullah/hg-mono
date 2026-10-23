@@ -9,6 +9,8 @@
  * rider's.
  */
 
+export { TopInsetSpent } from './internal/insets';
+
 export { AppBar } from './AppBar';
 export type { AppBarProps, AppBarVariant, AppBarAction, AppBarBack } from './AppBar';
 

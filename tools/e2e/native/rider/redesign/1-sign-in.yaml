@@ -30,9 +30,12 @@ env:
     env:
       SHOT: design--sign-in-onboarding--Main
       APP_ID: com.halalgoes.rider.dev
+# The boards draw the number ending 0134 (+1 416 555 0134, a 555-01xx fictional number), so the
+# captures up to the wrong-code board use it. Nothing signs in on it: "Use a different number"
+# goes back and the e2e world's rider signs in below.
 - tapOn:
     id: "phone-field"
-- inputText: ${PHONE}
+- inputText: "4165550134"
 - hideKeyboard
 
 # Offline: Send code sends nothing and says so (SO SignIn-Phone-Offline).
@@ -57,24 +60,55 @@ env:
 - extendedWaitUntil:
     visible: "Enter your code"
     timeout: 30000
-- assertVisible: "We sent a 6-digit code to the number ending \\d{4}\\."
+- assertVisible: "We sent a 6-digit code to the number ending 0134\\."
+# Two digits typed, as the board draws them (48).
+- tapOn:
+    id: "code-cell-0"
+- inputText: "48"
 - runFlow:
     file: ../../design-capture.yaml
     env:
       SHOT: design--sign-in-onboarding--SignIn-Code
       APP_ID: com.halalgoes.rider.dev
-# A wrong code clears the field and says how many tries are left (SO SignIn-Code-Incorrect).
+# Three wrong codes leave two tries; each clears the field and says how many are left
+# (SO SignIn-Code-Incorrect draws "2 tries left").
+- eraseText: 2
+- inputText: ${WRONG_CODE}
+- extendedWaitUntil:
+    visible: ".*That code is not right\\. You have 4 tries left\\..*"
+    timeout: 30000
 - tapOn:
     id: "code-cell-0"
 - inputText: ${WRONG_CODE}
 - extendedWaitUntil:
-    visible: ".*That code is not right\\. You have \\d tr(y|ies) left\\..*"
+    visible: ".*That code is not right\\. You have 3 tries left\\..*"
+    timeout: 30000
+- tapOn:
+    id: "code-cell-0"
+- inputText: ${WRONG_CODE}
+- extendedWaitUntil:
+    visible: ".*That code is not right\\. You have 2 tries left\\..*"
     timeout: 30000
 - runFlow:
     file: ../../design-capture.yaml
     env:
       SHOT: design--sign-in-onboarding--SignIn-Code-Incorrect
       APP_ID: com.halalgoes.rider.dev
+# Now the e2e world's rider.
+- tapOn:
+    id: "different-number"
+- extendedWaitUntil:
+    visible: "Sign in or apply to ride"
+    timeout: 15000
+- tapOn:
+    id: "phone-field"
+- eraseText: 20
+- inputText: ${PHONE}
+- hideKeyboard
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "Enter your code"
+    timeout: 30000
 # The right code: the 6th digit checks it by itself.
 - tapOn:
     id: "code-cell-0"
