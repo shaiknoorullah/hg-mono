@@ -42,6 +42,21 @@ test.describe('restaurant redesign · shell', () => {
     await expect(skip).toHaveAttribute('href', '#new-orders');
   });
 
+  test('the expanded rail has the header and footer the boards draw; the collapsed rail has neither', async ({ page }) => {
+    await openSignedIn(page, '/settings');
+    const rail = page.getByTestId('console-rail');
+    await expect(rail.getByText('Restaurant partner')).toHaveCount(0);
+    await page.getByTestId('console-rail-collapse').click();
+    await expect(rail.getByText('Restaurant partner')).toBeVisible();
+    await expect(rail.getByTestId('rail-restaurant')).toHaveText('Zaytoun Grill');
+    await expect(rail.getByTestId('rail-signed-in')).toHaveText('Signed in as the owner');
+    // The current item is still the inverted tile.
+    await expect(rail.getByRole('link', { name: /^Settings/ })).toHaveAttribute('aria-current', 'page');
+    await page.getByTestId('console-rail-collapse').click();
+    await expect(rail.getByText('Restaurant partner')).toHaveCount(0);
+    await expect(rail.getByTestId('rail-restaurant')).toHaveCount(0);
+  });
+
   test('sign out asks to stop orders first, and Stay signed in keeps the console', async ({ page }) => {
     await openSignedIn(page, '/orders/history');
     await page.getByRole('button', { name: /^Account/ }).click();
