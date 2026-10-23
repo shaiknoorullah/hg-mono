@@ -2,7 +2,7 @@ import { expect, test, type Page, type Route } from '@playwright/test';
 
 import { declareUnpairable, expectDesignFor, type BoardFor } from './design';
 import { E2E_MODE } from './mode';
-import { routeLogin, signIn, type StaffRole } from './redesign-admin.support';
+import { routeLogin, routeQueueDepth, signIn, type StaffRole } from './redesign-admin.support';
 
 test.skip(E2E_MODE !== 'mock', 'written against the mock server; run with E2E_MODE=mock');
 
@@ -37,6 +37,7 @@ const never = () => new Promise<void>(() => undefined);
 
 async function openSystem(page: Page, role: StaffRole, probes: Probes) {
   await routeLogin(page, role);
+  await routeQueueDepth(page);
   await page.route('**/health/ready', probes.readiness);
   await page.route('**/health', probes.health ?? ok(HEALTH));
   await page.goto('/');
@@ -96,6 +97,7 @@ test.describe('redesigned admin · system status and account (mock)', () => {
 
   test('your account', async ({ page }) => {
     await routeLogin(page, 'ADMIN');
+    await routeQueueDepth(page);
     await page.goto('/');
     await signIn(page);
     await expect(page.locator('#app-bar-heading')).toBeVisible();

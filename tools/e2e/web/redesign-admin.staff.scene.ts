@@ -1,6 +1,6 @@
 import { expect, type Page, type Route } from '@playwright/test';
 
-import { routeLogin, signIn, type StaffRole } from './redesign-admin.support';
+import { routeLogin, routeQueueDepth, signIn, type StaffRole } from './redesign-admin.support';
 import { failing, never } from './redesign-admin.refunds-staff.support';
 
 /**
@@ -125,6 +125,7 @@ export async function openStaff(page_: Page, hash: string, scene: StaffScene = {
   const role = scene.role ?? 'SUPER_ADMIN';
   await page_.clock.setFixedTime(new Date(NOW));
   await routeLogin(page_, role, { accountId: viewerOf(role) });
+  await routeQueueDepth(page_);
   await page_.route(/\/v1\/admin\/staff(\?.*)?$/, async (route) => {
     const request = route.request();
     if (request.method() === 'POST') return scene.create ? scene.create(route) : route.fallback();

@@ -304,6 +304,7 @@ A capture that names a design board says "this screen must match that board". Th
 [design-diff harness](../design-diff/README.md) renders the boards, pairs each capture with its
 board by that name, and judges it (a web capture pixel by pixel, a native one by layout geometry); the flows themselves never fail on it.
 
+- **Admin sidebar counts:** the boards draw 4, 2, 2 and 5 beside the nav items. The admin specs that capture such boards call `routeQueueDepth(page)` (`web/redesign-admin.support.ts`), which adds the `admin.queue_depth` frame to the page's socket; no fixture changes.
 - **Playwright:** `await expectDesign(page, '<app>/<area>/<Board>')` (`web/design.ts`), for
   example `expectDesign(page, 'restaurant/sign-in/SignIn-Invalid')`. It saves a full-page
   screenshot and a layout snapshot to `$E2E_OUT/design-captures/<app>/<width>x<height>/`.

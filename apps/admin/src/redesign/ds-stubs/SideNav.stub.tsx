@@ -14,6 +14,7 @@
  */
 import { useId, type MouseEvent, type ReactNode } from 'react';
 
+import { Badge } from './adapters/Badge.adapter';
 import { Icon, type AnyIconName } from './adapters/Icon.adapter';
 import { cx } from './internal/cx';
 import { FOCUS_ON_CHROME } from './internal/focus';
@@ -37,8 +38,19 @@ export interface SideNavItem {
   countLabel?: string;
   /** neutral (default) or warning (a breached or overdue count). Never red. */
   countTone?: 'neutral' | 'warning';
+  /**
+   * The chips the item draws, when it draws more than one (Refunds & disputes: failed refunds in
+   * warning, open disputes in neutral, side by side; the rail draws the first). Without it the one
+   * `count` is drawn. The accessible name still comes from `count` and `countLabel`.
+   */
+  badges?: readonly SideNavBadge[];
   /** This item is the current page: `aria-current="page"`, filled tile. */
   current?: boolean;
+}
+
+export interface SideNavBadge {
+  count: number;
+  tone?: 'neutral' | 'warning';
 }
 
 export interface SideNavGroup {
@@ -86,6 +98,9 @@ export interface SideNavProps {
  * as a glyph (20px, open and in the rail, as the board draws it), so labels align. Footer items
  * use it too.
  */
+/** The box every rail control shares: radius-sm, a centred column, 4px above and below. */
+const RAIL_BOX = 'relative flex flex-col items-center justify-center gap-0.5 rounded-sm border-0 bg-transparent px-0 py-1 text-fg-on-accent';
+
 export function SideNavIconSlot(): React.JSX.Element {
   return <span aria-hidden="true" data-icon-slot="" className="inline-block size-5 shrink-0" />;
 }
@@ -96,19 +111,38 @@ export function sideNavItemName(item: Pick<SideNavItem, 'label' | 'count' | 'cou
   return item.countLabel ? `${item.label}, ${item.count} ${item.countLabel}` : `${item.label}, ${item.count}`;
 }
 
-function CountPill({ item, rail }: { item: SideNavItem; rail: boolean }) {
-  if (typeof item.count !== 'number' || item.count <= 0) return null;
+/** What an item's badges draw: the explicit `badges`, else the one `count`. */
+function badgesOf(item: SideNavItem): readonly SideNavBadge[] {
+  if (item.badges) return item.badges.filter((b) => b.count > 0);
+  if (typeof item.count !== 'number' || item.count <= 0) return [];
+  return [{ count: item.count, tone: item.countTone ?? 'neutral' }];
+}
+
+/**
+ * The count chips: the design system's Badge at its small size (`ASS/AdminSidebar` draws
+ * `Badge size="sm"` after the label, side by side; the rail draws the first one at the item's top
+ * right corner). Hidden from assistive technology: the count is in the item's name.
+ */
+function CountBadges({ item, rail }: { item: SideNavItem; rail: boolean }) {
+  const all = badgesOf(item);
+  const shown = rail ? all.slice(0, 1) : all;
+  if (shown.length === 0) return null;
   return (
-    <span
-      aria-hidden="true"
-      className={cx(
-        'inline-flex h-5 min-w-5 items-center justify-center rounded-sm px-1.5 text-label-sm font-semibold',
-        item.countTone === 'warning' ? 'bg-feedback-warning-tint text-feedback-warning-tint-text' : 'bg-surface-base text-fg-primary',
-        rail && 'absolute end-2 top-1',
-      )}
-    >
-      {item.count > 99 ? '99+' : item.count}
+    <span aria-hidden="true" className={cx('inline-flex gap-1', rail && 'absolute end-0.5 top-0.5')}>
+      {shown.map((b, i) => (
+        <Badge key={i} variant={b.tone === 'warning' ? 'warning' : 'neutral'} size="sm">
+          {b.count > 99 ? '99+' : b.count}
+        </Badge>
+      ))}
     </span>
+  );
+}
+
+function GroupHeading({ id, text, hidden }: { id: string; text: string; hidden: boolean }) {
+  return (
+    <h2 id={id} className={cx('m-0 px-3 pb-1 text-body-sm font-bold leading-normal tracking-[0.02em] text-fg-on-accent', hidden && 'sr-only')}>
+      {text}
+    </h2>
   );
 }
 
@@ -130,6 +164,7 @@ export function SideNav({
 }: SideNavProps): React.JSX.Element {
   const auto = useId();
   const listId = `${id ?? auto}-items`;
+  const labelled = collapsed && railLabels;
 
   return (
     <nav
@@ -138,48 +173,64 @@ export function SideNav({
       data-testid={testId}
       data-collapsed={collapsed || undefined}
       className={cx(
-        'flex h-full shrink-0 flex-col bg-surface-chrome text-fg-on-accent',
-        collapsed ? 'w-18' : 'w-[264px]',
+        'box-border flex h-full shrink-0 flex-col gap-2 bg-surface-chrome py-4 text-fg-on-accent',
+        collapsed ? 'w-18 items-center' : 'w-[264px] px-3',
         className,
       )}
     >
-      <div className={cx('flex items-start gap-2 px-3', collapsed ? 'flex-col items-center pt-1' : 'justify-between pt-3')}>
-        <div className={cx('min-w-0', collapsed ? 'flex justify-center' : 'flex-1 px-1')}>{collapsed ? railHeader : header}</div>
-        {onCollapsedChange ? (
-          <button
-            type="button"
-            aria-expanded={!collapsed}
-            aria-controls={listId}
-            aria-label={collapsed ? expandLabel : collapseLabel}
-            onClick={() => onCollapsedChange(!collapsed)}
-            className={cx('inline-flex size-11 shrink-0 items-center justify-center rounded-md text-fg-on-accent hover:bg-[var(--hg-state-hover-overlay)]', FOCUS_ON_CHROME)}
-          >
-            <Icon name={collapsed ? 'chevron-right' : 'back'} size="md" />
-          </button>
-        ) : null}
-      </div>
+      {/* Expanded: the wordmark and subtitle with the collapse toggle. Rail: only the expand toggle. */}
+      {collapsed ? (
+        <>
+          {railHeader}
+          {onCollapsedChange ? (
+            <button
+              type="button"
+              aria-expanded={false}
+              aria-controls={listId}
+              aria-label={expandLabel}
+              onClick={() => onCollapsedChange(false)}
+              className={cx(RAIL_BOX, 'w-[68px] min-h-12 hover:bg-[var(--hg-state-hover-overlay)]', FOCUS_ON_CHROME)}
+            >
+              <Icon name="menu" size="md" />
+            </button>
+          ) : null}
+        </>
+      ) : (
+        <div className="flex items-start gap-2 pb-2 pt-1 ps-1.5">
+          <div className="flex min-w-0 grow flex-col gap-1.5">{header}</div>
+          {onCollapsedChange ? (
+            <button
+              type="button"
+              aria-expanded
+              aria-controls={listId}
+              aria-label={collapseLabel}
+              onClick={() => onCollapsedChange(true)}
+              className={cx(RAIL_BOX, 'size-11 shrink-0 hover:bg-[var(--hg-state-hover-overlay)]', FOCUS_ON_CHROME)}
+            >
+              <Icon name="back" size="md" />
+            </button>
+          ) : null}
+        </div>
+      )}
 
-      {/* The item list scrolls in its own region above the footer; the rail is spaced tighter so
-          every item fits a 1024x768 window without scrolling. */}
-      <div id={listId} className={cx('flex min-h-0 flex-1 flex-col overflow-y-auto', collapsed ? (railLabels ? 'gap-1.5 px-0.5 py-2' : 'gap-3 px-3 py-2') : 'gap-3 px-3 py-3')}>
+      {/* The item list scrolls in its own region above the footer. */}
+      <div
+        id={listId}
+        className={cx(
+          'flex min-h-0 grow flex-col overflow-y-auto',
+          collapsed ? (railLabels ? 'items-center gap-1' : 'items-center gap-3 px-3') : 'gap-3',
+        )}
+      >
         {groups.map((group) => {
           const headingId = `${listId}-${group.key}`;
           return (
-            <div key={group.key} role="group" aria-labelledby={group.heading ? headingId : undefined}>
-              {group.heading ? (
-                <p
-                  id={headingId}
-                  className={cx('px-2 pb-1 text-label-sm font-semibold text-fg-on-accent', collapsed && 'sr-only')}
-                >
-                  {group.heading}
-                </p>
-              ) : null}
-              {collapsed && group.heading ? <hr aria-hidden="true" className="mx-3 mt-0 mb-0.5 border-line-decorative opacity-40" /> : null}
-              <ul className="flex flex-col gap-2">
+            <div key={group.key} role="group" aria-labelledby={group.heading ? headingId : undefined} className={cx('flex flex-col gap-0.5', collapsed && 'items-center gap-1')}>
+              {group.heading ? <GroupHeading id={headingId} text={group.heading} hidden={collapsed} /> : null}
+              <ul className={cx('m-0 flex list-none flex-col gap-0.5 p-0', collapsed && 'items-center gap-1')}>
                 {group.items.map((item) => {
                   const current = Boolean(item.current);
                   return (
-                    <li key={item.key}>
+                    <li key={item.key} className={cx('m-0', !collapsed && 'flex flex-col')}>
                       <a
                         href={item.href}
                         aria-current={current ? 'page' : undefined}
@@ -193,16 +244,16 @@ export function SideNav({
                           onNavigate(item.href, item, event);
                         }}
                         className={cx(
-                          'relative flex min-h-11 rounded-md no-underline',
+                          'relative flex min-h-11 rounded-sm no-underline',
                           FOCUS_ON_CHROME,
                           // The current item is an inverted tile on the chrome (owner rule, 1 Oct 2026): filled
                           // with the on-accent colour, label and icon in the chrome colour, bold. Never an
-                          // outline, a border or a side bar. The rail shows icons only.
+                          // outline, a border or a side bar.
                           collapsed
                             ? railLabels
-                              ? 'min-h-12 flex-col items-center justify-center gap-0.5 px-0.5 py-1 text-center text-caption'
+                              ? 'min-h-12 w-[68px] flex-col items-center justify-center gap-0.5 px-0 py-1 text-center text-caption leading-[1.2]'
                               : 'items-center justify-center px-3'
-                            : 'items-center gap-3 px-3 py-2 text-body-md',
+                            : 'w-full items-center gap-2.5 px-3 text-start text-body-md leading-[1.3]',
                           current
                             ? 'bg-fg-on-accent font-bold text-surface-chrome'
                             : 'font-medium text-fg-on-accent hover:bg-[var(--hg-state-hover-overlay)]',
@@ -219,15 +270,15 @@ export function SideNav({
                           className={cx(
                             collapsed
                               ? railLabels
-                                ? 'w-full max-w-[72px] text-center leading-tight [overflow-wrap:anywhere]'
+                                ? 'w-full max-w-[64px] text-center [overflow-wrap:anywhere]'
                                 : 'sr-only'
                               : 'min-w-0 flex-1',
-                            collapsed && railLabels && (current ? 'font-bold' : 'font-medium'),
+                            labelled && (current ? 'font-bold' : 'font-medium'),
                           )}
                         >
                           {collapsed ? item.shortLabel : item.label}
                         </span>
-                        <CountPill item={item} rail={collapsed} />
+                        <CountBadges item={item} rail={collapsed} />
                       </a>
                     </li>
                   );
@@ -239,9 +290,7 @@ export function SideNav({
       </div>
 
       {footer ? (
-        <div className={cx('flex shrink-0 flex-col border-t border-line-decorative/40', collapsed ? 'items-center gap-1 px-0.5 py-2' : 'gap-2 px-3 py-3')}>
-          {footer}
-        </div>
+        <div className={cx('flex shrink-0 flex-col gap-1', collapsed ? 'items-center gap-2' : 'px-1.5 pt-3')}>{footer}</div>
       ) : null}
     </nav>
   );

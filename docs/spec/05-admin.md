@@ -2,7 +2,7 @@
 covers:
   - apps/admin/**
   - services/hg/internal/admin/**
-reviewed: 2026-10-22
+reviewed: 2026-10-23
 ---
 
 # HalalGoes — ADMIN / SUPER ADMIN / SUPPORT AGENT Specification
@@ -13,6 +13,7 @@ sections), `scope/features-restaurant-admin-backend.md`, `fleet/hg-fe-admin-web.
 three roles, RBAC-differentiated.
 **Console frame**: the side navigation is a dark forest chrome rail, 72 px wide collapsed and 264 px
 expanded, the owner's decision of 22 Oct 2026 ([#970](https://github.com/shaiknoorullah/hg-mono/issues/970)).
+It folds to the rail while a panel is open beside the page (a staff account, the invite form, What's new) and opens again when the panel closes.
 **Date**: 2026-08-10. **Feature count**: 42 (V1 27 · V2 13 · V3 2).
 
 Everything the SOW leaves vague is constrained here. Where a business rule could not be derived

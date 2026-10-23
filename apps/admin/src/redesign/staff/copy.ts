@@ -18,7 +18,7 @@ export const LIST = {
   loadMoreFailed: { title: "The next accounts didn't load", body: (kept: number) => `The server didn't answer in time. The ${kept} accounts above are kept.` },
   tryAgain: 'Try again',
   offline: { title: 'You’re offline.', body: 'Changes are off until the connection returns. Nothing you do now is saved for later.' },
-  find: { label: 'Find by name or email', labelNameOnly: 'Find by name', help: 'Searches the accounts loaded so far.' },
+  find: { label: 'Find by name or email', labelNameOnly: 'Find by name', help: (loaded: number) => `Searches the ${loaded} accounts loaded so far, on this device.` },
   findCount: (shown: number, loaded: number, query: string, more: boolean) =>
     `${shown} of ${loaded} loaded accounts ${shown === 1 ? 'matches' : 'match'} “${query}”.${more ? " More accounts aren't loaded yet and may match: load more to search them too." : ''}`,
   findNone: (query: string) => ({ title: `No loaded account matches “${query}”`, body: 'Check the spelling, or clear the search.' }),
@@ -43,17 +43,18 @@ export const LIST = {
   statusesTitle: 'What the statuses mean',
   statuses: [
     ['Invited', "hasn't accepted yet. The link works for 72 hours."],
-    ['Invite link expired', "they can't accept. Resending an invite isn't in the console yet."],
     ['Suspended', "can't sign in. Restoring an account isn't in the console yet."],
     ['Deactivated', "can't sign in, and their sessions have ended."],
   ] as const,
   rolesTitle: 'What each role can do',
   roles: {
-    SUPPORT_AGENT: 'Reads queues and orders with personal details masked. Cancels an order only before the restaurant accepts. No review decisions and no staff list.',
-    ADMIN: 'Makes review decisions: documents, halal certificate checks, restaurant and rider applications, menu reviews. Cancels an order at any stage. Sees names, roles and status in this list.',
+    SUPPORT_AGENT:
+      "Reads the restaurant application queue and orders with personal details masked; opens a rider's application only from its support case. Cancels an order only before the restaurant accepts. Refunds up to a set daily limit. No review decisions and no staff list.",
+    ADMIN:
+      'Makes review decisions: documents, halal certificate checks, restaurant and rider applications, menu reviews and restaurant profile changes. Adds, changes or removes a menu item for a restaurant; those edits go live on save and are recorded in the audit log. Cancels an order at any stage; after the restaurant accepts, linking a support case is optional. Refunds up to a set daily limit. Sees names, roles and status in this list.',
     SUPER_ADMIN: "Everything an admin can do, plus inviting staff, changing an issuing body's status, and revoking a certificate. The platform must keep at least two active super admins.",
   },
-  rolesNote: "Main differences shown; the full list is set by the platform and can't be edited. Changing someone's role isn't in the console yet.",
+  rolesNote: "Main differences shown; the full list is set by the platform and can't be edited. Changing someone's role isn't in the console yet. Nobody can change their own role or approve their own refund.",
 } as const;
 
 export const DETAIL = {

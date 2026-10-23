@@ -74,10 +74,16 @@ function useMediaQuery(query: string, fallbackMaxPx: number | null): boolean {
   return matches;
 }
 
-const CHROME_ITEM =
-  'hg-focus [--hg-focus-ring-offset:var(--hg-surface-chrome)] [--hg-focus-ring-color:var(--hg-text-on-accent)] flex min-h-11 items-center rounded-md text-fg-on-accent no-underline';
+/** An expanded-nav row on the dark chrome (`ASS/AdminSidebar`'s `.nav-item`): 44px, radius-sm, 15/19.5. */
+const NAV_ROW =
+  'hg-focus [--hg-focus-ring-offset:var(--hg-surface-chrome)] [--hg-focus-ring-color:var(--hg-text-on-accent)] flex min-h-11 w-full items-center gap-2.5 rounded-sm px-3 text-start text-body-md leading-[1.3] text-fg-on-accent no-underline';
+/** A rail row (`.rail-item`): 68px wide, at least 48px, the label under the icon at 12/14.4. */
+const RAIL_ROW =
+  'hg-focus [--hg-focus-ring-offset:var(--hg-surface-chrome)] [--hg-focus-ring-color:var(--hg-text-on-accent)] flex min-h-12 w-[68px] flex-col items-center justify-center gap-0.5 rounded-sm px-0 py-1 text-center text-caption leading-[1.2] text-fg-on-accent no-underline';
+const ROW_IDLE = 'font-medium hover:bg-[var(--hg-state-hover-overlay)]';
+const ROW_ON = 'bg-fg-on-accent font-bold text-surface-chrome';
 
-/** The sidebar footer: count status, System status, who is signed in, Sign out. */
+/** The sidebar footer: count status, What's new, System status, who is signed in, Sign out. */
 function NavFooter({
   collapsed,
   role,
@@ -105,11 +111,12 @@ function NavFooter({
 }) {
   const whatsNew = useWhatsNew();
   const roleLabel = role ? ROLE_LABEL[role] : '';
+  const row = collapsed ? RAIL_ROW : NAV_ROW;
   return (
-    <div className={collapsed ? 'flex w-full flex-col items-center gap-1' : 'flex w-full flex-col gap-1'}>
+    <>
       {countsNote ? (
         countsStale && !collapsed ? (
-          <p data-testid="queue-counts-note" className="px-2 pb-1 text-body-sm text-fg-on-accent">
+          <p data-testid="queue-counts-note" className="m-0 px-3 pb-1 text-body-sm leading-[1.4] text-fg-on-accent">
             {countsNote}
           </p>
         ) : (
@@ -129,12 +136,10 @@ function NavFooter({
           whatsNew.toggle(event.currentTarget);
           onWhatsNew?.();
         }}
-        className={`${CHROME_ITEM} cursor-pointer border-0 ${
-          whatsNew.open ? 'bg-fg-on-accent font-bold text-surface-chrome' : 'bg-transparent hover:bg-[var(--hg-state-hover-overlay)]'
-        } ${collapsed ? 'min-h-12 w-full flex-col justify-center gap-0.5 px-0.5 py-1 text-caption' : 'w-full gap-3 px-3 py-2 text-body-md'}`}
+        className={`${row} cursor-pointer border-0 ${whatsNew.open ? ROW_ON : `bg-transparent ${ROW_IDLE}`}`}
       >
         <SideNavIconSlot />
-        <span aria-hidden={collapsed ? 'true' : undefined} className={collapsed ? 'max-w-[72px] text-center leading-tight' : 'flex-grow'}>
+        <span aria-hidden={collapsed ? 'true' : undefined} className={collapsed ? 'w-full max-w-[64px] [overflow-wrap:anywhere]' : 'flex-grow'}>
           {WHATS_NEW.button}
         </span>
         {!collapsed && whatsNew.hasNew ? (
@@ -142,7 +147,7 @@ function NavFooter({
             <Badge variant="brand" appearance="solid" size="sm">
               {WHATS_NEW.newBadge}
             </Badge>
-            <span className={collapsed || !countsStale ? 'sr-only' : 'px-2 pb-1 text-body-sm text-fg-on-accent'}>{WHATS_NEW.newHint}</span>
+            <span className={countsStale ? 'px-2 pb-1 text-body-sm text-fg-on-accent' : 'sr-only'}>{WHATS_NEW.newHint}</span>
           </>
         ) : null}
       </button>
@@ -151,30 +156,39 @@ function NavFooter({
         aria-current={systemCurrent ? 'page' : undefined}
         aria-label={collapsed ? 'System status' : undefined}
         onClick={onSystem}
-        className={`${CHROME_ITEM} ${collapsed ? 'min-h-12 w-full flex-col justify-center gap-0.5 px-0.5 py-1 text-caption' : 'gap-3 px-3 py-2 text-body-md'} ${
-          systemCurrent ? 'bg-fg-on-accent font-semibold text-surface-chrome' : 'hover:bg-[var(--hg-state-hover-overlay)]'
-        }`}
+        className={`${row} ${systemCurrent ? ROW_ON : ROW_IDLE}`}
       >
         <SideNavIconSlot />
-        <span aria-hidden={collapsed ? 'true' : undefined}>{collapsed ? 'System' : 'System status'}</span>
+        <span aria-hidden={collapsed ? 'true' : undefined} className={collapsed ? 'w-full max-w-[64px] [overflow-wrap:anywhere]' : 'flex-grow'}>
+          {collapsed ? 'System' : 'System status'}
+        </span>
       </a>
       {!collapsed && role ? (
-        <p className="px-3 pt-1 text-body-sm text-fg-on-accent">
+        <p className="m-0 px-3 pt-1.5 text-body-sm leading-normal text-fg-on-accent">
           Signed in as <strong className="font-bold">{roleLabel}</strong>
         </p>
       ) : null}
-      <button
-        type="button"
-        onClick={onSignOut}
-        disabled={signingOut}
-        aria-label={collapsed && role ? `Sign out, signed in as ${roleLabel}` : undefined}
-        className={`${CHROME_ITEM} justify-center border border-current font-semibold disabled:opacity-70 ${
-          collapsed ? 'w-full px-1 text-label-sm' : 'mt-1 w-full px-3 text-body-md'
-        }`}
-      >
-        {signingOut ? 'Signing out…' : 'Sign out'}
-      </button>
-    </div>
+      {collapsed ? (
+        <button
+          type="button"
+          onClick={onSignOut}
+          disabled={signingOut}
+          aria-label={role ? `Sign out, signed in as ${roleLabel}` : undefined}
+          className={`${RAIL_ROW} cursor-pointer border-0 bg-transparent ${ROW_IDLE} disabled:opacity-70`}
+        >
+          <SideNavIconSlot />
+          <span aria-hidden={role ? 'true' : undefined} className="w-full max-w-[64px] [overflow-wrap:anywhere]">
+            {signingOut ? 'Signing out…' : 'Sign out'}
+          </span>
+        </button>
+      ) : (
+        <div className="px-1.5 pt-1">
+          <button type="button" onClick={onSignOut} disabled={signingOut} className={`${NAV_ROW} cursor-pointer justify-center border border-current bg-transparent font-semibold disabled:opacity-70`}>
+            {signingOut ? 'Signing out…' : 'Sign out'}
+          </button>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -248,7 +262,9 @@ function AdminShellFrame() {
   const [preferCollapsed, setPreferCollapsed] = useState<boolean | null>(null);
   const [manual, setManual] = useState<{ path: string; collapsed: boolean } | null>(null);
   // The rail whenever What's new is open, so the page keeps its width beside the panel.
-  const collapsed = whatsNew.open || (manual && manual.path === pathname ? manual.collapsed : detail || (preferCollapsed ?? compact));
+  // Also while a panel is open beside the page (the staff account, the invite form).
+  const collapsed =
+    whatsNew.open || (manual && manual.path === pathname ? manual.collapsed : detail || Boolean(pageBar?.panel) || (preferCollapsed ?? compact));
   const onCollapsedChange = (next: boolean) => {
     setManual({ path: pathname, collapsed: next });
     if (!detail) setPreferCollapsed(next);
@@ -327,10 +343,12 @@ function AdminShellFrame() {
   );
 
   const header = (
-    <div className="flex flex-col items-start gap-1 py-1">
-      <Wordmark tone="chrome" height={28} />
-      <span className="text-body-sm text-fg-on-accent">Operations · Ontario</span>
-    </div>
+    <>
+      <div className="flex h-9 items-center">
+        <Wordmark tone="chrome" height={28} />
+      </div>
+      <span className="text-body-sm leading-normal text-fg-on-accent">Operations · Ontario</span>
+    </>
   );
 
   return (
@@ -427,7 +445,7 @@ function AdminShellFrame() {
                   ref={headingRef}
                   id="app-bar-heading"
                   tabIndex={-1}
-                  className={`m-0 text-heading-md outline-none ${chrome ? 'truncate font-semibold text-fg-on-accent' : 'text-fg-primary'}`}
+                  className={`m-0 text-heading-md leading-normal outline-none ${chrome ? 'truncate font-semibold text-fg-on-accent' : 'text-fg-primary'}`}
                 >
                   {heading}
                 </h1>

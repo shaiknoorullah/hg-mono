@@ -29,6 +29,8 @@ interface NavCount {
   readonly count: number;
   readonly countLabel: string;
   readonly countTone: 'neutral' | 'warning';
+  /** Every chip the expanded nav draws, when there is more than one (`ASS/AdminSidebar`). */
+  readonly badges?: readonly { readonly count: number; readonly tone: 'neutral' | 'warning' }[];
 }
 
 interface NavEntry {
@@ -53,15 +55,23 @@ function positive(n: number | null | undefined): n is number {
 
 /**
  * Refunds & disputes carries two counts on the board (failed refunds, warning tint; open
- * disputes, neutral). SideNav draws one chip, so the chip is the failed-refund count when there is
- * one, and the accessible name carries both ("Refunds & disputes, 2 failed refunds, 5 open
+ * disputes, neutral). The expanded SideNav draws both chips side by side and the rail draws the first (the
+ * failed-refund count when there is one), and the accessible name carries both ("Refunds & disputes, 2 failed refunds, 5 open
  * disputes"). ds-request(web): SideNav item with more than one count.
  */
 function refundsCount(c: QueueCounts): NavCount | null {
   const failed = positive(c.failed_refunds) ? c.failed_refunds : 0;
   const disputes = positive(c.open_disputes) ? c.open_disputes : 0;
   if (failed > 0 && disputes > 0) {
-    return { count: failed, countLabel: `failed refunds, ${disputes} open disputes`, countTone: 'warning' };
+    return {
+      count: failed,
+      countLabel: `failed refunds, ${disputes} open disputes`,
+      countTone: 'warning',
+      badges: [
+        { count: failed, tone: 'warning' },
+        { count: disputes, tone: 'neutral' },
+      ],
+    };
   }
   if (failed > 0) return { count: failed, countLabel: 'failed refunds', countTone: 'warning' };
   if (disputes > 0) return { count: disputes, countLabel: 'open disputes', countTone: 'neutral' };
@@ -154,7 +164,7 @@ export function navGroupsFor(
           shortLabel: entry.shortLabel,
           href: href(entry.path),
           ...(entry.icon ? { icon: entry.icon } : {}),
-          ...(c ? { count: c.count, countLabel: c.countLabel, countTone: c.countTone } : {}),
+          ...(c ? { count: c.count, countLabel: c.countLabel, countTone: c.countTone, ...(c.badges ? { badges: c.badges } : {}) } : {}),
           current: entry.key === current,
         };
       });
