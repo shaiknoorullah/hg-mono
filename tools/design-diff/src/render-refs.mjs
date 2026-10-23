@@ -51,6 +51,11 @@ const NOTE_PREFIXES = [
 ];
 // …and words real copy may open with too, a note only when set like one (mono, dashed):
 const NOTE_WEAK_PREFIXES = ['Blocked', 'Contract', 'Notes?', 'Not final', 'Not used at launch', 'Not a modal', 'Opened from [^:]{1,40}', 'Nothing [^:]{1,40}', 'API'];
+// …and, in a mono text screen readers skip, the API's own words at any length: a status and its
+// error code ("403 ACCOUNT_NOT_ACTIVE"), a snake_case or dotted field ("blocking_reason
+// profile_incomplete", "requirements.past_due"), an operation that failed ("getOwnMenu failed").
+// The UI's own mono text (order ids, pickup codes, times) has none of these shapes.
+export const NOTE_API_WORDS = String.raw`^\d{3}\s+[A-Z][A-Z_]+$|\b[a-z]+_[a-z_]+\b|\b[A-Z]{2,}_[A-Z_]+\b|\b[a-z]+\.[a-z_]+\b|\b[a-z]+[A-Z]\w* failed\b`;
 /** Notes that say the drawing itself is not the approved design: the report puts them first. */
 export const CAVEAT = /not approved as drawn|not for approval|DS issue|design-system issue|needs design-system fix|DS change logged|DS fix recorded/i;
 
@@ -172,7 +177,7 @@ async function render(browser, base, job, out, wordmarks) {
     });
     await page.goto(base + job.url, { waitUntil: 'networkidle', timeout: 45_000 });
     if (!(await within(page.evaluate(settle, { quietMs: 400, maxMs: 10_000 }), 30_000, 'settle'))) rec.errors.push('still changing after 10 s');
-    rec.notes = await page.evaluate(hideNotes, { classes: NOTE_CLASSES, prefixes: NOTE_PREFIXES, weakPrefixes: NOTE_WEAK_PREFIXES });
+    rec.notes = await page.evaluate(hideNotes, { classes: NOTE_CLASSES, prefixes: NOTE_PREFIXES, weakPrefixes: NOTE_WEAK_PREFIXES, apiWords: NOTE_API_WORDS });
     await within(page.evaluate(settle, { quietMs: 150, maxMs: 3_000 }), 30_000, 'settle');
     if (!rec.theme) {
       const t = await page.evaluate(() => document.querySelector('[data-theme]')?.getAttribute('data-theme'));
