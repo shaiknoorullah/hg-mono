@@ -155,7 +155,7 @@ test.describe('redesigned admin · refunds page, goodwill sent for a second appr
     });
     await expect(failedGrid(page).getByText('HG-COED-9X')).toBeVisible();
     await find(page, 'HG-2RC9LA');
-    await page.getByRole('button', { name: 'Issue refund…', exact: true }).click();
+    await page.getByRole('button', { name: 'Issue refund', exact: true }).click();
     const panel = page.getByRole('region', { name: /Issue a refund/ });
     await panel.getByRole('radio', { name: /Goodwill amount/ }).click();
     await panel.getByRole('textbox', { name: /Goodwill amount/ }).fill('60.00');

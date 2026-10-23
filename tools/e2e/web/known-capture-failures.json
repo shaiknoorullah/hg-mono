@@ -3,6 +3,11 @@
   "specs": [
     {
       "project": "admin-redesign-desktop",
+      "spec": "redesign-admin.refunds.spec.ts › redesigned admin · refunds page, goodwill sent for a second approval (mock) › an admin’s large goodwill refund",
+      "issue": 1098
+    },
+    {
+      "project": "admin-redesign-desktop",
       "spec": "redesign-admin.wp1.spec.ts › redesigned admin WP-1 @1024 › admin signs in, lands on restaurant applications, sees every nav item, signs out",
       "issue": 1101
     },
