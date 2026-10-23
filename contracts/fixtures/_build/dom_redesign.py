@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import copy
 
-from content import MINUTE, ts
+from content import BOARD_RESTAURANT_PROFILE, MINUTE, ts
 from synth import ulid_for, uuid_for
 
 # The devworld staff personas (services/hg/internal/devworld/personas.go and
@@ -794,20 +794,8 @@ def _restaurant_profiles(reg, synth) -> None:
         {
             # The restaurant the offer scripts and restaurant_detail_* use.
             "id": RESTAURANT_ID,
-            "legal_name": "Karachi Kitchen Inc.",
-            "display_name": "Karachi Kitchen",
-            "description": "Karachi-style biryani, nihari and charcoal grill on the Danforth.",
-            "owner_first_name": "Hamza",
-            "owner_last_name": "Khan",
-            "address": {
-                "line1": "1245 Danforth Avenue",
-                "line2": None,
-                "city": "Toronto",
-                "province": "ON",
-                "postal_code": "M4J 1M8",
-                "latitude": 43.6817,
-                "longitude": -79.3403,
-            },
+            **copy.deepcopy(BOARD_RESTAURANT_PROFILE),
+            "description": "Charcoal grills, shawarma and mezze from a family kitchen. Everything is cooked to order over real charcoal.",
             "avg_prep_minutes": 20,
             "delivery_radius_m": 7000,
         }
