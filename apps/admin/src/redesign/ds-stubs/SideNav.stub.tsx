@@ -16,6 +16,7 @@ import { useId, type MouseEvent, type ReactNode } from 'react';
 
 import { Badge } from './adapters/Badge.adapter';
 import { Icon, type AnyIconName } from './adapters/Icon.adapter';
+import { boardBadge } from './internal/boardBadge';
 import { cx } from './internal/cx';
 import { FOCUS_ON_CHROME } from './internal/focus';
 
@@ -136,7 +137,7 @@ function CountBadges({ item, rail }: { item: SideNavItem; rail: boolean }) {
           size="sm"
           // The sidebar board draws the chip with a 4 px corner and a 14.3 px line, and the warning
           // chip's border in its lightest tint (`ASS/AdminSidebar`).
-          className={cx('rounded-[4px] leading-[14.3px]', b.tone === 'warning' && 'border-[color:var(--hg-color-warning-100)]')}
+          style={boardBadge(b.tone === 'warning' ? 'warning' : 'neutral', '14.3px')}
         >
           {b.count > 99 ? '99+' : b.count}
         </Badge>

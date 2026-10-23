@@ -331,7 +331,7 @@ function RoleCell({ role }: { role: string }) {
 function StatusCell({ row }: { row: StaffUser }) {
   if (inviteExpired(row)) {
     return (
-      <Badge variant="warning" size="md" icon="clock" className={boardBadge('warning')}>
+      <Badge variant="warning" size="md" icon="clock" style={boardBadge('warning')}>
         {LIST.inviteExpired}
       </Badge>
     );
@@ -339,7 +339,7 @@ function StatusCell({ row }: { row: StaffUser }) {
   const style = STATUS_STYLE[row.status];
   return (
     <span className="inline-flex flex-wrap items-center gap-2">
-      <Badge variant={style.tone} size="md" icon={style.icon} className={boardBadge(style.tone)}>
+      <Badge variant={style.tone} size="md" icon={style.icon} style={boardBadge(style.tone)}>
         {STATUS_LABEL[row.status]}
       </Badge>
       {neverAccepted(row) ? <span className="text-body-sm text-fg-secondary">{LIST.neverAccepted}</span> : null}
@@ -353,7 +353,7 @@ function MfaCell({ row }: { row: StaffUser }) {
   if (row.mfa_enrolled) return <span>{LIST.mfa.on}</span>;
   // Opt-in for staff (owner decision, 5 October 2026): a normal state, so tint only and no alarm.
   return (
-    <Badge variant="warning" size="md" icon="warning" className={boardBadge('warning')}>
+    <Badge variant="warning" size="md" icon="warning" style={boardBadge('warning')}>
       {LIST.mfa.off}
     </Badge>
   );
