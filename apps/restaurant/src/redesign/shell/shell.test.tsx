@@ -50,7 +50,7 @@ describe('console shell', () => {
     const profile = fixture('restaurant_profile');
     await screen.findByText(new RegExp(profile.display_name));
     const owner = [profile.owner_first_name, profile.owner_last_name].filter(Boolean).join(' ');
-    const trigger = screen.getByRole('button', { name: owner ? `Account: ${owner}, owner` : 'Account' });
+    const trigger = screen.getByRole('button', { name: 'Account menu' });
     fireEvent.click(trigger);
     const menu = screen.getByRole('menu', { name: 'Account' });
     expect(within(menu).getByRole('menuitem', { name: 'Sign out…' })).toBeTruthy();
@@ -114,15 +114,15 @@ describe('console shell', () => {
     expect(within(rail).getByText('Restaurant partner')).toBeTruthy();
     expect((await within(rail).findByTestId('rail-restaurant')).textContent).toBe(profile.display_name);
     expect(within(rail).getByTestId('rail-signed-in').textContent).toBe('Signed in as the owner');
-    // The toggle says "Collapse" and is named "Collapse navigation".
-    const toggle = within(rail).getByRole('button', { name: 'Collapse navigation' });
+    // The toggle says "Collapse" and is named "Collapse menu".
+    const toggle = within(rail).getByRole('button', { name: 'Collapse menu' });
     expect(toggle.textContent).toBe('Collapse');
     // The current item is still a filled tile and the rail still collapses.
     expect(within(rail).getByRole('link', { name: /History/ }).getAttribute('aria-current')).toBe('page');
-    fireEvent.click(within(rail).getByRole('button', { name: 'Collapse navigation' }));
+    fireEvent.click(within(rail).getByRole('button', { name: 'Collapse menu' }));
     expect(within(rail).queryByText('Restaurant partner')).toBeNull();
     expect(within(rail).queryByTestId('rail-restaurant')).toBeNull();
-    expect(within(rail).getByRole('button', { name: 'Expand navigation' })).toBeTruthy();
+    expect(within(rail).getByRole('button', { name: 'Expand menu' })).toBeTruthy();
     localStorage.clear();
   });
 

@@ -10,17 +10,19 @@
  * - "Pause until closing" sends `pause_until_closing`: the server works out the closing time
  *   (a late night runs past midnight) and the browser never computes it.
  *
- * The ringing link ("Ringing · 2 waiting") belongs to the strip's work package (WP3).
+ * The ringing link ("Ringing · 2 waiting") shows while orders wait, from the strip's count.
  */
 import { useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Badge, Button, HalalBadge, Icon, InlineConfirm, Menu, Switch, useToast } from '../ds';
+import { ShellBadge, Button, HalalBadge, Icon, InlineConfirm, Menu, Switch, useToast } from '../ds';
+import type { DsIconName } from '@hg/ui-web/ds';
 import type { BadgeVariant, IconName } from '../ds';
 import { useConsole } from '../data/console';
 import { useConnection, type ConnectionView } from '../data/connection';
 import { serverNow } from '../data/serverClock';
 import { formatTime } from '../format/time';
 import { useConsoleLayout } from '../shell/layout';
+import { useWaitingCount } from '../shell/waiting';
 import { useFirstLoadFailed, useStale } from '../shell/stale';
 import { openStateView } from './openState';
 import { useAcceptingOrders } from './acceptingOrders';
@@ -61,6 +63,7 @@ export function StatusBar() {
   const { setConfirm } = useConsoleLayout();
   const [params, setParams] = useSearchParams();
   const healthRef = useRef<HTMLButtonElement>(null);
+  const waiting = useWaitingCount();
   // Halal (wp4 §7): missing → nothing on screen, and the absence is reported.
   const { halal } = useHalalBadge();
 
@@ -138,12 +141,24 @@ export function StatusBar() {
         onClick={toggleHealth}
         className="hg-focus inline-flex min-h-11 items-center gap-1 rounded-md"
       >
-        <Badge size="lg" variant={health.variant} icon={health.icon} label={health.label} testId="health-badge" />
+        <ShellBadge size="lg" variant={health.variant} icon={health.icon as DsIconName | undefined} label={health.label} testId="health-badge" />
         <Icon name="back" size={16} className="rotate-180 text-fg-secondary" />
       </button>
 
+      {waiting > 0 ? (
+        // The boards' "Ringing · 2 waiting": a link down to the strip, where the orders ring.
+        <a
+          href="#new-orders"
+          aria-label={`Ringing · ${waiting} waiting. Go to new orders`}
+          className="hg-focus inline-flex min-h-11 items-center gap-1 rounded-md px-1 text-fg-primary no-underline"
+          data-testid="ringing-link"
+        >
+          <ShellBadge size="lg" variant="brand" icon="bell" label={`Ringing · ${waiting} waiting`} testId="ringing-badge" />
+        </a>
+      ) : null}
+
       {stale ? (
-        <Badge size="lg" variant="warning" icon="clock" label={`Last updated ${formatTime(stale.lastOkAt, timezone)} · may be out of date`} testId="stale-badge" />
+        <ShellBadge size="lg" variant="warning" icon="clock" label={`Last updated ${formatTime(stale.lastOkAt, timezone)} · may be out of date`} testId="stale-badge" />
       ) : null}
 
       <span className="flex-1" aria-hidden="true" />
@@ -159,7 +174,7 @@ export function StatusBar() {
       ) : null}
 
       <span className="flex min-w-0 items-center gap-2">
-        <Badge size="lg" variant={view.badge.variant} icon={view.badge.icon} label={view.badge.label} testId="open-state-badge" />
+        <ShellBadge size="lg" variant={view.badge.variant} icon={view.badge.icon as DsIconName | undefined} label={view.badge.label} testId="open-state-badge" />
         {view.reason ? (
           <span className="max-w-[150px] truncate text-[15px] text-fg-secondary xl:max-w-[240px]" title={view.reason} data-testid="open-state-reason">
             {view.reason}

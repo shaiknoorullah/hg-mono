@@ -154,7 +154,7 @@ export function AppBar({
                 tabIndex={titleIsPageHeading ? -1 : undefined}
                 data-testid={`${testId}-title`}
                 className={cn(
-                  'm-0 truncate font-semibold outline-none',
+                  'm-0 truncate font-semibold leading-normal outline-none',
                   large ? 'text-heading-xl' : 'text-heading-md',
                 )}
               >
@@ -164,8 +164,8 @@ export function AppBar({
             {subtitle ? (
               <p
                 className={cn(
-                  'm-0 truncate text-body-sm',
-                  onColour || transparent ? 'text-current opacity-85' : 'text-fg-secondary',
+                  'm-0 truncate text-body-sm leading-normal',
+                  tone === 'chrome' ? 'text-neutral-200' : onColour || transparent ? 'text-current opacity-85' : 'text-fg-secondary',
                   contextual && 'text-fg-secondary opacity-100',
                 )}
               >

@@ -101,8 +101,9 @@ export const sidebarMenuButtonVariants = cva(
       tone: { chrome: '', light: '' },
       active: { true: 'font-bold', false: 'font-medium' },
       collapsed: {
-        true: 'min-h-15 flex-col justify-center gap-0.5 px-1 py-1.5 text-center text-label-sm',
-        false: 'min-h-12 flex-row gap-3 px-3 py-1.5 text-label-lg',
+        // The boards' rail: 13/19.5 labels (no tracking) in the collapsed rail, 15/22.5 in the wide one.
+        true: 'min-h-15 flex-col justify-center gap-0.5 px-1 py-1.5 text-center text-[13px] leading-normal',
+        false: 'min-h-12 flex-row gap-3 px-3 py-1.5 text-[15px] leading-normal',
       },
     },
     compoundVariants: [

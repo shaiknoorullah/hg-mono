@@ -142,6 +142,15 @@ export async function road(page: Page, r: Road) {
 export async function open(page: Page, path: string, scene: Scene, r?: Road) {
   await serve(page, scene);
   if (r) await road(page, r);
+  // The setup top bar shows the address that signed in on this device as the account menu's
+  // text (the boards draw it); a session that began here has remembered it.
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem('hg_restaurant_last_email_v1', 'samir@zaytoungrill.ca');
+    } catch {
+      /* storage blocked */
+    }
+  });
   await openSignedIn(page, path);
 }
 
