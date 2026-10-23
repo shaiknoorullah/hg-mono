@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { at1440, expectDesignFor } from './design';
-import { MOCK_API, MODE, openSignedIn } from './redesign-restaurant.support';
+import { MOCK_API, MODE, freshCheckIn, openSignedIn } from './redesign-restaurant.support';
 
 test.skip(MODE !== 'mock', 'written against the mock server; run with E2E_MODE=mock');
 
@@ -61,6 +61,7 @@ async function open(page: Page, { notifications = 'granted', sound = 'plays', wa
     },
     { notifications, sound, wakeLock, soundOff },
   );
+  await freshCheckIn(page);
   const profile = await fixture(page, 'restaurant_profile_halal_certified');
   const docs = await fixture(page, 'restaurant_document_pack_complete');
   await page.route('**/v1/restaurant/profile', (route) => route.fulfill({ json: { data: profile } }));

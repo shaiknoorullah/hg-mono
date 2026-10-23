@@ -3,108 +3,13 @@
   "specs": [
     {
       "project": "admin-redesign-desktop",
-      "spec": "redesign-admin.refunds.spec.ts › redesigned admin · refunds page (mock) › offline",
-      "issue": 1098
-    },
-    {
-      "project": "admin-redesign-desktop",
       "spec": "redesign-admin.refunds.spec.ts › redesigned admin · refunds page, goodwill sent for a second approval (mock) › an admin’s large goodwill refund",
       "issue": 1098
     },
     {
       "project": "admin-redesign-desktop",
-      "spec": "redesign-admin.staff.spec.ts › redesigned admin · inviting staff (mock) › refused: the role changed while the page was open",
-      "issue": 1097
-    },
-    {
-      "project": "admin-redesign-desktop",
-      "spec": "redesign-admin.staff.spec.ts › redesigned admin · inviting staff (mock) › sent: the new account is listed as Invited",
-      "issue": 1097
-    },
-    {
-      "project": "admin-redesign-desktop",
-      "spec": "redesign-admin.staff.spec.ts › redesigned admin · inviting staff (mock) › the session ended with unsent details",
-      "issue": 1097
-    },
-    {
-      "project": "admin-redesign-desktop",
-      "spec": "redesign-admin.staff.spec.ts › redesigned admin · the invite form and accounts without two-step sign-in (mock) › offline while sending",
-      "issue": 1097
-    },
-    {
-      "project": "admin-redesign-desktop",
-      "spec": "redesign-admin.staff.spec.ts › redesigned admin · the invite form and accounts without two-step sign-in (mock) › rejected by the server",
-      "issue": 1097
-    },
-    {
-      "project": "admin-redesign-desktop",
-      "spec": "redesign-admin.staff.spec.ts › redesigned admin · the invite form and accounts without two-step sign-in (mock) › sending",
-      "issue": 1097
-    },
-    {
-      "project": "admin-redesign-desktop",
-      "spec": "redesign-admin.staff.spec.ts › redesigned admin · the invite form and accounts without two-step sign-in (mock) › the email belongs to a deactivated account",
-      "issue": 1097
-    },
-    {
-      "project": "admin-redesign-desktop",
-      "spec": "redesign-admin.staff.spec.ts › redesigned admin · the invite form and accounts without two-step sign-in (mock) › the email belongs to a loaded account",
-      "issue": 1097
-    },
-    {
-      "project": "admin-redesign-desktop",
-      "spec": "redesign-admin.staff.spec.ts › redesigned admin · the invite form and accounts without two-step sign-in (mock) › the email belongs to an account that is not loaded",
-      "issue": 1097
-    },
-    {
-      "project": "admin-redesign-desktop",
-      "spec": "redesign-admin.staff.spec.ts › redesigned admin · the invite form and accounts without two-step sign-in (mock) › the outcome is unknown",
-      "issue": 1097
-    },
-    {
-      "project": "admin-redesign-desktop",
-      "spec": "redesign-admin.verification-application.spec.ts › redesigned admin · application workspace (mock) › a document approved",
-      "issue": 1099
-    },
-    {
-      "project": "admin-redesign-desktop",
-      "spec": "redesign-admin.verification-application.spec.ts › redesigned admin · application workspace (mock) › changes requested, waiting on the restaurant",
-      "issue": 1099
-    },
-    {
-      "project": "admin-redesign-desktop",
-      "spec": "redesign-admin.verification-application.spec.ts › redesigned admin · application workspace (mock) › request changes with no certificate record",
-      "issue": 1099
-    },
-    {
-      "project": "admin-redesign-desktop",
-      "spec": "redesign-admin.verification-application.spec.ts › redesigned admin · application workspace (mock) › withdrawn",
-      "issue": 1099
-    },
-    {
-      "project": "admin-redesign-desktop",
-      "spec": "redesign-admin.whats-new.spec.ts › redesigned admin · what’s new (mock) › an update that arrives with the invite panel open is queued",
-      "issue": 1100
-    },
-    {
-      "project": "admin-redesign-desktop",
       "spec": "redesign-admin.wp1.spec.ts › redesigned admin WP-1 @1024 › admin signs in, lands on restaurant applications, sees every nav item, signs out",
       "issue": 1101
-    },
-    {
-      "project": "admin-redesign-tablet",
-      "spec": "redesign-admin.whats-new.spec.ts › redesigned admin · what’s new (mock) › after Not now: no notice, and the New label stays",
-      "issue": 1100
-    },
-    {
-      "project": "admin-redesign-tablet",
-      "spec": "redesign-admin.whats-new.spec.ts › redesigned admin · what’s new (mock) › an update that arrives with the invite panel open is queued",
-      "issue": 1100
-    },
-    {
-      "project": "admin-redesign-tablet",
-      "spec": "redesign-admin.whats-new.spec.ts › redesigned admin · what’s new (mock) › signed in again after Not now: no notice, and the New label stays",
-      "issue": 1100
     },
     {
       "project": "admin-redesign-tablet",
@@ -114,11 +19,6 @@
     {
       "project": "restaurant-redesign-desktop",
       "spec": "redesign-restaurant.history.spec.ts › redesigned restaurant · past orders list (mock) › the list does not load",
-      "issue": 1104
-    },
-    {
-      "project": "restaurant-redesign-desktop",
-      "spec": "redesign-restaurant.hours.spec.ts › Hours (mock) › pause: 15, 30 or 60 minutes, each with its end time, none preselected, then \"Pause until closing\"; then resume with a confirm",
       "issue": 1104
     },
     {
@@ -127,64 +27,9 @@
       "issue": 1103
     },
     {
-      "project": "restaurant-redesign-desktop",
-      "spec": "redesign-restaurant.settings.spec.ts › redesigned restaurant settings · business profile (mock) › a change the server does not accept",
-      "issue": 1102
-    },
-    {
-      "project": "restaurant-redesign-desktop",
-      "spec": "redesign-restaurant.settings.spec.ts › redesigned restaurant settings · business profile (mock) › edit the owner name, saving",
-      "issue": 1102
-    },
-    {
-      "project": "restaurant-redesign-desktop",
-      "spec": "redesign-restaurant.settings.spec.ts › redesigned restaurant settings · business profile (mock) › leaving an edit with changes asks first",
-      "issue": 1102
-    },
-    {
-      "project": "restaurant-redesign-desktop",
-      "spec": "redesign-restaurant.settings.spec.ts › redesigned restaurant settings · business profile (mock) › the owner name saved",
-      "issue": 1102
-    },
-    {
-      "project": "restaurant-redesign-desktop",
-      "spec": "redesign-restaurant.settings.spec.ts › redesigned restaurant settings · upload a halal certificate (mock) › locked while a review is open",
-      "issue": 1103
-    },
-    {
       "project": "restaurant-redesign-tablet",
       "spec": "redesign-restaurant.history.spec.ts › redesigned restaurant · past orders list (mock) › the list does not load",
       "issue": 1104
-    },
-    {
-      "project": "restaurant-redesign-tablet",
-      "spec": "redesign-restaurant.hours.spec.ts › Hours (mock) › pause: 15, 30 or 60 minutes, each with its end time, none preselected, then \"Pause until closing\"; then resume with a confirm",
-      "issue": 1104
-    },
-    {
-      "project": "restaurant-redesign-tablet",
-      "spec": "redesign-restaurant.settings.spec.ts › redesigned restaurant settings · business profile (mock) › a change the server does not accept",
-      "issue": 1102
-    },
-    {
-      "project": "restaurant-redesign-tablet",
-      "spec": "redesign-restaurant.settings.spec.ts › redesigned restaurant settings · business profile (mock) › edit the owner name, saving",
-      "issue": 1102
-    },
-    {
-      "project": "restaurant-redesign-tablet",
-      "spec": "redesign-restaurant.settings.spec.ts › redesigned restaurant settings · business profile (mock) › leaving an edit with changes asks first",
-      "issue": 1102
-    },
-    {
-      "project": "restaurant-redesign-tablet",
-      "spec": "redesign-restaurant.settings.spec.ts › redesigned restaurant settings · business profile (mock) › the owner name saved",
-      "issue": 1102
-    },
-    {
-      "project": "restaurant-redesign-tablet",
-      "spec": "redesign-restaurant.settings.spec.ts › redesigned restaurant settings · upload a halal certificate (mock) › locked while a review is open",
-      "issue": 1103
     }
   ]
 }

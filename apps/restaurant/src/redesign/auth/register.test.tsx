@@ -216,7 +216,7 @@ describe('register', () => {
     const button = screen.getByRole('button', { name: 'Create account' });
     expect(button.getAttribute('aria-disabled')).toBe('true');
     expect(button.getAttribute('aria-describedby')).toBe('wait-reason');
-    expect(screen.getByRole('timer', { name: 'until you can try again' }).textContent).toBe('1:00');
+    expect(screen.getByRole('timer', { name: 'until you can try again' }).querySelector('[data-wait-time]')!.textContent).toBe('1:00');
   });
 
   it('Create account waits for the config (terms_version is never guessed)', async () => {

@@ -8,6 +8,9 @@
  * since, never the device's wall clock against `expiresAt`. Its `id` is what a disabled button's
  * `aria-describedby` points at.
  *
+ * The timer's name ("until you can try again") is also drawn as text under the numeral, as the
+ * design system's `Countdown` draws its `label` (boards SignIn-TooMany, SignIn-Locked, CheckEmail-Cooldown).
+ *
  * Silent by design: `role="timer"` is not a live region, so nothing is read out per second; the
  * page announces the start and the end itself. `onExpire` fires once, including when the wait
  * was already over at mount. (The strip's `Countdown` stub counts from epoch deadlines with a
@@ -59,15 +62,21 @@ function WaitTimer({ wait, label, onExpire }: Pick<WaitLineProps, 'wait' | 'labe
   }, [remaining, onExpire]);
 
   return (
-    <span role="timer" aria-label={label} data-testid="Countdown" className="font-semibold tabular-nums text-fg-primary text-label-md">
-      {formatRemaining(remaining)}
+    <span role="timer" aria-label={label} data-testid="Countdown" className="inline-grid justify-items-start gap-1">
+      <span data-wait-time="" className="font-semibold tabular-nums text-fg-primary text-label-md">
+        {formatRemaining(remaining)}
+      </span>
+      {/* The board draws the timer's name as text under the numeral. Hidden from assistive tech: the timer already carries it as its name. */}
+      <span aria-hidden="true" data-wait-label="" className="text-body-sm font-normal text-fg-secondary">
+        {label}
+      </span>
     </span>
   );
 }
 
 export function WaitLine({ wait, prefix, label, onExpire, id = 'wait-reason' }: WaitLineProps) {
   return (
-    <p id={id} className="m-0 flex flex-wrap items-baseline gap-1 text-body-sm text-fg-secondary">
+    <p id={id} className="m-0 flex flex-wrap items-start gap-1 text-body-sm text-fg-secondary">
       {prefix}
       <WaitTimer key={wait.expiresAt} wait={wait} label={label} onExpire={onExpire} />
     </p>

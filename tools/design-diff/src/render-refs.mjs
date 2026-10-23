@@ -22,6 +22,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { resolveBrowser } from './browser.mjs';
+import { referenceFrame } from './capture-size.mjs';
 import { hideNotes, settle, snapshotLayout, surfaceOfImages } from './page-scripts.mjs';
 import { TOKENS, WORDMARK_UPLOADS, wordmarkSvg } from './wordmark.mjs';
 
@@ -151,7 +152,9 @@ async function render(browser, base, job, out, wordmarks) {
   const scale = PHONE_APPS.has(job.app) ? 3 : 1;
   const named = themeFromName(job);
   const rec = { title: job.title, w: job.w, h: job.h, scale, theme: named, widthVariant: `${scale === 3 ? 'phone' : 'web'}-${job.w}`, file: `${job.id}.png`, layout: `${job.id}.layout.json`, browser: BROWSER, chromium: browser.version(), notes: [], missingBlobs: [], failedAssets: [], blocked: [], errors: [] };
-  const ctx = await browser.newContext({ viewport: { width: job.w, height: job.h }, deviceScaleFactor: scale, colorScheme: named === 'dark' ? 'dark' : 'light', reducedMotion: 'reduce', locale: 'en-CA', timezoneId: 'America/Toronto' });
+  // A short board is drawn in a taller window and cut to its size (referenceFrame, #854).
+  const frame = referenceFrame(job);
+  const ctx = await browser.newContext({ viewport: frame.viewport, deviceScaleFactor: scale, colorScheme: named === 'dark' ? 'dark' : 'light', reducedMotion: 'reduce', locale: 'en-CA', timezoneId: 'America/Toronto' });
   try {
     for (const f of ['react.production.min.js', 'react-dom.production.min.js']) await ctx.addInitScript({ content: readFileSync(path.join(VENDOR, 'react', f), 'utf8') });
     await ctx.clock.setFixedTime(new Date(FIXED_TIME));
@@ -192,7 +195,7 @@ async function render(browser, base, job, out, wordmarks) {
     }
     const layout = await page.evaluate(snapshotLayout);
     mkdirSync(path.dirname(path.join(out, rec.file)), { recursive: true });
-    await page.screenshot({ path: path.join(out, rec.file), animations: 'disabled', caret: 'hide' });
+    await page.screenshot({ path: path.join(out, rec.file), animations: 'disabled', caret: 'hide', timeout: 60_000, ...(frame.clip ? { clip: frame.clip } : {}) });
     writeFileSync(path.join(out, rec.layout), JSON.stringify(layout));
   } catch (e) {
     rec.errors.push(String(e.message ?? e).split('\n')[0]);

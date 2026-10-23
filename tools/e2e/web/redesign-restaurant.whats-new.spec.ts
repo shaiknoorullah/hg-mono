@@ -4,7 +4,7 @@ import path from 'node:path';
 
 import { ROOT } from '../lib/paths.mjs';
 import { declareUnpairable, expectDesignFor, type BoardFor } from './design';
-import { MOCK_API, MODE, openLive, openSignedIn } from './redesign-restaurant.support';
+import { MOCK_API, MODE, freshCheckIn, openLive, openSignedIn } from './redesign-restaurant.support';
 
 test.skip(MODE !== 'mock', 'written against the mock server; run with E2E_MODE=mock');
 
@@ -48,6 +48,7 @@ async function fixture<T = any>(page: Page, name: string): Promise<T> {
 
 /** The calls the pages under the panel make (Payouts and Settings), answered from the mock's fixtures. */
 async function routePages(page: Page) {
+  await freshCheckIn(page);
   const profile = await fixture(page, 'restaurant_profile_account_live');
   const docs = await fixture(page, 'restaurant_document_pack_complete');
   const connect = await fixture(page, 'connect_status_complete');
