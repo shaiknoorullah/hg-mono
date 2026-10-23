@@ -21,6 +21,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useHref, useNavigate, useParams } from 'react-router-dom';
 
+import { usePageBar } from '../app/pageTitle';
 import { api } from '../data/api';
 import { useOnline } from '../auth/online';
 import { formatShortDate, formatFullDateTime } from '../data/format';
@@ -116,6 +117,8 @@ export default function StaffRoute() {
   }, [page.cursor, loadingMore]);
 
   const ready = load === 'ready';
+  // The account count sits in the app bar under the title (boards `STF/*`).
+  usePageBar(ready ? (page.hasMore ? `Showing ${rows.length}` : `${rows.length} staff ${rows.length === 1 ? 'account' : 'accounts'}`) : load === 'loading' ? LIST.loading : undefined);
   const shown = useMemo(() => findRows(rows, query, access), [rows, query, access]);
   const notice = ready && access.canInvite ? superAdminNotice(rows, page.hasMore) : ({ kind: 'none' } as const);
   const onlyYou = ready && access.canInvite && !page.hasMore && rows.length === 1 && rows[0]!.id === viewer.accountId;

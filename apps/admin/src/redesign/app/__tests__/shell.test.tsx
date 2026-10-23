@@ -97,6 +97,11 @@ function renderApp(route: string, principal: 'SUPER_ADMIN' | 'ADMIN' | 'SUPPORT_
   return renderRedesign(<RedesignApp pathname="/" createSocket={createSocket} />, { route, principal });
 }
 
+function countsNote(): string {
+  const el = screen.getByTestId('queue-counts-note');
+  return el.textContent || el.getAttribute('aria-label') || '';
+}
+
 describe('navigation per role (manifest §1.1)', () => {
   it('a super admin sees every launch item, verbatim, and no Profile changes', () => {
     renderApp('/account', 'SUPER_ADMIN');
@@ -173,13 +178,15 @@ describe('queue counts (admin.queue_depth only)', () => {
   it('shows no number before the first frame, the counts after it, and stale counts when the connection drops', async () => {
     renderApp('/account', 'ADMIN');
     expect(navLinkNames()).toContain('Restaurant applications');
-    expect(screen.getByTestId('queue-counts-note').textContent).toBe('Waiting for queue counts from the live connection.');
+    expect(countsNote()).toBe('Waiting for queue counts from the live connection.');
 
     await waitFor(() => expect(sockets).toHaveLength(1));
     expect(api.callsTo('createRealtimeTicket')).toHaveLength(1);
     act(() => sockets[0]!.open());
     expect(sockets[0]!.sent).toContainEqual({ type: 'subscribe', channel: 'admin:ops' });
-    expect(screen.getByTestId('queue-counts-note').textContent).toBe('Connected. Counts arrive with the next change.');
+    expect(countsNote()).toBe('Connected. Counts arrive with the next change.');
+    // The boards draw nothing while counts are still arriving: the line is only the status's name.
+    expect(screen.getByTestId('queue-counts-note').textContent).toBe('');
     expect(navLinkNames()).toContain('Restaurant applications');
 
     act(() =>
@@ -202,7 +209,7 @@ describe('queue counts (admin.queue_depth only)', () => {
 
     act(() => sockets[0]!.drop());
     // 2026-10-05T12:00:00Z is 8:00 am in Toronto.
-    expect(screen.getByTestId('queue-counts-note').textContent).toBe('Counts from 8:00 am. Not live while the connection is down.');
+    expect(countsNote()).toBe('Counts from 8:00 am. Not live while the connection is down.');
     expect(navLinkNames()).toContain('Restaurant applications, 4 waiting');
   });
 

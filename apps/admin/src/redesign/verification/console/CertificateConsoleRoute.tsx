@@ -30,7 +30,7 @@ import { formatTime } from '../../data/format';
 import { useMutation } from '../../data/mutation';
 import { Button, Countdown, DecisionBar, DocumentViewer, EmptyState, ErrorState, Icon, InlineAlert, Skeleton, SplitPanes, useToast, type SevenCheckValue } from '../../ds';
 import { unwrap, useLoad } from '../../../lib/load';
-import { usePageTitle } from '../../app/pageTitle';
+import { usePageBar, usePageTitle } from '../../app/pageTitle';
 import { DecisionPanel, type DecisionResult } from '../application/DecisionPanel';
 import { useDocumentUrl } from '../application/useDocumentUrl';
 import { useCertificateLoad } from '../shared/useCertificateLoad';
@@ -138,6 +138,13 @@ export default function CertificateConsoleRoute() {
   const url = useDocumentUrl(certificate?.document_id ?? null, viewer.canDecide && Boolean(certificate?.document_id));
 
   usePageTitle(certificate ? (mode === 'decided' || mode === 'support' ? 'Halal certificate' : 'Verify halal certificate') : null);
+  // The app bar carries the way back and where this certificate came from, as the boards draw it
+  // (`Verify`, `Verify-Support`): "Restaurant application · Karahi House", back to that application.
+  const barName = application?.display_name ?? null;
+  usePageBar(
+    certificate && barName ? `Restaurant application · ${barName}` : undefined,
+    certificate && barName ? { label: `Back to the ${barName} application`, to: `/restaurants/${certificate.restaurant_id}` } : undefined,
+  );
 
   const record = useMutation(async (args: { key: CheckKey; result: Schema['HalalCheckResult']; note?: string }, idempotencyKey: string) => {
     const res = await unwrap(
@@ -299,9 +306,6 @@ export default function CertificateConsoleRoute() {
   const header = (
     <header className="flex flex-col gap-2 border-b border-line-decorative bg-surface-raised px-4 py-3" data-testid="VerifyHeader">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-        <Button variant="ghost" size="sm" iconStart="back" href={applicationHref}>
-          {`Back to the ${name} application`}
-        </Button>
         <div className="flex flex-wrap items-center gap-3">
           <h2 className="text-heading-md text-fg-primary">{name}</h2>
           <span className="flex items-center gap-2 text-body-md text-fg-secondary">
