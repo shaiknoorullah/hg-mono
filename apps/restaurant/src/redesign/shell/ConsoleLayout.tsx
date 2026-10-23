@@ -130,9 +130,10 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
 
   const buildItems = (): SideNavItem[] => NAV.map((n) => ({
     key: n.key,
-    label: n.label,
+    // The rail says "Orders" (as most boards draw it); the item's name stays "Live orders".
+    label: n.railLabel ?? n.label,
+    name: n.label,
     href: n.to,
-    shortLabel: n.shortLabel,
     // No Solar glyph yet for History, Payouts, Settings (#198): their rail item shows the name alone, once
     // (the boards draw it that way; a second copy in the icon's place read "Payouts Payouts").
     icon: n.icon ? <Icon name={n.icon} weight={n.key === active ? 'bold' : 'linear'} size={22} /> : undefined,

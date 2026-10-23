@@ -27,7 +27,7 @@ describe('console shell', () => {
       copy.querySelectorAll('[aria-hidden="true"]').forEach((n) => n.remove());
       return copy.textContent?.trim();
     };
-    // The 72 px rail says "Orders" under the first icon, as the boards draw it; its name stays "Live orders".
+    // The rail says "Orders" for the first item, as the boards draw it; its name stays "Live orders".
     expect(links.map(visibleName)).toEqual(['Orders', 'History', 'Menu', 'Hours', 'Payouts', 'Settings']);
     expect(within(rail).getByRole('link', { name: /^Live orders/ })).toBeTruthy();
     // No item draws its name twice (an icon-less item once had its name in the icon's place too).
@@ -342,7 +342,7 @@ describe('console frame below 768 px (the phone board)', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Open navigation/ }));
     const drawer = await screen.findByTestId('console-drawer-nav');
     const links = within(drawer).getAllByRole('link');
-    expect(links.map((l) => l.textContent?.replace(/\s+/g, ' ').trim())).toEqual(['Live orders', 'History', 'Menu', 'Hours', 'Payouts', 'Settings']);
+    expect(links.map((l) => l.textContent?.replace(/\s+/g, ' ').trim())).toEqual(['Orders', 'History', 'Menu', 'Hours', 'Payouts', 'Settings']);
     expect(within(drawer).getByRole('link', { name: /History/ }).getAttribute('aria-current')).toBe('page');
   });
 
