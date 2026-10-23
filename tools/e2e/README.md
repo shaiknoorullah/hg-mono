@@ -303,6 +303,16 @@ board by that name, and judges it (a web capture pixel by pixel, a native one by
   store what each board needs; they hold, fail or empty the notes chunk (`release-notes`) with
   `page.route` to reach the loading, error and empty boards. If an app's keys change
   (`apps/*/src/redesign/whatsnew/store.ts`), change them in that config too.
+- **Sample data.** The boards draw one sample world, and a capture only matches when the app shows the
+  same text. The mock fixtures (`contracts/fixtures/_build/`) carry it where the app reads it from the
+  API: the restaurant is Zaytoun Grill, its halal certificate (HMA Canada) runs to 12 November 2026,
+  an open restaurant says "Taking orders until 11:00 pm", the payments account ends 4821 and the payout
+  history is the payouts boards' seven weeks. A spec patches only what one board draws differently.
+  The settings boards are set on 28 September 2026, so `redesign-restaurant.settings.spec.ts` counts
+  its dates from that day (`boardDate`), not from the day it runs. Where the app cannot draw what a
+  board draws, or two boards disagree, the pull request says so
+  ([owner review list](https://github.com/shaiknoorullah/hg-mono/issues/1042)); the sample is not
+  faked into the app.
 - **Maestro:** `runFlow: ../../design-capture.yaml` with `SHOT: design--<area>--<Board>` (it takes the
   screenshot and has the view hierarchy and device recorded beside it), for
   example `design--sign-in--Main` in `native/customer/redesign/lab/1-sign-in.yaml` (a device-lab flow).
