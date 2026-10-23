@@ -145,3 +145,29 @@ export function torontoDateIn(days: number): string {
   const d = new Date(Date.now() + days * 86_400_000);
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
 }
+
+/**
+ * The board's app bar says "Live · checked in 12 s ago"; a live page says however long it has been
+ * since its last heartbeat. Before a capture, move the page's clock (which then stands still) so the
+ * time since the last good check-in reads `seconds`, as the board's sample does. Does nothing when
+ * the badge is not the live one (offline, connecting, or a page without the compact frame's badges).
+ */
+export async function pinCheckedIn(page: Page, seconds = 12): Promise<void> {
+  const badge = page.getByTestId('health-badge').first();
+  const shown = async (): Promise<number | null> => {
+    const text = (await badge.textContent({ timeout: 1000 }).catch(() => null)) ?? '';
+    const m = /^Live · checked in (\d+) s ago$/.exec(text.trim());
+    return m ? Number(m[1]) : null;
+  };
+  let n = await shown();
+  if (n === null) return;
+  let at = Date.now();
+  for (let attempt = 0; attempt < 4; attempt++) {
+    // The page's clock stands still once fixed, so what it shows is stable and each correction is exact.
+    at += (seconds - n) * 1000;
+    await page.clock.setFixedTime(new Date(at));
+    await page.waitForTimeout(1200); // the badge reads the clock once a second
+    n = await shown();
+    if (n === null || n === seconds) return;
+  }
+}

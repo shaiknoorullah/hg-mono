@@ -78,6 +78,9 @@ export { themeAttributes } from '@hg/ui-web/tokens';
 // ── Temporary stubs (see ./_stubs/README.md) ─────────────────────────────────────────────
 export { PageAnnouncerProvider, usePageAnnouncer } from './_stubs/PageAnnouncer';
 export type { Politeness } from './_stubs/PageAnnouncer';
+// The design system's own Badge (draws every icon the boards use: refresh, warning, bell). The
+// stub below predates it and keeps the screens that already use it unchanged.
+export { Badge as ShellBadge } from '@hg/ui-web/ds';
 export { Badge } from './_stubs/Badge';
 export type { BadgeProps, BadgeVariant } from './_stubs/Badge';
 export { Menu } from './_stubs/Menu';

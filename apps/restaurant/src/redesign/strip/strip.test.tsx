@@ -130,12 +130,68 @@ describe('new-order strip', () => {
         },
       }),
     );
-    await renderRedesign('/payouts/history');
+    await renderRedesign('/orders/history');
     expect(await screen.findByRole('status', { name: 'Loading new orders' })).toBeTruthy();
     release();
     expect(await screen.findByText('No new orders')).toBeTruthy();
     expect(screen.getByText('New orders ring and appear here. Each one stays until you accept, decline, or it times out.')).toBeTruthy();
     expect(screen.getByText('Each new order rings until it is answered or times out.')).toBeTruthy();
+  });
+
+  it('on Payouts and Settings the empty strip is one row with the Accepting orders switch (board PartNewOrders)', async () => {
+    let release: () => void = () => {};
+    const gate = new Promise<void>((r) => (release = r));
+    installFakeApi(
+      routesFor([], {
+        'GET /v1/restaurant/orders': async () => {
+          await gate;
+          return { body: [] };
+        },
+      }),
+    );
+    await renderRedesign('/payouts/history');
+    // Loading keeps its words, in the same one-row strip.
+    const loading = await screen.findByRole('status', { name: /^Loading new orders/ });
+    expect(loading.closest('[data-slim-row]')).not.toBeNull();
+    release();
+    expect(await screen.findByText('No orders waiting')).toBeTruthy();
+    expect(screen.getByText('New orders appear here on every page, with the time left to accept.')).toBeTruthy();
+    // Not the tall card.
+    expect(screen.queryByText('No new orders')).toBeNull();
+    const strip = screen.getByTestId('new-order-strip');
+    expect(strip.hasAttribute('data-slim-row')).toBe(true);
+    const sw = within(strip).getByRole('switch', { name: /^Accepting orders/ });
+    expect(sw.getAttribute('aria-checked')).toBe('true');
+    // The Orders switch of the status bar is not drawn beside it.
+    expect(screen.queryByRole('switch', { name: /^Orders/ })).toBeNull();
+  });
+
+  it('on Payouts the switch turns orders off only after the confirm, and on again with no confirm', async () => {
+    const api = installFakeApi(
+      routesFor([], {
+        'PATCH /v1/restaurant/availability': { body: { ...fixture('restaurant_open_state_closed_toggle') } },
+      }),
+    );
+    await renderRedesign('/payouts/history');
+    const strip = await screen.findByTestId('new-order-strip');
+    fireEvent.click(await within(strip).findByRole('switch', { name: /^Accepting orders/ }));
+    const confirm = await screen.findByRole('group', { name: 'Stop accepting new orders?' });
+    expect(api.callsTo('PATCH /v1/restaurant/availability')).toHaveLength(0);
+    fireEvent.click(within(confirm).getByRole('button', { name: 'Stop accepting' }));
+    await waitFor(() => expect(api.callsTo('PATCH /v1/restaurant/availability')).toHaveLength(1));
+    expect(await api.callsTo('PATCH /v1/restaurant/availability')[0]!.json()).toEqual({ is_accepting_orders: false });
+  });
+
+  it('waiting orders keep the tiles on Payouts, and the tall card stays on Live orders history', async () => {
+    installFakeApi(routesFor([pending('A7K2', 132)]));
+    await renderRedesign('/payouts/history');
+    await findTile('A7K2');
+    expect(screen.getByTestId('new-order-strip').hasAttribute('data-slim-row')).toBe(false);
+    cleanup();
+    installFakeApi(routesFor([]));
+    await renderRedesign('/orders/history');
+    expect(await screen.findByText('No new orders')).toBeTruthy();
+    expect(screen.getByTestId('new-order-strip').hasAttribute('data-slim-row')).toBe(false);
   });
 
   it('draws a live tile: code, earnings, summary, note, and the 72 px orange Accept', async () => {
@@ -530,7 +586,7 @@ describe('realtime', () => {
   it('polls the pending list every 10 s while the socket is not open', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const api = installFakeApi(routesFor([]));
-    await renderRedesign('/payouts/history');
+    await renderRedesign('/orders/history');
     await screen.findByText('No new orders');
     const before = api.callsTo('GET /v1/restaurant/orders').length;
     const o = pending('N3W1', 150);

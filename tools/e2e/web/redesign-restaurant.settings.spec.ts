@@ -1,7 +1,7 @@
 import { expect, test, type Locator, type Page, type Route } from '@playwright/test';
 
 import { at1440, declareUnpairable, expectDesignFor, type BoardFor } from './design';
-import { MOCK_API, MODE, openSignedIn } from './redesign-restaurant.support';
+import { MOCK_API, MODE, openSignedIn, pinCheckedIn } from './redesign-restaurant.support';
 import { projectMeta } from './mode';
 
 test.skip(MODE !== 'mock', 'written against the mock server; run with E2E_MODE=mock');
@@ -106,6 +106,7 @@ async function open(page: Page, path: string, scene: Scene = {}) {
 async function capture(page: Page, board: BoardFor, { settled = true } = {}) {
   if (settled) await page.waitForLoadState('networkidle');
   await expect(page.getByText('Not built yet')).toHaveCount(0);
+  await pinCheckedIn(page);
   await expectDesignFor(page, at1440(board));
 }
 
