@@ -13,20 +13,20 @@
   ],
   "payload": {
     "id": "d1435528-5730-4b9a-a635-98014dc0201a",
-    "code": "HG-COED-9X",
+    "code": "HG-5BZ8JT",
     "state": "COMPLETED",
     "state_since": "2026-08-10T18:40:41.412Z",
     "deadline_at": null,
     "server_time": "2026-08-10T18:42:11.412Z",
     "quote_id": "2503f1c0-63a5-456c-a471-fc184c240979",
     "restaurant": {
-      "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
-      "name": "Karachi Kitchen",
+      "id": "effcdcdf-904a-4d8f-a3c4-2a92126b6d71",
+      "name": "Mandi Express",
       "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
       "halal": {
-        "display_state": "CERTIFIED",
+        "display_state": "EXPIRED",
         "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
-        "expires_on": "2027-03-09"
+        "expires_on": "2026-08-01"
       }
     },
     "lines": [
@@ -338,7 +338,7 @@
       {
         "id": "57800537-31f6-4058-adf6-2710795b7a5a",
         "order_id": "d1435528-5730-4b9a-a635-98014dc0201a",
-        "order_code": "HG-COED-9X",
+        "order_code": "HG-5BZ8JT",
         "stripe_dispute_id": "dp_1Qkadminview",
         "amount_cents": 10684,
         "currency": "CAD",

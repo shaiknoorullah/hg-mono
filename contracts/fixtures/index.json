@@ -7473,7 +7473,7 @@
       "scenario": "order_admin_list_every_state",
       "domain": "orders",
       "schema": "array<OrderSummary>",
-      "describes": "`listOrdersAdmin` with one order in each of the 14 `OrderState` values. The restaurants' halal badges cover all four `HalalDisplayState` values (cancelled: expiring soon, rejected: expired, failed: unverified) and the resolved order's restaurant has no `halal` object at all: no badge, never an optimistic one, and never red.",
+      "describes": "`listOrdersAdmin` with one order in each of the 14 `OrderState` values, the orders the admin boards list. The restaurants' halal badges cover all four `HalalDisplayState` values (the ready and failed orders' restaurants have no `halal` object at all: no badge, never an optimistic one, and never red).",
       "operations": [
         "listOrdersAdmin"
       ],

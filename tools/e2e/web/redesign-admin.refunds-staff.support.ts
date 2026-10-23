@@ -26,6 +26,30 @@ export async function serve(route: Route, name: string): Promise<void> {
 }
 export const fixture = (name: string) => (route: Route) => serve(route, name);
 
+/**
+ * The failed-refunds queue as the refunds boards list it: two goodwill refunds of $3.50 that the card
+ * issuer declined, on HG-7XQ3NE (requested 28 September, 7:40 pm Toronto) and HG-9WE4TC (5:31 pm).
+ * The fixture's rows are a missing-items refund Stripe refused; the screens that start a replacement
+ * from one (unit tests) read those, so only the captures take the boards' rows.
+ */
+export const boardFailedRefunds = async (route: Route): Promise<void> => {
+  const response = await route.fetch({ headers: { ...route.request().headers(), 'x-mock-scenario': 'admin_refund_queue_failed' } });
+  const body = (await response.json()) as { data: Json[] };
+  const goodwill = {
+    kind: 'GOODWILL',
+    scope: 'GOODWILL',
+    reason_code: 'GOODWILL',
+    amount_cents: 350,
+    tax_cents: 0,
+    liability_split: { platform_cents: 350, restaurant_cents: 0, rider_cents: 0 },
+    note: 'Goodwill amount',
+    failure_message: 'The card issuer declined the refund.',
+  };
+  const at = ['2026-09-28T23:40:00.000Z', '2026-09-28T21:31:00.000Z'];
+  const code = ['HG-7XQ3NE', 'HG-9WE4TC'];
+  await route.fulfill({ response, json: { ...body, data: body.data.map((row, i) => ({ ...row, ...goodwill, order_code: code[i], requested_at: at[i] })) } });
+};
+
 /** A refusal or failure the contract has no fixture for, in the contract's error envelope. */
 export const refuse = (status: number, code: string, message: string) => (route: Route) =>
   route.fulfill({ status, json: envelope(code, message) });

@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 import { declareUnpairable } from './design';
 import { E2E_MODE } from './mode';
-import { fixture, openAdmin } from './redesign-admin.refunds-staff.support';
+import { boardFailedRefunds, openAdmin } from './redesign-admin.refunds-staff.support';
 import { openStaff } from './redesign-admin.staff.scene';
 
 test.skip(E2E_MODE !== 'mock', 'written against the mock server; run with E2E_MODE=mock');
@@ -153,9 +153,9 @@ test.describe('redesigned admin · refund and staff boards no capture can pair (
 
   for (const group of REFUND_GROUPS) {
     test(group.name, async ({ page }) => {
-      await openAdmin(page, '#/refunds', { failed: fixture('admin_refund_queue_failed') });
+      await openAdmin(page, '#/refunds', { failed: boardFailedRefunds });
       await page.waitForLoadState('networkidle');
-      await expect(page.getByRole('grid', { name: 'Failed refunds' }).getByText('HG-COED-9X')).toBeVisible();
+      await expect(page.getByRole('grid', { name: 'Failed refunds' }).getByText('HG-7XQ3NE')).toBeVisible();
       await expect(page.getByText('Not built yet')).toHaveCount(0);
       for (const [board, reason] of group.boards) await declareUnpairable(page, board, reason);
     });

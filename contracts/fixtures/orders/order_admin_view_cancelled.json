@@ -13,15 +13,15 @@
   ],
   "payload": {
     "id": "58c6e6d6-187f-4b02-a2ff-584a2f49c6a5",
-    "code": "HG-CAED-9X",
+    "code": "HG-7DT1PZ",
     "state": "CANCELLED",
     "state_since": "2026-08-10T18:40:41.412Z",
     "deadline_at": null,
     "server_time": "2026-08-10T18:42:11.412Z",
     "quote_id": "ea92f7ae-f29a-43c6-a4de-9ae21824ef4f",
     "restaurant": {
-      "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
-      "name": "Karachi Kitchen",
+      "id": "1d02ed4c-99cb-4f56-a890-405e957bf601",
+      "name": "Lahori Tandoor",
       "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
       "halal": {
         "display_state": "CERTIFIED",

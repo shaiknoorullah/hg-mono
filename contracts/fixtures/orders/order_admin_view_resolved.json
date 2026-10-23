@@ -13,20 +13,20 @@
   ],
   "payload": {
     "id": "4511b0fb-62e9-4ba8-a2a1-bc223976290e",
-    "code": "HG-REED-8X",
+    "code": "HG-2GK9VN",
     "state": "RESOLVED",
     "state_since": "2026-08-10T18:40:41.412Z",
     "deadline_at": null,
     "server_time": "2026-08-10T18:42:11.412Z",
     "quote_id": "be0897d6-a085-4622-a585-4e058291fddf",
     "restaurant": {
-      "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
-      "name": "Karachi Kitchen",
+      "id": "7d62ed08-0e92-46cd-ab7a-70e7473dd240",
+      "name": "Bismillah Kitchen",
       "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
       "halal": {
-        "display_state": "CERTIFIED",
-        "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
-        "expires_on": "2027-03-09"
+        "display_state": "UNVERIFIED",
+        "certifying_body_name": null,
+        "expires_on": null
       }
     },
     "lines": [

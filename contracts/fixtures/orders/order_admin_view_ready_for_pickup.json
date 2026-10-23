@@ -13,21 +13,16 @@
   ],
   "payload": {
     "id": "b0def6df-be67-49a5-aaa1-e81420a22abd",
-    "code": "HG-REUP-16X",
+    "code": "HG-2PH6RC",
     "state": "READY_FOR_PICKUP",
     "state_since": "2026-08-10T18:40:41.412Z",
     "deadline_at": "2026-08-10T18:48:11.412Z",
     "server_time": "2026-08-10T18:42:11.412Z",
     "quote_id": "aca44780-1d6b-4931-ad9a-ddd1958dd13c",
     "restaurant": {
-      "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
-      "name": "Karachi Kitchen",
-      "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
-      "halal": {
-        "display_state": "CERTIFIED",
-        "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
-        "expires_on": "2027-03-09"
-      }
+      "id": "90d3b35b-4eaf-42a1-a279-a0ea87e0b6e3",
+      "name": "Sham Shawarma",
+      "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp"
     },
     "lines": [
       {

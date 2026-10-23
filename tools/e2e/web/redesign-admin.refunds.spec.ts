@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { E2E_MODE } from './mode';
-import { emptyPage, fixture, never, openAdmin, shoot, failing } from './redesign-admin.refunds-staff.support';
+import { boardFailedRefunds, emptyPage, fixture, never, openAdmin, shoot, failing } from './redesign-admin.refunds-staff.support';
 
 test.skip(E2E_MODE !== 'mock', 'written against the mock server; run with E2E_MODE=mock');
 
@@ -12,8 +12,10 @@ test.skip(E2E_MODE !== 'mock', 'written against the mock server; run with E2E_MO
  *
  * Every response is a contract fixture, served by the mock server by scenario name
  * (`X-Mock-Scenario`), and the browser clock is the fixtures' frozen clock. The boards draw one
- * set of sample orders (HG-7XQ3NE from Zaytoun Grill and so on) and the fixtures describe another
- * (Karachi Kitchen), so every figure and name differs from the board's; that is the seeded data
+ * set of sample orders (HG-7XQ3NE from Zaytoun Grill and so on). The orders list fixture carries those
+ * orders' codes, restaurants and totals (`BOARD_ADMIN_ORDERS` in the fixtures' builder) and the failed
+ * queue is the board's two goodwill refunds (`boardFailedRefunds`); an order's lines, money and times
+ * still come from the fixtures' shared quote, so those differ from the board's. That is the seeded data
  * against board copy difference tracked in
  * https://github.com/shaiknoorullah/hg-mono/issues/961, not a screen difference.
  *
@@ -29,7 +31,7 @@ test.beforeEach(({}, testInfo) => {
   test.skip(testInfo.project.metadata.viewport === 'tablet', 'the boards are drawn at 1440 wide');
 });
 
-const FAILED = fixture('admin_refund_queue_failed');
+const FAILED = boardFailedRefunds;
 const EVERY_STATE = fixture('order_admin_list_every_state');
 
 const failedGrid = (page: Page) => page.getByRole('grid', { name: 'Failed refunds' });
@@ -44,26 +46,26 @@ test.describe('redesigned admin · refunds page (mock)', () => {
 
   test('failed refunds first, then look up one order', async ({ page }) => {
     await openAdmin(page, '#/refunds', { failed: FAILED });
-    await expect(failedGrid(page).getByText('HG-COED-9X')).toBeVisible();
+    await expect(failedGrid(page).getByText('HG-7XQ3NE')).toBeVisible();
     await shoot(page, { 1440: 'admin/refunds/Refunds' });
   });
 
   test('as a support agent', async ({ page }) => {
     await openAdmin(page, '#/refunds', { role: 'SUPPORT_AGENT', failed: FAILED });
-    await expect(failedGrid(page).getByText('HG-COED-9X')).toBeVisible();
+    await expect(failedGrid(page).getByText('HG-7XQ3NE')).toBeVisible();
     await shoot(page, { 1440: 'admin/refunds/RefundsSupportLookup' });
   });
 
   test('finding the order', async ({ page }) => {
     await openAdmin(page, '#/refunds', { failed: FAILED, list: never });
-    await expect(failedGrid(page).getByText('HG-COED-9X')).toBeVisible();
+    await expect(failedGrid(page).getByText('HG-7XQ3NE')).toBeVisible();
     await find(page, 'HG-7XQ3NE');
     await shoot(page, { 1440: 'admin/refunds/RefundsSearching' }, { idle: false });
   });
 
   test('no order has that code', async ({ page }) => {
     await openAdmin(page, '#/refunds', { failed: FAILED, list: emptyPage });
-    await expect(failedGrid(page).getByText('HG-COED-9X')).toBeVisible();
+    await expect(failedGrid(page).getByText('HG-7XQ3NE')).toBeVisible();
     await find(page, 'HG-7Q2M4K');
     await expect(page.getByText('No order has the code HG-7Q2M4K')).toBeVisible();
     await shoot(page, { 1440: 'admin/refunds/RefundsNotFound' });
@@ -71,7 +73,7 @@ test.describe('redesigned admin · refunds page (mock)', () => {
 
   test('the lookup fails', async ({ page }) => {
     await openAdmin(page, '#/refunds', { failed: FAILED, list: failing });
-    await expect(failedGrid(page).getByText('HG-COED-9X')).toBeVisible();
+    await expect(failedGrid(page).getByText('HG-7XQ3NE')).toBeVisible();
     await find(page, 'HG-7XQ3NE');
     await expect(page.getByText("The lookup didn't finish.")).toBeVisible();
     await shoot(page, { 1440: 'admin/refunds/RefundsLookupError' });
@@ -79,7 +81,7 @@ test.describe('redesigned admin · refunds page (mock)', () => {
 
   test('offline', async ({ page }) => {
     await openAdmin(page, '#/refunds', { failed: FAILED });
-    await expect(failedGrid(page).getByText('HG-COED-9X')).toBeVisible();
+    await expect(failedGrid(page).getByText('HG-7XQ3NE')).toBeVisible();
     await page.context().setOffline(true);
     await expect(page.getByText('You’re offline.', { exact: true })).toBeVisible();
     await shoot(page, { 1440: 'admin/refunds/RefundsOffline' });
@@ -105,7 +107,7 @@ test.describe('redesigned admin · refunds page (mock)', () => {
 
   test('a new refund after a failure, from the queue', async ({ page }) => {
     await openAdmin(page, '#/refunds', { failed: FAILED, order: fixture('order_admin_view_delivered') });
-    await expect(failedGrid(page).getByText('HG-COED-9X')).toBeVisible();
+    await expect(failedGrid(page).getByText('HG-7XQ3NE')).toBeVisible();
     await failedGrid(page).getByRole('button', { name: /Actions for the failed refund/ }).first().click();
     await page.getByRole('menuitem', { name: 'Issue a new refund' }).click();
     await expect(page.getByRole('region', { name: /Issue a refund/ })).toBeVisible();
@@ -135,7 +137,7 @@ test.describe('redesigned admin · refunds page, an order found by its code (moc
   for (const [board, code, scenario, text] of FOUND) {
     test(`${scenario.replace('order_admin_view_', '').replace(/_/g, ' ')}`, async ({ page }) => {
       await openAdmin(page, '#/refunds', { failed: FAILED, list: EVERY_STATE, order: fixture(scenario) });
-      await expect(failedGrid(page).getByText('HG-COED-9X')).toBeVisible();
+      await expect(failedGrid(page).getByText('HG-7XQ3NE')).toBeVisible();
       await find(page, code);
       await expect(page.getByText(text).first()).toBeVisible();
       await shoot(page, { 1440: board });
@@ -153,7 +155,7 @@ test.describe('redesigned admin · refunds page, goodwill sent for a second appr
       order: fixture('order_admin_view_completed'),
       issue: fixture('refund_approval_request_pending'),
     });
-    await expect(failedGrid(page).getByText('HG-COED-9X')).toBeVisible();
+    await expect(failedGrid(page).getByText('HG-7XQ3NE')).toBeVisible();
     await find(page, 'HG-2RC9LA');
     await page.getByRole('button', { name: 'Issue refund', exact: true }).click();
     const panel = page.getByRole('region', { name: /Issue a refund/ });
