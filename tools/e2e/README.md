@@ -324,7 +324,8 @@ board by that name, and judges it (a web capture pixel by pixel, a native one by
 
   **8 of the 19 are taken in CI**: the 3 in `1-first-run.yaml`, and the 5 in `lab/1-sign-in.yaml`, which `lab_for_ci`
   in [`run.sh`](run.sh) names because it takes captures and needs nothing CI lacks. It runs **in place of**
-  `redesign/1-sign-in.yaml`, being the same journey with the captures added, so the run signs in once. The other 11 are
+  `redesign/1-sign-in.yaml`, being the same journey with the captures added, so the run signs in once.
+  The boards draw the number ending 0134 (+1 416 555 0134), so both sign-in flows type it for the boards up to the code screens and sign in as the seeded user afterwards (customer: "Change number"; rider: "Use a different number"). The rider flow sends three wrong codes first, so the incorrect-code board shows "2 tries left" as drawn. The other 11 are
   in lab flows that need devworld, so they are taken in the device lab until CI has it
   ([#1030](https://github.com/shaiknoorullah/hg-mono/issues/1030)).
   What let any of them run in CI was measuring the width: the CI emulator is a
