@@ -134,10 +134,13 @@ export function applyReplay(signal: { fromSeq: number; truncated: boolean }, now
 export function setAlertsConnection(connection: RealtimeStatus, now: Date = new Date()): void {
   if (state.connection === connection) return;
   const wasOpen = state.connection === 'open';
-  // An open socket ends a lost sign-in, and ends a refused connection: the close it was recorded
-  // from is plainly over. A refused *subscribe* is different and stays until a replay shows it
-  // worked, because the socket being open is what lets the subscribe be refused in the first place.
-  const ended = state.failure?.kind === 'reauth' || state.failure?.kind === 'fatal';
+  // An open socket ends a refused connection: the close it was recorded from is plainly over. A
+  // refused *subscribe* is different and stays until a replay shows it worked, because the socket
+  // being open is what lets the subscribe be refused in the first place. A lost sign-in is not
+  // ended by an open socket either: the status reaches this store through an effect, so the 'open'
+  // of the connection that was just ended for `reauth_required` can arrive after the failure was
+  // recorded and would take its dialog away. The dialog's own sign-in clears it.
+  const ended = state.failure?.kind === 'fatal';
   const failure = connection === 'open' && ended ? null : state.failure;
   emit({ ...state, connection, failure, lostAt: wasOpen && connection !== 'open' ? now : state.lostAt });
 }
