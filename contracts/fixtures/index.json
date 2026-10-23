@@ -9364,7 +9364,7 @@
       "scenario": "connect_status_complete",
       "domain": "platform",
       "schema": "ConnectStatus",
-      "describes": "Stripe Connect fully onboarded: payouts enabled, nothing due now or later. The bank account ends 4821 and pays weekly, as the payouts boards say.",
+      "describes": "Stripe Connect fully onboarded: payouts enabled, nothing due.",
       "operations": [
         "getConnectStatus",
         "createConnectAccount"

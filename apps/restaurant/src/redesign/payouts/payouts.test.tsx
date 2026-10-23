@@ -89,7 +89,7 @@ describe('payout history at phone width', () => {
     const rows = await screen.findByRole('list', { name: 'Payouts, newest first' });
     expect(screen.queryByRole('grid')).toBeNull();
     expect(within(rows).getAllByRole('listitem')).toHaveLength(every.length);
-    expect((await within(rows).findAllByText(/1,842\.50/)).length).toBeGreaterThan(0);
+    expect((await within(rows).findAllByText(/2,894\.00/)).length).toBeGreaterThan(0);
     fireEvent.click(within(rows).getAllByRole('button')[0]!);
     expect(await screen.findByTestId('payout-detail')).toBeTruthy();
   });

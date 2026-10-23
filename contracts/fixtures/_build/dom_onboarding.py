@@ -1797,24 +1797,8 @@ def _auth_and_config(reg, synth) -> None:
         "connect_status_complete",
         "platform",
         "ConnectStatus",
-        "Stripe Connect fully onboarded: payouts enabled, nothing due now or later. The bank "
-        "account ends 4821 and pays weekly, as the payouts boards say.",
-        {
-            **synth.make("ConnectStatus", "connect-complete"),
-            "stripe_account_id": "acct_1QkR7mE8xVn2LbQ1",
-            "charges_enabled": True,
-            "payouts_enabled": True,
-            "details_submitted": True,
-            "requirements": {
-                "currently_due": [],
-                "eventually_due": [],
-                "past_due": [],
-                "disabled_reason": None,
-                "deadline": None,
-            },
-            "bank_last4": "4821",
-            "payout_interval": "WEEKLY",
-        },
+        "Stripe Connect fully onboarded: payouts enabled, nothing due.",
+        synth.make("ConnectStatus", "connect-complete"),
         operations=["getConnectStatus", "createConnectAccount"],
         tags=["platform", "money"],
     )

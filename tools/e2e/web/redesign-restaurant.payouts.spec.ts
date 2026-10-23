@@ -112,7 +112,11 @@ async function open(page: Page, path: string, scene: Scene = {}) {
   else if (connect === 'never') await page.route('**/v1/connect/status', never);
   else {
     const fixed = await fixture(page, connect);
-    const body = requirements ? { ...fixed, requirements: { ...fixed.requirements, ...requirements } } : fixed;
+    // A payments account that is all set, as the payouts boards draw it: the bank ends 4821, pays weekly, and
+    // Stripe asks for nothing, now or later (the fixture is shared with the rider app and keeps its placeholders).
+    const allSet = connect === 'connect_status_complete' ? { bank_last4: '4821', payout_interval: 'WEEKLY', requirements: { currently_due: [], eventually_due: [], past_due: [], disabled_reason: null, deadline: null } } : {};
+    const base = { ...fixed, ...allSet };
+    const body = requirements ? { ...base, requirements: { ...base.requirements, ...requirements } } : base;
     await page.route('**/v1/connect/status', (route) => route.fulfill({ json: { data: body } }));
   }
   const olderPage = [OLDER_PAYOUT];

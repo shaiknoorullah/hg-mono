@@ -790,7 +790,7 @@ Auth, config, addresses, notifications, Connect and health. — 57 scenarios.
 | `addresses_empty` | `array&lt;Address&gt;` | 200 | No address yet — the state that makes every distance and ETA uncomputable (`NO_ADDRESS` availability). |
 | `addresses_list` | `array&lt;Address&gt;` | 200 | Three saved addresses, one default, one with no unit or buzzer. |
 | `connect_onboarding_link` | `ConnectOnboardingLink` | 201 | `createConnectOnboardingLink` (201): a single-use Stripe-hosted onboarding URL that expires in five minutes. Open it straight away; never store it. |
-| `connect_status_complete` | `ConnectStatus` | 200 | Stripe Connect fully onboarded: payouts enabled, nothing due now or later. The bank account ends 4821 and pays weekly, as the payouts boards say. |
+| `connect_status_complete` | `ConnectStatus` | 200 | Stripe Connect fully onboarded: payouts enabled, nothing due. |
 | `connect_status_currently_due` | `ConnectStatus` | 200 | Stripe wants one more thing now (`currently_due: [external_account]`); payouts are off until it is given. No deadline. Requirement ids and `disabled_reason` are Stripe's own, never paraphrased. |
 | `connect_status_details_not_submitted` | `ConnectStatus` | 200 | The rider opened Stripe's form and left before finishing: `details_submitted: false` and Stripe's requirement ids in `currently_due`, verbatim. Requirement ids and `disabled_reason` are Stripe's own, never paraphrased. |
 | `connect_status_due_with_deadline` | `ConnectStatus` | 200 | Payouts still on, but Stripe needs the SIN before `deadline` (in five days); after that it turns payouts off. Requirement ids and `disabled_reason` are Stripe's own, never paraphrased. |
