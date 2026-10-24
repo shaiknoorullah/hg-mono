@@ -3,14 +3,16 @@
 
 /**
  * Whether a box with these computed styles and this many words is a designers' tag: a dashed outline
- * on all four sides, 2 px or thinner, around type of 12 px or less, with four words or more. The
- * canvases draw their tags that way (`border: 1px dashed`, the caption type). Product UI with a dashed
+ * on all four sides, 2 px or thinner, around type of 12 px or less (13 px in the mono font, the
+ * phone boards' `--text-type-mono-md`), with four words or more. The canvases draw their tags that
+ * way (`border: 1px dashed`, the caption or mono type). Product UI with a dashed
  * outline is not that small and long: a file drop zone is a large box in body type, and the
  * "Unverified" badge is one or two words. Sent to the page as source (`hideNotes`), so it stands alone.
  */
 export function noteTag(cs, words) {
   const sides = ['Top', 'Right', 'Bottom', 'Left'];
-  return sides.every((side) => cs[`border${side}Style`] === 'dashed') && parseFloat(cs.borderTopWidth) <= 2 && parseFloat(cs.fontSize) <= 12 && words >= 4;
+  const mono = /plex mono|monospace/i.test(String(cs.fontFamily ?? ''));
+  return sides.every((side) => cs[`border${side}Style`] === 'dashed') && parseFloat(cs.borderTopWidth) <= 2 && parseFloat(cs.fontSize) <= (mono ? 13 : 12) && words >= 4;
 }
 
 /**

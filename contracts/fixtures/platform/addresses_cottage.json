@@ -1,0 +1,33 @@
+{
+  "scenario": "addresses_cottage",
+  "domain": "platform",
+  "schema": "array<Address>",
+  "describes": "One saved address, the default, a cottage outside the delivery area: the Home board's \"nothing in range\" address.",
+  "operations": [
+    "listAddresses"
+  ],
+  "status": 200,
+  "tags": [
+    "platform",
+    "edge"
+  ],
+  "payload": [
+    {
+      "id": "98baa163-9f61-4d01-a502-59d7805db2a2",
+      "label": "Cottage",
+      "line1": "88 Lakeshore Rd",
+      "line2": null,
+      "unit": null,
+      "buzzer": null,
+      "city": "Port Perry",
+      "province": "ON",
+      "postal_code": "L9L 1A5",
+      "country": "CA",
+      "latitude": 44.1049,
+      "longitude": -78.9431,
+      "timezone": "America/Toronto",
+      "delivery_notes": null,
+      "is_default": true
+    }
+  ]
+}

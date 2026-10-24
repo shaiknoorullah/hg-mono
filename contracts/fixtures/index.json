@@ -2,12 +2,12 @@
   "generated_by": "contracts/fixtures/_build/build.py",
   "do_not_edit": "Every file under contracts/fixtures/ is generated. Run `pnpm fixtures:build`.",
   "frozen_clock": "2026-08-10T18:42:11.412Z",
-  "count": 790,
+  "count": 795,
   "counts_by_domain": {
     "admin": 72,
     "cart": 17,
     "catalogue": 57,
-    "dispatch": 32,
+    "dispatch": 34,
     "documents": 36,
     "errors": 153,
     "geo": 11,
@@ -16,10 +16,10 @@
     "onboarding": 52,
     "orders": 112,
     "payments": 12,
-    "platform": 57,
+    "platform": 59,
     "realtime": 24,
     "refunds": 45,
-    "rider": 60
+    "rider": 61
   },
   "fixtures": [
     {
@@ -2714,6 +2714,37 @@
         "privacy"
       ],
       "file": "dispatch/offer_pending_area_without_radius.json"
+    },
+    {
+      "scenario": "offer_pending_tip_hidden",
+      "domain": "dispatch",
+      "schema": "DispatchOffer",
+      "describes": "A live offer with 24 seconds left that pays CAD 7.34 and has no tip yet (`tip_so_far_cents: 0`): the tip row is hidden, never `$0.00`.",
+      "operations": [
+        "getCurrentOffer"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "edge",
+        "money"
+      ],
+      "file": "dispatch/offer_pending_tip_hidden.json"
+    },
+    {
+      "scenario": "offer_pending_with_tip",
+      "domain": "dispatch",
+      "schema": "DispatchOffer",
+      "describes": "A live offer with 24 seconds left that pays CAD 9.44: base fare, distance pay and a CAD 2.10 tip so far. The Offer board's own numbers.",
+      "operations": [
+        "getCurrentOffer"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "offer-state-matrix"
+      ],
+      "file": "dispatch/offer_pending_with_tip.json"
     },
     {
       "scenario": "offer_rejected",
@@ -9312,6 +9343,21 @@
       "file": "payments/setup_intent.json"
     },
     {
+      "scenario": "addresses_cottage",
+      "domain": "platform",
+      "schema": "array<Address>",
+      "describes": "One saved address, the default, a cottage outside the delivery area: the Home board's \"nothing in range\" address.",
+      "operations": [
+        "listAddresses"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "edge"
+      ],
+      "file": "platform/addresses_cottage.json"
+    },
+    {
       "scenario": "addresses_empty",
       "domain": "platform",
       "schema": "array<Address>",
@@ -9735,6 +9781,20 @@
         "platform"
       ],
       "file": "platform/public_config.json"
+    },
+    {
+      "scenario": "public_config_board_support",
+      "domain": "platform",
+      "schema": "PublicConfig",
+      "describes": "Support on, with the number and hours the boards draw: 1 800 555 0142, every day, 8 am to 2 am.",
+      "operations": [
+        "getPublicConfig"
+      ],
+      "status": 200,
+      "tags": [
+        "platform"
+      ],
+      "file": "platform/public_config_board_support.json"
     },
     {
       "scenario": "public_config_ordering_paused",
@@ -12011,6 +12071,22 @@
       "file": "rider/rider_dashboard_offline_blocked_stale_location_fix.json"
     },
     {
+      "scenario": "rider_dashboard_offline_blocked_three_reasons",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "Offline with the three reasons the Home board draws, in its order: `BACKGROUND_LOCATION_PERMISSION`, `DOCUMENT_EXPIRED` and `PAYOUT_ACCOUNT_INCOMPLETE` (\"Fix 3 things to go online\"). Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet.",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home",
+        "error-path"
+      ],
+      "file": "rider/rider_dashboard_offline_blocked_three_reasons.json"
+    },
+    {
       "scenario": "rider_dashboard_on_delivery_dropoff",
       "domain": "rider",
       "schema": "RiderDashboard",
@@ -12592,6 +12668,8 @@
       "offer_none",
       "offer_pending",
       "offer_pending_area_without_radius",
+      "offer_pending_tip_hidden",
+      "offer_pending_with_tip",
       "offer_rejected",
       "offer_taken_by_another",
       "offer_withdrawn",
@@ -12783,6 +12861,7 @@
     ],
     "getPublicConfig": [
       "public_config",
+      "public_config_board_support",
       "public_config_ordering_paused",
       "public_config_phone_support_off",
       "public_config_support_unavailable",
@@ -12937,6 +13016,7 @@
       "rider_dashboard_offline_blocked_onboarding_incomplete",
       "rider_dashboard_offline_blocked_payout_account_incomplete",
       "rider_dashboard_offline_blocked_stale_location_fix",
+      "rider_dashboard_offline_blocked_three_reasons",
       "rider_dashboard_on_delivery_dropoff",
       "rider_dashboard_on_delivery_pickup",
       "rider_dashboard_online_idle",
@@ -13015,6 +13095,7 @@
       "waitlist_joined_as_restaurant"
     ],
     "listAddresses": [
+      "addresses_cottage",
       "addresses_empty",
       "addresses_list"
     ],

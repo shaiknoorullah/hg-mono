@@ -59,7 +59,7 @@ These are the rules the existing names already follow; new fixtures follow them 
 | `tracking_` | 9 | An `OrderState` (or a degraded signal) in the tracking projection. | `tracking_picked_up` |
 | `assignment_` | 14 | An `AssignmentState`, lower case, or a drop-off instruction edge. | `assignment_arrived_at_pickup` |
 | `dispatch_` | 10 | A `DispatchState`, lower case. | `dispatch_searching` |
-| `offer_` | 8 | A rider offer outcome. | `offer_pending` |
+| `offer_` | 10 | A rider offer outcome. | `offer_pending` |
 | `payment_` | 11 | A `PaymentState`, lower case, or saved methods. | `payment_requires_action` |
 | `refund_` | 19 | A `RefundState` in the customer view. | `refund_settled` |
 | `admin_refund_` | 14 | A `RefundState` or queue in the staff view. | `admin_refund_queue` |
@@ -85,7 +85,7 @@ These are the rules the existing names already follow; new fixtures follow them 
 | `rider_availability_` | 5 | A `RiderAvailabilityState`, lower case. | `rider_availability_online_idle` |
 | `payout_` | 20 | A `PayoutState`, lower case, or a payout run. | `payout_held` |
 | `payout_list_` | 4 | A rider payout list (`_every_state`, `_multi_problem`, `_draft_paid`). | `payout_list_every_state` |
-| `rider_dashboard_` | 19 | Rider Home: a `RiderAvailabilityState` (lower case), a `TrackingHealth` problem, a blocking reason or a delivery leg. | `rider_dashboard_online_stale` |
+| `rider_dashboard_` | 20 | Rider Home: a `RiderAvailabilityState` (lower case), a `TrackingHealth` problem, a blocking reason or a delivery leg. | `rider_dashboard_online_stale` |
 | `connect_status_` | 9 | A Stripe Connect requirement state, in Stripe's words (`currently_due`, `past_due`, `pending_verification`). | `connect_status_past_due` |
 | `earnings_summary_` | 5 | An `EarningsPeriod`, lower case, or a money edge. | `earnings_summary_day` |
 | `earning_entries_` | 6 | A rider ledger page or situation (`_paging`, `_clawback`, `_pending`). | `earning_entries_clawback` |
@@ -95,7 +95,7 @@ These are the rules the existing names already follow; new fixtures follow them 
 | `owned_menu_` | 4 | The restaurant's own menu, as its editor reads it. | `owned_menu_every_review_status` |
 | `order_admin_list_` | 3 | A staff order list variant. | `order_admin_list_every_state` |
 | `staff_list` | 4 | A platform staff list variant. | `staff_list_edge_rows` |
-| (other) | 147 | One-off subjects named for what they are (`public_config`, `cart_many_lines`, `quote_standard`). | `public_config` |
+| (other) | 149 | One-off subjects named for what they are (`public_config`, `cart_many_lines`, `quote_standard`). | `public_config` |
 
 ## 2. How one scenario is chosen per operation (the mock server)
 
@@ -209,6 +209,7 @@ Fixtures whose `describes` says "Contract-only:": `services/hg` cannot produce t
 - `rider_dashboard_offline_blocked_onboarding_incomplete`
 - `rider_dashboard_offline_blocked_payout_account_incomplete`
 - `rider_dashboard_offline_blocked_stale_location_fix`
+- `rider_dashboard_offline_blocked_three_reasons`
 - `rider_dashboard_on_delivery_dropoff`
 - `rider_dashboard_on_delivery_pickup`
 - `rider_dashboard_online_stale`

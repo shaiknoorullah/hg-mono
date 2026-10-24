@@ -50,6 +50,7 @@ describe('parseCaptureUrl', () => {
         route: { name: 'tracking', orderId: 'o1' },
         scenario: 'getOrder=order_arrived,refreshSession=error_session_revoked',
         clock: FROZEN,
+        hold: false,
       },
     });
   });

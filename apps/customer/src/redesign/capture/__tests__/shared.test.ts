@@ -24,7 +24,7 @@ describe('readCaptureQuery', () => {
   it('reads the board, params, scenario and clock', () => {
     expect(
       readCaptureQuery(query({ board: 'a/B', params: '{"id":"x"}', scenario: 'getOrder=order_arrived', clock: FROZEN })),
-    ).toEqual({ ok: true, board: 'a/B', params: { id: 'x' }, scenario: 'getOrder=order_arrived', clock: FROZEN });
+    ).toEqual({ ok: true, board: 'a/B', params: { id: 'x' }, scenario: 'getOrder=order_arrived', clock: FROZEN, hold: false });
   });
 
   it('reads a link with nothing but a route as empty values', () => {
@@ -34,6 +34,7 @@ describe('readCaptureQuery', () => {
       params: undefined,
       scenario: undefined,
       clock: undefined,
+      hold: false,
     });
   });
 
@@ -42,6 +43,7 @@ describe('readCaptureQuery', () => {
       expect(readCaptureQuery(query({ board: 'a/B', params }))).toEqual({ ok: false, why: 'a/B: `params` is not a JSON object' });
     }
     expect(readCaptureQuery(query({ clock: 'yesterday' }))).toEqual({ ok: false, why: 'capture link: `clock` is not a date' });
+    expect(readCaptureQuery(query({ hold: '1' }))).toEqual({ ok: false, why: 'capture link: `hold` needs a `clock` to hold at' });
     expect(captureRefusal(null, 'x')).toEqual({ ok: false, why: 'capture link: x' });
   });
 });
@@ -56,6 +58,15 @@ describe('the phone\'s clock', () => {
     expect(new Date() instanceof Date).toBe(true);
     expect(typeof Date()).toBe('string');
     expect(Date.UTC(2026, 0, 1)).toBe(1767225600000);
+  });
+
+  it('is held still when the link says so, for a countdown that must read the board\'s second', async () => {
+    expect(readCaptureQuery(query({ clock: FROZEN, hold: '1' }))).toMatchObject({ ok: true, clock: FROZEN, hold: true });
+    await adoptCaptureClock('http://mock', FROZEN, true);
+    expect(Date.now()).toBe(Date.parse(FROZEN));
+    expect(new Date().toISOString()).toBe(FROZEN);
+    expect(new Date(0).getTime()).toBe(0);
+    expect(new Date() instanceof Date).toBe(true);
   });
 
   it('goes back to the phone\'s own clock', () => {
