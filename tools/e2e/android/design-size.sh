@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Makes the running emulator the device the customer design boards are drawn for, and prints what
-# it measured: 1170 x 2532 px at 480 dpi, which is 390 x 844 dp at an integer 3x scale. This is the
-# same width, height and scale as the device-lab AVD (tools/design-diff/android/create-avd.sh
-# design-390), so a lab capture and a CI capture of one board have the same pixels.
+# it measured: 1170 x 2758 px at 480 dpi, which is 390 dp wide at an integer 3x scale and 844 dp of
+# content plus the status and navigation bars. That is the device-lab AVD's shape
+# (tools/design-diff/android/create-avd.sh design-390: 844 dp plus the bars), so a lab capture and a CI
+# capture of one board have the same content area.
 #
 # The CI emulator is a Pixel 6 profile: 1080 x 2400 px at 420 dpi, which is 411 dp wide, and a
 # native capture of another width than its board is not compared (tools/design-diff/README.md,
@@ -20,9 +21,17 @@
 set -euo pipefail
 
 width_dp="${TARGET_WIDTH_DP:-390}"
-height_dp="${TARGET_HEIGHT_DP:-844}"
-size="${SIZE:-1170x2532}"
 density="${DENSITY:-480}"
+# A board is the app's content only, 390 x 844 dp. The screen must therefore be 844 dp of content PLUS
+# Android's own bars, which the diff cuts off (tools/design-diff/README.md, "Phone captures"): with a
+# screen of exactly 844 dp the app's window is 75 dp shorter than its board, and everything a board pins
+# to its bottom (a footer, a primary button, a tab bar) sits 75 dp too high in the capture. The bars are
+# the CI emulator's measured 154 px (status) and 72 px (navigation) at 480 dpi.
+content_dp="${CONTENT_HEIGHT_DP:-844}"
+bars_px="${BARS_PX:-226}"
+scale="$((density / 160))"
+size="${SIZE:-1170x$((content_dp * scale + bars_px))}"
+height_dp="${TARGET_HEIGHT_DP:-$(awk -v c="$content_dp" -v b="$bars_px" -v s="$scale" 'BEGIN { printf "%.2f", c + b / s }')}"
 
 adb wait-for-device
 adb shell wm size "$size"

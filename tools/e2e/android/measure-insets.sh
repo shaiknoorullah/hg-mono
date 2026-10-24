@@ -45,4 +45,14 @@ if [ -n "$want_w" ] && [ "$got_w" != "$want_w" ] && [ -n "$phys_d" ] && [ -n "$o
 fi
 mv -f "$out/insets.json.tmp" "$out/insets.json"
 echo "insets: $(tr -d '\n ' <"$out/insets.json")"
+# The app's window is the screen less the bars, and a board is 844 dp of it (design-size.sh). Say so when it is not.
+node -e '
+  const i = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+  const dpi = Number(process.argv[2]) || 480;
+  if (i.screen) {
+    const dp = ((i.screen.height - i.top - i.bottom) * 160) / dpi;
+    console.log(`insets: the app window is ${dp.toFixed(2)} dp tall (a board is 844)`);
+    if (Math.abs(dp - 844) > 1) console.log("::warning::the app window is not 844 dp tall, so bottom-pinned content will not line up with its board");
+  }
+' "$out/insets.json" "${over_d:-480}"
 exit 0
