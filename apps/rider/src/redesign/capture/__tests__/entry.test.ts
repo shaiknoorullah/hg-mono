@@ -6,6 +6,7 @@ import { getMockScenario, setMockScenario } from '../../../mockScenario';
 import { getToken, setToken } from '../../../token';
 import { clearScreens, registerScreen } from '../../nav/registry';
 import { restoreClock } from '@hg/api-client/capture';
+import { claimTripOpen } from '../../home/dashboard';
 import { openCapture, parseCaptureUrl } from '../entry';
 
 // The app has no Node type declarations (it ships to phones); jest's few Node calls are typed by hand.
@@ -88,6 +89,12 @@ describe('openCapture', () => {
     expect(getToken()).not.toBeNull();
     expect(getMockScenario()).toBe('getRiderMe=rider_me');
     expect(Math.abs(Date.now() - Date.parse(FROZEN))).toBeLessThan(5_000);
+  });
+
+  it('claims the trips a board draws Home after Back from, so Home does not open them again', async () => {
+    await openCapture(link({ route: 'captureProbe', params: '{"backFromTrip":["a-1"]}', clock: FROZEN }));
+    expect(claimTripOpen('a-1')).toBe(false);
+    expect(claimTripOpen('a-2')).toBe(true);
   });
 
   it('signs out for the sign-in screen', async () => {

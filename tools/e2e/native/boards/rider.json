@@ -14,30 +14,55 @@
   {
     "board": "shift-offers/HomeOnDelivery",
     "route": "home",
+    "params": {
+      "backFromTrip": [
+        "71fa12af-4888-4a1d-ab74-4a1efa87f654"
+      ]
+    },
     "scenario": "getRiderDashboard=rider_dashboard_on_delivery_pickup",
     "device": "dark-390-100"
   },
   {
     "board": "shift-offers/HomeOnDeliveryDropoff",
     "route": "home",
+    "params": {
+      "backFromTrip": [
+        "4ea97aca-78d6-4735-a8f0-253dd437e00d"
+      ]
+    },
     "scenario": "getRiderDashboard=rider_dashboard_on_delivery_dropoff",
     "device": "dark-390-100"
   },
   {
     "board": "shift-offers/AccountTabResume",
     "route": "account",
+    "params": {
+      "backFromTrip": [
+        "71fa12af-4888-4a1d-ab74-4a1efa87f654"
+      ]
+    },
     "scenario": "getRiderDashboard=rider_dashboard_on_delivery_pickup",
     "device": "dark-390-100"
   },
   {
     "board": "shift-offers/EarningsTabResume",
     "route": "earnings",
+    "params": {
+      "backFromTrip": [
+        "71fa12af-4888-4a1d-ab74-4a1efa87f654"
+      ]
+    },
     "scenario": "getRiderDashboard=rider_dashboard_on_delivery_pickup",
     "device": "dark-390-100"
   },
   {
     "board": "shift-offers/ResumeStripDropoff",
     "route": "earnings",
+    "params": {
+      "backFromTrip": [
+        "4ea97aca-78d6-4735-a8f0-253dd437e00d"
+      ]
+    },
     "scenario": "getRiderDashboard=rider_dashboard_on_delivery_dropoff",
     "device": "dark-390-100"
   },
