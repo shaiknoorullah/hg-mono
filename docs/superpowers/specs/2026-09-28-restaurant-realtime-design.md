@@ -1,10 +1,12 @@
 ---
 covers:
   - apps/restaurant/src/**
-reviewed: 2026-10-23
+reviewed: 2026-10-24
 ---
 
 # Restaurant app — live updates and rider map
+
+> Update 2026-10-24: the setup frame (`/onboarding`) and its checklist rail were redrawn for the onboarding boards; the live updates described here are unchanged.
 
 > Update 2026-10-23: while orders wait, the service status bar shows a "Ringing · N waiting" link to the new-orders strip, from the strip's own count; the screen-health and open-state badges use the design system's own badge.
 

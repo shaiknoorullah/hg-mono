@@ -1,10 +1,15 @@
 ---
 covers:
   - apps/restaurant/src/**
-reviewed: 2026-10-23
+reviewed: 2026-10-24
 ---
 
 # What the old restaurant web app teaches the redesign
+
+> **2026-10-24:** the setup pages sit on the cream page, as the onboarding boards draw them. Its checklist rail is a bordered
+> card of 44 px rows (a filled dark circle with a tick for a done step, an orange arrowhead for the current one, a ring for
+> the rest) over an 8 px progress bar. The pages that stand alone (could not load, a step this build does not know,
+> withdrawn) are a centred card, with a "Sign out" button on the withdrawn page.
 
 > **2026-10-23:** the redesigned console's collapsed rail now sets its labels at 13/19.5 with no tracking, the
 > status strip uses the design system's own badge (26 px high) and shows "Ringing · N waiting" while orders
