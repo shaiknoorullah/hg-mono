@@ -36,18 +36,28 @@ height_dp="${TARGET_HEIGHT_DP:-$(awk -v c="$content_dp" -v b="$bars_px" -v s="$s
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 
 # The bars the device really has at the size it is at now: `dumpsys window` after the system has
-# restarted its UI for the override. Straight after `wm size` it still describes the physical screen
-# (and so reads bars of another size), so it is read until its screen is the override's, for up to
-# three minutes. Prints "<top px> <bottom px>"; returns 1 if it never reports the override size.
+# restarted its UI for the override. Straight after `wm size` it still describes the physical screen,
+# and just after that the system UI has not laid out (the navigation bar reads 0 and the status bar a
+# smaller number), so a reading counts only when its screen is the override's, its navigation bar is
+# not 0 and two reads in a row agree. Polled every 2 s for up to three minutes. Prints
+# "<top px> <bottom px>"; returns 1 if it never settles.
 measure_bars() {
-  local want_h="$1" dump
-  for _ in $(seq 1 36); do
+  local want_h="$1" dump h top bottom last=""
+  for _ in $(seq 1 90); do
     dump="$(adb shell dumpsys window 2>/dev/null | node "$root/tools/design-diff/src/insets.mjs" 2>/dev/null || true)"
-    if [ -n "$dump" ] && [ "$(echo "$dump" | node -e 'const i=JSON.parse(require("fs").readFileSync(0,"utf8"));console.log(i.screen?.height??"")')" = "$want_h" ]; then
-      echo "$dump" | node -e 'const i=JSON.parse(require("fs").readFileSync(0,"utf8"));console.log(i.top,i.bottom)'
-      return 0
+    if [ -n "$dump" ]; then
+      read -r h top bottom < <(echo "$dump" | node -e 'const i=JSON.parse(require("fs").readFileSync(0,"utf8"));console.log(i.screen?.height??"",i.top,i.bottom)')
+      if [ "$h" = "$want_h" ] && [ "${bottom:-0}" -gt 0 ]; then
+        if [ "$last" = "$top $bottom" ]; then
+          echo "$top $bottom"
+          return 0
+        fi
+        last="$top $bottom"
+      else
+        last=""
+      fi
     fi
-    sleep 5
+    sleep 2
   done
   return 1
 }
@@ -64,7 +74,7 @@ adb wait-for-device
 if [ -z "${SIZE:-}" ]; then
   want_h="${size#*x}"
   if ! read -r top bottom < <(measure_bars "$want_h"); then
-    echo "design-size: the emulator never reported its bars at ${size}" >&2
+    echo "design-size: the emulator never settled on its bars at ${size} (two equal reads with a navigation bar)" >&2
     exit 1
   fi
   echo "design-size: bars ${top} px + ${bottom} px at ${size} (assumed ${bars_px} px)"
