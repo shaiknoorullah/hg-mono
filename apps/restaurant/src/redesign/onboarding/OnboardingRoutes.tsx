@@ -30,7 +30,7 @@ function Center({ children, testId }: { children: React.ReactNode; testId?: stri
   return (
     <div className="flex justify-center px-4 pt-[121px]">
       <div
-        className="flex w-[560px] max-w-full flex-col items-center gap-4 rounded-lg border border-line-decorative bg-surface-raised p-10 text-center"
+        className="flex w-[560px] max-w-full flex-col items-center gap-4 rounded-lg border border-line-decorative bg-surface-raised px-8 py-10 text-center"
         data-testid={testId}
       >
         {children}
@@ -126,7 +126,7 @@ function UnknownStep({ onSignOut }: { onSignOut: () => void }) {
         <div role="alert" className="flex flex-col items-center gap-4">
           <StateCardIcon name="warning" />
           <StateText title={FRAME.unknownTitle} body={FRAME.unknownBody} />
-          <Button variant="primary" size="lg" iconStart={<GlyphIcon name="refresh" size="md" />} onPress={() => window.location.reload()}>
+          <Button variant="primary" size="lg" iconStart={<GlyphIcon name="refresh" size={22} />} onPress={() => window.location.reload()}>
             {FRAME.refresh}
           </Button>
         </div>
@@ -165,7 +165,7 @@ function Loaded({ onSignOut }: { onSignOut: () => void }) {
           <div role="alert" className="flex flex-col items-center gap-4">
             <StateCardIcon name="warning" />
             <StateText title={FRAME.loadErrorTitle} body={FRAME.loadErrorBody} />
-            <Button variant="primary" size="lg" iconStart={<GlyphIcon name="refresh" size="md" />} onPress={core.reload}>
+            <Button variant="primary" size="lg" iconStart={<GlyphIcon name="refresh" size={22} />} onPress={core.reload}>
               {FRAME.tryAgain}
             </Button>
           </div>
