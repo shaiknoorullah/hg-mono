@@ -133,6 +133,21 @@ export function hideNotes({ classes, prefixes, weakPrefixes, apiWords, tagTest }
       if (hang > 0 && room >= hang) box.style.setProperty(edge === 'top' ? 'margin-top' : 'margin-bottom', `${room - hang}px`, 'important');
     }
   }
+  // A note drawn as a pseudo-element: `.gap::before { content: "Proposed component: " attr(data-gap) }`
+  // hangs a label above its box and has no text node, so the walk above never sees it. It takes no
+  // layout space (it is absolutely positioned), so hiding the pseudo-element changes nothing else.
+  const pseudoNotes = [];
+  for (const el of document.querySelectorAll('*')) {
+    for (const pseudo of ['::before', '::after']) {
+      const raw = getComputedStyle(el, pseudo).content;
+      if (!raw || raw === 'none' || raw === 'normal') continue;
+      const text = squash(raw.replace(/^"|"$/g, ''));
+      const m = strong.exec(text);
+      if (!m) continue;
+      el.setAttribute(pseudo === '::before' ? 'data-design-note-before' : 'data-design-note-after', '');
+      pseudoNotes.push({ kind: m[1], text });
+    }
+  }
   const notes = marked.map(({ el, kind }) => ({ kind, text: squash(el.innerText || el.textContent).slice(0, 1000) })).filter((n) => n.text);
   // A box left with nothing but notes in it (an annotation card, the row a note sat in) goes too.
   const hidden = new Set(marked.map((m) => m.el));
@@ -143,9 +158,9 @@ export function hideNotes({ classes, prefixes, weakPrefixes, apiWords, tagTest }
   }
   for (const el of hidden) el.setAttribute('data-design-note', '');
   const style = document.createElement('style');
-  style.textContent = '[data-design-note]{display:none!important}';
+  style.textContent = '[data-design-note]{display:none!important}[data-design-note-before]::before,[data-design-note-after]::after{display:none!important}';
   document.head.appendChild(style);
-  return notes;
+  return [...notes, ...pseudoNotes];
 }
 
 /**

@@ -94,7 +94,7 @@ notes, by their opening words, by small mono-font sentences, and by mono chips s
 that hold the API's words ("403 ACCOUNT_NOT_ACTIVE", "requirements.past_due"), and by small dashed tags
 (`noteTag`: a dashed outline on all four sides, type of 12 px or less, or 13 px in the mono font, four words or more; the settings
 boards' "Mapping: …" tag and the phone boards' "Prototype branches: …"). A file drop zone is dashed too but large, in body type; a badge such as
-"Not verified" is dashed but short, so neither is hidden. The outlines drawn around
+"Not verified" is dashed but short, so neither is hidden. A note drawn as a pseudo-element (`.gap::before { content: "Proposed component: " attr(data-gap) }`, the label above a proposed component's box) has no text node, so it is found by its computed `content` and its pseudo-element is hidden. The outlines drawn around
 proposed components go too, and so does the margin a box kept for a chip hung above it. The rules
 are heuristics over today's canvases; a note they miss shows up in the diff as text "only in the
 design".
