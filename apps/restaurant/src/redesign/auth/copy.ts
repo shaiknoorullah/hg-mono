@@ -185,7 +185,7 @@ export const CHECK_EMAIL = {
   dailyTitle: "You've asked for 5 links today",
   dailyBody: "That's the daily limit. Use the newest email you have, or call partner support.",
   dailyBodyNoSupport: 'That’s the daily limit. Use the newest email you have.',
-  dailyLabel: 'until tomorrow’s limit resets',
+  dailyLabel: "until tomorrow's limit resets",
   offlineTitle: "We couldn't send a new link",
   offlineBody: "This device seems to be offline. The link we sent earlier still works. Try again when you're back online.",
 };

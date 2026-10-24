@@ -63,7 +63,7 @@ function WaitTimer({ wait, label, onExpire }: Pick<WaitLineProps, 'wait' | 'labe
 
   return (
     <span role="timer" aria-label={label} data-testid="Countdown" className="inline-grid justify-items-start gap-1">
-      <span data-wait-time="" className="font-semibold tabular-nums text-fg-primary text-label-md">
+      <span data-wait-time="" className="text-[13px] font-bold leading-[1.45] tabular-nums text-feedback-info-icon">
         {formatRemaining(remaining)}
       </span>
       {/* The board draws the timer's name as text under the numeral. Hidden from assistive tech: the timer already carries it as its name. */}
@@ -76,7 +76,7 @@ function WaitTimer({ wait, label, onExpire }: Pick<WaitLineProps, 'wait' | 'labe
 
 export function WaitLine({ wait, prefix, label, onExpire, id = 'wait-reason' }: WaitLineProps) {
   return (
-    <p id={id} className="m-0 flex flex-wrap items-start gap-1 text-body-sm text-fg-secondary">
+    <p id={id} className="m-0 flex flex-wrap items-center gap-1 text-body-sm text-fg-secondary">
       {prefix}
       <WaitTimer key={wait.expiresAt} wait={wait} label={label} onExpire={onExpire} />
     </p>
