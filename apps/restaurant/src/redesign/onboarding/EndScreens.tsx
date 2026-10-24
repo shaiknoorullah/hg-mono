@@ -9,7 +9,7 @@
  * either; the way back is partner support.
  */
 import { useEffect, useState, type ReactNode } from 'react';
-import { Button, GlyphIcon, HalalBadge, InlineAlert } from '../ds';
+import { Button, GlyphIcon, HalalBadge, InlineAlert, StateCard, StateCardHeading, StateCardIcon, SupportBlock } from '../ds';
 import { client } from '../data/client';
 import { attempt } from '../auth/api';
 import { useOnboarding } from './context';
@@ -38,13 +38,21 @@ function SupportCard({ lead }: { lead?: string }) {
   );
 }
 
-export function Withdrawn() {
+/** `Withdrawn`: the sign-in boards' state card (icon tile, heading, partner support), then Sign out. */
+export function Withdrawn({ onSignOut }: { onSignOut: () => void }) {
   const ctx = useOnboarding();
   return (
-    <div className="mx-auto flex w-full max-w-[560px] flex-col gap-4 p-6" data-testid="withdrawn">
-      <h1 className="m-0 text-heading-xl text-fg-primary">{ENDS.withdrawnTitle}</h1>
-      <p className="m-0 text-body-md text-fg-secondary">{ENDS.withdrawnBody(ctx.businessName)}</p>
-      <SupportCard />
+    <div className="mx-auto w-[520px] max-w-full px-4 pt-[72px] sm:px-0" data-testid="withdrawn">
+      <StateCard testId="withdrawn-card">
+        <StateCardIcon name="info" />
+        <StateCardHeading title={ENDS.withdrawnTitle} intro={ENDS.withdrawnBody(ctx.businessName)} />
+        <SupportBlock contact={ctx.support} label={ENDS.support} unavailableTitle={ENDS.supportUnavailableTitle} unavailableBody={ENDS.supportUnavailable} />
+        <div>
+          <Button variant="tertiary" size="md" onPress={onSignOut}>
+            Sign out
+          </Button>
+        </div>
+      </StateCard>
     </div>
   );
 }

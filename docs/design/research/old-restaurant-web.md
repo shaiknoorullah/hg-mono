@@ -6,6 +6,11 @@ reviewed: 2026-10-24
 
 # What the old restaurant web app teaches the redesign
 
+> **2026-10-24:** the setup pages sit on the cream page, as the onboarding boards draw them. Its checklist rail is a bordered
+> card of 44 px rows (a filled dark circle with a tick for a done step, an orange arrowhead for the current one, a ring for
+> the rest) over an 8 px progress bar. The pages that stand alone (could not load, a step this build does not know,
+> withdrawn) are a centred card, with a "Sign out" button on the withdrawn page.
+
 > **2026-10-24:** the live-orders page is drawn as its boards draw it: the app bar title is 18/27, the status badges
 > 13/19.5 with the lightest border of their tint, the Orders switch the design system's own 48 px one, the in-progress
 > table header 11/16.5 in a 33 px row, and the account button is a 44 px square named "Account: {owner}, {role}".
