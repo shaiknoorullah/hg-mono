@@ -258,7 +258,7 @@ rider stays online on the server, though, so a redesign flow must not assume no 
 
 **The capture APK** is a third build, `<app>-capture.apk`, made in the same runs for an app that has a capture entry: the redesign build with `EXPO_PUBLIC_HG_CAPTURE=1`, pointed at the contract mock
 (`10.0.2.2:4010`, `pnpm mock`) instead of the real stack. It carries a dev-only entry, `hgcustomer://__capture?...` or
-`hgrider://__capture?...`, that signs in a fixture session, sets the mock scenario the API client sends, moves the app's clock to the fixtures'
+`hgrider://__capture?...`, that signs in a fixture session, sets the mock scenario the API client sends, moves the app's clock to the fixtures' (or, with `hold`, stops it at the board's second)
 frozen clock and opens one screen with the app's own navigation (`apps/<app>/src/redesign/capture/`; the mock's `@stall`, `@delay`, `@reset`
 and `@status` directives put a request in flight or fail it, [mock README](../mock-server/README.md)). It is a navigator and session shim, not a
 screen: the screens and requests after it are the real ones, so a capture proves a screen in a state matches its board, not that the backend answers
@@ -368,7 +368,7 @@ board by that name, and judges it (a web capture pixel by pixel, a native one by
   The customer boards that no flow captures, each with its reason, are in
   [`native/customer-boards.mjs`](native/customer-boards.mjs); `pnpm e2e:boards:check` fails on a capture named for a
   board that does not exist, and (with `origin/claude/redesign-canvases` fetched) on a board that is neither captured nor
-  given a reason. A board can also be listed in [`native/boards/<app>.json`](native/boards) (the pilot: 16 rider and 19 customer boards): the boards the capture entry opens against the mock ([issue 1141](https://github.com/shaiknoorullah/hg-mono/issues/1141)). A board is captured by a flow, listed, or unpairable, never two of them, and a listed board must exist. A new flow screenshot of a board's screen should be named for it; a screen with no board stays unnamed. The seven App settings boards are built but unpaired: the location states are the phone's permission, which no flow sets before it captures.
+  given a reason. A board can also be listed in [`native/boards/<app>.json`](native/boards) (the pilot: 17 rider and 19 customer boards): the boards the capture entry opens against the mock ([issue 1141](https://github.com/shaiknoorullah/hg-mono/issues/1141)). A board is captured by a flow, listed, or unpairable, never two of them, and a listed board must exist. A new flow screenshot of a board's screen should be named for it; a screen with no board stays unnamed. The seven App settings boards are built but unpaired: the location states are the phone's permission, which no flow sets before it captures.
 
   **The rider app is measured the same way.** The rider redesign flows (`native/rider/redesign/`, and `lab/`)
   call the same `design-capture.yaml` at every screen that has a board: 70 of the rider's 652 boards
