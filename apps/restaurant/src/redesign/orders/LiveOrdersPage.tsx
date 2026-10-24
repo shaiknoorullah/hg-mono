@@ -450,17 +450,17 @@ export function LiveOrdersPage() {
   if (list.status === 'error') {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto">
-        <div className="flex w-full max-w-[520px] flex-col gap-3.5 rounded-xl border border-line-decorative bg-surface-raised p-7 shadow-md">
+        <div className="flex w-full max-w-[520px] flex-col gap-[17px] rounded-xl border border-line-decorative bg-surface-raised p-7 shadow-md">
           <GlyphIcon name="error" size={28} className="text-fg-primary" />
           <ErrorState
-            className="border-0! bg-transparent! p-0! [&_h2]:text-[20px] [&_h2]:leading-[30px] [&_p]:text-[15px] [&_p]:leading-[22px] "
+            className="gap-3! border-0! bg-transparent! p-0! [&_h2]:text-[20px] [&_h2]:leading-[30px] [&_p]:text-[15px] [&_p]:leading-[22px] "
             variant="inline"
             headingLevel={2}
             title="We couldn’t load your orders"
             description="Nothing is lost: your orders are safe on the server. New orders can’t ring on this screen until it loads. Check the connection, then try again."
             testId="orders-first-load-error"
           />
-          <Button variant="primary" size="lg" fullWidth className="mt-1.5" iconStart={<GlyphIcon name="refresh" size="md" />} onPress={reloadList}>
+          <Button variant="primary" size="lg" fullWidth className="-mt-[5px]" iconStart={<GlyphIcon name="refresh" size="md" />} onPress={reloadList}>
             Try again
           </Button>
         </div>

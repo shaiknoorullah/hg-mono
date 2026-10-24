@@ -375,7 +375,7 @@ export function DataTable<Row>({
                       'border-b border-line-decorative font-semibold text-fg-secondary',
                       compactHeader
                         ? cx(
-                            'whitespace-nowrap bg-surface-subtle py-2 text-label-sm leading-[16.5px]',
+                            'whitespace-nowrap bg-surface-subtle py-2 text-label-sm leading-[16.5px] tracking-[0.4px]',
                             // The first and last labels sit 16 px in from the table's edges, the rest 12.
                             columnIndex === 0 ? 'ps-4 pe-3' : columnIndex === visibleColumns.length - 1 ? 'ps-3 pe-4' : 'px-3',
                           )
