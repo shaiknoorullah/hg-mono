@@ -73,17 +73,17 @@ export function SetupChecklist({ items, collapsed = false, label = 'Setup steps'
           );
         }
         return (
-          <li key={item.key} aria-current={current ? 'step' : undefined} className={`flex min-h-11 items-center gap-3 px-3 py-1 ${rule} ${current ? 'bg-surface-sunken' : ''}`} data-tone={item.tone}>
+          <li key={item.key} aria-current={current ? 'step' : undefined} className={`flex min-h-11 items-center gap-3.5 px-3 py-1 ${rule} ${current ? 'bg-surface-sunken' : ''}`} data-tone={item.tone}>
             <span className="inline-flex w-5 shrink-0 justify-center text-fg-primary">
               <Glyph tone={item.tone} />
             </span>
             <span className="min-w-0 flex-1">
               {item.href ? (
-                <Link to={item.href} className={`hg-focus text-[15px] leading-[22.5px] text-fg-link underline underline-offset-2 ${current ? 'font-semibold' : ''}`}>
+                <Link to={item.href} className={`hg-focus text-[15px] leading-[22.5px] text-fg-link underline underline-offset-2 ${current ? 'font-semibold' : 'font-medium'}`}>
                   {item.label}
                 </Link>
               ) : (
-                <span className={`text-[15px] leading-[22.5px] text-fg-primary ${current ? 'font-semibold' : ''}`}>{item.label}</span>
+                <span className={`text-[15px] leading-[22.5px] text-fg-primary ${current ? 'font-semibold' : 'font-medium'}`}>{item.label}</span>
               )}
             </span>
             {item.tone === 'warn' ? (
@@ -91,7 +91,7 @@ export function SetupChecklist({ items, collapsed = false, label = 'Setup steps'
             ) : item.tone === 'slate' ? (
               <Badge appearance="outline" size="sm" label={item.status} />
             ) : (
-              <span className={`text-[13px] leading-[19.5px] ${current ? 'font-semibold text-fg-primary' : 'text-fg-secondary'}`}>{item.status}</span>
+              <span className={`text-[13px] leading-[18.9px] ${current ? 'font-semibold text-fg-primary' : 'text-fg-secondary'}`}>{item.status}</span>
             )}
           </li>
         );

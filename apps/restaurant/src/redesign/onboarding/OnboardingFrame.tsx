@@ -110,7 +110,16 @@ export function SetupRail() {
     >
       <div className="flex items-center justify-between">
         <h2 className="m-0 text-heading-md text-fg-primary">{RAIL.heading}</h2>
-        <IconButton icon={<Icon name="back" size={20} />} accessibilityLabel="Collapse the setup checklist" aria-expanded={true} variant="plain" onPress={() => setOpen(false)} />
+        <button
+          type="button"
+          aria-expanded={true}
+          onClick={() => setOpen(false)}
+          className="hg-focus inline-flex size-11 items-center justify-center rounded-md bg-transparent text-fg-primary"
+        >
+          <Icon name="back" size={20} />
+          {/* The board draws the name as text in the button (read by screen readers, not seen). */}
+          <span className="sr-only">Collapse the setup checklist</span>
+        </button>
       </div>
       {paused ? (
         <p className="m-0 flex items-center gap-2 text-label-lg text-fg-primary" data-testid="rail-paused">
@@ -119,7 +128,7 @@ export function SetupRail() {
       ) : (
         <p className="m-0 flex flex-col text-label-md text-fg-secondary">
           <span>{RAIL.now}</span>
-          <span className="text-[16px] leading-[22.4px] text-fg-primary" data-testid="rail-current-step">
+          <span className="text-[16px] leading-[22.4px] tracking-normal text-fg-primary" data-testid="rail-current-step">
             {STEP_LABEL[status.current_step]}
           </span>
         </p>
