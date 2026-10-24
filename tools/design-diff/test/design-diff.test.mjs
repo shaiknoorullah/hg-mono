@@ -817,3 +817,17 @@ test('the designers\' note prefixes include the settings boards\' "Mapping:" tag
   const prefixes = /const NOTE_PREFIXES = \[([\s\S]*?)\];/.exec(src)[1];
   assert.match(prefixes, /'Mapping'/);
 });
+
+test('a designers\' note drawn as a pseudo-element ("Proposed component: ErrorState") is hidden and reported', async () => {
+  const { hideNotes } = await import('../src/page-scripts.mjs');
+  const src = String(hideNotes);
+  // The label is `.gap::before { content: "Proposed component: " attr(data-gap) }`: no text node, so only the computed content shows it.
+  assert.match(src, /getComputedStyle\(el, pseudo\)\.content/);
+  assert.match(src, /\[data-design-note-before\]::before/);
+  // The computed content is the quoted string; the opening words are tested like any other note's.
+  const strong = new RegExp(`^(${['Proposed component', 'Needs API'].join('|')})(\\s*#\\d+)?\\s*[:—–]`);
+  const computed = '"Proposed component: ErrorState"';
+  const text = computed.replace(/^"|"$/g, '').replace(/\s+/g, ' ').trim();
+  assert.equal(strong.exec(text)?.[1], 'Proposed component');
+  assert.equal(strong.exec('"Required"'.replace(/^"|"$/g, '')), null, 'a pseudo-element that is product copy stays');
+});
