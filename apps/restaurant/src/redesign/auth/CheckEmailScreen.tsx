@@ -129,6 +129,7 @@ export function CheckEmailScreen() {
           <TextLink to="/register">{CHECK_EMAIL.wrongLink}</TextLink>
         </p>
         <p className="m-0 text-body-md leading-normal text-fg-secondary">{CHECK_EMAIL.help}</p>
+        </div>
 
         {phase.kind === 'daily' ? (
           <InlineAlert tone="warning" icon="clock" title={CHECK_EMAIL.dailyTitle}>
@@ -145,7 +146,6 @@ export function CheckEmailScreen() {
             {CHECK_EMAIL.onItsWay}
           </p>
         ) : null}
-        </div>
 
         <div className="flex flex-wrap items-center justify-start gap-4">
           {entry?.email ? (

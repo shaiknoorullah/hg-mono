@@ -502,9 +502,9 @@ export function SignInScreen() {
   else if (kind === 'too-many') footer = <SupportSentence contact={support} lead={SUPPORT.sentenceBefore} />;
   else if (kind === 'locked')
     footer = support ? (
-      <p className="m-0 text-center text-body-sm text-fg-secondary">
+      <p className="m-0 text-center text-body-sm leading-normal text-fg-secondary">
         {SUPPORT.lockedFooter}
-        <TextLink href={`tel:${support.tel}`}>{support.display}</TextLink>
+        <TextLink href={`tel:${support.tel}`} variant="plain">{support.display}</TextLink>
         {support.hours ? `, ${support.hours}.` : '.'}
       </p>
     ) : null;

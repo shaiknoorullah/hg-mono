@@ -3,6 +3,7 @@
   "boards": [
     "admin/staff/AcceptInvalid",
     "restaurant/onboarding/Withdrawn",
+    "restaurant/sign-in/CheckEmail-Default",
     "restaurant/sign-in/Forgot-Error",
     "restaurant/sign-in/Forgot-Password",
     "restaurant/sign-in/Forgot-Sent",
@@ -17,6 +18,7 @@
     "restaurant/sign-in/SignIn-ReuseDetected",
     "restaurant/sign-in/SignIn-SessionExpired",
     "restaurant/sign-in/SignIn-Suspended",
+    "restaurant/sign-in/SignIn-TooMany",
     "restaurant/sign-in/SignIn-Unverified",
     "restaurant/sign-in/Tab-SignIn-1024",
     "restaurant/sign-in/Verify-Expired",

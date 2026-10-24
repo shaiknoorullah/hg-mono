@@ -174,6 +174,9 @@ test.describe('restaurant redesign · sign in (mock)', () => {
   });
 
   test('Unverified: Send a new link opens Check your email in its wait', async ({ page }, info) => {
+    // CheckEmail-Cooldown draws the minute 8 seconds in: 0:52. The clock stands still.
+    await frozenClock(page);
+    await page.route('**/v1/auth/email/resend', error('RATE_LIMITED', 429, { headers: { 'Retry-After': '52' } }));
     await page.route('**/v1/auth/login', error('INVALID_CREDENTIALS', 401, { details: { email_verification_required: true } }));
     await page.goto('/login');
     await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct-horse-battery');
