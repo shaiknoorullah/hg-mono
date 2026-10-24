@@ -9,7 +9,7 @@
 # assumed (tools/design-diff/README.md, "Phone captures").
 #
 # Straight after `wm size` the dump still describes the physical screen (run 39830402335 on #1089
-# read 1080 x 2400 px with the screenshots 1170 x 2532), so it is read again for up to a minute
+# read 1080 x 2400 px with the screenshots 1170 x 2532), so it is read again for up to three minutes
 # until it reports the override size. If it never does, the bars are taken in dp from the physical
 # readout and converted at the override density, which is what Android itself does with them.
 #
@@ -23,7 +23,7 @@ dens="$(adb shell wm density | tr -d '\r')"
 want_w="$(echo "$size" | sed -n 's/^Override size: \([0-9]*\)x.*/\1/p' | tail -n 1)"
 phys_d="$(echo "$dens" | sed -n 's/^Physical density: \([0-9]*\).*/\1/p' | tail -n 1)"
 over_d="$(echo "$dens" | sed -n 's/^Override density: \([0-9]*\).*/\1/p' | tail -n 1)"
-for _ in 1 2 3 4 5 6 7 8 9 10 11 12; do
+for _ in $(seq 1 36); do
   adb shell dumpsys window >"$out/dumpsys-window.txt" 2>/dev/null
   node "$root/tools/design-diff/src/insets.mjs" <"$out/dumpsys-window.txt" >"$out/insets.json.tmp" 2>"$out/insets.err" || { sleep 5; continue; }
   got_w="$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).screen?.width ?? "")' "$out/insets.json.tmp")"

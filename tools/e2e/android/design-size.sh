@@ -33,12 +33,55 @@ scale="$((density / 160))"
 size="${SIZE:-1170x$((content_dp * scale + bars_px))}"
 height_dp="${TARGET_HEIGHT_DP:-$(awk -v c="$content_dp" -v b="$bars_px" -v s="$scale" 'BEGIN { printf "%.2f", c + b / s }')}"
 
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+
+# The bars the device really has at the size it is at now: `dumpsys window` after the system has
+# restarted its UI for the override. Straight after `wm size` it still describes the physical screen
+# (and so reads bars of another size), so it is read until its screen is the override's, for up to
+# three minutes. Prints "<top px> <bottom px>"; returns 1 if it never reports the override size.
+measure_bars() {
+  local want_h="$1" dump
+  for _ in $(seq 1 36); do
+    dump="$(adb shell dumpsys window 2>/dev/null | node "$root/tools/design-diff/src/insets.mjs" 2>/dev/null || true)"
+    if [ -n "$dump" ] && [ "$(echo "$dump" | node -e 'const i=JSON.parse(require("fs").readFileSync(0,"utf8"));console.log(i.screen?.height??"")')" = "$want_h" ]; then
+      echo "$dump" | node -e 'const i=JSON.parse(require("fs").readFileSync(0,"utf8"));console.log(i.top,i.bottom)'
+      return 0
+    fi
+    sleep 5
+  done
+  return 1
+}
+
 adb wait-for-device
 adb shell wm size "$size"
 adb shell wm density "$density"
 # The system restarts its UI to apply these; give it a moment before reading back.
 sleep 5
 adb wait-for-device
+
+# Size the screen for the bars the device has, not the ones assumed: 844 dp of window is the screen
+# less the bars. When they are not what was assumed, set the size once more from the measurement.
+if [ -z "${SIZE:-}" ]; then
+  want_h="${size#*x}"
+  if ! read -r top bottom < <(measure_bars "$want_h"); then
+    echo "design-size: the emulator never reported its bars at ${size}" >&2
+    exit 1
+  fi
+  echo "design-size: bars ${top} px + ${bottom} px at ${size} (assumed ${bars_px} px)"
+  if [ $((top + bottom)) -ne "$bars_px" ]; then
+    bars_px=$((top + bottom))
+    size="1170x$((content_dp * scale + bars_px))"
+    height_dp="$(awk -v c="$content_dp" -v b="$bars_px" -v s="$scale" 'BEGIN { printf "%.2f", c + b / s }')"
+    adb shell wm size "$size"
+    sleep 5
+    adb wait-for-device
+    want_h="${size#*x}"
+    if ! read -r top bottom < <(measure_bars "$want_h") || [ $((top + bottom)) -ne "$bars_px" ]; then
+      echo "design-size: the bars changed with the size (${top:-?} + ${bottom:-?} px, wanted ${bars_px} px)" >&2
+      exit 1
+    fi
+  fi
+fi
 
 got_size="$(adb shell wm size | tr -d '\r')"
 got_dens="$(adb shell wm density | tr -d '\r')"
