@@ -154,7 +154,9 @@ export function AppBar({
                 tabIndex={titleIsPageHeading ? -1 : undefined}
                 data-testid={`${testId}-title`}
                 className={cn(
-                  'm-0 truncate font-semibold leading-normal outline-none',
+                  'm-0 truncate font-semibold outline-none',
+                  // The chrome bar's title is drawn 18/27 (1.5) on the boards; the other tones keep the token's.
+                  tone === 'chrome' ? 'leading-[1.5]' : 'leading-normal',
                   large ? 'text-heading-xl' : 'text-heading-md',
                 )}
               >

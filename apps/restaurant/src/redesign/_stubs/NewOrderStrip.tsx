@@ -407,7 +407,7 @@ export function NewOrderStrip({ status, rule, tiles, empty, compact, now, isDesk
           </span>
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <span className="text-[17px] font-bold">{empty?.title ?? 'No new orders'}</span>
-            <span className="text-[15px] leading-[21px] text-fg-secondary">
+            <span className="text-[15px] leading-[22.5px] text-fg-secondary">
               {empty?.body ?? 'New orders ring and appear here. Each one stays until you accept, decline, or it times out.'}
             </span>
           </div>

@@ -10,7 +10,7 @@
  */
 import { copyShot, shoot } from './shots';
 import { expectDesignFor, type BoardFor } from './design';
-import { expect, test, type Page, type Request, type TestInfo } from '@playwright/test';
+import { expect, test, type Page, type Request, type Route, type TestInfo } from '@playwright/test';
 import { execSync } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -126,12 +126,25 @@ async function goLive(page: Page, info: TestInfo) {
   page.on('request', (r) => {
     if (r.method() === 'POST' && r.url().endsWith('/v1/restaurant/heartbeat')) beats.push(r);
   });
+  // Board-gate is the restaurant before it goes live: nothing waiting yet, and the switch off
+  // ("Closed", "Not accepting orders yet"). Both are answered here until the gesture, then the
+  // test's own routes (the waiting orders, the open mock) answer again.
+  const closed = { ...(await fixturePayload(page, 'restaurant_open_state_closed_toggle')), reason: 'Not accepting orders yet' };
+  const answerClosed = (route: Route) => route.fulfill({ json: { data: closed } });
+  const answerNoOrders = (route: Route) =>
+    route.request().method() === 'GET'
+      ? route.fulfill({ json: { data: [], meta: { next_cursor: null, has_more: false, limit: 50 } } })
+      : route.fallback();
+  await page.route('**/v1/restaurant/availability', answerClosed);
+  await page.route(/\/v1\/restaurant\/orders(\?.*)?$/, answerNoOrders);
   await openSignedIn(page, '/orders');
   const gate = page.getByRole('region', { name: 'Turn on order sound and go live' });
   await expect(gate).toBeVisible();
   // The strip is hidden behind the gate on this page.
   await expect(page.getByTestId('new-order-strip')).toHaveCount(0);
   await shot(page, info, 'gate');
+  await page.unroute('**/v1/restaurant/availability', answerClosed);
+  await page.unroute(/\/v1\/restaurant\/orders(\?.*)?$/, answerNoOrders);
   // A screen on the gate cannot ring, so it must not keep the restaurant online.
   expect(beats, 'no heartbeat before the gate gesture').toHaveLength(0);
   await page.getByRole('button', { name: 'Turn on sound and go live' }).click();

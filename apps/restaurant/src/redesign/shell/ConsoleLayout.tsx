@@ -24,6 +24,7 @@ import { BannerSlot, SHELL_PANELS, StatusBarSlot, StripSlot } from './slots';
 import { ConsoleLayoutContext } from './layout';
 import { SignOutConfirm } from './SignOutConfirm';
 import { useWaitingCount } from './waiting';
+import { useNewOrders } from '../strip/NewOrdersProvider';
 import { WHATS_NEW } from '../whatsnew/copy';
 import { useAutoOpenWhatsNew } from '../whatsnew/autoOpen';
 import { useUnseenNotes } from '../whatsnew/useNotes';
@@ -85,6 +86,7 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
   const [confirm, setConfirm] = useState<ReactNode | null>(null);
   const [signingOut, setSigningOut] = useState(false);
   const waiting = useWaitingCount();
+  const { gate } = useNewOrders();
 
   const panelKey = params.get('panel');
   const shellPanel = panelKey ? SHELL_PANELS[panelKey] : undefined;
@@ -172,6 +174,10 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
       />,
     );
 
+  // The board names the button for who is signed in: "Account: Karim Haddad, owner".
+  const roleWord = signedIn?.replace('Signed in as the ', '').replace('Signed in as a ', '').replace('Signed in as ', '');
+  const accountName = ownerName ? `Account: ${ownerName}${roleWord ? `, ${roleWord}` : ''}` : 'Account menu';
+
   const accountItems = [
     ...(ownerName
       ? [{ key: 'who', label: `${ownerName} · Owner`, disabled: true, disabledReason: 'You are signed in as this person' }]
@@ -232,7 +238,8 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
                 {compactFrame ? <ServiceBadges /> : null}
                 <Menu
                   label="Account"
-                  triggerLabel="Account menu"
+                  triggerLabel={accountName}
+                  iconOnly
                   trigger={<Icon name="profile" size={22} />}
                   variant="plain"
                   align="end"
@@ -267,7 +274,8 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
             <StripSlot />
           </div>
 
-          <div className="flex min-h-0 flex-1 gap-3 px-4 py-3">
+          {/* Behind the go-live gate the whole body is the cream page (LO `Board-gate`). */}
+          <div className={`flex min-h-0 flex-1 gap-3 px-4 py-3${gate !== 'passed' && location.pathname === '/orders' ? ' bg-surface-base' : ''}`}>
             <main id="main" tabIndex={-1} className={`relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden outline-none${shellPanel ? ' max-md:hidden' : ''}`}>
               <Outlet />
             </main>

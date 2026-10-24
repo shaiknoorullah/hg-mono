@@ -183,7 +183,7 @@ export function HalalBadge(props: HalalBadgeProps): React.JSX.Element | null {
       className={cx('inline-flex items-center whitespace-nowrap', dims.gap)}
     >
       <HalalShield variant={skin.shield} size={dims.icon} knockout={skin.knockout} />
-      <span className="text-label-sm">{VISIBLE_LABEL[state]}</span>
+      <span className="text-label-sm leading-none">{VISIBLE_LABEL[state]}</span>
     </span>
   );
 

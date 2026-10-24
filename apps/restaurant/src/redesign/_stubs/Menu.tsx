@@ -32,6 +32,8 @@ export interface MenuProps {
   items: readonly MenuItemDef[];
   align?: 'start' | 'end';
   variant?: 'tonal' | 'plain' | 'chrome' | 'outline';
+  /** A glyph-only trigger: a 44 px square, the glyph centred (the console's account button). */
+  iconOnly?: boolean;
   disabled?: boolean;
   className?: string;
   testId?: string;
@@ -55,6 +57,7 @@ export function Menu({
   items,
   align = 'start',
   variant = 'tonal',
+  iconOnly = false,
   disabled,
   className,
   testId,
@@ -120,7 +123,7 @@ export function Menu({
             setOpen(true);
           }
         }}
-        className={`hg-focus inline-flex min-h-11 items-center gap-2 rounded-md px-3 text-[15px] font-semibold disabled:opacity-50 ${TRIGGER[variant]}`}
+        className={`hg-focus inline-flex min-h-11 items-center gap-2 rounded-md text-[15px] font-semibold leading-[normal] disabled:opacity-50 ${iconOnly ? 'w-11 justify-center px-0' : 'px-3'} ${TRIGGER[variant]}`}
       >
         {trigger}
       </button>

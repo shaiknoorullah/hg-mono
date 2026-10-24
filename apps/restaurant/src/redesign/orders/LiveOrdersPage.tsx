@@ -450,8 +450,9 @@ export function LiveOrdersPage() {
   if (list.status === 'error') {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto">
-        <div className="w-full max-w-[520px] rounded-xl border border-line-decorative bg-surface-raised p-6">
+        <div className="w-full max-w-[520px] rounded-xl border border-line-decorative bg-surface-raised p-7">
           <ErrorState
+            className="border-0! bg-transparent! p-0! [&_h2]:text-[20px] [&_h2]:leading-[30px] [&_p]:text-[15px] [&_p]:leading-[22px] [&_div]:w-full [&_button]:min-h-[52px] [&_button]:w-full"
             variant="inline"
             headingLevel={2}
             title="We couldn’t load your orders"
@@ -473,7 +474,7 @@ export function LiveOrdersPage() {
         className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-line-decorative bg-surface-raised"
       >
         <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-line-decorative px-4 py-3">
-          <h2 id="list-title" className="text-[20px] font-semibold">
+          <h2 id="list-title" className="text-[20px] font-semibold tracking-[-0.2px]">
             In progress
           </h2>
           {list.status !== 'loading' ? (
@@ -494,14 +495,17 @@ export function LiveOrdersPage() {
             onRowActivate={(o) => openOrder(o.id)}
             density="comfortable"
             stickyHeader
+            compactHeader
             loading={list.status === 'loading'}
-            className="rounded-none border-0"
+            className="rounded-lg bg-surface-raised"
             emptyState={
               <EmptyState
                 variant="table"
                 headingLevel={3}
                 title="Nothing in progress"
                 description="Orders you accept appear here, soonest ready time first. Ready orders stay until the rider picks them up."
+                // The board's empty body: a 15/22.5 title over a 13/19.5 line, 32 px above and below.
+                className="py-8! [&_h3]:text-[15px] [&_h3]:leading-[22.5px] [&_p]:text-[13px] [&_p]:leading-[19.5px]"
                 testId="in-progress-empty"
               />
             }
