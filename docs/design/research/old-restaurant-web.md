@@ -11,6 +11,10 @@ reviewed: 2026-10-24
 > the rest) over an 8 px progress bar. The pages that stand alone (could not load, a step this build does not know,
 > withdrawn) are a centred card, with a "Sign out" button on the withdrawn page.
 
+> **2026-10-24:** the live-orders page is drawn as its boards draw it: the app bar title is 18/27, the status badges
+> 13/19.5 with the lightest border of their tint, the Orders switch the design system's own 48 px one, the in-progress
+> table header 11/16.5 in a 33 px row, and the account button is a 44 px square named "Account: {owner}, {role}".
+
 > **2026-10-23:** the redesigned console's collapsed rail now sets its labels at 13/19.5 with no tracking, the
 > status strip uses the design system's own badge (26 px high) and shows "Ringing · N waiting" while orders
 > wait, the account button is named "Account menu", and the setup top bar's account email is drawn in a bordered button.

@@ -50,7 +50,7 @@ describe('console shell', () => {
     const profile = fixture('restaurant_profile');
     await screen.findByText(new RegExp(profile.display_name));
     const owner = [profile.owner_first_name, profile.owner_last_name].filter(Boolean).join(' ');
-    const trigger = screen.getByRole('button', { name: 'Account menu' });
+    const trigger = screen.getByRole('button', { name: /^Account/ });
     fireEvent.click(trigger);
     const menu = screen.getByRole('menu', { name: 'Account' });
     expect(within(menu).getByRole('menuitem', { name: 'Sign out…' })).toBeTruthy();

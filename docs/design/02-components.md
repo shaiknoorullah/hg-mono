@@ -14,7 +14,7 @@ covers:
   - packages/ui-native/src/ds/**
   - packages/ui-native/src/lib/**
   - packages/ui-native/src/proposed/**
-reviewed: 2026-10-23
+reviewed: 2026-10-24
 ---
 
 # HalalGoes — Component Inventory

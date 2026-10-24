@@ -8,6 +8,8 @@ reviewed: 2026-10-24
 
 > Update 2026-10-24: the setup frame (`/onboarding`) and its checklist rail were redrawn for the onboarding boards; the live updates described here are unchanged.
 
+> Update 2026-10-24: before the go-live gesture on Live orders the screen-health badge reads "Sound off" (this screen cannot ring), the Orders switch is the design system's own 48 px one, and the gate page is the cream page.
+
 > Update 2026-10-23: while orders wait, the service status bar shows a "Ringing · N waiting" link to the new-orders strip, from the strip's own count; the screen-health and open-state badges use the design system's own badge.
 
 > Update 2026-10-16: the settings upload sheets for the other documents (food safety, business

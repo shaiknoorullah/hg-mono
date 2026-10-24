@@ -3,7 +3,7 @@ covers:
   - packages/ui-web/src/certification/**
   - packages/ui-native/src/certification/**
   - packages/ui-web/src/styles/**
-reviewed: 2026-10-10
+reviewed: 2026-10-24
 ---
 
 # HalalGoes — Accessibility Standard

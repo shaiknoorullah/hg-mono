@@ -48,6 +48,8 @@ A failing capture spec fails that job only if it is **new**. [`web/known-capture
 
 The restaurant onboarding capture specs can patch what a state reads, not only name a fixture: `statusPatch` (the server's `progress_percent`) and `profilePatch` (a profile with no halal object), as `Docs-LoadError` and `Tab-Review-1024` draw them.
 
+The restaurant strip spec's `Board-gate` capture is its own test: the board is the restaurant before it goes live, so the availability read is answered as the closed-by-switch state ("Not accepting orders yet") and nothing waits; the other strip tests go through the gate on the open mock.
+
 Real-mode captures are written to `design-captures-real` and are **not** compared. Three boards are
 declared by both a real-mode and a mock-mode spec, measured, and nothing dedupes by board
 ([#1028](https://github.com/shaiknoorullah/hg-mono/issues/1028)), so comparing both would count
