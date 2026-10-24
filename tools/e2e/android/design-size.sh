@@ -39,14 +39,15 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 # restarted its UI for the override. Straight after `wm size` it still describes the physical screen,
 # and just after that the system UI has not laid out (the navigation bar reads 0 and the status bar a
 # smaller number), so a reading counts only when its screen is the override's, its navigation bar is
-# not 0 and two reads in a row agree. Polled every 2 s for up to three minutes. Prints
+# not 0 and two reads in a row agree. Polled every 2 s for up to five minutes, printing each distinct reading. Prints
 # "<top px> <bottom px>"; returns 1 if it never settles.
 measure_bars() {
-  local want_h="$1" dump h top bottom last=""
-  for _ in $(seq 1 90); do
+  local want_h="$1" dump h top bottom last="" seen=""
+  for _ in $(seq 1 150); do
     dump="$(adb shell dumpsys window 2>/dev/null | node "$root/tools/design-diff/src/insets.mjs" 2>/dev/null || true)"
     if [ -n "$dump" ]; then
       read -r h top bottom < <(echo "$dump" | node -e 'const i=JSON.parse(require("fs").readFileSync(0,"utf8"));console.log(i.screen?.height??"",i.top,i.bottom)')
+      case " $seen " in *" ${h}:${top}:${bottom} "*) ;; *) seen="$seen ${h}:${top}:${bottom}"; echo "design-size: read screen h=${h} top=${top} bottom=${bottom}" >&2;; esac
       if [ "$h" = "$want_h" ] && [ "${bottom:-0}" -gt 0 ]; then
         if [ "$last" = "$top $bottom" ]; then
           echo "$top $bottom"
