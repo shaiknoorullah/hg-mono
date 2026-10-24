@@ -197,6 +197,20 @@ function readSidecar(captureFile) {
   }
 }
 
+/**
+ * The bars to cut off one capture: the ones its own emulator measured (`insets` in its sidecar,
+ * written by the job that took it) when it has them, else the run's (`--insets`, or the profile).
+ * Two emulators of one run need not have the same bars (run 40105967520: 139 px + 72 px on one,
+ * 72 px + 72 px on the other), and a crop of the wrong size is a constant offset on every board.
+ * @param {object | null} sidecar
+ * @param {{ top: number, bottom: number } | null} fallback
+ */
+export function cutFor(sidecar, fallback) {
+  const i = sidecar?.insets;
+  const ok = (n) => Number.isFinite(n) && n >= 0;
+  return i && ok(i.top) && ok(i.bottom) ? { ...i, source: `${i.source ?? 'the capture\'s own'} (in its sidecar)` } : fallback;
+}
+
 /** Why a native capture is untrusted (no device or app build recorded), or null. Web captures: null. */
 export function captureProvenanceProblem(app, captureFile) {
   return BROWSER_APPS.includes(app) ? null : provenanceProblem(readSidecar(captureFile));
@@ -271,7 +285,8 @@ async function main() {
     }
     let shot = readPng(c.file);
     const full = shot.width;
-    if (cut) shot = crop(shot, 0, cut.top, shot.width, shot.height - cut.top - cut.bottom);
+    const cutHere = cutFor(readSidecar(c.file), cut);
+    if (cutHere) shot = crop(shot, 0, cutHere.top, shot.width, shot.height - cutHere.top - cutHere.bottom);
     if (!BROWSER_APPS.includes(app)) {
       // A native screen and an HTML board never agree pixel for pixel (different text rasterisers), so
       // pixels are not a criterion for it: the pair is measured by layout geometry and colour
@@ -295,10 +310,10 @@ async function main() {
       const density = nativeDensity(readSidecar(c.file), full, ref);
       const raw = readFileSync(hierarchyFile, 'utf8');
       const snapshot = hierarchyFile === maestroFile
-        ? snapshotFromMaestro(raw, { density: density.value, cut })
-        : snapshotFromHierarchy(raw, { density: density.value, cut });
+        ? snapshotFromMaestro(raw, { density: density.value, cut: cutHere })
+        : snapshotFromHierarchy(raw, { density: density.value, cut: cutHere });
       const g = compareNative(JSON.parse(readFileSync(path.join(o.refs, ref.layout), 'utf8')), snapshot, { designPng: refPng, designScale: ref.scale, appPng: shot, appScale: density.value });
-      pairs.push({ ...native, verdict: g.verdict, reason: g.reason, geometry: { tolerance: g.tolerance, measured: g.measured, density }, layout: { matchedTexts: g.measured.texts ?? 0, findings: g.findings } });
+      pairs.push({ ...native, crop: cutHere, verdict: g.verdict, reason: g.reason, geometry: { tolerance: g.tolerance, measured: g.measured, density }, layout: { matchedTexts: g.measured.texts ?? 0, findings: g.findings } });
       console.log(`${g.verdict.padEnd(12)} ${String(info ?? '').padStart(8)} %  ${c.id}  (${c.rel})  geometry: ${g.measured.texts ?? 0}/${g.measured.boardTexts ?? 0} texts, ${g.measured.boxes ?? 0} boxes, worst ${g.measured.worstDp ?? 0} dp${g.reason ? `; ${g.reason}` : ''}`);
       continue;
     }

@@ -86,7 +86,11 @@ export function snapshotFromRoots(roots, { density, cut = null, source = 'uiauto
       const rect = { x: dp(n.x0), y: dp(n.y0 - top), w: dp(n.x1 - n.x0), h: dp(n.y1 - n.y0) };
       if (n.text) texts.push({ text: squash(n.text).slice(0, 160), ...rect });
       const key = keyOf(n);
-      if (key && rect.w >= 4 && rect.h >= 4) boxes.push({ key, ...rect });
+      // A box is what shows in the window: an edge-to-edge screen's root and its app bar run under the
+      // status and navigation bars the capture cuts off, and the part cut off is not part of the box.
+      const [y0, y1] = [Math.max(n.y0, top), Math.min(n.y1, bottom)];
+      const seen = { x: rect.x, y: dp(y0 - top), w: rect.w, h: dp(y1 - y0) };
+      if (key && seen.w >= 4 && seen.h >= 4) boxes.push({ key, ...seen });
     }
     n.children.forEach(walk);
   };

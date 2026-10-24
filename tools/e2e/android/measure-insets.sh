@@ -9,7 +9,7 @@
 # assumed (tools/design-diff/README.md, "Phone captures").
 #
 # Straight after `wm size` the dump still describes the physical screen (run 39830402335 on #1089
-# read 1080 x 2400 px with the screenshots 1170 x 2532), so it is read again for up to a minute
+# read 1080 x 2400 px with the screenshots 1170 x 2532), so it is read again for up to three minutes, two equal reads with a navigation bar
 # until it reports the override size. If it never does, the bars are taken in dp from the physical
 # readout and converted at the override density, which is what Android itself does with them.
 #
@@ -23,12 +23,15 @@ dens="$(adb shell wm density | tr -d '\r')"
 want_w="$(echo "$size" | sed -n 's/^Override size: \([0-9]*\)x.*/\1/p' | tail -n 1)"
 phys_d="$(echo "$dens" | sed -n 's/^Physical density: \([0-9]*\).*/\1/p' | tail -n 1)"
 over_d="$(echo "$dens" | sed -n 's/^Override density: \([0-9]*\).*/\1/p' | tail -n 1)"
-for _ in 1 2 3 4 5 6 7 8 9 10 11 12; do
+prev=""
+for _ in $(seq 1 90); do
   adb shell dumpsys window >"$out/dumpsys-window.txt" 2>/dev/null
-  node "$root/tools/design-diff/src/insets.mjs" <"$out/dumpsys-window.txt" >"$out/insets.json.tmp" 2>"$out/insets.err" || { sleep 5; continue; }
-  got_w="$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).screen?.width ?? "")' "$out/insets.json.tmp")"
-  if [ -z "$want_w" ] || [ "$got_w" = "$want_w" ]; then break; fi
-  sleep 5
+  node "$root/tools/design-diff/src/insets.mjs" <"$out/dumpsys-window.txt" >"$out/insets.json.tmp" 2>"$out/insets.err" || { sleep 2; continue; }
+  read -r got_w cur < <(node -e 'const i=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"));console.log(i.screen?.width ?? "", i.top + "/" + i.bottom + "/" + (i.bottom > 0 ? "ok" : "nonav"))' "$out/insets.json.tmp")
+  # Settled: the override's width, a navigation bar that has laid out, and the same reading twice running.
+  if { [ -z "$want_w" ] || [ "$got_w" = "$want_w" ]; } && [[ "$cur" == */ok ]] && [ "$cur" = "$prev" ]; then break; fi
+  prev="$cur"
+  sleep 2
 done
 if [ ! -s "$out/insets.json.tmp" ]; then
   echo "insets: not measured ($(head -c 200 "$out/insets.err")); the diff will use the phone-390 profile"
@@ -45,4 +48,14 @@ if [ -n "$want_w" ] && [ "$got_w" != "$want_w" ] && [ -n "$phys_d" ] && [ -n "$o
 fi
 mv -f "$out/insets.json.tmp" "$out/insets.json"
 echo "insets: $(tr -d '\n ' <"$out/insets.json")"
+# The app's window is the screen less the bars, and a board is 844 dp of it (design-size.sh). Say so when it is not.
+node -e '
+  const i = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+  const dpi = Number(process.argv[2]) || 480;
+  if (i.screen) {
+    const dp = ((i.screen.height - i.top - i.bottom) * 160) / dpi;
+    console.log(`insets: the app window is ${dp.toFixed(2)} dp tall (a board is 844)`);
+    if (Math.abs(dp - 844) > 1) console.log("::warning::the app window is not 844 dp tall, so bottom-pinned content will not line up with its board");
+  }
+' "$out/insets.json" "${over_d:-480}"
 exit 0

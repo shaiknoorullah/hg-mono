@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Makes the running emulator the device the customer design boards are drawn for, and prints what
-# it measured: 1170 x 2532 px at 480 dpi, which is 390 x 844 dp at an integer 3x scale. This is the
-# same width, height and scale as the device-lab AVD (tools/design-diff/android/create-avd.sh
-# design-390), so a lab capture and a CI capture of one board have the same pixels.
+# it measured: 1170 x 2676 px at 480 dpi, which is 390 dp wide at an integer 3x scale and 844 dp of
+# content plus the status and navigation bars. That is the device-lab AVD's shape
+# (tools/design-diff/android/create-avd.sh design-390: 844 dp plus the bars), so a lab capture and a CI
+# capture of one board have the same content area.
 #
 # The CI emulator is a Pixel 6 profile: 1080 x 2400 px at 420 dpi, which is 411 dp wide, and a
 # native capture of another width than its board is not compared (tools/design-diff/README.md,
@@ -20,16 +21,85 @@
 set -euo pipefail
 
 width_dp="${TARGET_WIDTH_DP:-390}"
-height_dp="${TARGET_HEIGHT_DP:-844}"
-size="${SIZE:-1170x2532}"
 density="${DENSITY:-480}"
+# A board is the app's content only, 390 x 844 dp. The screen must therefore be 844 dp of content PLUS
+# Android's own bars, which the diff cuts off (tools/design-diff/README.md, "Phone captures"): with a
+# screen of exactly 844 dp the app's window is 48 dp shorter than its board, and everything a board pins
+# to its bottom (a footer, a primary button, a tab bar) sits 48 dp too high in the capture. The bars are
+# the CI emulator's measured 72 px (status) and 72 px (navigation) at 480 dpi.
+content_dp="${CONTENT_HEIGHT_DP:-844}"
+bars_px="${BARS_PX:-144}"
+scale="$((density / 160))"
+size="${SIZE:-1170x$((content_dp * scale + bars_px))}"
+height_dp="${TARGET_HEIGHT_DP:-$(awk -v c="$content_dp" -v b="$bars_px" -v s="$scale" 'BEGIN { printf "%.2f", c + b / s }')}"
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+
+# The bars the device really has at the size it is at now: `dumpsys window` after the system has
+# restarted its UI for the override. Straight after `wm size` it still describes the physical screen,
+# and just after that the system UI has not laid out (the navigation bar reads 0 and the status bar a
+# smaller number), so a reading counts only when its screen is the override's, its navigation bar is
+# not 0 and two reads in a row agree. Polled every 2 s for up to five minutes, printing each distinct reading. Prints
+# "<top px> <bottom px>"; returns 1 if it never settles.
+measure_bars() {
+  local want_h="$1" dump h top bottom last="" seen=""
+  for _ in $(seq 1 150); do
+    dump="$(adb shell dumpsys window 2>/dev/null | node "$root/tools/design-diff/src/insets.mjs" 2>/dev/null || true)"
+    if [ -n "$dump" ]; then
+      read -r h top bottom < <(echo "$dump" | node -e 'const i=JSON.parse(require("fs").readFileSync(0,"utf8"));console.log(i.screen?.height??"",i.top,i.bottom)')
+      case " $seen " in *" ${h}:${top}:${bottom} "*) ;; *) seen="$seen ${h}:${top}:${bottom}"; echo "design-size: read screen h=${h} top=${top} bottom=${bottom}" >&2;; esac
+      if [ "$h" = "$want_h" ] && [ "${bottom:-0}" -gt 0 ]; then
+        if [ "$last" = "$top $bottom" ]; then
+          echo "$top $bottom"
+          return 0
+        fi
+        last="$top $bottom"
+      else
+        last=""
+      fi
+    fi
+    sleep 2
+  done
+  return 1
+}
 
 adb wait-for-device
+# Pin the bars. The Pixel 6 profile has a camera cutout (a 139 px status bar when it applies, 72 px when
+# not) and either navigation mode (72 px gesture bar, 144 px three buttons), and which one the system UI
+# reported varied from run to run and within a run (139 + 72, 72 + 72, 72 + 144, 63 + 0 before it had
+# laid out), so no size computed from a reading held. No cutout and gesture navigation are 72 + 72 px.
+adb shell cmd overlay enable com.android.internal.display.cutout.emulation.none >/dev/null 2>&1 || echo "design-size: could not turn the cutout off" >&2
+adb shell cmd overlay enable com.android.internal.systemui.navbar.gestural >/dev/null 2>&1 || echo "design-size: could not select gesture navigation" >&2
+sleep 3
 adb shell wm size "$size"
 adb shell wm density "$density"
 # The system restarts its UI to apply these; give it a moment before reading back.
 sleep 5
 adb wait-for-device
+
+# Size the screen for the bars the device has, not the ones assumed: 844 dp of window is the screen
+# less the bars. When they are not what was assumed, set the size once more from the measurement.
+if [ -z "${SIZE:-}" ]; then
+  want_h="${size#*x}"
+  if ! read -r top bottom < <(measure_bars "$want_h"); then
+    echo "design-size: the emulator never settled on its bars at ${size} (two equal reads with a navigation bar)" >&2
+    exit 1
+  fi
+  echo "design-size: bars ${top} px + ${bottom} px at ${size} (assumed ${bars_px} px)"
+  if [ $((top + bottom)) -ne "$bars_px" ]; then
+    bars_px=$((top + bottom))
+    size="1170x$((content_dp * scale + bars_px))"
+    height_dp="$(awk -v c="$content_dp" -v b="$bars_px" -v s="$scale" 'BEGIN { printf "%.2f", c + b / s }')"
+    adb shell wm size "$size"
+    sleep 5
+    adb wait-for-device
+    want_h="${size#*x}"
+    if ! read -r top bottom < <(measure_bars "$want_h") || [ $((top + bottom)) -ne "$bars_px" ]; then
+      echo "design-size: the bars changed with the size (${top:-?} + ${bottom:-?} px, wanted ${bars_px} px)" >&2
+      exit 1
+    fi
+  fi
+fi
 
 got_size="$(adb shell wm size | tr -d '\r')"
 got_dens="$(adb shell wm density | tr -d '\r')"
