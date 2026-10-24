@@ -94,14 +94,19 @@ export function DocumentWorkspace({ variant }: { variant: WorkspaceVariant }) {
   }
   if (docs.status === 'error') {
     return (
-      <Shell title={DOCS.title} intro="" meta="">
-        <InlineAlert tone="danger" title={DOCS.loadErrorTitle} blocking>
-          <span>{DOCS.loadErrorBody}</span>
-          <div className="pt-2">
-            <Button variant="primary" size="md" onPress={docs.reload}>
+      <Shell title={DOCS.title} intro={DOCS.intro} meta="">
+        <InlineAlert
+          tone="danger"
+          title={DOCS.loadErrorTitle}
+          blocking
+          focusOnMount={false}
+          action={
+            <Button variant="primary" size="md" iconStart={<GlyphIcon name="refresh" size="md" />} onPress={docs.reload}>
               {ROW.tryAgain}
             </Button>
-          </div>
+          }
+        >
+          <span>{DOCS.loadErrorBody}</span>
         </InlineAlert>
       </Shell>
     );

@@ -31,16 +31,30 @@ export interface SetupChecklistProps {
 }
 
 function Glyph({ tone }: { tone: SetupStepTone }) {
-  if (tone === 'done') return <GlyphIcon name="check" size="md" />;
+  // As the rail boards draw them: a done step is a filled dark circle with a white tick, the current one
+  // an orange arrowhead, a step still to come an empty ring.
+  if (tone === 'done') {
+    return (
+      <span aria-hidden="true" className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-fg-primary text-fg-on-inverse">
+        <GlyphIcon name="check" size={14} />
+      </span>
+    );
+  }
   if (tone === 'wait' || tone === 'slate') return <GlyphIcon name="clock" size="md" />;
   if (tone === 'warn') return <GlyphIcon name="warning" size="md" />;
-  if (tone === 'now') return <span aria-hidden="true" className="inline-block h-2.5 w-2.5 rounded-full bg-fg-primary" />;
-  return <span aria-hidden="true" className="inline-block h-2.5 w-2.5 rounded-full border-[1.5px] border-line-interactive" />;
+  if (tone === 'now') {
+    return <span aria-hidden="true" className="inline-block border-y-[6px] border-s-[10px] border-y-transparent border-s-brand-600" />;
+  }
+  return <span aria-hidden="true" className="inline-block h-5 w-5 rounded-full border-[1.5px] border-line-strong" />;
 }
 
 export function SetupChecklist({ items, collapsed = false, label = 'Setup steps' }: SetupChecklistProps) {
   return (
-    <ol aria-label={label} className="m-0 flex list-none flex-col p-0" data-testid="setup-checklist">
+    <ol
+      aria-label={label}
+      className={`m-0 flex list-none flex-col p-0 ${collapsed ? '' : 'overflow-hidden rounded-[12px] border border-line-decorative bg-surface-raised'}`}
+      data-testid="setup-checklist"
+    >
       {items.map((item, i) => {
         const current = item.tone === 'now' || item.tone === 'wait' || item.tone === 'warn' || item.tone === 'slate';
         const rule = i === 0 ? '' : 'border-t border-line-decorative';
@@ -57,17 +71,17 @@ export function SetupChecklist({ items, collapsed = false, label = 'Setup steps'
           );
         }
         return (
-          <li key={item.key} aria-current={current ? 'step' : undefined} className={`flex min-h-11 items-center gap-3 px-3 py-2 ${rule} ${current ? 'bg-surface-sunken' : ''}`} data-tone={item.tone}>
+          <li key={item.key} aria-current={current ? 'step' : undefined} className={`flex min-h-11 items-center gap-3 px-3 py-1 ${rule} ${current ? 'bg-surface-sunken' : ''}`} data-tone={item.tone}>
             <span className="inline-flex w-5 shrink-0 justify-center text-fg-primary">
               <Glyph tone={item.tone} />
             </span>
             <span className="min-w-0 flex-1">
               {item.href ? (
-                <Link to={item.href} className={`hg-focus text-body-md text-fg-link underline-offset-2 hover:underline ${current ? 'font-semibold' : 'font-medium'}`}>
+                <Link to={item.href} className={`hg-focus text-[15px] leading-[22.5px] text-fg-link underline underline-offset-2 ${current ? 'font-semibold' : ''}`}>
                   {item.label}
                 </Link>
               ) : (
-                <span className={`text-body-md text-fg-primary ${current ? 'font-semibold' : item.tone === 'done' ? 'font-medium' : ''}`}>{item.label}</span>
+                <span className={`text-[15px] leading-[22.5px] text-fg-primary ${current ? 'font-semibold' : ''}`}>{item.label}</span>
               )}
             </span>
             {item.tone === 'warn' ? (
@@ -75,7 +89,7 @@ export function SetupChecklist({ items, collapsed = false, label = 'Setup steps'
             ) : item.tone === 'slate' ? (
               <Badge appearance="outline" size="sm" label={item.status} />
             ) : (
-              <span className={`text-body-sm ${current ? 'font-semibold text-fg-primary' : 'text-fg-secondary'}`}>{item.status}</span>
+              <span className={`text-[13px] leading-[19.5px] ${current ? 'font-semibold text-fg-primary' : 'text-fg-secondary'}`}>{item.status}</span>
             )}
           </li>
         );

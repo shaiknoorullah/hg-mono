@@ -13,11 +13,13 @@ export interface ProgressBarProps {
   value: number;
   /** Text read out instead of the bare number, e.g. "Uploading, 64%". */
   valueText?: string;
+  /** `rail`: the setup rail's bar, 8 px high on the divider tone (rail boards). */
+  tone?: 'default' | 'rail';
   className?: string;
   testId?: string;
 }
 
-export function ProgressBar({ label, value, valueText, className = '', testId }: ProgressBarProps) {
+export function ProgressBar({ label, value, valueText, tone = 'default', className = '', testId }: ProgressBarProps) {
   const clamped = Math.min(100, Math.max(0, Math.round(value)));
   return (
     <div
@@ -28,9 +30,9 @@ export function ProgressBar({ label, value, valueText, className = '', testId }:
       aria-valuenow={clamped}
       aria-valuetext={valueText}
       data-testid={testId}
-      className={`h-1.5 w-full overflow-hidden rounded-full bg-surface-sunken ${className}`}
+      className={`w-full overflow-hidden rounded-full ${tone === 'rail' ? 'h-2 bg-line-decorative' : 'h-1.5 bg-surface-sunken'} ${className}`}
     >
-      <div className="h-full rounded-full bg-fg-primary" style={{ width: `${clamped}%` }} />
+      <div className={`h-full rounded-full ${tone === 'rail' ? 'bg-fg-secondary' : 'bg-fg-primary'}`} style={{ width: `${clamped}%` }} />
     </div>
   );
 }

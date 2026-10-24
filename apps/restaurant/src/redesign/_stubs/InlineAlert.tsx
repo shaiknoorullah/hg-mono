@@ -33,6 +33,10 @@ export interface InlineAlertProps {
   icon?: GlyphName;
   /** role=alert, tabIndex=-1, focused on mount. Default false (role=status). */
   blocking?: boolean;
+  /** With `blocking`: whether focus moves to the alert on mount. Default true. */
+  focusOnMount?: boolean;
+  /** A control at the alert's end, centred on its height (the boards' "Try again"). */
+  action?: ReactNode;
   items?: InlineAlertSummaryItem[];
   id?: string;
   testId?: string;
@@ -57,11 +61,11 @@ const TONE: Record<InlineAlertTone, { box: string; icon: string; glyph: GlyphNam
   neutral: { box: 'border-line-strong bg-surface-sunken text-fg-primary', icon: 'text-fg-primary', glyph: 'warning' },
 };
 
-export function InlineAlert({ tone, title, children, icon, blocking = false, items, id, testId = 'InlineAlert' }: InlineAlertProps) {
+export function InlineAlert({ tone, title, children, icon, blocking = false, focusOnMount = true, action, items, id, testId = 'InlineAlert' }: InlineAlertProps) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (blocking) ref.current?.focus();
-  }, [blocking]);
+    if (blocking && focusOnMount) ref.current?.focus();
+  }, [blocking, focusOnMount]);
   const t = TONE[tone];
   return (
     <div
@@ -99,6 +103,7 @@ export function InlineAlert({ tone, title, children, icon, blocking = false, ite
           </ul>
         ) : null}
       </div>
+      {action ? <div className="flex shrink-0 items-center self-center">{action}</div> : null}
     </div>
   );
 }

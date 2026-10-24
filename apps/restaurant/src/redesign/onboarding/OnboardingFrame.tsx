@@ -105,11 +105,11 @@ export function SetupRail() {
     <aside
       aria-label="Your setup"
       id="setup-rail"
-      className="flex w-full shrink-0 flex-col gap-4 overflow-y-auto border-b border-line-decorative bg-surface-base p-4 xl:w-72 xl:border-b-0 xl:border-e"
+      className="flex w-full shrink-0 flex-col gap-4 overflow-y-auto border-b border-line-decorative bg-surface-base py-4 ps-5 pe-4 xl:w-72 xl:border-b-0 xl:border-e"
       data-testid="setup-rail"
     >
       <div className="flex items-center justify-between">
-        <h2 className="m-0 text-heading-sm text-fg-primary">{RAIL.heading}</h2>
+        <h2 className="m-0 text-heading-md text-fg-primary">{RAIL.heading}</h2>
         <IconButton icon={<Icon name="back" size={20} />} accessibilityLabel="Collapse the setup checklist" aria-expanded={true} variant="plain" onPress={() => setOpen(false)} />
       </div>
       {paused ? (
@@ -117,22 +117,22 @@ export function SetupRail() {
           {account === 'SUSPENDED' ? RAIL.pausedSuspended : RAIL.pausedDeactivated}
         </p>
       ) : (
-        <p className="m-0 flex flex-col text-body-sm text-fg-secondary">
+        <p className="m-0 flex flex-col text-label-md text-fg-secondary">
           <span>{RAIL.now}</span>
-          <span className="text-label-lg text-fg-primary" data-testid="rail-current-step">
+          <span className="text-[16px] leading-[22.4px] text-fg-primary" data-testid="rail-current-step">
             {STEP_LABEL[status.current_step]}
           </span>
         </p>
       )}
       <div className="flex flex-col gap-1">
-        <ProgressBar label="Setup progress" value={percent} valueText={`${percent}% complete`} />
+        <ProgressBar tone="rail" label="Setup progress" value={percent} valueText={`${percent}% complete`} />
         <span className="text-body-sm text-fg-secondary">{percent}% complete</span>
         {status.current_step === 'FIX_DOCUMENTS' ? <span className="text-body-sm text-fg-secondary">{RAIL.progressWentBack}</span> : null}
       </div>
       <SetupChecklist items={items} />
       {cycle >= 2 ? <p className="m-0 text-body-sm text-fg-secondary">{RAIL.reviewRound(cycle)}</p> : null}
       <section className="flex flex-col gap-2 border-t border-line-decorative pt-4" aria-labelledby="rail-halal-h">
-        <h3 id="rail-halal-h" className="m-0 text-label-lg text-fg-primary">
+        <h3 id="rail-halal-h" className="m-0 text-[16px] font-semibold leading-[22.4px] text-fg-primary">
           {RAIL.halalHeading}
         </h3>
         {halal ? (
@@ -154,7 +154,7 @@ export function SetupRail() {
 export function OnboardingFrame({ onSignOut, children }: { onSignOut: () => void; children: ReactNode }) {
   const { businessName } = useOnboarding();
   return (
-    <div className="flex h-dvh flex-col bg-surface-sunken" data-testid="onboarding-frame">
+    <div className="flex h-dvh flex-col bg-surface-base" data-testid="onboarding-frame">
       <SetupTopBar businessName={businessName} onSignOut={onSignOut} />
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto xl:flex-row xl:overflow-hidden">
         <SetupRail />
