@@ -123,7 +123,7 @@ export function Menu({
             setOpen(true);
           }
         }}
-        className={`hg-focus inline-flex min-h-11 items-center gap-2 rounded-md text-[15px] font-semibold leading-[normal] disabled:opacity-50 ${iconOnly ? 'w-11 justify-center px-0' : 'px-3'} ${TRIGGER[variant]}`}
+        className={`hg-focus inline-flex min-h-11 items-center gap-2 rounded-md text-[15px] font-semibold leading-[normal] disabled:opacity-50 ${iconOnly ? 'relative w-11 justify-center px-0' : 'px-3'} ${TRIGGER[variant]}`}
       >
         {trigger}
       </button>

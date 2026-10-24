@@ -30,7 +30,7 @@ function Center({ children, testId }: { children: React.ReactNode; testId?: stri
   return (
     <div className="flex justify-center px-4 pt-[121px]">
       <div
-        className="flex w-[560px] max-w-full flex-col items-center gap-[19px] rounded-lg border border-line-decorative bg-surface-raised p-10 text-center"
+        className="flex w-[560px] max-w-full flex-col items-center gap-4 rounded-lg border border-line-decorative bg-surface-raised p-10 text-center"
         data-testid={testId}
       >
         {children}
@@ -42,7 +42,7 @@ function Center({ children, testId }: { children: React.ReactNode; testId?: stri
 /** The error card's heading and line, as the boards draw them (24/30 bold, then 15/22.5). */
 function StateText({ title, body }: { title: string; body: string }) {
   return (
-    <div className="flex flex-col gap-3">
+    <div className="-mt-px mb-px flex flex-col gap-4">
       <h1 className="m-0 text-[24px] font-bold leading-[30px] tracking-[-0.2px] text-fg-primary">{title}</h1>
       <p className="m-0 text-[15px] leading-[22.5px] text-fg-secondary">{body}</p>
     </div>
@@ -123,14 +123,18 @@ function UnknownStep({ onSignOut }: { onSignOut: () => void }) {
   return (
     <BareFrame onSignOut={onSignOut} businessName={businessName}>
       <Center testId="unknown-step">
-        <div role="alert" className="flex flex-col items-center gap-[19px]">
+        <div role="alert" className="flex flex-col items-center gap-4">
           <StateCardIcon name="warning" />
           <StateText title={FRAME.unknownTitle} body={FRAME.unknownBody} />
           <Button variant="primary" size="lg" iconStart={<GlyphIcon name="refresh" size="md" />} onPress={() => window.location.reload()}>
             {FRAME.refresh}
           </Button>
         </div>
-        {support ? <SupportBlock contact={support} label={FRAME.supportLabel} unavailableTitle="" unavailableBody="" /> : null}
+        {support ? (
+          <div className="w-fit self-center text-center [&_a]:self-center">
+            <SupportBlock contact={support} label={FRAME.supportLabel} unavailableTitle="" unavailableBody="" />
+          </div>
+        ) : null}
       </Center>
     </BareFrame>
   );
@@ -158,7 +162,7 @@ function Loaded({ onSignOut }: { onSignOut: () => void }) {
     return (
       <BareFrame onSignOut={onSignOut}>
         <Center testId="onboarding-load-error">
-          <div role="alert" className="flex flex-col items-center gap-[19px]">
+          <div role="alert" className="flex flex-col items-center gap-4">
             <StateCardIcon name="warning" />
             <StateText title={FRAME.loadErrorTitle} body={FRAME.loadErrorBody} />
             <Button variant="primary" size="lg" iconStart={<GlyphIcon name="refresh" size="md" />} onPress={core.reload}>

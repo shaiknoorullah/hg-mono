@@ -293,7 +293,7 @@ export const DONE = {
 
 export const ENDS = {
   withdrawnTitle: 'Your application was withdrawn',
-  withdrawnBody: (name: string) => `${name || 'Your restaurant'} is no longer being set up on HalalGoes. If you’d like to apply again, contact partner support.`,
+  withdrawnBody: (name: string) => `${name || 'Your restaurant'} is no longer being set up on HalalGoes. If you'd like to apply again, contact partner support.`,
   notApprovedTitle: (name: string) => `${name || 'Your restaurant'} wasn’t approved`,
   notApprovedLead: 'A reviewer at HalalGoes decided not to approve this application. The decision is final for this application, so there is nothing to upload or send again.',
   reason: 'Reason',
