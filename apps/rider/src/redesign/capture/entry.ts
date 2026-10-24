@@ -33,6 +33,7 @@ import {
 import { API_BASE_URL } from '../../api';
 import { setMockScenario } from '../../mockScenario';
 import { setToken } from '../../token';
+import { claimTripOpen } from '../home/dashboard';
 import { useNav } from '../nav/Navigator';
 import { screenFor } from '../nav/registry';
 
@@ -121,6 +122,13 @@ export async function openCapture(url: string | null | undefined): Promise<boole
   console.info(`[capture] ${board ?? target?.name ?? 'signIn'}: ${JSON.stringify(target ?? { name: 'signIn' })}${scenario ? ` · ${scenario}` : ''}`);
 
   setPending(null);
+  // `backFromTrip: [assignmentId]`: Home opens the trip once per assignment it is handed, and the boards
+  // of Home on a delivery draw Home *after* Back from the trip. Claim those ids so Home stays Home.
+  const back = target?.params?.backFromTrip;
+  if (target?.params && Array.isArray(back)) {
+    for (const id of back) if (typeof id === 'string') claimTripOpen(id);
+    delete target.params.backFromTrip;
+  }
   if (!target) {
     setToken(null);
     return true;
