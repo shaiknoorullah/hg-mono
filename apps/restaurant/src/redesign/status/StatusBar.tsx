@@ -189,7 +189,7 @@ export function StatusBar() {
       </span>
 
       <ShellSwitch
-        style={{ minWidth: 0, maxWidth: 280 }}
+        style={{ minWidth: 0, maxWidth: 320 }}
         label="Orders"
         checked={view.orders.checked}
         stateLabel={view.orders.stateLabel}
