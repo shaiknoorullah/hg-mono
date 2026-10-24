@@ -525,6 +525,21 @@ jobs:
         run: |
           n=$(find "$E2E_OUT/native-mock" -name 'design--*.png' 2>/dev/null | wc -l)
           echo "native captures against the mock ($APP, shard $SHARD): $n screenshots"
+      # The bars this emulator measured go into each capture's own sidecar: the two apps' emulators need not
+      # read the same bars, and the design diff cuts each capture with its own (tools/design-diff/README.md).
+      - name: Record the bars in the captures' sidecars
+        if: always()
+        run: |
+          [ -s "$E2E_OUT/insets.json" ] || exit 0
+          node -e '
+            const fs = require("fs"), path = require("path");
+            const insets = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+            const walk = (d) => fs.existsSync(d) ? fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)])) : [];
+            for (const f of walk(process.argv[2]).filter((f) => f.endsWith(".capture.json"))) {
+              const s = JSON.parse(fs.readFileSync(f, "utf8"));
+              fs.writeFileSync(f, JSON.stringify({ ...s, insets }, null, 1) + "\n");
+            }
+          ' "$E2E_OUT/insets.json" "$E2E_OUT/native-mock"
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()

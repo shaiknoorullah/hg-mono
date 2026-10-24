@@ -827,3 +827,16 @@ test('a box under the bars the capture cuts off is the part that shows, not its 
   const root = s.boxes.find((b) => b.key === 'Hello' && b.h > 100);
   assert.deepEqual([root.y, root.h], [0, 844]);
 });
+
+test('each capture is cut with the bars its own emulator measured, else the run\'s', async () => {
+  const { cutFor } = await import('../src/diff.mjs');
+  const run = { top: 72, bottom: 72, source: 'flows' };
+  assert.deepEqual(cutFor(null, run), run, 'no sidecar: the run\'s');
+  assert.deepEqual(cutFor({}, run), run, 'a sidecar with no insets: the run\'s');
+  const rider = cutFor({ insets: { top: 139, bottom: 72, source: 'adb shell dumpsys window' } }, run);
+  assert.equal(rider.top, 139);
+  assert.equal(rider.bottom, 72);
+  assert.deepEqual(cutFor({ insets: { top: -1, bottom: 72 } }, run), run, 'a nonsense reading is not trusted');
+  assert.deepEqual(cutFor({ insets: { top: 'x', bottom: 72 } }, run), run);
+  assert.equal(cutFor({ insets: { top: 72, bottom: 72 } }, null).top, 72, 'with no run insets at all, the capture\'s own');
+});
