@@ -21,6 +21,7 @@
     "restaurant/sign-in/SignIn-TooMany",
     "restaurant/sign-in/SignIn-Unverified",
     "restaurant/sign-in/Tab-SignIn-1024",
+    "restaurant/sign-in/Verify-Error",
     "restaurant/sign-in/Verify-Expired",
     "restaurant/sign-in/Verify-ExpiredError",
     "restaurant/sign-in/Verify-Used",
