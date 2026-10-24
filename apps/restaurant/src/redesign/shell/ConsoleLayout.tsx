@@ -25,6 +25,7 @@ import { ConsoleLayoutContext } from './layout';
 import { SignOutConfirm } from './SignOutConfirm';
 import { useWaitingCount } from './waiting';
 import { useNewOrders } from '../strip/NewOrdersProvider';
+import { useFirstLoadFailed } from './stale';
 import { WHATS_NEW } from '../whatsnew/copy';
 import { useAutoOpenWhatsNew } from '../whatsnew/autoOpen';
 import { useUnseenNotes } from '../whatsnew/useNotes';
@@ -87,6 +88,7 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
   const [signingOut, setSigningOut] = useState(false);
   const waiting = useWaitingCount();
   const { gate } = useNewOrders();
+  const firstLoadFailed = useFirstLoadFailed();
 
   const panelKey = params.get('panel');
   const shellPanel = panelKey ? SHELL_PANELS[panelKey] : undefined;
@@ -274,8 +276,8 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
             <StripSlot />
           </div>
 
-          {/* Behind the go-live gate the whole body is the cream page (LO `Board-gate`). */}
-          <div className={`flex min-h-0 flex-1 gap-3 px-4 py-3${gate !== 'passed' && location.pathname === '/orders' ? ' bg-surface-base' : ''}`}>
+          {/* Behind the go-live gate, and when the first read failed, the whole body is the cream page (LO `Board-gate`, `Board-first-load-error`). */}
+          <div className={`flex min-h-0 flex-1 gap-3 px-4 py-3${location.pathname === '/orders' && (gate !== 'passed' || firstLoadFailed) ? ' bg-surface-base' : ''}`}>
             <main id="main" tabIndex={-1} className={`relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden outline-none${shellPanel ? ' max-md:hidden' : ''}`}>
               <Outlet />
             </main>

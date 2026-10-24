@@ -47,7 +47,7 @@ export function healthBadge(c: ConnectionView, firstLoadFailed: boolean, timeZon
   if (c.kind === 'offline') {
     return { label: c.since ? `Offline since ${formatTime(c.since, timeZone)}` : 'Offline', variant: 'danger' };
   }
-  if (firstLoadFailed) return { label: 'Not connected', variant: 'danger', icon: 'warning' };
+  if (firstLoadFailed) return { label: 'Not connected', variant: 'danger', icon: 'error' };
   if (c.kind === 'reconnecting') {
     return { label: c.since ? `Reconnecting · since ${formatTime(c.since, timeZone)}` : 'Reconnecting', variant: 'warning' };
   }

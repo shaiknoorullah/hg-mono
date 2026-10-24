@@ -18,7 +18,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, 
 import { useSearchParams } from 'react-router-dom';
 import { idempotencyKey } from '@hg/api-client';
 import { eventOfType, useRealtimeChannels, usePolling, type ChannelSignal } from '@hg/ui-web/live';
-import { Badge, Button, DataTable, EmptyState, ErrorState, useToast, usePageAnnouncer } from '../ds';
+import { Badge, Button, DataTable, EmptyState, ErrorState, GlyphIcon, useToast, usePageAnnouncer } from '../ds';
 import { useConsole } from '../data/console';
 import { client } from '../data/client';
 import { call } from '../data/call';
@@ -450,7 +450,8 @@ export function LiveOrdersPage() {
   if (list.status === 'error') {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto">
-        <div className="w-full max-w-[520px] rounded-xl border border-line-decorative bg-surface-raised p-7">
+        <div className="flex w-full max-w-[520px] flex-col gap-3.5 rounded-xl border border-line-decorative bg-surface-raised p-7">
+          <GlyphIcon name="error" size={28} className="text-fg-primary" />
           <ErrorState
             className="border-0! bg-transparent! p-0! [&_h2]:text-[20px] [&_h2]:leading-[30px] [&_p]:text-[15px] [&_p]:leading-[22px] [&_div]:w-full [&_button]:min-h-[52px] [&_button]:w-full"
             variant="inline"
