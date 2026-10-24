@@ -130,11 +130,11 @@ describe('addresses', () => {
   const addresses = payloadOf<Address[]>('addresses_list');
 
   it('titles and labels addresses the way the switcher draws them', () => {
-    expect(addressTitle(addresses[0]!)).toBe('Home · 88 Harbour Street');
+    expect(addressTitle(addresses[0]!)).toBe('Home · 14 Ellesmere Rd');
     expect(addressTitle(addresses[2]!)).toBe('2 Bloor Street West');
-    expect(addressOptionLabel(addresses[0]!)).toBe('Home (default) · 88 Harbour Street');
-    expect(addressOptionDescription(addresses[0]!)).toBe('Unit 4211, Toronto, ON M5J 0C3');
-    expect(addressOptionDescription({ ...addresses[0]!, unit: '402' })).toBe('Unit 402, Toronto, ON M5J 0C3');
+    expect(addressOptionLabel(addresses[0]!)).toBe('Home (default) · 14 Ellesmere Rd');
+    expect(addressOptionDescription(addresses[0]!)).toBe('Unit 402, Toronto, ON M1R 4E7');
+    expect(addressOptionDescription({ ...addresses[0]!, unit: '9' })).toBe('Unit 9, Toronto, ON M1R 4E7');
     expect(addressOptionDescription(addresses[2]!)).toBe('Toronto, ON M4W 3E2');
   });
 

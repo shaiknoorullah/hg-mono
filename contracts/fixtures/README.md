@@ -72,14 +72,14 @@ falling through, so a typo is visible immediately.
 
 ## Scenarios by domain
 
-**790 scenarios** across 16 domains.
+**795 scenarios** across 16 domains.
 
 | Domain | Scenarios | What it covers |
 |---|---:|---|
 | [`admin`](#admin) | 72 | Review queues, applications, staff, the menu-review workflow, payout runs and every account action (suspend, reinstate, delist, deactivate, ban). |
 | [`cart`](#cart) | 17 | Cart and quote — every blocking reason, the quantity cap, and the money edges. |
 | [`catalogue`](#catalogue) | 57 | Discovery, restaurant detail, hours and menus. |
-| [`dispatch`](#dispatch) | 32 | Dispatch states, rider offers and assignments. |
+| [`dispatch`](#dispatch) | 34 | Dispatch states, rider offers and assignments. |
 | [`documents`](#documents) | 36 | KYC uploads, review states and every rejection reason. |
 | [`errors`](#errors) | 153 | `{error}` envelopes for the codes an app actually branches on. |
 | [`geo`](#geo) | 11 | Address search through our API to Mapbox — suggestions, a picked place, a map pin, and the no-match and provider-down paths. |
@@ -88,10 +88,10 @@ falling through, so a typo is visible immediately.
 | [`onboarding`](#onboarding) | 52 | Restaurant and rider onboarding, profiles, vehicles and trading state. |
 | [`orders`](#orders) | 112 | The 14 `OrderState` values, per-audience projections, tracking and receipts. |
 | [`payments`](#payments) | 12 | The 8 `PaymentState` values, saved cards and setup intents. |
-| [`platform`](#platform) | 57 | Auth, config, addresses, notifications, Connect and health. |
+| [`platform`](#platform) | 59 | Auth, config, addresses, notifications, Connect and health. |
 | [`realtime`](#realtime) | 24 | Scripted WebSocket sequences that drive a screen through a whole lifecycle. |
 | [`refunds`](#refunds) | 45 | The 10 `RefundState` values, liability splits, approval requests, the staff review queue and chargebacks. |
-| [`rider`](#rider) | 60 | Availability, dashboard, earnings and payouts. |
+| [`rider`](#rider) | 61 | Availability, dashboard, earnings and payouts. |
 
 ### admin
 
@@ -262,7 +262,7 @@ Discovery, restaurant detail, hours and menus. — 57 scenarios.
 
 ### dispatch
 
-Dispatch states, rider offers and assignments. — 32 scenarios.
+Dispatch states, rider offers and assignments. — 34 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
@@ -294,6 +294,8 @@ Dispatch states, rider offers and assignments. — 32 scenarios.
 | `offer_none` | `DispatchOffer|null` | 200 | No live offer. `getCurrentOffer` returns **null data**, not 404 — an online idle rider polls this and gets null all day. |
 | `offer_pending` | `DispatchOffer` | 200 | A live offer with 28 seconds left. The countdown is `expires_at - server_time`, corrected for device clock skew — a phone whose clock is ten minutes fast must still show ~28 s. |
 | `offer_pending_area_without_radius` | `DispatchOffer` | 200 | A live offer whose approximate drop-off area has no `radius_m`. The map shows the area name and the direction from the area's centre, and draws no circle. It never shows a street or a pin on a house: the full address comes only on accept. |
+| `offer_pending_tip_hidden` | `DispatchOffer` | 200 | A live offer with 24 seconds left that pays CAD 7.34 and has no tip yet (`tip_so_far_cents: 0`): the tip row is hidden, never `$0.00`. |
+| `offer_pending_with_tip` | `DispatchOffer` | 200 | A live offer with 24 seconds left that pays CAD 9.44: base fare, distance pay and a CAD 2.10 tip so far. The Offer board's own numbers. |
 | `offer_rejected` | `DispatchOffer` | 200 | This rider declined it (`EARNINGS_TOO_LOW`). Kept so the rejection reason sheet has something to render against. |
 | `offer_taken_by_another` | `DispatchOffer` | 200 | Another rider accepted first. Accepting is `409 OFFER_ALREADY_TAKEN`. |
 | `offer_withdrawn` | `DispatchOffer` | 200 | Withdrawn because the customer cancelled. The card must dismiss itself rather than wait for the rider to tap. |
@@ -783,10 +785,11 @@ The 8 `PaymentState` values, saved cards and setup intents. — 12 scenarios.
 
 ### platform
 
-Auth, config, addresses, notifications, Connect and health. — 57 scenarios.
+Auth, config, addresses, notifications, Connect and health. — 59 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
+| `addresses_cottage` | `array&lt;Address&gt;` | 200 | One saved address, the default, a cottage outside the delivery area: the Home board's "nothing in range" address. |
 | `addresses_empty` | `array&lt;Address&gt;` | 200 | No address yet — the state that makes every distance and ETA uncomputable (`NO_ADDRESS` availability). |
 | `addresses_list` | `array&lt;Address&gt;` | 200 | Three saved addresses, one default, one with no unit or buzzer. |
 | `connect_onboarding_link` | `ConnectOnboardingLink` | 201 | `createConnectOnboardingLink` (201): a single-use Stripe-hosted onboarding URL that expires in five minutes. Open it straight away; never store it. |
@@ -814,6 +817,7 @@ Auth, config, addresses, notifications, Connect and health. — 57 scenarios.
 | `principal_super_admin` | `Principal` | 200 | `GET /v1/auth/me` for a `SUPER_ADMIN` with an authenticator-code session: staff management, certificate revocation and refunds above every approver's limit. The account id is the devworld `admin-seed` persona's (`make dev-admin`). |
 | `principal_support_agent` | `Principal` | 200 | `GET /v1/auth/me` for a `SUPPORT_AGENT`: read-mostly console, no decisions, no staff management. The account id is the devworld `support-seed` persona's. |
 | `public_config` | `PublicConfig` | 200 | Client bootstrap. Deliberately exposes **no fee parameter** — no client can compute a price (contradiction log #22). `restaurant_response_window_seconds` is 180 (decision R-04) and `served_provinces` gates ordering (O-05). Phone support is on, and the support email is shown beside it. |
+| `public_config_board_support` | `PublicConfig` | 200 | Support on, with the number and hours the boards draw: 1 800 555 0142, every day, 8 am to 2 am. |
 | `public_config_ordering_paused` | `PublicConfig` | 200 | Staff have paused new orders platform-wide. The customer app says ordering is paused instead of letting checkout fail; `ordering` carries no reason, which is for staff. |
 | `public_config_phone_support_off` | `PublicConfig` | 200 | The phone line is closed (`support_enabled: false`): no phone number, so the Call button disappears and the app shows the hours text. The support email is still there, and it is the contact the app offers. |
 | `public_config_support_unavailable` | `PublicConfig` | 200 | Support is switched off (`support_enabled: false`): no phone number and no hours. Every "Contact support" control is hidden, never a dead number. |
@@ -930,7 +934,7 @@ The 10 `RefundState` values, liability splits, approval requests, the staff revi
 
 ### rider
 
-Availability, dashboard, earnings and payouts. — 60 scenarios.
+Availability, dashboard, earnings and payouts. — 61 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
@@ -984,6 +988,7 @@ Availability, dashboard, earnings and payouts. — 60 scenarios.
 | `rider_dashboard_offline_blocked_onboarding_incomplete` | `RiderDashboard` | 200 | Offline with one blocking reason, `ONBOARDING_INCOMPLETE`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
 | `rider_dashboard_offline_blocked_payout_account_incomplete` | `RiderDashboard` | 200 | Offline with one blocking reason, `PAYOUT_ACCOUNT_INCOMPLETE`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
 | `rider_dashboard_offline_blocked_stale_location_fix` | `RiderDashboard` | 200 | Offline with one blocking reason, `STALE_LOCATION_FIX`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
+| `rider_dashboard_offline_blocked_three_reasons` | `RiderDashboard` | 200 | Offline with the three reasons the Home board draws, in its order: `BACKGROUND_LOCATION_PERMISSION`, `DOCUMENT_EXPIRED` and `PAYOUT_ACCOUNT_INCOMPLETE` ("Fix 3 things to go online"). Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
 | `rider_dashboard_on_delivery_dropoff` | `RiderDashboard` | 200 | `ON_DELIVERY` with the assignment in `EN_ROUTE_TO_DROPOFF`. Bag collected, heading to the customer; the full address and unit are now present. No offer while carrying an order. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
 | `rider_dashboard_on_delivery_pickup` | `RiderDashboard` | 200 | `ON_DELIVERY` with the assignment in `EN_ROUTE_TO_PICKUP`. Heading to the restaurant; the drop-off shows the street and neighbourhood only until pickup. No offer while carrying an order. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
 | `rider_dashboard_online_idle` | `RiderDashboard` | 200 | Online, waiting for an offer: no assignment, no offer, healthy tracking, three trips so far today. |
@@ -1003,21 +1008,21 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 |---|---:|---|
 | `admin` | 182 | Admin/support-facing surface. |
 | `error-envelope` | 153 | A `{error}` body with a real `ErrorCode`. |
-| `error-path` | 132 | The unhappy branch a client must handle. |
-| `rider` | 132 | Rider-facing surface. |
+| `rider` | 135 | Rider-facing surface. |
+| `error-path` | 133 | The unhappy branch a client must handle. |
 | `state-matrix` | 108 | One fixture per member of a closed enum. |
 | `restaurant` | 101 | Restaurant-facing surface. |
-| `edge` | 92 | A shape that breaks naive layouts — empty, overflowing, at a boundary. |
-| `money` | 74 | Exercises the money path specifically. |
+| `edge` | 94 | A shape that breaks naive layouts — empty, overflowing, at a boundary. |
+| `money` | 75 | Exercises the money path specifically. |
 | `order-state-matrix` | 68 | One per `OrderState` (all 14). |
-| `platform` | 57 | Cross-cutting platform surface. |
+| `platform` | 59 | Cross-cutting platform surface. |
 | `halal` | 48 | Touches the halal claim surface. |
 | `auth` | 43 | Session and identity. |
 | `customer` | 36 |  |
 | `empty` | 32 | Zero items. The empty state, never an error. |
 | `account-action` | 31 | Suspending, reinstating, delisting, deactivating or banning an account. |
+| `home` | 25 |  |
 | `realtime` | 25 | WebSocket, not HTTP. |
-| `home` | 24 |  |
 | `refund-state-matrix` | 24 | One per `RefundState` (all 10). |
 | `script` | 24 | A realtime event sequence, not a response body. |
 | `review-queue` | 23 | An admin review queue item. |
@@ -1040,9 +1045,9 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `staff` | 8 |  |
 | `account-state-matrix` | 7 |  |
 | `connect-state-matrix` | 7 |  |
+| `offer-state-matrix` | 7 | One per `OfferState` (all 5). |
 | `certificate-status-matrix` | 6 | One per `HalalCertificateStatus` (all 6). |
 | `halal-state-matrix` | 6 |  |
-| `offer-state-matrix` | 6 | One per `OfferState` (all 5). |
 | `request-body` | 6 | A request body a client sends, not a response. Registered against no operation, so the mock never serves it. |
 | `handoff-event-matrix` | 5 |  |
 | `seal-state-matrix` | 5 |  |
@@ -1124,7 +1129,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `getCart` | `cart_many_lines` | `cart_at_quantity_cap`, `cart_empty`, `cart_has_unavailable_items`, `cart_multi_variant_line`, `cart_ordering_paused`, `cart_replaced_from_order`, `cart_restaurant_unavailable`, `cart_single_line` |
 | `getChargeback` | `chargeback_needs_response` | `chargeback_charge_refunded`, `chargeback_lost`, `chargeback_prevented`, `chargeback_under_review`, `chargeback_warning_closed`, `chargeback_warning_needs_response`, `chargeback_warning_under_review`, `chargeback_won` |
 | `getConnectStatus` | `connect_status_complete` | `connect_status_currently_due`, `connect_status_details_not_submitted`, `connect_status_due_with_deadline`, `connect_status_not_started`, `connect_status_past_due`, `connect_status_pending_verification`, `connect_status_rejected`, `connect_status_requirements_due`, `error_connect_status_not_found` |
-| `getCurrentOffer` | `offer_pending` | `offer_expired`, `offer_none`, `offer_pending_area_without_radius`, `offer_rejected`, `offer_taken_by_another`, `offer_withdrawn`, `offer_zero_tip_low_value` |
+| `getCurrentOffer` | `offer_pending` | `offer_expired`, `offer_none`, `offer_pending_area_without_radius`, `offer_pending_tip_hidden`, `offer_pending_with_tip`, `offer_rejected`, `offer_taken_by_another`, `offer_withdrawn`, `offer_zero_tip_low_value` |
 | `getCurrentPrincipal` | `principal_customer` | `error_account_banned`, `error_account_suspended`, `principal_admin`, `principal_admin_password_only`, `principal_restaurant_owner`, `principal_super_admin`, `principal_support_agent` |
 | `getCustomerProfile` | `customer_profile` | — |
 | `getDependencyStatus` | `dependency_report` | — |
@@ -1141,7 +1146,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `getOwnMenu` | `owned_menu_with_pending_version` | `owned_menu_empty`, `owned_menu_every_review_status`, `owned_menu_forty_categories` |
 | `getPayoutRun` | `payout_run_detail_every_outcome` | — |
 | `getPlaceAddress` | `place_address_full` | `error_geocode_no_match`, `error_geocode_rate_limited`, `error_geocoder_unavailable`, `place_address_poi`, `place_address_postcode`, `place_address_province_not_served`, `place_address_street_only` |
-| `getPublicConfig` | `public_config` | `public_config_ordering_paused`, `public_config_phone_support_off`, `public_config_support_unavailable`, `public_config_without_support_email` |
+| `getPublicConfig` | `public_config` | `public_config_board_support`, `public_config_ordering_paused`, `public_config_phone_support_off`, `public_config_support_unavailable`, `public_config_without_support_email` |
 | `getQuote` | `quote_standard` | `quote_expired`, `quote_large_tip`, `quote_multi_variant`, `quote_pickup`, `quote_with_discount`, `quote_zero_tip` |
 | `getReadiness` | `readiness_ok` | `readiness_not_ready_503` |
 | `getRefund` | `refund_settled` | `refund_approved`, `refund_authorised`, `refund_cancelled`, `refund_declined`, `refund_failed`, `refund_full_never_delivered`, `refund_pending_approval`, `refund_requested`, `refund_second_report_on_order`, `refund_submitted`, `refund_submitted_no_split`, `refund_succeeded`, `refund_wrong_address_before_delivery` |
@@ -1155,7 +1160,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `getRestaurantOrder` | `restaurant_order_preparing` | `restaurant_order_arrived`, `restaurant_order_cancelled`, `restaurant_order_cancelled_after_accept`, `restaurant_order_completed`, `restaurant_order_delivered`, `restaurant_order_disputed`, `restaurant_order_picked_up`, `restaurant_order_pickup_code_locked`, `restaurant_order_ready_for_pickup`, `restaurant_order_rejected`, `restaurant_order_resolved`, `restaurant_order_restaurant_pending` |
 | `getRestaurantProfile` | `restaurant_profile` | `restaurant_profile_account_banned`, `restaurant_profile_account_closed`, `restaurant_profile_account_deactivated`, `restaurant_profile_account_delisted`, `restaurant_profile_account_live`, `restaurant_profile_account_pending`, `restaurant_profile_account_suspended`, `restaurant_profile_halal_certified`, `restaurant_profile_halal_expired`, `restaurant_profile_halal_expiring_soon`, `restaurant_profile_halal_missing`, `restaurant_profile_halal_unverified` |
 | `getRiderApplication` | `rider_application_pending_review` | `rider_application_approved`, `rider_application_attempt_3`, `rider_application_attempt_4`, `rider_application_bicycle`, `rider_application_changes_requested`, `rider_application_claimed_by_other`, `rider_application_on_foot`, `rider_application_under_18` |
-| `getRiderDashboard` | `rider_dashboard_active` | `rider_dashboard_offline`, `rider_dashboard_offline_blocked`, `rider_dashboard_offline_blocked_account_not_active`, `rider_dashboard_offline_blocked_background_location_permission`, `rider_dashboard_offline_blocked_continuous_online_cap`, `rider_dashboard_offline_blocked_document_expired`, `rider_dashboard_offline_blocked_foreground_location_permission`, `rider_dashboard_offline_blocked_notification_permission`, `rider_dashboard_offline_blocked_onboarding_incomplete`, `rider_dashboard_offline_blocked_payout_account_incomplete`, `rider_dashboard_offline_blocked_stale_location_fix`, `rider_dashboard_on_delivery_dropoff`, `rider_dashboard_on_delivery_pickup`, `rider_dashboard_online_idle`, `rider_dashboard_online_stale`, `rider_dashboard_tracking_degraded`, `rider_dashboard_tracking_lost`, `rider_dashboard_zero_earnings` |
+| `getRiderDashboard` | `rider_dashboard_active` | `rider_dashboard_offline`, `rider_dashboard_offline_blocked`, `rider_dashboard_offline_blocked_account_not_active`, `rider_dashboard_offline_blocked_background_location_permission`, `rider_dashboard_offline_blocked_continuous_online_cap`, `rider_dashboard_offline_blocked_document_expired`, `rider_dashboard_offline_blocked_foreground_location_permission`, `rider_dashboard_offline_blocked_notification_permission`, `rider_dashboard_offline_blocked_onboarding_incomplete`, `rider_dashboard_offline_blocked_payout_account_incomplete`, `rider_dashboard_offline_blocked_stale_location_fix`, `rider_dashboard_offline_blocked_three_reasons`, `rider_dashboard_on_delivery_dropoff`, `rider_dashboard_on_delivery_pickup`, `rider_dashboard_online_idle`, `rider_dashboard_online_stale`, `rider_dashboard_tracking_degraded`, `rider_dashboard_tracking_lost`, `rider_dashboard_zero_earnings` |
 | `getRiderEarningsSummary` | `earnings_summary_week` | `earnings_summary_day`, `earnings_summary_month`, `earnings_summary_negative_balance`, `earnings_summary_zero` |
 | `getRiderMe` | `rider_me` | `rider_me_suspended` |
 | `getRiderOnboardingStatus` | `rider_onboarding_active` | `rider_onboarding_documents_approved`, `rider_onboarding_documents_pending`, `rider_onboarding_documents_rejected`, `rider_onboarding_documents_review`, `rider_onboarding_payout_pending`, `rider_onboarding_phone_verified`, `rider_onboarding_profile_pending`, `rider_onboarding_registered`, `rider_onboarding_vehicle_pending` |
@@ -1163,7 +1168,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `getSmsSenderStatus` | `sms_sender_passed` | `sms_sender_failed`, `sms_sender_not_checked` |
 | `issueRefund` | `refund_goodwill_admin` | `error_refund_already_requested_fees`, `error_refund_already_requested_items`, `error_refund_conflict`, `error_refund_daily_cap`, `error_refund_exceeds_captured`, `error_refund_goodwill_exceeds`, `error_refund_mfa_required`, `error_refund_not_refundable`, `error_refund_self_approval_forbidden`, `refund_approval_request_pending`, `refund_approved`, `refund_authorised`, `refund_cancelled`, `refund_declined`, `refund_failed`, `refund_pending_approval`, `refund_requested`, `refund_settled`, `refund_submitted`, `refund_submitted_no_split`, `refund_succeeded` |
 | `joinWaitlist` | `waitlist_joined` | `error_waitlist_consent_missing`, `error_waitlist_invalid_contact`, `error_waitlist_rate_limited`, `waitlist_joined_again`, `waitlist_joined_as_restaurant` |
-| `listAddresses` | `addresses_list` | `addresses_empty` |
+| `listAddresses` | `addresses_list` | `addresses_cottage`, `addresses_empty` |
 | `listChargebacks` | `chargeback_list` | `chargeback_list_empty` |
 | `listHalalIssuingBodies` | `halal_issuing_body_accepted` | `halal_issuing_bodies_empty`, `halal_issuing_bodies_every_status`, `halal_issuing_bodies_seed`, `halal_issuing_body_proposed`, `halal_issuing_body_rejected`, `halal_issuing_body_retired`, `halal_issuing_body_suspended` |
 | `listMenuReviewQueue` | `menu_review_queue` | `menu_review_queue_empty`, `menu_version_approved`, `menu_version_draft`, `menu_version_pending_review`, `menu_version_rejected`, `menu_version_superseded`, `menu_version_withdrawn` |

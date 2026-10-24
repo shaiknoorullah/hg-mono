@@ -1766,12 +1766,36 @@ def _auth_and_config(reg, synth) -> None:
         "array<Address>",
         "Three saved addresses, one default, one with no unit or buzzer.",
         [
-            {**_address_fixture(0, True)},
+            _board_home_address(),
             {**_address_fixture(1, False)},
             {**_address_fixture(2, False), "unit": None, "buzzer": None, "delivery_notes": None, "label": None},
         ],
         operations=["listAddresses", "createAddress", "getAddress", "updateAddress", "setDefaultAddress"],
         tags=["platform"],
+    )
+
+    reg.add(
+        "addresses_cottage",
+        "platform",
+        "array<Address>",
+        "One saved address, the default, a cottage outside the delivery area: the Home board's "
+        "\"nothing in range\" address.",
+        [
+            _address_fixture(3, True)
+            | {
+                "label": "Cottage",
+                "line1": "88 Lakeshore Rd",
+                "unit": None,
+                "buzzer": None,
+                "city": "Port Perry",
+                "postal_code": "L9L 1A5",
+                "latitude": 44.1049,
+                "longitude": -78.9431,
+                "delivery_notes": None,
+            }
+        ],
+        operations=["listAddresses"],
+        tags=["platform", "edge"],
     )
 
     reg.add(
@@ -1795,7 +1819,7 @@ def _auth_and_config(reg, synth) -> None:
         {
             **synth.make("CustomerProfile", "customer-profile"),
             # The default address in `addresses_list` (issue #720: it matched none).
-            "default_address_id": _address_fixture(0, True)["id"],
+            "default_address_id": _board_home_address()["id"],
         },
         operations=["getCustomerProfile", "updateCustomerProfile"],
         tags=["platform"],
@@ -1830,6 +1854,18 @@ def _auth_and_config(reg, synth) -> None:
         operations=["getConnectStatus"],
         tags=["platform", "money", "error-path"],
     )
+
+
+def _board_home_address() -> dict:
+    """The customer's default address as the boards write it: "Home · 14 Ellesmere Rd", unit 402."""
+    return _address_fixture(0, True) | {
+        "line1": "14 Ellesmere Rd",
+        "unit": "Unit 402",
+        "buzzer": "402",
+        "postal_code": "M1R 4E7",
+        "latitude": 43.7261,
+        "longitude": -79.2974,
+    }
 
 
 def _address_fixture(index: int, is_default: bool) -> dict:

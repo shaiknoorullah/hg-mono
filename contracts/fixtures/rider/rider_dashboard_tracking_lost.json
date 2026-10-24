@@ -15,10 +15,10 @@
   "payload": {
     "mode": "ONLINE_IDLE",
     "today": {
-      "gross_cents": 4296,
+      "gross_cents": 4280,
       "currency": "CAD",
-      "trips": 3,
-      "online_seconds": 8040
+      "trips": 7,
+      "online_seconds": 11520
     },
     "active_assignment": null,
     "current_offer": null,

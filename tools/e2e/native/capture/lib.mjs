@@ -53,7 +53,7 @@ export function parseManifest(text, app) {
     const at = `boards/${app}.json entry ${i}${typeof e?.board === 'string' ? ` (${e.board})` : ''}`;
     const bad = (why) => problems.push(`${at}: ${why}`);
     if (e === null || typeof e !== 'object' || Array.isArray(e)) return bad('is not an object');
-    const unknown = Object.keys(e).filter((k) => !['board', 'route', 'params', 'scenario', 'clock', 'device', 'volatile', 'note'].includes(k));
+    const unknown = Object.keys(e).filter((k) => !['board', 'route', 'params', 'scenario', 'clock', 'hold', 'device', 'volatile', 'note'].includes(k));
     if (unknown.length) bad(`has unknown ${unknown.length === 1 ? 'key' : 'keys'} ${unknown.map((k) => `"${k}"`).join(', ')}`);
     if (typeof e.board !== 'string' || !BOARD.test(e.board)) bad('"board" must be "<area>/<Board>"');
     if (typeof e.route !== 'string' || !/^[A-Za-z][A-Za-z0-9]*$/.test(e.route)) bad('"route" must be the name of a route');
@@ -63,6 +63,8 @@ export function parseManifest(text, app) {
       if (why) bad(why);
     }
     if (e.clock !== undefined && (typeof e.clock !== 'string' || Number.isNaN(Date.parse(e.clock)))) bad('"clock" must be an ISO date');
+    if (e.hold !== undefined && e.hold !== true) bad('"hold" must be true, and needs a "clock" to hold at');
+    if (e.hold === true && e.clock === undefined) bad('"hold" needs a "clock" to hold at');
     const device = parseDevice(e.device);
     if (!device.ok) bad(device.why);
     if (e.volatile !== undefined) {
@@ -131,6 +133,7 @@ export function captureUrl(app, entry) {
   if (entry.params && Object.keys(entry.params).length) query.set('params', JSON.stringify(entry.params));
   if (entry.scenario) query.set('scenario', entry.scenario);
   if (entry.clock) query.set('clock', entry.clock);
+  if (entry.hold) query.set('hold', '1');
   return `${APPS[app].scheme}://__capture?${query.toString()}`;
 }
 

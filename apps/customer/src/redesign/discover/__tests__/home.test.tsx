@@ -81,13 +81,13 @@ describe('Home (D1)', () => {
   it('shows the address, both rows and the list, populated', async () => {
     await renderHome();
     expect(await screen.findByTestId('Home-list')).toBeTruthy();
-    expect(screen.getByText('Home · 88 Harbour Street')).toBeTruthy();
+    expect(screen.getByText('Home · 14 Ellesmere Rd')).toBeTruthy();
     expect(screen.getByText('Deliver to')).toBeTruthy();
     expect(screen.getByText('Open now, closest first')).toBeTruthy();
     expect(screen.getByText('Quickest delivery')).toBeTruthy();
     expect(screen.getByText('All restaurants')).toBeTruthy();
     expect(screen.getByText('How we check halal certificates')).toBeTruthy();
-    expect(screen.getByLabelText('Change delivery address, now 88 Harbour Street')).toBeTruthy();
+    expect(screen.getByLabelText('Change delivery address, now 14 Ellesmere Rd')).toBeTruthy();
     // No cart bar for an empty cart; no order strip with no active order.
     expect(screen.queryByTestId('Home-cartBar')).toBeNull();
     expect(screen.queryByTestId('Home-activeOrder')).toBeNull();
@@ -211,7 +211,7 @@ describe('Home (D1)', () => {
 
   it('says when nothing delivers to the address, and offers another', async () => {
     await renderHome({ listRestaurants: 'restaurant_list_empty' });
-    expect(await screen.findByText('No restaurants deliver to 88 Harbour Street yet')).toBeTruthy();
+    expect(await screen.findByText('No restaurants deliver to 14 Ellesmere Rd yet')).toBeTruthy();
     expect(screen.getByText("We're adding certified restaurants across Ontario one area at a time.")).toBeTruthy();
     fireEvent.press(screen.getByText('Try a different address'));
     expect(await screen.findByTestId('Switcher')).toBeTruthy();
@@ -295,7 +295,7 @@ describe('Home (D1)', () => {
     await screen.findByTestId('Home-list');
     const title = screen.getByTestId('Home-title');
     expect(title.props.accessibilityRole).toBe('header');
-    expect(screen.getAllByRole('header').map((h) => h.props.children)).toContain('Home · 88 Harbour Street');
+    expect(screen.getAllByRole('header').map((h) => h.props.children)).toContain('Home · 14 Ellesmere Rd');
     expect(focus.targets()).toEqual(['Home-title']);
   });
 
@@ -304,7 +304,7 @@ describe('Home (D1)', () => {
     await screen.findByTestId('Home-list');
     const change = screen.getByTestId('Home-changeAddress');
     expect(within(change).getByText('Change')).toBeTruthy();
-    expect(change.props.accessibilityLabel).toBe('Change delivery address, now 88 Harbour Street');
+    expect(change.props.accessibilityLabel).toBe('Change delivery address, now 14 Ellesmere Rd');
   });
 
   it('with no address and nothing listed: the address prompt first, then the board description, no invented title', async () => {
@@ -337,7 +337,7 @@ describe('Home (D1)', () => {
     });
     expect(await screen.findByText('Refreshing restaurants…')).toBeTruthy();
 
-    fireEvent.press(screen.getByLabelText('Change delivery address, now 88 Harbour Street'));
+    fireEvent.press(screen.getByLabelText('Change delivery address, now 14 Ellesmere Rd'));
     fireEvent.press(await screen.findByText('Work · 35 Fontenay Court'));
     expect(await screen.findByText('Delivering to Work')).toBeTruthy();
     expect(screen.getByTestId('Home-title').props.children).toBe('Work · 35 Fontenay Court');
@@ -357,7 +357,7 @@ describe('Home (D1)', () => {
     setToken('access', 'hgrt_refresh');
     await renderHome();
     await screen.findByTestId('Home-list');
-    fireEvent.press(screen.getByLabelText('Change delivery address, now 88 Harbour Street'));
+    fireEvent.press(screen.getByLabelText('Change delivery address, now 14 Ellesmere Rd'));
     fireEvent.press(await screen.findByText('Work · 35 Fontenay Court'));
     expect(await screen.findByText('Delivering to Work')).toBeTruthy();
     expect(getChosenAddressId()).toBe(work.id);
@@ -385,15 +385,15 @@ describe('Home (D1)', () => {
 describe('the address switcher (D2)', () => {
   async function openSwitcher() {
     await screen.findByTestId('Home-list');
-    fireEvent.press(screen.getByLabelText('Change delivery address, now 88 Harbour Street'));
+    fireEvent.press(screen.getByLabelText('Change delivery address, now 14 Ellesmere Rd'));
     return screen.findByTestId('Switcher');
   }
 
   it('lists saved addresses and switches for this session only, never the default', async () => {
     await renderHome();
     await openSwitcher();
-    expect(await screen.findByText('Home (default) · 88 Harbour Street')).toBeTruthy();
-    expect(screen.getByText('Unit 4211, Toronto, ON M5J 0C3')).toBeTruthy();
+    expect(await screen.findByText('Home (default) · 14 Ellesmere Rd')).toBeTruthy();
+    expect(screen.getByText('Unit 402, Toronto, ON M1R 4E7')).toBeTruthy();
     expect(
       screen.getByText('This changes where we deliver and which restaurants you see. Your default address stays the same.'),
     ).toBeTruthy();
@@ -417,15 +417,15 @@ describe('the address switcher (D2)', () => {
     const focus = focusSpy();
     // Home's own arrival focus can flush late in the test renderer; count from here.
     const start = focus.targets().length;
-    fireEvent.press(screen.getByLabelText('Change delivery address, now 88 Harbour Street'));
-    await screen.findByText('Home (default) · 88 Harbour Street');
+    fireEvent.press(screen.getByLabelText('Change delivery address, now 14 Ellesmere Rd'));
+    await screen.findByText('Home (default) · 14 Ellesmere Rd');
     // The selected option's slot takes focus, and it holds the checked radio.
     await waitFor(() => expect(focus.targets().slice(start)).toEqual([`Switcher-slot-${home.id}`]));
     const slot = screen.getByTestId(`Switcher-slot-${home.id}`);
     expect(within(slot).getByTestId(`Switcher-option-${home.id}`).props.accessibilityState).toMatchObject({ checked: true });
 
     // Picking the address already chosen closes the sheet; focus goes back to Change.
-    fireEvent.press(screen.getByText('Home (default) · 88 Harbour Street'));
+    fireEvent.press(screen.getByText('Home (default) · 14 Ellesmere Rd'));
     await waitFor(() => expect(screen.queryByTestId('Switcher')).toBeNull());
     expect(focus.targets().slice(start)).toEqual([`Switcher-slot-${home.id}`, 'Home-changeAddress']);
   });
@@ -438,7 +438,7 @@ describe('the address switcher (D2)', () => {
     fireEvent.press(screen.getByText('Work · 35 Fontenay Court'));
     expect(await screen.findByText("We couldn't switch to Work")).toBeTruthy();
     expect(
-      screen.getByText("You're still delivering to 88 Harbour Street. Check your connection and pick Work again."),
+      screen.getByText("You're still delivering to 14 Ellesmere Rd. Check your connection and pick Work again."),
     ).toBeTruthy();
     expect(getChosenAddressId()).toBeNull();
     expect(mock.callsTo('setDefaultAddress')).toHaveLength(0);
@@ -448,7 +448,7 @@ describe('the address switcher (D2)', () => {
     await renderHome();
     await screen.findByTestId('Home-list');
     mock.answer('listAddresses', 'hang');
-    fireEvent.press(screen.getByLabelText('Change delivery address, now 88 Harbour Street'));
+    fireEvent.press(screen.getByLabelText('Change delivery address, now 14 Ellesmere Rd'));
     expect(await screen.findByTestId('Switcher-loading')).toBeTruthy();
   });
 
@@ -456,9 +456,9 @@ describe('the address switcher (D2)', () => {
     await renderHome();
     await screen.findByTestId('Home-list');
     mock.answer('listAddresses', { status: 500, code: 'INTERNAL_ERROR' });
-    fireEvent.press(screen.getByLabelText('Change delivery address, now 88 Harbour Street'));
+    fireEvent.press(screen.getByLabelText('Change delivery address, now 14 Ellesmere Rd'));
     expect(await screen.findByText("We couldn't load your addresses")).toBeTruthy();
-    expect(screen.getByText("You're still delivering to 88 Harbour Street. Try again to see the others.")).toBeTruthy();
+    expect(screen.getByText("You're still delivering to 14 Ellesmere Rd. Try again to see the others.")).toBeTruthy();
   });
 
   it('with no saved address, invites one', async () => {

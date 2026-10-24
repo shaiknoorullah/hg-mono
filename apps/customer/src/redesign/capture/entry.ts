@@ -81,6 +81,7 @@ export interface CaptureRequest {
   route: Route;
   scenario: string | undefined;
   clock: string | undefined;
+  hold: boolean;
 }
 
 export type Parsed = { ok: true; request: CaptureRequest } | { ok: false; why: string };
@@ -105,7 +106,7 @@ export function parseCaptureUrl(url: string | null | undefined): Parsed | null {
   const missing = (REQUIRED[name as RouteName] ?? []).filter((key) => typeof read.params?.[key] !== 'string' || read.params[key] === '');
   if (missing.length > 0) return captureRefusal(board, `route "${name}" needs ${missing.map((m) => `\`${m}\``).join(', ')}`);
 
-  return { ok: true, request: { board, route: { name, ...read.params } as Route, scenario: read.scenario, clock: read.clock } };
+  return { ok: true, request: { board, route: { name, ...read.params } as Route, scenario: read.scenario, clock: read.clock, hold: read.hold } };
 }
 
 /**
@@ -121,10 +122,10 @@ export async function openCapture(url: string | null | undefined): Promise<Route
     console.warn(`[capture] nothing opened. ${parsed.why}`);
     return null;
   }
-  const { board, route, scenario, clock } = parsed.request;
+  const { board, route, scenario, clock, hold } = parsed.request;
 
   setMockScenario(scenario);
-  await adoptCaptureClock(API_BASE_URL, clock);
+  await adoptCaptureClock(API_BASE_URL, clock, hold);
   // Logged before any return below, signed-out routes included: the native capture runner
   // (tools/e2e/native/capture/run.mjs) reads this line from the phone's log to know the link was
   // acted on, and `nothing opened` above to know it was refused.
