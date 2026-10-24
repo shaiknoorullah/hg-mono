@@ -3,7 +3,9 @@
   "boards": [
     "admin/staff/AcceptInvalid",
     "restaurant/onboarding/Withdrawn",
+    "restaurant/sign-in/CheckEmail-Cooldown",
     "restaurant/sign-in/CheckEmail-Default",
+    "restaurant/sign-in/CheckEmail-Offline",
     "restaurant/sign-in/Forgot-Error",
     "restaurant/sign-in/Forgot-Password",
     "restaurant/sign-in/Forgot-Sent",
