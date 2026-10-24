@@ -248,7 +248,7 @@ export default function StaffRoute() {
             </div>
           ) : null}
 
-          <div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-line-decorative bg-surface-raised" id="staff-table">
+          <div className={`overflow-hidden rounded-lg border border-line-decorative bg-surface-raised ${load === 'error' ? 'shrink-0' : 'min-h-0 flex-1'}`} id="staff-table">
             <DataGrid<StaffUser>
               label={LIST.caption}
               columns={columns}

@@ -41,6 +41,11 @@ export interface SplitPane {
 
 export interface SplitPanesProps {
   panes: SplitPane[];
+  /**
+   * How the handle looks. `bar` (default): a 4px bar between the panes. `grip`: a 24px gap with a
+   * small bordered grip centred on its edge, as the system status board draws it.
+   */
+  handle?: 'bar' | 'grip';
   /** Called after a resize with the pane id and its new width. */
   onResize?: (id: string, size: number) => void;
   className?: string;
@@ -51,7 +56,7 @@ const STEP = 16;
 const BIG_STEP = 64;
 const STRIP = 48;
 
-export function SplitPanes({ panes, onResize, className, testId = 'SplitPanes' }: SplitPanesProps): React.JSX.Element {
+export function SplitPanes({ panes, handle = 'bar', onResize, className, testId = 'SplitPanes' }: SplitPanesProps): React.JSX.Element {
   const declaredFill = panes.findIndex((p) => p.fill);
   const resolvedFill = declaredFill >= 0 ? declaredFill : panes.length - 1;
   const [sizes, setSizes] = useState<Record<string, number>>(() =>
@@ -155,29 +160,45 @@ export function SplitPanes({ panes, onResize, className, testId = 'SplitPanes' }
             </div>
             {i < panes.length - 1 ? (
               c && value !== undefined && lim ? (
-                <div
-                  role="separator"
-                  tabIndex={0}
-                  aria-orientation="vertical"
-                  aria-label={`Resize ${c.pane.label}`}
-                  aria-controls={c.pane.id}
-                  aria-valuenow={value}
-                  aria-valuemin={lim.min}
-                  aria-valuemax={lim.max}
-                  data-testid={`${testId}-separator`}
-                  onKeyDown={onKey(i)}
-                  onPointerDown={onPointerDown(i)}
-                  onPointerMove={onPointerMove}
-                  onPointerUp={onPointerUp}
-                  onPointerCancel={onPointerUp}
-                  className={cx(
-                    'relative z-10 w-1 shrink-0 cursor-col-resize touch-none bg-line-decorative hover:bg-line-interactive',
-                    'after:absolute after:inset-y-0 after:-inset-x-5 after:content-[""]',
-                    FOCUS,
-                  )}
-                >
-                  <span aria-hidden="true" className="absolute top-1/2 left-1/2 h-8 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-line-strong" />
-                </div>
+                (() => {
+                  const props = {
+                    role: 'separator',
+                    tabIndex: 0,
+                    'aria-orientation': 'vertical' as const,
+                    'aria-label': `Resize ${c.pane.label}`,
+                    'aria-controls': c.pane.id,
+                    'aria-valuenow': value,
+                    'aria-valuemin': lim.min,
+                    'aria-valuemax': lim.max,
+                    'data-testid': `${testId}-separator`,
+                    onKeyDown: onKey(i),
+                    onPointerDown: onPointerDown(i),
+                    onPointerMove,
+                    onPointerUp,
+                    onPointerCancel: onPointerUp,
+                  };
+                  return handle === 'grip' ? (
+                    <div className="relative w-6 shrink-0">
+                      <div {...props} className={cx('absolute inset-y-0 -start-2.5 z-[5] flex w-11 cursor-col-resize touch-none items-center justify-center', FOCUS)}>
+                        <span aria-hidden="true" className="flex h-8 w-3.5 items-center justify-center gap-0.5 rounded-xs border border-line-interactive bg-surface-raised">
+                          <span className="h-3.5 w-px bg-fg-secondary" />
+                          <span className="h-3.5 w-px bg-fg-secondary" />
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      {...props}
+                      className={cx(
+                        'relative z-10 w-1 shrink-0 cursor-col-resize touch-none bg-line-decorative hover:bg-line-interactive',
+                        'after:absolute after:inset-y-0 after:-inset-x-5 after:content-[""]',
+                        FOCUS,
+                      )}
+                    >
+                      <span aria-hidden="true" className="absolute top-1/2 left-1/2 h-8 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-line-strong" />
+                    </div>
+                  );
+                })()
               ) : (
                 <div aria-hidden="true" className="w-px shrink-0 bg-line-decorative" />
               )

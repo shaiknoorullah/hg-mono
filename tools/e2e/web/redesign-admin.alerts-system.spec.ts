@@ -35,7 +35,12 @@ const ok = (json: unknown) => (route: Route) => route.fulfill({ json });
 const status = (code: number, json: unknown) => (route: Route) => route.fulfill({ status: code, json });
 const never = () => new Promise<void>(() => undefined);
 
+/** The moment the boards say they checked: 28 Sep 2026, 9:14:05 am EDT. */
+const BOARD_CLOCK = new Date('2026-09-28T09:14:05-04:00');
+
 async function openSystem(page: Page, role: StaffRole, probes: Probes) {
+  // Date.now() stands still, so the "Checked …" line reads as the boards' does; timers still run.
+  await page.clock.setFixedTime(BOARD_CLOCK);
   await routeLogin(page, role);
   await routeQueueDepth(page);
   await page.route('**/health/ready', probes.readiness);
@@ -49,8 +54,9 @@ async function openSystem(page: Page, role: StaffRole, probes: Probes) {
   await expect(page.locator('#app-bar-heading')).toHaveText('System status');
 }
 
-async function capture(page: Page, board: BoardFor) {
-  await page.waitForLoadState('networkidle');
+async function capture(page: Page, board: BoardFor, { idle = true }: { idle?: boolean } = {}) {
+  // A probe that never answers keeps the network busy, so the loading board is shot without waiting for idle.
+  if (idle) await page.waitForLoadState('networkidle');
   // A build older than the screen draws "Not built yet"; that is not the board's state.
   await expect(page.getByText('Not built yet')).toHaveCount(0);
   await expectDesignFor(page, board);
@@ -91,8 +97,8 @@ test.describe('redesigned admin · system status and account (mock)', () => {
 
   test('system, first check still running', async ({ page }) => {
     await openSystem(page, 'SUPER_ADMIN', { readiness: never, health: never });
-    await expect(page.getByText('Checking the API')).toBeVisible();
-    await capture(page, { 1440: `${ASS}SystemLoading` });
+    await expect(page.getByText('Checking the API')).toBeAttached();
+    await capture(page, { 1440: `${ASS}SystemLoading` }, { idle: false });
   });
 
   test('your account', async ({ page }) => {

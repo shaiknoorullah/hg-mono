@@ -59,7 +59,7 @@ export const SYSTEM = {
     title: 'The API answered but listed no dependencies',
     badge: 'Report incomplete',
     body: (at: string) =>
-      `The API answered but listed nothing it depends on, so we can’t tell if it’s ready. Call the platform on-call engineer and give them the time of the last check, ${at}.`,
+      `The API answered but listed nothing it depends on, so we can't tell if it's ready. Call the platform on-call engineer and give them the time of the last check, ${at}.`,
   },
   inconsistent: {
     title: "The readiness report doesn't add up",
@@ -110,6 +110,9 @@ export const SYSTEM = {
   columns: { name: 'Dependency', role: 'What it does', status: 'Status', detail: 'Message from the server' },
   badges: { ready: 'Ready', notReady: 'Not ready', notReported: 'Not reported', stale: 'Ready at last check' },
   none: 'None',
+  noDependencies: { title: 'No dependencies reported', body: 'This is a fault; see above.' },
+  checkingNow: 'Checking now',
+  noAnswerYet: 'No answer yet',
   // Under the table (`ASS/SystemHealthy`): what the launch page leaves out, and why.
   laterVersion:
     'Dependencies as connected, with the start-up checks, is a later version (owner decision, round 2). The launch page shows the readiness check above and nothing more.',

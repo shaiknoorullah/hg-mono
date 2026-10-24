@@ -17,7 +17,7 @@ function ReleaseSection({ release, fresh }: { release: Release; fresh: boolean }
   return (
     <section className="flex flex-col gap-2" data-testid="whats-new-release" data-version={release.version}>
       <div className="flex items-baseline gap-3">
-        <h3 className="text-heading-sm font-semibold text-fg-primary">
+        <h3 className="text-heading-sm font-semibold leading-normal text-fg-primary">
           {WHATS_NEW.version} <span className="font-mono">{release.version}</span>
         </h3>
         {fresh ? (
@@ -76,7 +76,7 @@ export function WhatsNewPanel({ layout }: { layout: 'side' | 'page' }) {
       <div className="flex flex-col gap-6">
         {current ? (
           <div className="flex flex-col gap-2">
-            <h3 className="text-heading-sm font-semibold text-fg-primary">{WHATS_NEW.upToDate}</h3>
+            <h3 className="text-heading-sm font-semibold leading-normal text-fg-primary">{WHATS_NEW.upToDate}</h3>
             <p className="text-body-md text-fg-secondary">{WHATS_NEW.upToDateBody(APP_VERSION)}</p>
           </div>
         ) : null}

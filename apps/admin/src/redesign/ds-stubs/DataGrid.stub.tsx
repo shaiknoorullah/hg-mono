@@ -183,11 +183,11 @@ export function DataGrid<Row>({
           <table id={gridId} role="grid" aria-labelledby={`${gridId}-caption`} aria-rowcount={rows.length + 1} className="w-full border-collapse text-[13px] leading-[19.5px]">
             <caption
               id={`${gridId}-caption`}
-              className={cx('text-start', showCaption ? 'border-b border-line-decorative px-3 py-3 text-label-lg font-semibold text-fg-primary' : 'sr-only')}
+              className={cx('text-start', showCaption ? 'border-b border-line-decorative px-3 py-3 text-label-lg font-semibold leading-[22.5px] text-fg-primary' : 'sr-only')}
             >
               {label}
             </caption>
-            <thead className="sticky top-0 z-10 bg-surface-sunken">
+            <thead className="sticky top-0 z-10">
               <tr role="row" aria-rowindex={1}>
                 {columns.map((col) => (
                   <th
@@ -208,7 +208,7 @@ export function DataGrid<Row>({
                   <td colSpan={columns.length} className="px-4 py-8 text-center">
                     <div role="alert" className="grid justify-items-center gap-3">
                       <span className="text-body-md text-fg-primary">{inTableError.message}</span>
-                      <span className="text-body-sm text-fg-secondary">{inTableError.detail}</span>
+                      <span className="text-body-sm leading-[19.5px] text-fg-secondary">{inTableError.detail}</span>
                       <Button variant="tertiary" iconStart="refresh" onPress={inTableError.onRetry}>
                         {inTableError.retryLabel ?? 'Retry'}
                       </Button>

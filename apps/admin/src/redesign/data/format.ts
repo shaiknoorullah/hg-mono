@@ -40,6 +40,14 @@ export function formatTimeWithSeconds(value: string | Date | null | undefined): 
   return `${p['hour']}:${p['minute']}:${p['second']} ${(p['dayPeriod'] ?? '').toLowerCase().replace(/\./g, '')}`;
 }
 
+/** "28 Sep 2026, 9:14:05 am EDT": when a check finished, to the second, with the zone. */
+export function formatCheckedAt(value: string | Date | null | undefined): string {
+  const d = parse(value);
+  if (!d) return '';
+  const p = parts(d, { day: 'numeric', month: 'short', year: 'numeric', timeZoneName: 'short' });
+  return `${p['day']} ${(p['month'] ?? '').replace('.', '')} ${p['year']}, ${formatTimeWithSeconds(d)} ${p['timeZoneName'] ?? ''}`.trim();
+}
+
 /** "26 Sep" (or "26 Sep 2025" when not this year). */
 export function formatShortDate(value: string | Date | null | undefined, now: Date = new Date()): string {
   const d = parse(value);
