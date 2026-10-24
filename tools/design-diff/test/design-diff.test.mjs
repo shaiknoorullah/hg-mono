@@ -817,3 +817,13 @@ test('the designers\' note prefixes include the settings boards\' "Mapping:" tag
   const prefixes = /const NOTE_PREFIXES = \[([\s\S]*?)\];/.exec(src)[1];
   assert.match(prefixes, /'Mapping'/);
 });
+
+test('a box under the bars the capture cuts off is the part that shows, not its whole height', () => {
+  const node = (text, bounds) => `<node index="0" text="${text}" resource-id="" class="android.widget.TextView" package="app" content-desc="" bounds="${bounds}"/>`;
+  // An edge-to-edge root, 0 to 2676 px, under a 72 px status bar and a 72 px navigation bar: 844 dp shows.
+  const xml = `<?xml version='1.0'?><hierarchy rotation="0"><node index="0" text="" resource-id="" class="android.widget.FrameLayout" package="app" content-desc="" bounds="[0,0][1170,2676]">${node('Hello', '[48,300][400,360]')}</node></hierarchy>`;
+  const s = snapshotFromHierarchy(xml, { density: 3, cut: { top: 72, bottom: 72 } });
+  assert.equal(s.h, 844);
+  const root = s.boxes.find((b) => b.key === 'Hello' && b.h > 100);
+  assert.deepEqual([root.y, root.h], [0, 844]);
+});
