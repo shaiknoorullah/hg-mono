@@ -125,11 +125,25 @@ export async function openSignedIn(page: Page, path: string): Promise<void> {
 }
 
 /**
+ * The live-orders boards sign in the owner "Karim Haddad" ("Account: Karim Haddad, owner"); the rest of
+ * the restaurant boards, and the mock's profile, say Samir. Mock mode only (the real API's owner is the
+ * seeded one); a test that stubs the profile itself passes `karim: false` to `openLive` and names Karim in its own.
+ */
+export async function ownerKarim(page: Page): Promise<void> {
+  if (MODE !== 'mock') return;
+  const profile = await scenarioPayload(page, 'restaurant_profile');
+  await page.route('**/v1/restaurant/profile', (route) =>
+    route.request().method() === 'GET' ? route.fulfill({ json: { data: { ...profile, owner_first_name: 'Karim' } } }) : route.fallback(),
+  );
+}
+
+/**
  * Opens a console page signed in and passes the go-live gate on /orders the way a person does
  * (one click: test chime, notifications, screen kept awake), so the board under it shows.
  */
-export async function openLive(page: Page, path: string): Promise<void> {
+export async function openLive(page: Page, path: string, { karim = true }: { karim?: boolean } = {}): Promise<void> {
   await page.context().grantPermissions(['notifications']);
+  if (karim) await ownerKarim(page);
   await openSignedIn(page, path);
   await page.getByRole('button', { name: 'Turn on sound and go live' }).click();
   await page.getByTestId('go-live-gate').waitFor({ state: 'detached' });

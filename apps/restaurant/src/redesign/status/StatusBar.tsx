@@ -13,8 +13,9 @@
  * The ringing link ("Ringing · 2 waiting") shows while orders wait, from the strip's count.
  */
 import { useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { ShellBadge, Button, HalalBadge, Icon, InlineConfirm, Menu, Switch, useToast } from '../ds';
+import { useLocation, useSearchParams } from 'react-router-dom';
+import { useNewOrders } from '../strip/NewOrdersProvider';
+import { ShellBadge, ShellSwitch, Button, HalalBadge, Icon, InlineConfirm, Menu, useToast } from '../ds';
 import type { DsIconName } from '@hg/ui-web/ds';
 import type { BadgeVariant, IconName } from '../ds';
 import { useConsole } from '../data/console';
@@ -22,6 +23,7 @@ import { useConnection, type ConnectionView } from '../data/connection';
 import { serverNow } from '../data/serverClock';
 import { formatTime } from '../format/time';
 import { useConsoleLayout } from '../shell/layout';
+import { boardBadge } from '../shell/boardBadge';
 import { useWaitingCount } from '../shell/waiting';
 import { useFirstLoadFailed, useStale } from '../shell/stale';
 import { openStateView } from './openState';
@@ -37,19 +39,21 @@ const PAUSE_CHOICES = [
 export interface HealthBadge {
   label: string;
   variant: BadgeVariant;
-  icon?: IconName;
+  icon?: IconName | DsIconName;
 }
 
 /** The screen-health badge (wp1 spec §6) for this screen's connection. */
-export function healthBadge(c: ConnectionView, firstLoadFailed: boolean, timeZone?: string): HealthBadge {
+export function healthBadge(c: ConnectionView, firstLoadFailed: boolean, timeZone?: string, soundGate = false): HealthBadge {
   if (c.kind === 'offline') {
     return { label: c.since ? `Offline since ${formatTime(c.since, timeZone)}` : 'Offline', variant: 'danger' };
   }
-  if (firstLoadFailed) return { label: 'Not connected', variant: 'danger' };
+  if (firstLoadFailed) return { label: 'Not connected', variant: 'danger', icon: 'error' };
   if (c.kind === 'reconnecting') {
     return { label: c.since ? `Reconnecting · since ${formatTime(c.since, timeZone)}` : 'Reconnecting', variant: 'warning' };
   }
   if (c.kind === 'connecting') return { label: 'Connecting…', variant: 'neutral' };
+  // Before the go-live gesture this screen cannot ring (LO `Board-gate`: "Sound off").
+  if (soundGate) return { label: 'Sound off', variant: 'warning', icon: 'warning' };
   return { label: 'Live', variant: 'neutral', icon: 'check' };
 }
 
@@ -72,7 +76,9 @@ export function StatusBar() {
   const view = pageLoadFailed
     ? openStateView(null, { status: 'error' })
     : openStateView(availability.data, { status: availability.status, halalBlocked: halal?.blocksOrdering });
-  const health = healthBadge(connection, availability.status === 'error' || pageLoadFailed, timezone);
+  const { gate } = useNewOrders();
+  const { pathname } = useLocation();
+  const health = healthBadge(connection, availability.status === 'error' || pageLoadFailed, timezone, gate !== 'passed' && pathname === '/orders');
   const healthOpen = params.get('panel') === 'health';
 
   const toggleHealth = () => {
@@ -139,9 +145,9 @@ export function StatusBar() {
         aria-expanded={healthOpen}
         aria-label={`Screen health: ${health.label}. Show details`}
         onClick={toggleHealth}
-        className="hg-focus inline-flex min-h-11 items-center gap-1 rounded-md"
+        className="hg-focus inline-flex min-h-11 items-center gap-1 rounded-md px-1"
       >
-        <ShellBadge size="lg" variant={health.variant} icon={health.icon as DsIconName | undefined} label={health.label} testId="health-badge" />
+        <ShellBadge size="lg" variant={health.variant} style={boardBadge(health.variant)} icon={health.icon as DsIconName | undefined} label={health.label} testId="health-badge" />
         <Icon name="back" size={16} className="rotate-180 text-fg-secondary" />
       </button>
 
@@ -153,12 +159,12 @@ export function StatusBar() {
           className="hg-focus inline-flex min-h-11 items-center gap-1 rounded-md px-1 text-fg-primary no-underline"
           data-testid="ringing-link"
         >
-          <ShellBadge size="lg" variant="brand" icon="bell" label={`Ringing · ${waiting} waiting`} testId="ringing-badge" />
+          <ShellBadge size="lg" variant="brand" style={boardBadge('brand')} icon="bell" label={`Ringing · ${waiting} waiting`} testId="ringing-badge" />
         </a>
       ) : null}
 
       {stale ? (
-        <ShellBadge size="lg" variant="warning" icon="clock" label={`Last updated ${formatTime(stale.lastOkAt, timezone)} · may be out of date`} testId="stale-badge" />
+        <ShellBadge size="lg" variant="warning" style={boardBadge('warning')} icon="clock" label={`Last updated ${formatTime(stale.lastOkAt, timezone)} · may be out of date`} testId="stale-badge" />
       ) : null}
 
       <span className="flex-1" aria-hidden="true" />
@@ -173,24 +179,25 @@ export function StatusBar() {
         </span>
       ) : null}
 
-      <span className="flex min-w-0 items-center gap-2">
-        <ShellBadge size="lg" variant={view.badge.variant} icon={view.badge.icon as DsIconName | undefined} label={view.badge.label} testId="open-state-badge" />
+      <span className="flex min-w-0 items-center gap-3.5">
+        <ShellBadge size="lg" variant={view.badge.variant} style={boardBadge(view.badge.variant)} icon={view.badge.icon as DsIconName | undefined} label={view.badge.label} testId="open-state-badge" />
         {view.reason ? (
-          <span className="max-w-[150px] truncate text-[15px] text-fg-secondary xl:max-w-[240px]" title={view.reason} data-testid="open-state-reason">
+          <span className="max-w-[150px] text-[15px] text-fg-secondary xl:max-w-[240px]" title={view.reason} data-testid="open-state-reason">
             {view.reason}
           </span>
         ) : null}
       </span>
 
-      <Switch
-        className="min-w-0 max-w-[280px] md:min-w-[240px]"
+      <ShellSwitch
+        style={{ minWidth: 0, maxWidth: '100%' }}
         label="Orders"
         checked={view.orders.checked}
         stateLabel={view.orders.stateLabel}
         description={switchHelp ?? undefined}
         disabled={view.orders.disabled}
         loading={pending === 'on' || pending === 'off'}
-        onChange={(next) => (next ? void turnOn() : askTurnOff())}
+        onCheckedChange={(next) => (next ? void turnOn() : askTurnOff())}
+        testId="orders-switch"
       />
 
       {view.pause === 'resume' ? (
