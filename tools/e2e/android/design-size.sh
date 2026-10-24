@@ -64,6 +64,13 @@ measure_bars() {
 }
 
 adb wait-for-device
+# Pin the bars. The Pixel 6 profile has a camera cutout (a 139 px status bar when it applies, 72 px when
+# not) and either navigation mode (72 px gesture bar, 144 px three buttons), and which one the system UI
+# reported varied from run to run and within a run (139 + 72, 72 + 72, 72 + 144, 63 + 0 before it had
+# laid out), so no size computed from a reading held. No cutout and gesture navigation are 72 + 72 px.
+adb shell cmd overlay enable com.android.internal.display.cutout.emulation.none >/dev/null 2>&1 || echo "design-size: could not turn the cutout off" >&2
+adb shell cmd overlay enable com.android.internal.systemui.navbar.gestural >/dev/null 2>&1 || echo "design-size: could not select gesture navigation" >&2
+sleep 3
 adb shell wm size "$size"
 adb shell wm density "$density"
 # The system restarts its UI to apply these; give it a moment before reading back.
