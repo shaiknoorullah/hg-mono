@@ -110,4 +110,7 @@ export const SYSTEM = {
   columns: { name: 'Dependency', role: 'What it does', status: 'Status', detail: 'Message from the server' },
   badges: { ready: 'Ready', notReady: 'Not ready', notReported: 'Not reported', stale: 'Ready at last check' },
   none: 'None',
+  // Under the table (`ASS/SystemHealthy`): what the launch page leaves out, and why.
+  laterVersion:
+    'Dependencies as connected, with the start-up checks, is a later version (owner decision, round 2). The launch page shows the readiness check above and nothing more.',
 } as const;

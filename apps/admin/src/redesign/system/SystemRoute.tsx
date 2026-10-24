@@ -66,10 +66,9 @@ function OnCallActions({ withRunbook = true }: { withRunbook?: boolean }) {
 function VersionLine({ reading }: { reading: Reading }) {
   if (reading.health.kind !== 'ok') return null;
   return (
-    <p className="m-0 text-body-md text-fg-secondary">
+    <p className="m-0 text-body-md leading-normal text-fg-secondary">
       API version <span className="font-mono text-fg-primary">{reading.health.version}</span>
-      {' · running since '}
-      <time dateTime={reading.health.startedAt}>{formatDateTimeWithYear(reading.health.startedAt)}</time>
+      <time dateTime={reading.health.startedAt}>{` · running since ${formatDateTimeWithYear(reading.health.startedAt)}`}</time>
     </p>
   );
 }
@@ -224,33 +223,37 @@ function StatusPane({ state, reading, role, online }: { state: StatusState; read
     );
   }
 
-  // ready
+  // ready: the heading, the badge and the Check again button share the card's row (`ASS/SystemHealthy`).
   return (
-    <section aria-label="API status" className="flex flex-col gap-3">
+    <section aria-label="API status" className="flex flex-col gap-4">
       <div className={CARD}>
-        <Heading>{SYSTEM.ready.title}</Heading>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <Badge variant="outline" icon="check">
-            {SYSTEM.ready.badge}
-          </Badge>
-        </div>
-        {state.recovered ? (
-          <p className="m-0 mt-3 text-body-md text-fg-primary">{SYSTEM.recovered(formatTimeWithSeconds(state.recovered.at), formatTimeWithSeconds(state.recovered.from))}</p>
-        ) : null}
-        <div className="mt-3 flex flex-col gap-1">
-          {versionKnown ? <VersionLine reading={reading} /> : <p className="m-0 text-body-md text-fg-primary">{SYSTEM.versionUnknown.body}</p>}
-          {!versionKnown ? <p className="m-0 text-body-md text-fg-secondary">{SYSTEM.versionUnknown.escalate(at)}</p> : null}
-          <p className="m-0 text-body-md text-fg-secondary">{SYSTEM.replicaNote}</p>
-        </div>
-        {state.checking ? (
-          <p role="status" className="m-0 mt-3 text-body-sm text-fg-secondary">
-            {SYSTEM.checking}
-          </p>
-        ) : null}
-        <span className="mt-3 flex flex-wrap gap-2">
-          {!versionKnown ? <OnCallActions /> : null}
+        <div className="flex items-center gap-6">
+          <div className="flex min-w-0 grow flex-col gap-1.5">
+            <div className="flex flex-wrap items-center gap-3">
+              <Heading>{SYSTEM.ready.title}</Heading>
+              <Badge variant="outline" icon="check">
+                {SYSTEM.ready.badge}
+              </Badge>
+            </div>
+            {state.recovered ? (
+              <p className="m-0 text-body-md text-fg-primary">{SYSTEM.recovered(formatTimeWithSeconds(state.recovered.at), formatTimeWithSeconds(state.recovered.from))}</p>
+            ) : null}
+            {versionKnown ? <VersionLine reading={reading} /> : <p className="m-0 text-body-md text-fg-primary">{SYSTEM.versionUnknown.body}</p>}
+            {!versionKnown ? <p className="m-0 text-body-md text-fg-secondary">{SYSTEM.versionUnknown.escalate(at)}</p> : null}
+            <p className="m-0 text-body-md text-fg-secondary">{SYSTEM.replicaNote}</p>
+            {state.checking ? (
+              <p role="status" className="m-0 text-body-sm text-fg-secondary">
+                {SYSTEM.checking}
+              </p>
+            ) : null}
+            {!versionKnown ? (
+              <span className="mt-1 flex flex-wrap gap-2">
+                <OnCallActions />
+              </span>
+            ) : null}
+          </div>
           <RecheckButton checking={state.checking} online={online} />
-        </span>
+        </div>
       </div>
     </section>
   );
@@ -352,7 +355,7 @@ export default function SystemRoute() {
   // First check still running: skeletons, and the table in its loading state.
   if (!reading) {
     return (
-      <section aria-label="System status" className="flex min-h-0 flex-1 flex-col gap-3 p-3">
+      <section aria-label="System status" className="flex min-h-0 flex-1 flex-col gap-4 px-6 py-5">
         {online ? (
           <Skeleton variant="lines" count={4} label={SYSTEM.loading} />
         ) : (
@@ -395,7 +398,7 @@ export default function SystemRoute() {
   );
 
   return (
-    <section aria-label="System status" className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto p-3">
+    <section aria-label="System status" className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto px-6 py-5">
       {announce}
       <SmsNotice state={state} />
       {admin ? (
@@ -406,7 +409,12 @@ export default function SystemRoute() {
               id: 'system-deps-pane',
               label: 'what the API needs',
               fill: true,
-              content: <DependencyTable shown={tableReading} stale={stale} />,
+              content: (
+                <div className="flex flex-col gap-4">
+                  <DependencyTable shown={tableReading} stale={stale} />
+                  <p className="m-0 border-t border-line-decorative pt-2 text-body-sm leading-[1.45] text-fg-secondary">{SYSTEM.laterVersion}</p>
+                </div>
+              ),
             },
           ]}
         />

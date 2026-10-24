@@ -58,6 +58,8 @@ export interface SideNavGroup {
   key: string;
   /** Group heading ("Review", "Operate"); hidden visually in the rail, kept for AT. */
   heading?: string;
+  /** Lighter second run after the heading ("· view only"); read with the heading as one name. */
+  headingNote?: string;
   items: SideNavItem[];
 }
 
@@ -146,10 +148,11 @@ function CountBadges({ item, rail }: { item: SideNavItem; rail: boolean }) {
   );
 }
 
-function GroupHeading({ id, text, hidden }: { id: string; text: string; hidden: boolean }) {
+function GroupHeading({ id, text, note, hidden }: { id: string; text: string; note?: string; hidden: boolean }) {
   return (
     <h2 id={id} className={cx('m-0 px-3 pb-1 text-body-sm font-bold leading-normal tracking-[0.02em] text-fg-on-accent', hidden && 'sr-only')}>
       {text}
+      {note ? <span className="font-normal">{` · ${note}`}</span> : null}
     </h2>
   );
 }
@@ -234,7 +237,7 @@ export function SideNav({
           const headingId = `${listId}-${group.key}`;
           return (
             <div key={group.key} role="group" aria-labelledby={group.heading ? headingId : undefined} className={cx('flex flex-col gap-0.5', collapsed && 'items-center gap-1')}>
-              {group.heading ? <GroupHeading id={headingId} text={group.heading} hidden={collapsed} /> : null}
+              {group.heading ? <GroupHeading id={headingId} text={group.heading} note={group.headingNote} hidden={collapsed} /> : null}
               <ul className={cx('m-0 flex list-none flex-col gap-0.5 p-0', collapsed && 'items-center gap-1')}>
                 {group.items.map((item) => {
                   const current = Boolean(item.current);

@@ -139,7 +139,7 @@ describe('navigation per role (manifest §1.1)', () => {
     expect(names).not.toContain('Staff');
     expect(names).toContain('Halal certificates');
     expect(names).toContain('Issuing bodies');
-    expect(within(nav()).getByText('Review · view only')).toBeTruthy();
+    expect(within(nav()).getByRole('heading', { name: 'Review · view only' })).toBeTruthy();
     expect(within(nav()).getByText('Support agent')).toBeTruthy();
   });
 
