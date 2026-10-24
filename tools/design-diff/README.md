@@ -422,8 +422,8 @@ none was available when this was written. Run one flow on the design AVD and rea
 trusting a number: that run is [#966](https://github.com/shaiknoorullah/hg-mono/issues/966). Which
 emulator takes design captures at all is [#963](https://github.com/shaiknoorullah/hg-mono/issues/963)
 — the boards are 390 dp and the emulator the pull-request flows use is a Pixel 6 profile at 411 dp,
-so a capture taken there was never compared. The `e2e-full` run now sets that emulator to 1170 x 2758 px at 480 dpi (844 dp of
-content plus the 154 px and 72 px bars it measures) before the flows (`tools/e2e/android/design-size.sh`)
+so a capture taken there was never compared. The `e2e-full` run now sets that emulator to 1170 x 2676 px at 480 dpi (844 dp of
+content plus the 72 px and 72 px bars it measures) before the flows (`tools/e2e/android/design-size.sh`)
 and prints the measured size. The screen must be taller than the board by the bars: at exactly 844 dp the
-app's window is 75 dp shorter than its board and every footer, primary button and tab bar a board pins to
-its bottom sits 75 dp too high.
+app's window is 48 dp shorter than its board and every footer, primary button and tab bar a board pins to
+its bottom sits 48 dp too high.

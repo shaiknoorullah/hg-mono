@@ -354,10 +354,10 @@ board by that name, and judges it (a web capture pixel by pixel, a native one by
   ([#1030](https://github.com/shaiknoorullah/hg-mono/issues/1030)).
   What let any of them run in CI was measuring the width: the CI emulator is a
   Pixel 6 profile, 411 dp wide, and a native capture of another width than its board is not compared, so
-  [`android/design-size.sh`](android/design-size.sh) sets it to 1170 x 2758 px at 480 dpi (390 dp wide at 3x, 844 dp of content plus the bars, the
+  [`android/design-size.sh`](android/design-size.sh) sets it to 1170 x 2676 px at 480 dpi (390 dp wide at 3x, 844 dp of content plus the bars, the
   device-lab AVD) before `run.sh` and fails the job unless it reads back. The `design-size:` line in the `flows` job's
   log is the measured size, and it read `390.00 x 844.00 dp` from
-  [#1024](https://github.com/shaiknoorullah/hg-mono/pull/1024) and reads `390.00 x 919.33 dp` now (the 844 dp the app's window has, plus the bars the diff cuts). Trust a native capture's verdict only when that line does. The same step then records the emulator's measured status and navigation bars in `insets.json` ([`android/measure-insets.sh`](android/measure-insets.sh)), which the `design-diff` job uses to cut them from each capture before comparing the customer and rider captures with their boards (`design-diff-native` in the `design-diff` artifact; [design-diff README](../design-diff/README.md)).
+  [#1024](https://github.com/shaiknoorullah/hg-mono/pull/1024) and reads `390.00 x 892.00 dp` now (the 844 dp the app's window has, plus the bars the diff cuts). Trust a native capture's verdict only when that line does. The same step then records the emulator's measured status and navigation bars in `insets.json` ([`android/measure-insets.sh`](android/measure-insets.sh)), which the `design-diff` job uses to cut them from each capture before comparing the customer and rider captures with their boards (`design-diff-native` in the `design-diff` artifact; [design-diff README](../design-diff/README.md)).
   A capture's `uiautomator dump` is killed every time — the device reports `Killed` and `rc=137`,
   which is SIGKILL — so **every native capture has no hierarchy and no native board has ever been
   measured** ([#1026](https://github.com/shaiknoorullah/hg-mono/issues/1026)). `rc=137` names the
