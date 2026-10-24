@@ -228,7 +228,7 @@ describe('D5 restaurant page: availability states', () => {
     expect(within(banner).getByText('Too far to deliver to Home')).toBeTruthy();
     expect(
       within(banner).getByText(
-        "88 Harbour Street is outside this restaurant's delivery area. Choose another address to order.",
+        "14 Ellesmere Rd is outside this restaurant's delivery area. Choose another address to order.",
       ),
     ).toBeTruthy();
     fireEvent.press(within(banner).getByText('Change address'));

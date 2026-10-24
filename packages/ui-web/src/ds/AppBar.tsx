@@ -154,8 +154,11 @@ export function AppBar({
                 tabIndex={titleIsPageHeading ? -1 : undefined}
                 data-testid={`${testId}-title`}
                 className={cn(
-                  'm-0 truncate font-semibold leading-normal outline-none',
+                  'm-0 truncate font-semibold outline-none',
                   large ? 'text-heading-xl' : 'text-heading-md',
+                  // The chrome bar's title is drawn 18/27 (1.5) on the boards. The leading comes after the
+                  // size class: the class merge drops a leading that precedes a size (it would be overridden).
+                  tone === 'chrome' && 'leading-[1.5]',
                 )}
               >
                 {title}

@@ -44,7 +44,7 @@
   {
     "board": "shift-offers/HomeBlocked",
     "route": "home",
-    "scenario": "getRiderDashboard=rider_dashboard_offline_blocked",
+    "scenario": "getRiderDashboard=rider_dashboard_offline_blocked_three_reasons",
     "device": "dark-390-100"
   },
   {
@@ -62,42 +62,49 @@
   {
     "board": "shift-offers/SuspendedMidShift",
     "route": "home",
-    "scenario": "getRiderDashboard=rider_dashboard_offline_blocked_account_not_active",
+    "scenario": "getRiderDashboard=rider_dashboard_offline_blocked_account_not_active,getPublicConfig=public_config_board_support",
     "device": "dark-390-100"
   },
   {
     "board": "shift-offers/HomeTodayEmpty",
     "route": "home",
-    "scenario": "getRiderDashboard=rider_dashboard_zero_earnings",
+    "scenario": "getRiderDashboard=rider_dashboard_zero_earnings,getCurrentOffer=offer_none",
     "device": "dark-390-100"
   },
   {
     "board": "shift-offers/HomeStale",
     "route": "home",
-    "scenario": "getRiderDashboard=rider_dashboard_online_stale",
+    "scenario": "getRiderDashboard=rider_dashboard_online_stale,getCurrentOffer=offer_none",
     "device": "dark-390-100"
   },
   {
     "board": "shift-offers/HomeDegraded",
     "route": "home",
-    "scenario": "getRiderDashboard=rider_dashboard_tracking_degraded",
+    "scenario": "getRiderDashboard=rider_dashboard_tracking_degraded,getCurrentOffer=offer_none",
     "device": "dark-390-100"
   },
   {
     "board": "shift-offers/HomeLost",
     "route": "home",
-    "scenario": "getRiderDashboard=rider_dashboard_tracking_lost",
+    "scenario": "getRiderDashboard=rider_dashboard_tracking_lost,getCurrentOffer=offer_none",
     "device": "dark-390-100"
   },
   {
     "board": "shift-offers/OfferTipHidden",
     "route": "home",
-    "scenario": "getRiderDashboard=rider_dashboard_online_idle,getCurrentOffer=offer_zero_tip_low_value",
+    "scenario": "getRiderDashboard=rider_dashboard_online_idle,getCurrentOffer=offer_pending_tip_hidden",
+    "clock": "2026-08-10T18:42:11.412Z",
+    "hold": true,
     "device": "dark-390-100",
-    "volatile": [
-      "^\\d+:\\d{2}$",
-      "^\\d+ seconds"
-    ],
-    "note": "A live offer counts down, so the countdown numeral and its spoken label are blanked when deciding the screen has settled."
+    "note": "The clock is held at the offer's server_time, so the countdown reads the board's 0:24 whenever the screenshot is taken."
+  },
+  {
+    "board": "shift-offers/OfferLive",
+    "route": "home",
+    "scenario": "getRiderDashboard=rider_dashboard_online_idle,getCurrentOffer=offer_pending_with_tip",
+    "clock": "2026-08-10T18:42:11.412Z",
+    "hold": true,
+    "device": "dark-390-100",
+    "note": "The clock is held at the offer's server_time, so the countdown reads the board's 0:24 whenever the screenshot is taken."
   }
 ]

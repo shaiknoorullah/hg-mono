@@ -92,6 +92,16 @@ def _dispatch(reg, synth) -> None:
         )
 
 
+def _board_rider(me: dict) -> dict:
+    """The rider the boards draw: Yusuf Ahmed, +1 416 555 0134, a grey 2021 Honda PCX 125 scooter."""
+    me.update({"first_name": "Yusuf", "last_name": "Ahmed", "phone_e164": "+14165550134"})
+    me["vehicle"].update(
+        {"vehicle_type": "SCOOTER", "make": "Honda", "model": "PCX 125", "year": 2021, "colour": "Grey",
+         "licence_plate": "CJRA 204"}
+    )
+    return me
+
+
 def _offer(label: str, state: str, **over: Any) -> dict:
     out = {
         "offer_id": uuid_for(f"offer:{label}"),
@@ -208,6 +218,54 @@ def _offers(reg) -> None:
         None,
         operations=["getCurrentOffer"],
         tags=["rider", "edge", "empty"],
+    )
+    # The Offer boards' own offer (`SH/OfferLive`, `SH/OfferTipHidden`): Zaytoun Grill to South
+    # Scarborough, 4.8 km, about 14 min, three items, 24 s left. The two differ in the tip only.
+    def board_offer(label, tip):
+        base, distance = 350, 384
+        return _offer(
+            label,
+            "PENDING",
+            expires_at=ts(24),
+            pickup={
+                "restaurant_name": "Zaytoun Grill",
+                "address_short": "Ellesmere Rd, Scarborough",
+                "latitude": 43.7731,
+                "longitude": -79.2575,
+            },
+            dropoff={"area": "South Scarborough", "latitude": 43.7352, "longitude": -79.2625, "radius_m": 300},
+            distance_m=4800,
+            est_duration_s=840,
+            earnings={
+                "base_cents": base,
+                "distance_cents": distance,
+                "surge_cents": 0,
+                "tip_so_far_cents": tip,
+                "estimated_total_cents": base + distance + tip,
+                "currency": "CAD",
+            },
+            items_count=3,
+        )
+
+    reg.add(
+        "offer_pending_with_tip",
+        "dispatch",
+        "DispatchOffer",
+        "A live offer with 24 seconds left that pays CAD 9.44: base fare, distance pay and a "
+        "CAD 2.10 tip so far. The Offer board's own numbers.",
+        board_offer("with-tip", 210),
+        operations=["getCurrentOffer"],
+        tags=["rider", "offer-state-matrix"],
+    )
+    reg.add(
+        "offer_pending_tip_hidden",
+        "dispatch",
+        "DispatchOffer",
+        "A live offer with 24 seconds left that pays CAD 7.34 and has no tip yet "
+        "(`tip_so_far_cents: 0`): the tip row is hidden, never `$0.00`.",
+        board_offer("tip-hidden", 0),
+        operations=["getCurrentOffer"],
+        tags=["rider", "edge", "money"],
     )
     reg.add(
         "offer_zero_tip_low_value",
@@ -476,7 +534,7 @@ def _availability(reg, synth) -> None:
         "RiderMe",
         "The rider's own bootstrap payload — identity, onboarding state, availability and "
         "what screen to land on.",
-        synth.make("RiderMe", "rider-me"),
+        _board_rider(synth.make("RiderMe", "rider-me")),
         operations=["getRiderMe"],
         tags=["rider"],
     )

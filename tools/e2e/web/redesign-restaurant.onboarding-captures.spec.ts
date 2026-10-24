@@ -324,7 +324,8 @@ const review: Case[] = [
     name: 'review, in review',
     boards: { 1440: 'restaurant/onboarding/Review-InReview', 1024: 'restaurant/onboarding/Tab-Review-1024' },
     run: async (page) => {
-      await open(page, reviewPage, { ...reviewScene, docs: 'restaurant_document_pack_in_review' });
+      // The tablet board draws 40 % done where the fixture says 60: the server's number, patched here.
+      await open(page, reviewPage, { ...reviewScene, statusPatch: (s) => ({ ...s, progress_percent: 40 }), docs: 'restaurant_document_pack_in_review' });
       await expect(waitingRegion(page)).toBeVisible();
     },
   },

@@ -1,0 +1,35 @@
+{
+  "scenario": "public_config_board_support",
+  "domain": "platform",
+  "schema": "PublicConfig",
+  "describes": "Support on, with the number and hours the boards draw: 1 800 555 0142, every day, 8 am to 2 am.",
+  "operations": [
+    "getPublicConfig"
+  ],
+  "status": 200,
+  "tags": [
+    "platform"
+  ],
+  "payload": {
+    "currency": "CAD",
+    "served_provinces": [
+      "ON"
+    ],
+    "ordering": {
+      "paused": false,
+      "paused_since": null
+    },
+    "quote_ttl_seconds": 11,
+    "restaurant_response_window_seconds": 180,
+    "max_tip_cents": 1695,
+    "support_enabled": true,
+    "support_phone_e164": "+18005550142",
+    "support_hours": "Every day, 8 am to 2 am",
+    "support_email": "support@halalgoes.com",
+    "default_map_center": {
+      "latitude": 43.6199,
+      "longitude": -79.6033
+    },
+    "terms_version": "2026-05-01"
+  }
+}

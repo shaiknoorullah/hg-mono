@@ -55,6 +55,7 @@ describe('parseCaptureUrl', () => {
         target: { name: 'captureProbe', params: { id: 'a1' } },
         scenario: 'getCurrentOffer=offer_pending,refreshSession=error_session_revoked',
         clock: FROZEN,
+        hold: false,
       },
     });
   });

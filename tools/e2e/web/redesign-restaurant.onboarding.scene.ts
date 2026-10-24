@@ -44,6 +44,9 @@ export function onboardingDocuments(docs: any[]): any[] {
   return docs.map((d) => (['APPROVED', 'SUBMITTED', 'IN_REVIEW'].includes(d.state) && d.doc_type in ONBOARDING_SAMPLE ? { ...d, ...ONBOARDING_SAMPLE[d.doc_type] } : d));
 }
 
+/** The boards of a restaurant that has sent nothing yet draw no halal object: the rail says "No halal certificate on record yet." */
+const noHalalOnRecord = (p: any) => ({ ...p, halal: undefined });
+
 export const STATUS = {
   profile: 'restaurant_onboarding_profile_pending',
   documents: 'restaurant_onboarding_documents_pending',
@@ -59,6 +62,7 @@ export interface Scene {
   status: Src;
   statusPatch?: (s: any) => any;
   profile?: Src;
+  profilePatch?: (p: any) => any;
   docs?: Src;
   connect?: Src;
   hours?: Src;
@@ -70,7 +74,7 @@ export interface Scene {
 
 export async function serve(page: Page, s: Scene) {
   await answer(page, '**/v1/restaurant/onboarding/status', s.status, s.statusPatch);
-  await answer(page, '**/v1/restaurant/profile', s.profile ?? 'restaurant_profile_account_pending');
+  await answer(page, '**/v1/restaurant/profile', s.profile ?? 'restaurant_profile_account_pending', s.profilePatch ?? (s.profile ? undefined : noHalalOnRecord));
   await answer(page, '**/v1/restaurant/documents', s.docs ?? 'restaurant_document_pack_complete', onboardingDocuments);
   if (s.connect) await answer(page, '**/v1/connect/status', s.connect);
   if (s.hours) await answer(page, '**/v1/restaurant/hours', s.hours);
