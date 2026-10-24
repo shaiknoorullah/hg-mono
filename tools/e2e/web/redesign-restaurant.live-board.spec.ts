@@ -310,12 +310,12 @@ test.describe('Status bar and halal', () => {
     const profile = await payload(page, 'restaurant_profile');
     const suspended = await payload(page, 'restaurant_open_state_closed_suspended');
     await page.route('**/v1/restaurant/profile', (route) =>
-      route.fulfill({ json: { data: { ...profile, halal: { display_state: 'EXPIRED', certifying_body_name: profile.halal.certifying_body_name, expires_on: '2026-09-20' } } } }),
+      route.fulfill({ json: { data: { ...profile, owner_first_name: 'Karim', halal: { display_state: 'EXPIRED', certifying_body_name: profile.halal.certifying_body_name, expires_on: '2026-09-20' } } } }),
     );
     // Stands in for a CLOSED_SUSPENDED availability with the halal reason (fixture requested in #676).
     await page.route('**/v1/restaurant/availability', (route) => route.fulfill({ json: { data: { ...suspended, reason: 'Suspended: halal certificate expired' } } }));
     await page.route('**/v1/restaurant/orders?**', (route) => route.fulfill({ json: { data: [], meta: { next_cursor: null, has_more: false } } }));
-    await openLive(page, '/orders');
+    await openLive(page, '/orders', { karim: false });
     const banner = page.getByTestId('banner-halal');
     await expect(banner.getByText('We can’t currently vouch for your halal certificate')).toBeVisible();
     await expect(banner).toHaveAttribute('data-tone', 'halal-expired');

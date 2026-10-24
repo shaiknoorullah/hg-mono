@@ -14,7 +14,7 @@ import { expect, test, type Page, type Request, type TestInfo } from '@playwrigh
 import { execSync } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { DEVWORLD, MOCK_API, MODE, REAL_API, documentScrolls, liveAccessToken, openSignedIn } from './redesign-restaurant.support';
+import { DEVWORLD, MOCK_API, MODE, REAL_API, documentScrolls, liveAccessToken, openSignedIn, ownerKarim } from './redesign-restaurant.support';
 import { projectMeta } from './mode';
 
 const SHOTS = process.env.WP3_SHOTS_DIR;
@@ -126,6 +126,7 @@ async function goLive(page: Page, _info?: TestInfo) {
   page.on('request', (r) => {
     if (r.method() === 'POST' && r.url().endsWith('/v1/restaurant/heartbeat')) beats.push(r);
   });
+  await ownerKarim(page);
   await openSignedIn(page, '/orders');
   const gate = page.getByRole('region', { name: 'Turn on order sound and go live' });
   await expect(gate).toBeVisible();
@@ -154,6 +155,7 @@ test.describe('restaurant redesign · new-order strip', () => {
     const closed = { ...(await fixturePayload(page, 'restaurant_open_state_closed_toggle')), reason: 'Not accepting orders yet' };
     await page.route('**/v1/restaurant/availability', (route) => route.fulfill({ json: { data: closed } }));
     await servePending(page, []);
+    await ownerKarim(page);
     await openSignedIn(page, '/orders');
     await expect(page.getByRole('region', { name: 'Turn on order sound and go live' })).toBeVisible();
     await expect(page.getByTestId('new-order-strip')).toHaveCount(0);
@@ -169,6 +171,7 @@ test.describe('restaurant redesign · new-order strip', () => {
       Object.defineProperty(Notification, 'permission', { get: () => 'denied' });
       Notification.requestPermission = () => Promise.resolve('denied');
     });
+    await ownerKarim(page);
     await openSignedIn(page, '/orders');
     await page.getByRole('button', { name: 'Turn on sound and go live' }).click();
     await expect(page.getByText('Step 2: notifications are blocked')).toBeVisible();

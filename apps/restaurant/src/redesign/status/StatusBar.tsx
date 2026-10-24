@@ -182,14 +182,14 @@ export function StatusBar() {
       <span className="flex min-w-0 items-center gap-3.5">
         <ShellBadge size="lg" variant={view.badge.variant} style={boardBadge(view.badge.variant)} icon={view.badge.icon as DsIconName | undefined} label={view.badge.label} testId="open-state-badge" />
         {view.reason ? (
-          <span className="max-w-[150px] truncate text-[15px] text-fg-secondary xl:max-w-[240px]" title={view.reason} data-testid="open-state-reason">
+          <span className="max-w-[150px] text-[15px] text-fg-secondary xl:max-w-[240px]" title={view.reason} data-testid="open-state-reason">
             {view.reason}
           </span>
         ) : null}
       </span>
 
       <ShellSwitch
-        style={{ minWidth: 0, maxWidth: 320 }}
+        style={{ minWidth: 0, maxWidth: '100%' }}
         label="Orders"
         checked={view.orders.checked}
         stateLabel={view.orders.stateLabel}
