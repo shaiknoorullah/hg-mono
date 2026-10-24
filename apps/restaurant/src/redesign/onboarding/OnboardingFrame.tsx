@@ -114,11 +114,11 @@ export function SetupRail() {
           type="button"
           aria-expanded={true}
           onClick={() => setOpen(false)}
-          className="hg-focus inline-flex size-11 items-center justify-center rounded-md bg-transparent text-fg-primary"
+          className="hg-focus relative inline-flex size-11 items-center justify-center rounded-md bg-transparent text-fg-primary"
         >
           <Icon name="back" size={20} />
           {/* The board draws the name as text in the button (read by screen readers, not seen). */}
-          <span className="sr-only">Collapse the setup checklist</span>
+          <span className="absolute inset-0 overflow-hidden text-[1px] leading-none text-transparent">Collapse the setup checklist</span>
         </button>
       </div>
       {paused ? (

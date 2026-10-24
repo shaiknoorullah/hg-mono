@@ -83,7 +83,7 @@ export function SetupChecklist({ items, collapsed = false, label = 'Setup steps'
                   {item.label}
                 </Link>
               ) : (
-                <span className={`text-[15px] leading-[22.5px] text-fg-primary ${current ? 'font-semibold' : 'font-medium'}`}>{item.label}</span>
+                <span className={`text-[15px] leading-[22.5px] text-fg-primary ${current ? 'font-semibold' : ''}`}>{item.label}</span>
               )}
             </span>
             {item.tone === 'warn' ? (
