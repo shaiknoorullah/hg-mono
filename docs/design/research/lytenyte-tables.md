@@ -182,7 +182,7 @@ See item 6 of [conflicts and hidden costs](#9-conflicts-with-our-rules-and-hidde
   - `loading` shows 5 skeleton rows in the real column geometry. Use `rowFullWidthPredicate` or overlay rows, never a centred spinner.
   - `loading-more` shows a tail skeleton row.
   - `empty`, `empty-after-filter` and `drained` render as a full-width row holding `EmptyState` (`Grid Overlays` are Core).
-  - `error` shows `ErrorState` with Retry.
+  - `error` is drawn inside the table, under the header row and the visible caption: the message, "Nothing has changed. Try again, or check your connection." and a Retry button (the staff list boards, round 4). The admin grid stand-in does this with its `inTableError` prop.
   - `KeysetGrid` currently **drops the header** in these states, so it does not meet the [`DataTable` spec](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/design/02-components.md#24-datatable-admin).
 - **Sorting** is server-side. The header button calls `onSortChange`, the host resets the cursor, and the new page is loaded into the data source as-is. Never pass `sort` to `useClientDataSource` on a keyset table: it would sort only the visible page and suggest a global order that isn't there.
 - **Selection** uses LyteNyte's `rowSelectionMode="multiple"` with `rowSelectionActivator="none"`, plus our `Checkbox` in a pinned marker column. The selected tint is `state.selectedTint` **and** a checkbox, never colour alone ([not by colour alone](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/design/04-accessibility.md#14-not-by-colour-alone)). Announce the running count through `statusId`.
