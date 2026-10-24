@@ -36,7 +36,9 @@ function Glyph({ tone }: { tone: SetupStepTone }) {
   if (tone === 'done') {
     return (
       <span aria-hidden="true" className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-fg-primary text-fg-on-inverse">
-        <GlyphIcon name="check" size={14} />
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+          <path d="M2.5 6.5 5 9l4.5-5.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
       </span>
     );
   }
@@ -45,7 +47,7 @@ function Glyph({ tone }: { tone: SetupStepTone }) {
   if (tone === 'now') {
     return <span aria-hidden="true" className="inline-block border-y-[6px] border-s-[10px] border-y-transparent border-s-brand-600" />;
   }
-  return <span aria-hidden="true" className="inline-block h-5 w-5 rounded-full border-[1.5px] border-line-strong" />;
+  return <span aria-hidden="true" className="inline-block h-5 w-5 rounded-full border-2 border-line-interactive" />;
 }
 
 export function SetupChecklist({ items, collapsed = false, label = 'Setup steps' }: SetupChecklistProps) {

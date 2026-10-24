@@ -46,7 +46,7 @@ export function SetupTopBar({ businessName, onSignOut }: { businessName: string;
       <a href="#main" className="hg-focus sr-only focus:not-sr-only focus:rounded-[12px] focus:bg-surface-raised focus:px-4 focus:py-2">
         Skip to main content
       </a>
-      <Wordmark height={28} title="HalalGoes" />
+      <Wordmark height={32} title="HalalGoes" />
       <span className="ms-3 hidden border-s border-line-decorative ps-4 text-body-md text-fg-secondary sm:block">{RAIL.partnerSetup}</span>
       <span className="ms-auto min-w-0 truncate text-label-lg text-fg-primary" data-testid="business-name">
         {businessName}

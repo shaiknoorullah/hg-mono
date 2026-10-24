@@ -18,14 +18,15 @@ async function payload(page: Page, scenario: string) {
 }
 
 /** Answers `glob` with a contract fixture; `status` makes it an error answer instead. */
-async function answer(page: Page, glob: string, scenario: string | { status: number }) {
+async function answer(page: Page, glob: string, scenario: string | { status: number }, patch?: (payload: any) => any) {
   if (typeof scenario !== 'string') {
     await page.route(glob, (route: Route) =>
       route.fulfill({ status: scenario.status, json: { error: { code: 'INTERNAL_ERROR', message: 'boom', request_id: 'req_e2e' } } }),
     );
     return;
   }
-  const data = await payload(page, scenario);
+  const fixture = await payload(page, scenario);
+  const data = patch ? patch(structuredClone(fixture)) : fixture;
   await page.route(glob, (route: Route) => route.fulfill({ json: { data } }));
 }
 
