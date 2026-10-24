@@ -22,9 +22,9 @@ import { useSyncExternalStore } from 'react';
 
 import { usePageBar } from '../app/pageTitle';
 import { useOnline } from '../auth/online';
-import { formatDateTimeWithYear, formatFullDateTime, formatTimeWithSeconds } from '../data/format';
+import { formatCheckedAt, formatDateTimeWithYear, formatFullDateTime, formatTimeWithSeconds } from '../data/format';
 import { getSession, staffRoleOf, subscribeSession } from '../data/session';
-import { Badge, Button, Icon, InlineAlert, Skeleton, SplitPanes, type AnyIconName } from '../ds';
+import { Badge, Button, Icon, InlineAlert, SplitPanes, type AnyIconName } from '../ds';
 import { SYSTEM } from './copy';
 import { onCallContact, RUNBOOK_URL, telHref } from './onCall';
 import {
@@ -66,10 +66,9 @@ function OnCallActions({ withRunbook = true }: { withRunbook?: boolean }) {
 function VersionLine({ reading }: { reading: Reading }) {
   if (reading.health.kind !== 'ok') return null;
   return (
-    <p className="m-0 text-body-md text-fg-secondary">
+    <p className="m-0 text-body-md leading-normal text-fg-secondary">
       API version <span className="font-mono text-fg-primary">{reading.health.version}</span>
-      {' · running since '}
-      <time dateTime={reading.health.startedAt}>{formatDateTimeWithYear(reading.health.startedAt)}</time>
+      {` · running since ${formatDateTimeWithYear(reading.health.startedAt)}`}
     </p>
   );
 }
@@ -107,23 +106,31 @@ function RecheckButton({ checking, online }: { checking: boolean; online: boolea
 function StatusPane({ state, reading, role, online }: { state: StatusState; reading: Reading; role: 'SUPPORT_AGENT' | 'ADMIN' | 'SUPER_ADMIN'; online: boolean }) {
   const view: StatusView = viewOf(reading);
   const support = role === 'SUPPORT_AGENT';
-  const at = formatFullDateTime(reading.at);
+  const at = formatCheckedAt(reading.at);
   const named = failing(reading);
   const r = reading.readiness;
   const versionKnown = reading.health.kind === 'ok';
   const earlier = state.lastFull && state.lastFull !== reading ? formatTimeWithSeconds(state.lastFull.at) : null;
 
   if (view === 'unreachable') {
+    // The board draws this as one wide card with no table beside it (`ASS/SystemError`).
     return (
-      <section aria-label="API status" className="flex flex-col gap-3">
-        <InlineAlert tone="warning" blocking title={SYSTEM.unreachable.title} action={<RecheckButton checking={state.checking} online={online} />}>
-          <p className="m-0">{SYSTEM.unreachable.body}</p>
-          <p className="m-0 mt-2">{SYSTEM.unreachable.startup}</p>
-          <p className="m-0 mt-2">{SYSTEM.notReady.todoBody(at)}</p>
-          <span className="mt-2 flex flex-wrap gap-2">
-            <OnCallActions />
+      <section aria-label="API status" className="mt-4 flex flex-col">
+        <div role="alert" className="flex max-w-[640px] flex-col items-start gap-3 rounded-lg border border-line-decorative bg-surface-raised p-8">
+          <span className="inline-flex text-feedback-warning-icon">
+            <Icon name="warning" size="xl" />
           </span>
-        </InlineAlert>
+          <h2 className="m-0 text-heading-lg font-semibold text-fg-primary">{SYSTEM.unreachable.title}</h2>
+          <p className="m-0 text-body-md leading-normal text-fg-secondary">{SYSTEM.unreachable.body}</p>
+          <p className="m-0 text-body-md leading-normal text-fg-secondary">{SYSTEM.unreachable.startup}</p>
+          <p className="m-0 text-body-md leading-normal text-fg-secondary">{SYSTEM.callWith(formatCheckedAt(reading.at))}</p>
+          <div className="flex flex-wrap gap-3 pt-1">
+            <RecheckButton checking={state.checking} online={online} />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <OnCallActions />
+          </div>
+        </div>
       </section>
     );
   }
@@ -205,52 +212,60 @@ function StatusPane({ state, reading, role, online }: { state: StatusState; read
           ? SYSTEM.inconsistent.body(pretty(named))
           : SYSTEM.timeout.body(reading.health.kind === 'ok' ? reading.health.version : 'unknown', formatTimeWithSeconds(reading.at), earlier);
     return (
-      <section aria-label="API status" className="flex flex-col gap-3">
+      <section aria-label="API status" className="flex flex-col gap-4">
         <div className={CARD}>
-          <Heading>{title}</Heading>
-          <div className="mt-2">
-            <Badge variant="warning" icon="warning">
-              {badge}
-            </Badge>
-          </div>
-          <p className="m-0 mt-3 text-body-md text-fg-primary">{body}</p>
-          {view === 'empty' ? null : <p className="m-0 mt-2 text-body-md text-fg-primary">{SYSTEM.callWith(at)}</p>}
-          <span className="mt-3 flex flex-wrap gap-2">
-            <OnCallActions />
+          <div className="flex items-center gap-6">
+            <div className="flex min-w-0 grow flex-col gap-1.5">
+              <div className="flex flex-wrap items-center gap-3">
+                <Heading>{title}</Heading>
+                <Badge variant="warning" icon="warning">
+                  {badge}
+                </Badge>
+              </div>
+              <p className="m-0 text-body-md leading-normal text-fg-secondary">{body}</p>
+              {view === 'empty' ? null : <p className="m-0 text-body-md leading-normal text-fg-secondary">{SYSTEM.callWith(at)}</p>}
+              <span className="flex flex-wrap items-center gap-2">
+                <OnCallActions />
+              </span>
+            </div>
             <RecheckButton checking={state.checking} online={online} />
-          </span>
+          </div>
         </div>
       </section>
     );
   }
 
-  // ready
+  // ready: the heading, the badge and the Check again button share the card's row (`ASS/SystemHealthy`).
   return (
-    <section aria-label="API status" className="flex flex-col gap-3">
+    <section aria-label="API status" className="flex flex-col gap-4">
       <div className={CARD}>
-        <Heading>{SYSTEM.ready.title}</Heading>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <Badge variant="outline" icon="check">
-            {SYSTEM.ready.badge}
-          </Badge>
-        </div>
-        {state.recovered ? (
-          <p className="m-0 mt-3 text-body-md text-fg-primary">{SYSTEM.recovered(formatTimeWithSeconds(state.recovered.at), formatTimeWithSeconds(state.recovered.from))}</p>
-        ) : null}
-        <div className="mt-3 flex flex-col gap-1">
-          {versionKnown ? <VersionLine reading={reading} /> : <p className="m-0 text-body-md text-fg-primary">{SYSTEM.versionUnknown.body}</p>}
-          {!versionKnown ? <p className="m-0 text-body-md text-fg-secondary">{SYSTEM.versionUnknown.escalate(at)}</p> : null}
-          <p className="m-0 text-body-md text-fg-secondary">{SYSTEM.replicaNote}</p>
-        </div>
-        {state.checking ? (
-          <p role="status" className="m-0 mt-3 text-body-sm text-fg-secondary">
-            {SYSTEM.checking}
-          </p>
-        ) : null}
-        <span className="mt-3 flex flex-wrap gap-2">
-          {!versionKnown ? <OnCallActions /> : null}
+        <div className="flex items-center gap-6">
+          <div className="flex min-w-0 grow flex-col gap-1.5">
+            <div className="flex flex-wrap items-center gap-3">
+              <Heading>{SYSTEM.ready.title}</Heading>
+              <Badge variant="outline" icon="check">
+                {SYSTEM.ready.badge}
+              </Badge>
+            </div>
+            {state.recovered ? (
+              <p className="m-0 text-body-md text-fg-primary">{SYSTEM.recovered(formatTimeWithSeconds(state.recovered.at), formatTimeWithSeconds(state.recovered.from))}</p>
+            ) : null}
+            {versionKnown ? <VersionLine reading={reading} /> : <p className="m-0 text-body-md text-fg-primary">{SYSTEM.versionUnknown.body}</p>}
+            {!versionKnown ? <p className="m-0 text-body-md text-fg-secondary">{SYSTEM.versionUnknown.escalate(at)}</p> : null}
+            <p className="m-0 text-body-md text-fg-secondary">{SYSTEM.replicaNote}</p>
+            {state.checking ? (
+              <p role="status" className="m-0 text-body-sm text-fg-secondary">
+                {SYSTEM.checking}
+              </p>
+            ) : null}
+            {!versionKnown ? (
+              <span className="mt-1 flex flex-wrap gap-2">
+                <OnCallActions />
+              </span>
+            ) : null}
+          </div>
           <RecheckButton checking={state.checking} online={online} />
-        </span>
+        </div>
       </div>
     </section>
   );
@@ -281,32 +296,56 @@ function badgeFor(name: DependencyName, reading: Reading | null, stale: boolean)
 }
 
 /** What the API needs to work (admins only). Never claims a state the server did not give. */
-function DependencyTable({ shown, stale }: { shown: Reading | null; stale: boolean }) {
+function DependencyTable({ shown, stale, loading = false, empty = false }: { shown: Reading | null; stale: boolean; loading?: boolean; empty?: boolean }) {
+  const th = 'h-[33px] border-b border-line-decorative bg-surface-sunken px-3 py-0 text-start text-[11px] font-semibold leading-[16.5px] tracking-[0.4px] text-fg-secondary';
   return (
-    <table className="w-full border-collapse text-start text-[13px] leading-[19.5px]">
-      <caption className="px-3 py-2 text-start text-[15px] leading-[22.5px] font-semibold text-fg-primary">{SYSTEM.tableCaption}</caption>
-      <thead>
-        <tr className="border-b border-line-decorative bg-surface-sunken text-start text-[11px] leading-[16.5px] tracking-[0.4px] text-fg-secondary">
-          <th scope="col" className="h-[33px] px-3 py-0 text-start font-semibold">{SYSTEM.columns.name}</th>
-          <th scope="col" className="h-[33px] px-3 py-0 text-start font-semibold">{SYSTEM.columns.role}</th>
-          <th scope="col" className="h-[33px] px-3 py-0 text-start font-semibold">{SYSTEM.columns.status}</th>
-          <th scope="col" className="h-[33px] px-3 py-0 text-start font-semibold">{SYSTEM.columns.detail}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {DEPENDENCY_ORDER.map((name) => {
-          const { badge, detail } = badgeFor(name, shown, stale);
-          return (
-            <tr key={name} className="border-b border-line-decorative align-top">
-              <th scope="row" className="px-3 py-2 text-start font-semibold text-fg-primary">{SYSTEM.dependencies[name].name}</th>
-              <td className="px-3 py-2 text-fg-primary">{SYSTEM.dependencies[name].role}</td>
-              <td className="px-3 py-2">{badge}</td>
-              <td className="px-3 py-2 text-fg-secondary">{detail ?? SYSTEM.none}</td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
+    <div className="overflow-hidden rounded-lg border border-line-decorative bg-surface-raised">
+      <table id="deps-table" className="w-full border-collapse text-start text-[13px] leading-[19.5px]">
+        <caption className="border-b border-line-decorative px-3 py-3 text-start text-[15px] font-semibold leading-[22.5px] text-fg-primary">{SYSTEM.tableCaption}</caption>
+        <thead>
+          <tr>
+            <th scope="col" className={th}>{SYSTEM.columns.name}</th>
+            <th scope="col" className={th}>{SYSTEM.columns.role}</th>
+            <th scope="col" className={th}>{SYSTEM.columns.status}</th>
+            <th scope="col" className={th}>{SYSTEM.columns.detail}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {loading
+            ? [0, 1, 2, 3, 4].map((i) => (
+                <tr key={i} aria-hidden="true" className="h-11 border-b border-line-decorative">
+                  {[0, 1, 2, 3].map((c) => (
+                    <td key={c} className="px-3">
+                      <span className="block h-3 w-[70%] rounded-sm bg-surface-sunken" />
+                    </td>
+                  ))}
+                </tr>
+              ))
+            : empty
+              ? (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-8 text-center">
+                      <div className="grid justify-items-center gap-3">
+                        <span className="text-body-md font-semibold text-fg-primary">{SYSTEM.noDependencies.title}</span>
+                        <span className="text-body-sm leading-[19.5px] text-fg-secondary">{SYSTEM.noDependencies.body}</span>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              : DEPENDENCY_ORDER.map((name) => {
+                  const { badge, detail } = badgeFor(name, shown, stale);
+                  return (
+                    <tr key={name} className="h-11 border-b border-line-decorative">
+                      <th scope="row" className="px-3 py-1 text-start font-semibold text-fg-primary">{SYSTEM.dependencies[name].name}</th>
+                      <td className="px-3 py-1 text-fg-primary">{SYSTEM.dependencies[name].role}</td>
+                      <td className="px-3 py-1">{badge}</td>
+                      <td className="px-3 py-1 text-fg-secondary">{detail ?? SYSTEM.none}</td>
+                    </tr>
+                  );
+                })}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -347,23 +386,54 @@ export default function SystemRoute() {
   const admin = role !== 'SUPPORT_AGENT';
   const reading = state.latest;
   // The check time and cadence sit in the app bar under the title, as the boards draw them.
-  usePageBar(reading ? `Checked ${formatFullDateTime(reading.at)} · ${SYSTEM.recheckNote}` : undefined);
+  const unreachable = reading !== null && viewOf(reading) === 'unreachable';
+  usePageBar(
+    reading === null
+      ? state.checking
+        ? SYSTEM.checkingNow
+        : undefined
+      : unreachable
+        ? `${state.lastFull ? `Last answer ${formatTimeWithSeconds(state.lastFull.at)}` : SYSTEM.noAnswerYet} · ${SYSTEM.recheckNote}`
+        : `Checked ${formatCheckedAt(reading.at)} · ${SYSTEM.recheckNote}`,
+  );
 
-  // First check still running: skeletons, and the table in its loading state.
+  // First check still running: a card of skeletons beside the table in its loading state.
   if (!reading) {
+    const loadingCard = (
+      <section aria-label="API status" className="flex flex-col gap-4">
+        <div className={CARD}>
+          <div className="flex items-center gap-6" aria-busy="true">
+            <div role="status" className="flex grow flex-col gap-2.5">
+              <span className="sr-only">{SYSTEM.loading}</span>
+              <span aria-hidden="true" className="block h-[22px] w-[360px] max-w-full rounded-sm bg-surface-sunken" />
+              <span aria-hidden="true" className="block h-4 w-[280px] max-w-full rounded-sm bg-surface-sunken" />
+            </div>
+            <RecheckButton checking={state.checking} online={online} />
+          </div>
+        </div>
+      </section>
+    );
     return (
-      <section aria-label="System status" className="flex min-h-0 flex-1 flex-col gap-3 p-3">
-        {online ? (
-          <Skeleton variant="lines" count={4} label={SYSTEM.loading} />
-        ) : (
+      <section aria-label="System status" className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto px-6 py-5">
+        {!online ? (
           <div className={CARD}>
             <Heading>{SYSTEM.offline.nothing}</Heading>
             <p className="m-0 mt-2 text-body-md text-fg-secondary">{SYSTEM.offline.body}</p>
+            <div className="mt-3">
+              <RecheckButton checking={state.checking} online={online} />
+            </div>
           </div>
+        ) : admin ? (
+          <SplitPanes
+            handle="grip"
+            panes={[
+              { id: 'system-status-pane', label: 'status', content: loadingCard, defaultSize: 502, minSize: 320 },
+              { id: 'system-deps-pane', label: 'what the API needs', fill: true, content: <DependencyTable shown={null} stale={false} loading /> },
+            ]}
+          />
+        ) : (
+          loadingCard
         )}
-        <div>
-          <RecheckButton checking={state.checking} online={online} />
-        </div>
       </section>
     );
   }
@@ -395,18 +465,24 @@ export default function SystemRoute() {
   );
 
   return (
-    <section aria-label="System status" className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto p-3">
+    <section aria-label="System status" className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto px-6 py-5">
       {announce}
       <SmsNotice state={state} />
-      {admin ? (
+      {admin && !unreachable ? (
         <SplitPanes
+          handle="grip"
           panes={[
             { id: 'system-status-pane', label: 'status', content: left, defaultSize: 502, minSize: 320 },
             {
               id: 'system-deps-pane',
               label: 'what the API needs',
               fill: true,
-              content: <DependencyTable shown={tableReading} stale={stale} />,
+              content: (
+                <div className="flex flex-col gap-4">
+                  <DependencyTable shown={tableReading} stale={stale} empty={view === 'empty'} />
+                  <p className="m-0 border-t border-line-decorative pt-2 text-body-sm leading-[1.45] text-fg-secondary">{SYSTEM.laterVersion}</p>
+                </div>
+              ),
             },
           ]}
         />

@@ -214,7 +214,7 @@ function Forbidden({ role, permission, routeId }: { role: StaffRole | null; perm
           <p className="m-0 text-body-md text-fg-secondary">
             {routeId === 'staff' ? STAFF_FORBIDDEN.list(roleLabel) : STAFF_FORBIDDEN.detail(roleLabel)}
           </p>
-          <p className="m-0 text-body-md text-fg-secondary">{STAFF_FORBIDDEN.help}</p>
+          <p className="m-0 text-body-md text-fg-secondary">{routeId === 'staff' ? STAFF_FORBIDDEN.help : STAFF_FORBIDDEN.detailHelp}</p>
           <div className="pt-1">
             <Button variant="primary" size="md" onPress={back.go}>
               {back.goLabel}

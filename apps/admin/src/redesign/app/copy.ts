@@ -26,7 +26,9 @@ export const STAFF_FORBIDDEN = {
   title: 'Staff accounts are for admins and super admins',
   list: (roleLabel: string) => `You're signed in as a ${roleLabel}, so this page isn't in your menu.`,
   detail: (roleLabel: string) =>
-    `This link opens a staff account, and you're signed in as a ${roleLabel}, so it isn't available to you.`,
+    `This link opens a staff account, and you're signed in as a ${roleLabel}, so it isn't available to you. Nothing about the account is shown.`,
+  /** The list board adds the role note; the detail board stops at "ask a super admin" (`STF/StaffDetailSupportDenied`). */
   help: "If you need access, ask a super admin. Changing a role isn't available in the console yet.",
+  detailHelp: 'If you need access, ask a super admin.',
   detailSubtitle: 'Opened from a link to one staff account',
 } as const;

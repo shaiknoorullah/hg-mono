@@ -168,7 +168,7 @@ export function navGroupsFor(
           current: entry.key === current,
         };
       });
-    const heading = group.key === 'review' && role === 'SUPPORT_AGENT' ? `${group.heading} · view only` : group.heading;
-    return { key: group.key, heading, items };
+    const viewOnly = group.key === 'review' && role === 'SUPPORT_AGENT';
+    return { key: group.key, heading: group.heading, ...(viewOnly ? { headingNote: 'view only' } : {}), items };
   }).filter((group) => group.items.length > 0);
 }

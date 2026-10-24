@@ -30,10 +30,10 @@ export interface BadgeProps {
 
 const TINT: Record<NonNullable<BadgeProps['variant']>, string> = {
   neutral: 'bg-surface-subtle text-fg-secondary border border-line-decorative',
-  info: 'bg-feedback-info-tint text-feedback-info-tint-text border border-feedback-info-border',
-  warning: 'bg-feedback-warning-tint text-feedback-warning-tint-text border border-feedback-warning-border',
-  danger: 'bg-feedback-danger-tint text-feedback-danger-tint-text border border-feedback-danger-border',
-  brand: 'bg-brand-50 text-fg-primary border border-line-brand',
+  info: 'bg-feedback-info-tint text-feedback-info-tint-text border border-info-100',
+  warning: 'bg-feedback-warning-tint text-feedback-warning-tint-text border border-warning-100',
+  danger: 'bg-feedback-danger-tint text-feedback-danger-tint-text border border-danger-100',
+  brand: 'bg-brand-50 text-brand-800 border border-brand-100',
   outline: 'bg-transparent text-fg-secondary border border-line-interactive',
 };
 
@@ -84,7 +84,7 @@ export function Badge({
       data-testid={testId}
       data-variant={variant}
       className={cx(
-        'inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-sm font-semibold',
+        'inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-xs font-semibold leading-normal',
         SIZE[size],
         appearance === 'solid' ? SOLID[variant] : TINT[variant],
         className,

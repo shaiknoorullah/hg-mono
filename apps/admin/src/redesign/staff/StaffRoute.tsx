@@ -26,7 +26,7 @@ import { api } from '../data/api';
 import { useOnline } from '../auth/online';
 import { formatShortDate, formatFullDateTime } from '../data/format';
 import { boardBadge } from '../ds-stubs/internal/boardBadge';
-import { Badge, Banner, Button, DataGrid, Disclosure, EmptyState, ErrorState, InlineAlert, Input, Skeleton, SplitPanes, type DataGridColumn } from '../ds';
+import { Badge, Banner, Button, DataGrid, Icon, Disclosure, EmptyState, InlineAlert, Input, Skeleton, SplitPanes, type DataGridColumn } from '../ds';
 import { unwrap } from '../../lib/load';
 import { useViewer } from '../verification/shared/useViewer';
 import { LIST } from './copy';
@@ -162,11 +162,25 @@ export default function StaffRoute() {
   const names = superAdminNames(rows, page.hasMore);
 
   const listPane = (
-    <div className="flex h-full min-h-0 flex-col gap-3 p-3" data-testid="StaffListPane">
+    <div className="flex h-full min-h-0 flex-col gap-4 px-6 py-5" data-testid="StaffListPane">
       {!online ? <Banner tone="warning" title={LIST.offline.title} description={LIST.offline.body} announce="status" /> : null}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="max-w-[60ch] text-body-md text-fg-secondary">{access.canInvite ? LIST.subtitle : ready || load === 'loading' ? LIST.adminLine(joinNames(names)) : LIST.adminLine('')}</p>
+        {access.canInvite ? (
+          <p className="max-w-[60ch] text-body-md text-fg-secondary">{LIST.subtitle}</p>
+        ) : (
+          // A read-only viewer is told why there is no invite button, in an info banner (`STF/StaffAdminError`).
+          <div
+            role="status"
+            data-slot="alert"
+            className="flex min-h-11 w-full items-center gap-3 rounded-md border border-feedback-info-border bg-feedback-info-tint py-2 pe-2 ps-4 text-feedback-info-tint-text"
+          >
+            <span className="inline-flex text-feedback-info-icon">
+              <Icon name="lock" size="md" />
+            </span>
+            <p className="m-0 grow text-body-md leading-[1.45]">{ready || load === 'loading' ? LIST.adminLine(joinNames(names)) : LIST.adminLine('')}</p>
+          </div>
+        )}
         {access.canInvite ? (
           <div className="flex items-center gap-3">
             {!online ? <span className="text-body-sm text-fg-secondary">{LIST.inviteOffline}</span> : null}
@@ -234,7 +248,7 @@ export default function StaffRoute() {
             </div>
           ) : null}
 
-          <div className="min-h-0 flex-1 overflow-hidden rounded-md border border-line-decorative bg-surface-raised" id="staff-table">
+          <div className={`overflow-hidden rounded-lg border border-line-decorative bg-surface-raised ${load === 'error' ? 'shrink-0' : 'min-h-0 flex-1'}`} id="staff-table">
             <DataGrid<StaffUser>
               label={LIST.caption}
               columns={columns}
@@ -246,7 +260,8 @@ export default function StaffRoute() {
               selectedId={staffId ?? null}
               loading={load === 'loading'}
               loadingSlot={<Skeleton variant="rows" count={7} label={LIST.loading} />}
-              errorSlot={load === 'error' ? <ErrorState title={LIST.error.title} description={LIST.error.body} onRetry={() => void run()} /> : undefined}
+              showCaption
+              inTableError={load === 'error' ? { message: LIST.error.message, detail: LIST.error.detail, onRetry: () => void run() } : undefined}
               emptySlot={
                 query.trim() !== '' ? (
                   <EmptyState icon="search" variant="filtered" title={LIST.findNone(query.trim()).title} description={LIST.findNone(query.trim()).body} />

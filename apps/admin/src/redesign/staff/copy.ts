@@ -14,7 +14,13 @@ export const LIST = {
   inviteOffline: "Available when you're back online",
   caption: 'Staff accounts',
   loading: 'Loading staff accounts',
-  error: { title: "Staff accounts didn't load", body: 'The server didn’t answer. Nothing was changed. Try again.' },
+  error: {
+    title: "Staff accounts didn't load",
+    body: 'The server didn’t answer. Nothing was changed. Try again.',
+    // Drawn inside the table (`STF/StaffError`, `STF/StaffAdminError`).
+    message: "Staff accounts didn't load. The server didn't answer in time.",
+    detail: 'Nothing has changed. Try again, or check your connection.',
+  },
   loadMoreFailed: { title: "The next accounts didn't load", body: (kept: number) => `The server didn't answer in time. The ${kept} accounts above are kept.` },
   tryAgain: 'Try again',
   offline: { title: 'You’re offline.', body: 'Changes are off until the connection returns. Nothing you do now is saved for later.' },

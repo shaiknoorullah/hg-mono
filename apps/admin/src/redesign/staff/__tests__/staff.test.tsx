@@ -92,12 +92,12 @@ describe('Staff list: what each role is shown', () => {
 });
 
 describe('Staff list: loading, error, more', () => {
-  it('shows a loading state, then an error with Try again that loads', async () => {
+  it('shows a loading state, then an error with Retry that loads', async () => {
     const api = mockApi({ listStaff: { status: 500, body: envelope('INTERNAL_ERROR', 'boom') } });
     renderStaff('SUPER_ADMIN');
-    expect(await screen.findByText("Staff accounts didn't load")).toBeTruthy();
+    expect(await screen.findByText(/Staff accounts didn't load/)).toBeTruthy();
     api.set({ listStaff: page(sevenAccounts()) });
-    fireEvent.click(screen.getByRole('button', { name: /Try again/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Retry/ }));
     expect(await screen.findByRole('grid')).toBeTruthy();
     expect(within(screen.getByRole('grid')).getByText('Sana Qureshi')).toBeTruthy();
   });

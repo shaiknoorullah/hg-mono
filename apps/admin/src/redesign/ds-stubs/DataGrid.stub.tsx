@@ -54,6 +54,12 @@ export interface DataGridProps<Row> {
   loadingSlot?: ReactNode;
   /** A load error body (ErrorState with Try again). Shown instead of rows. */
   errorSlot?: ReactNode;
+  /**
+   * A load error drawn inside the table, under the header row, as the boards draw it
+   * (`DataTable status="error"`): the message, a quieter line and a Retry button. Use
+   * `errorSlot` instead to replace the whole region.
+   */
+  inTableError?: { message: string; detail: string; retryLabel?: string; onRetry: () => void };
   /** Shown when there are no rows and not loading (EmptyState; first-run vs filtered copy). */
   emptySlot?: ReactNode;
   /** Keyset paging. */
@@ -90,6 +96,7 @@ export function DataGrid<Row>({
   loading = false,
   loadingSlot,
   errorSlot,
+  inTableError,
   emptySlot,
   hasMore = false,
   loadingMore = false,
@@ -145,6 +152,7 @@ export function DataGrid<Row>({
   };
 
   const body = (() => {
+    if (inTableError) return null;
     if (errorSlot) return errorSlot;
     if (loading && rows.length === 0) return loadingSlot ?? <Skeleton variant="rows" count={8} label={`Loading ${label.toLowerCase()}`} />;
     if (rows.length === 0) return emptySlot ?? null;
@@ -153,7 +161,7 @@ export function DataGrid<Row>({
 
   const footer =
     footerSlot ??
-    (rows.length > 0 && !errorSlot ? (
+    (rows.length > 0 && !errorSlot && !inTableError ? (
       <div role="status" className="flex min-h-11 items-center gap-3 border-t border-line-decorative px-3 text-body-sm text-fg-secondary">
         <span>{dataGridFooterText({ count: rows.length, hasMore, loadingMore, loadMoreFailed })}</span>
         {loadMoreFailed && onLoadMore ? (
@@ -173,10 +181,13 @@ export function DataGrid<Row>({
       <div role="region" aria-label={label} className="min-h-0 flex-1 overflow-auto">
         {body ?? (
           <table id={gridId} role="grid" aria-labelledby={`${gridId}-caption`} aria-rowcount={rows.length + 1} className="w-full border-collapse text-[13px] leading-[19.5px]">
-            <caption id={`${gridId}-caption`} className={cx('text-start text-label-lg text-fg-primary', !showCaption && 'sr-only')}>
+            <caption
+              id={`${gridId}-caption`}
+              className={cx('text-start', showCaption ? 'border-b border-line-decorative px-3 py-3 text-label-lg font-semibold leading-[22.5px] text-fg-primary' : 'sr-only')}
+            >
               {label}
             </caption>
-            <thead className="sticky top-0 z-10 bg-surface-sunken">
+            <thead className="sticky top-0 z-10">
               <tr role="row" aria-rowindex={1}>
                 {columns.map((col) => (
                   <th
@@ -192,6 +203,19 @@ export function DataGrid<Row>({
               </tr>
             </thead>
             <tbody onKeyDown={onKey}>
+              {inTableError ? (
+                <tr>
+                  <td colSpan={columns.length} className="px-4 py-8 text-center">
+                    <div role="alert" className="grid justify-items-center gap-3">
+                      <span className="text-body-md text-fg-primary">{inTableError.message}</span>
+                      <span className="text-body-sm leading-[19.5px] text-fg-secondary">{inTableError.detail}</span>
+                      <Button variant="tertiary" iconStart="refresh" onPress={inTableError.onRetry}>
+                        {inTableError.retryLabel ?? 'Retry'}
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ) : null}
               {rows.map((row, i) => {
                 const rowId = getRowId(row);
                 const selected = rowId === selectedId;
