@@ -213,6 +213,7 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
               brand={<RailBrand collapsed={!expanded} />}
               collapseText="Collapse"
               toggleEmphasis="outline"
+              nudgeIconLabels
               onToggleCollapsed={
                 isDesktop && !anyPanelOpen
                   ? (collapsed) => {
