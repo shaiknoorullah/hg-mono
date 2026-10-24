@@ -6,7 +6,7 @@
  * build does not know shows the update page: the value is reported, never drawn.
  */
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import { Button, GlyphIcon, Skeleton, SupportBlock } from '../ds';
+import { Button, GlyphIcon, Skeleton, StateCardIcon, SupportBlock } from '../ds';
 import { ConsoleProvider, useConsole } from '../data/console';
 import { ConsoleRealtime } from '../data/realtime';
 import { supportFrom } from '../auth/api';
@@ -22,18 +22,37 @@ import { FRAME } from './copy';
 import { STEP_PATH, isKnownStep } from './model';
 import { reportUnknownStep } from './report';
 
+/**
+ * The card the setup boards `Onb-LoadError`, `Onb-UnknownStep` and the loading page draw: 560 wide,
+ * bordered, on the cream page 121 px under the top bar, its content centred.
+ */
 function Center({ children, testId }: { children: React.ReactNode; testId?: string }) {
   return (
-    <div className="mx-auto flex w-full max-w-[560px] flex-col gap-4 p-6" data-testid={testId}>
-      {children}
+    <div className="flex justify-center px-4 pt-[121px]">
+      <div
+        className="flex w-[560px] max-w-full flex-col items-center gap-4 rounded-lg border border-line-decorative bg-surface-raised p-8 text-center"
+        data-testid={testId}
+      >
+        {children}
+      </div>
     </div>
   );
 }
 
-function BareFrame({ onSignOut, children }: { onSignOut: () => void; children: React.ReactNode }) {
+/** The error card's heading and line, as the boards draw them (20/30, then 15/22.5). */
+function StateText({ title, body }: { title: string; body: string }) {
   return (
-    <div className="flex h-dvh flex-col bg-surface-sunken" data-testid="onboarding-bare">
-      <SetupTopBar businessName="" onSignOut={onSignOut} />
+    <div className="flex flex-col gap-2">
+      <h1 className="m-0 text-[20px] font-semibold leading-[30px] text-fg-primary">{title}</h1>
+      <p className="m-0 text-[15px] leading-[22.5px] text-fg-secondary">{body}</p>
+    </div>
+  );
+}
+
+function BareFrame({ onSignOut, businessName = '', children }: { onSignOut: () => void; businessName?: string; children: React.ReactNode }) {
+  return (
+    <div className="flex h-dvh flex-col bg-surface-base" data-testid="onboarding-bare">
+      <SetupTopBar businessName={businessName} onSignOut={onSignOut} />
       <main id="main" tabIndex={-1} className="min-h-0 flex-1 overflow-y-auto">
         {children}
       </main>
@@ -44,7 +63,7 @@ function BareFrame({ onSignOut, children }: { onSignOut: () => void; children: R
 function EndFrame({ onSignOut, children }: { onSignOut: () => void; children: React.ReactNode }) {
   const { businessName } = useOnboarding();
   return (
-    <div className="flex h-dvh flex-col bg-surface-sunken" data-testid="onboarding-end">
+    <div className="flex h-dvh flex-col bg-surface-base" data-testid="onboarding-end">
       <SetupTopBar businessName={businessName} onSignOut={onSignOut} />
       <main id="main" tabIndex={-1} className="min-h-0 flex-1 overflow-y-auto">
         {children}
@@ -66,7 +85,7 @@ function StepRoutes({ onSignOut }: { onSignOut: () => void }) {
   const account = profile.data?.account_state;
 
   // Ends and blockers come before any step: they replace the step, they are not part of it.
-  if (state === 'WITHDRAWN') return <EndFrame onSignOut={onSignOut}><Withdrawn /></EndFrame>;
+  if (state === 'WITHDRAWN') return <EndFrame onSignOut={onSignOut}><Withdrawn onSignOut={onSignOut} /></EndFrame>;
   if (status.rejection?.decision === 'REJECT') return <EndFrame onSignOut={onSignOut}><NotApproved /></EndFrame>;
   if (account === 'SUSPENDED' || account === 'DEACTIVATED') {
     return <OnboardingFrame onSignOut={onSignOut}><PausedAccount kind={account} /></OnboardingFrame>;
@@ -99,19 +118,17 @@ function StepRoutes({ onSignOut }: { onSignOut: () => void }) {
 
 function UnknownStep({ onSignOut }: { onSignOut: () => void }) {
   const { config } = useConsole();
+  const { businessName } = useOnboarding();
   const support = supportFrom(config);
   return (
-    <BareFrame onSignOut={onSignOut}>
+    <BareFrame onSignOut={onSignOut} businessName={businessName}>
       <Center testId="unknown-step">
-        <div role="alert" className="flex flex-col gap-3">
-          <GlyphIcon name="warning" size="lg" />
-          <h1 className="m-0 text-heading-xl text-fg-primary">{FRAME.unknownTitle}</h1>
-          <p className="m-0 text-body-md text-fg-secondary">{FRAME.unknownBody}</p>
-          <div>
-            <Button variant="primary" size="lg" onPress={() => window.location.reload()}>
-              {FRAME.refresh}
-            </Button>
-          </div>
+        <div role="alert" className="flex flex-col items-center gap-4">
+          <StateCardIcon name="warning" />
+          <StateText title={FRAME.unknownTitle} body={FRAME.unknownBody} />
+          <Button variant="primary" size="lg" iconStart={<GlyphIcon name="refresh" size="md" />} onPress={() => window.location.reload()}>
+            {FRAME.refresh}
+          </Button>
         </div>
         {support ? <SupportBlock contact={support} label={FRAME.supportLabel} unavailableTitle="" unavailableBody="" /> : null}
       </Center>
@@ -141,15 +158,12 @@ function Loaded({ onSignOut }: { onSignOut: () => void }) {
     return (
       <BareFrame onSignOut={onSignOut}>
         <Center testId="onboarding-load-error">
-          <div role="alert" className="flex flex-col gap-3">
-            <GlyphIcon name="warning" size="lg" />
-            <h1 className="m-0 text-heading-xl text-fg-primary">{FRAME.loadErrorTitle}</h1>
-            <p className="m-0 text-body-md text-fg-secondary">{FRAME.loadErrorBody}</p>
-            <div>
-              <Button variant="primary" size="lg" onPress={core.reload}>
-                {FRAME.tryAgain}
-              </Button>
-            </div>
+          <div role="alert" className="flex flex-col items-center gap-4">
+            <StateCardIcon name="warning" />
+            <StateText title={FRAME.loadErrorTitle} body={FRAME.loadErrorBody} />
+            <Button variant="primary" size="lg" iconStart={<GlyphIcon name="refresh" size="md" />} onPress={core.reload}>
+              {FRAME.tryAgain}
+            </Button>
           </div>
         </Center>
       </BareFrame>

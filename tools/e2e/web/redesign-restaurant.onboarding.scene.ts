@@ -59,6 +59,7 @@ export interface Scene {
   status: Src;
   statusPatch?: (s: any) => any;
   profile?: Src;
+  profilePatch?: (p: any) => any;
   docs?: Src;
   connect?: Src;
   hours?: Src;
@@ -70,7 +71,7 @@ export interface Scene {
 
 export async function serve(page: Page, s: Scene) {
   await answer(page, '**/v1/restaurant/onboarding/status', s.status, s.statusPatch);
-  await answer(page, '**/v1/restaurant/profile', s.profile ?? 'restaurant_profile_account_pending');
+  await answer(page, '**/v1/restaurant/profile', s.profile ?? 'restaurant_profile_account_pending', s.profilePatch);
   await answer(page, '**/v1/restaurant/documents', s.docs ?? 'restaurant_document_pack_complete', onboardingDocuments);
   if (s.connect) await answer(page, '**/v1/connect/status', s.connect);
   if (s.hours) await answer(page, '**/v1/restaurant/hours', s.hours);

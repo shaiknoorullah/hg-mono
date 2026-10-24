@@ -148,6 +148,7 @@ export const REVIEW = {
   callSupport: 'Call partner support',
   uploadFresh: 'Upload a fresh copy from your certifying body',
   supportUnavailable: "Partner support isn't available right now. Try again later.",
+  supportUnavailableTitle: 'Partner support',
   historyReplaced: (v: number, file: string | null, why: string) => `Version ${v}${file ? ` · ${file}` : ''} · Replaced${why ? ` · Not approved: ${why}` : ''}`,
   sendFailedTitle: 'Your documents weren’t sent',
   sendFailedBody: 'We couldn’t reach HalalGoes, or something went wrong on our side. Nothing you added is lost. Sending again is safe.',

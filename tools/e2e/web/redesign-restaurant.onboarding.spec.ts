@@ -29,10 +29,20 @@ async function answer(page: Page, glob: string, scenario: string | { status: num
   await page.route(glob, (route: Route) => route.fulfill({ json: { data } }));
 }
 
-async function open(page: Page, path: string, state: { status: string | { status: number }; docs: string | { status: number }; profile?: string }) {
-  await answer(page, '**/v1/restaurant/onboarding/status', state.status);
+async function open(
+  page: Page,
+  path: string,
+  state: {
+    status: string | { status: number };
+    statusPatch?: (s: any) => any;
+    docs: string | { status: number };
+    profile?: string;
+    profilePatch?: (p: any) => any;
+  },
+) {
+  await answer(page, '**/v1/restaurant/onboarding/status', state.status, state.statusPatch);
   await answer(page, '**/v1/restaurant/documents', state.docs);
-  if (state.profile) await answer(page, '**/v1/restaurant/profile', state.profile);
+  if (state.profile) await answer(page, '**/v1/restaurant/profile', state.profile, state.profilePatch);
   await openSignedIn(page, path);
 }
 
@@ -54,7 +64,15 @@ test.describe('restaurant redesign · onboarding (mock)', () => {
   });
 
   test('documents step, the list does not load', async ({ page }) => {
-    await open(page, '/onboarding/documents', { status: 'restaurant_onboarding_documents_pending', docs: { status: 500 }, profile: 'restaurant_profile_account_pending' });
+    // `Docs-LoadError` draws a restaurant with no halal certificate on record (the rail says so, not
+    // "Not verified") and 20 % done: the server's own number, patched here, never computed by the app.
+    await open(page, '/onboarding/documents', {
+      status: 'restaurant_onboarding_documents_pending',
+      statusPatch: (s) => ({ ...s, progress_percent: 20 }),
+      docs: { status: 500 },
+      profile: 'restaurant_profile_account_pending',
+      profilePatch: (p) => ({ ...p, halal: undefined }),
+    });
     await expect(page.getByRole('button', { name: /try again/i }).first()).toBeVisible();
     await settled(page, { 1440: `${ONB}Docs-LoadError` });
   });
