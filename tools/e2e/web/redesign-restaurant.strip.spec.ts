@@ -10,7 +10,7 @@
  */
 import { copyShot, shoot } from './shots';
 import { expectDesignFor, type BoardFor } from './design';
-import { expect, test, type Page, type Request, type Route, type TestInfo } from '@playwright/test';
+import { expect, test, type Page, type Request, type TestInfo } from '@playwright/test';
 import { execSync } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -120,31 +120,17 @@ async function servePending(page: Page, pending: Pending[]) {
 }
 
 /** /orders → go-live gate → History (a quiet page, so the strip is what's on screen). */
-async function goLive(page: Page, info: TestInfo) {
+async function goLive(page: Page, _info?: TestInfo) {
   await page.context().grantPermissions(['notifications']);
   const beats: Request[] = [];
   page.on('request', (r) => {
     if (r.method() === 'POST' && r.url().endsWith('/v1/restaurant/heartbeat')) beats.push(r);
   });
-  // Board-gate is the restaurant before it goes live: nothing waiting yet, and the switch off
-  // ("Closed", "Not accepting orders yet"). Both are answered here until the gesture, then the
-  // test's own routes (the waiting orders, the open mock) answer again.
-  const closed = { ...(await fixturePayload(page, 'restaurant_open_state_closed_toggle')), reason: 'Not accepting orders yet' };
-  const answerClosed = (route: Route) => route.fulfill({ json: { data: closed } });
-  const answerNoOrders = (route: Route) =>
-    route.request().method() === 'GET'
-      ? route.fulfill({ json: { data: [], meta: { next_cursor: null, has_more: false, limit: 50 } } })
-      : route.fallback();
-  await page.route('**/v1/restaurant/availability', answerClosed);
-  await page.route(/\/v1\/restaurant\/orders(\?.*)?$/, answerNoOrders);
   await openSignedIn(page, '/orders');
   const gate = page.getByRole('region', { name: 'Turn on order sound and go live' });
   await expect(gate).toBeVisible();
   // The strip is hidden behind the gate on this page.
   await expect(page.getByTestId('new-order-strip')).toHaveCount(0);
-  await shot(page, info, 'gate');
-  await page.unroute('**/v1/restaurant/availability', answerClosed);
-  await page.unroute(/\/v1\/restaurant\/orders(\?.*)?$/, answerNoOrders);
   // A screen on the gate cannot ring, so it must not keep the restaurant online.
   expect(beats, 'no heartbeat before the gate gesture').toHaveLength(0);
   await page.getByRole('button', { name: 'Turn on sound and go live' }).click();
@@ -163,6 +149,18 @@ const tile = (page: Page, code: string) => page.locator(`[data-offer-tile][aria-
 
 test.describe('restaurant redesign · new-order strip', () => {
   test.skip(MODE !== 'mock', 'mock-mode strip states; the real-API journeys are below');
+  test('go-live gate: the restaurant before it goes live', async ({ page }, info) => {
+    // Board-gate: nothing is waiting yet and the switch is off ("Closed", "Not accepting orders yet").
+    const closed = { ...(await fixturePayload(page, 'restaurant_open_state_closed_toggle')), reason: 'Not accepting orders yet' };
+    await page.route('**/v1/restaurant/availability', (route) => route.fulfill({ json: { data: closed } }));
+    await servePending(page, []);
+    await openSignedIn(page, '/orders');
+    await expect(page.getByRole('region', { name: 'Turn on order sound and go live' })).toBeVisible();
+    await expect(page.getByTestId('new-order-strip')).toHaveCount(0);
+    await expect(page.getByTestId('health-badge')).toHaveText('Sound off');
+    await shot(page, info, 'gate');
+  });
+
   test('go-live gate: notifications denied offers to go live without them', async ({ page }, info) => {
     await servePending(page, []);
     await page.context().clearPermissions();
