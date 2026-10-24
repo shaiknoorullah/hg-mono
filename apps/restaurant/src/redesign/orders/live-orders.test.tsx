@@ -127,7 +127,7 @@ describe('In progress list', () => {
     const bar = screen.getByRole('region', { name: 'Service status' });
     await waitFor(() => expect(within(bar).getByTestId('health-badge').textContent).toBe('Not connected'));
     expect(within(bar).getByTestId('open-state-badge').textContent).toBe('Unknown');
-    expect(within(bar).getByRole('switch', { name: /^Orders/ }).hasAttribute('disabled')).toBe(true);
+    expect(within(bar).getByRole('switch', { name: /^Orders/ }).getAttribute('aria-disabled')).toBe('true');
     api.set('GET /v1/restaurant/orders', 'restaurant_order_queue_empty');
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(await screen.findByText('Nothing in progress')).toBeTruthy();

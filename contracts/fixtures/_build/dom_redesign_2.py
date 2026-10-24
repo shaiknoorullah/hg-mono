@@ -164,7 +164,7 @@ def _dashboard(mode: str, *, today: dict | None = None, assignment: dict | None 
                blocking: list[str] | None = None) -> dict:
     return {
         "mode": mode,
-        "today": today or _today(4296, 3, 2 * HOUR + 14 * MINUTE),
+        "today": today or _today(4280, 7, 3 * HOUR + 12 * MINUTE),
         "active_assignment": assignment,
         "current_offer": offer,
         "tracking_health": tracking,
@@ -221,6 +221,14 @@ def _rider_home(reg) -> None:
         "Offline with all nine `blocking_reasons` at once, so one screen test covers every "
         "row and deep link. Nothing earned today." + _NOT_SENT,
         _dashboard("OFFLINE", today=_today(0, 0, 0), tracking=None, blocking=list(BLOCKING_REASONS)),
+        ("error-path",),
+    )
+    add(
+        "rider_dashboard_offline_blocked_three_reasons",
+        "Offline with the three reasons the Home board draws, in its order: `BACKGROUND_LOCATION_PERMISSION`, "
+        "`DOCUMENT_EXPIRED` and `PAYOUT_ACCOUNT_INCOMPLETE` (\"Fix 3 things to go online\")." + _NOT_SENT,
+        _dashboard("OFFLINE", today=_today(0, 0, 0), tracking=None,
+                   blocking=["BACKGROUND_LOCATION_PERMISSION", "DOCUMENT_EXPIRED", "PAYOUT_ACCOUNT_INCOMPLETE"]),
         ("error-path",),
     )
     for reason in BLOCKING_REASONS:
@@ -868,6 +876,19 @@ def _customer_sign_in(reg) -> None:
         config,
         operations=["getPublicConfig"],
         tags=["platform", "edge"],
+    )
+
+    board = copy.deepcopy(reg.fixtures["public_config"].payload)
+    board.update({"support_phone_e164": "+18005550142", "support_hours": "Every day, 8 am to 2 am"})
+    reg.add(
+        "public_config_board_support",
+        "platform",
+        "PublicConfig",
+        "Support on, with the number and hours the boards draw: 1 800 555 0142, every day, "
+        "8 am to 2 am.",
+        board,
+        operations=["getPublicConfig"],
+        tags=["platform"],
     )
 
 

@@ -795,6 +795,9 @@ test("a small dashed tag is a designers' note; a dashed drop zone or a short bad
   // The tags the settings boards carry: `border: 1px dashed`, the caption type, running text.
   assert.ok(noteTag(box(), 12), '"Mapping: verified_at from the current halal certificate document …"');
   assert.ok(noteTag(box(), 4), '"HalalCertificationPanel (design-system component, reused) …"');
+  // The phone boards' tags: the same box in the mono type, 13 px ("Prototype branches: …", "blocking_reasons: …").
+  assert.ok(noteTag(box({ fontSize: '13px', fontFamily: '"IBM Plex Mono", monospace' }), 9), 'a phone board tag in mono-md');
+  assert.ok(!noteTag(box({ fontSize: '13px', fontFamily: 'Inter, sans-serif' }), 9), '13 px in the UI font is copy');
   // Product UI that is also drawn with a dashed outline.
   assert.ok(!noteTag(box({ fontSize: '16px', borderTopWidth: '2px' }), 8), 'a file drop zone: body type');
   assert.ok(!noteTag(box({ borderTopWidth: '3px' }), 8), 'a heavy dashed border');

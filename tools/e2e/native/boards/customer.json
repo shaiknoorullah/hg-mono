@@ -2,67 +2,67 @@
   {
     "board": "sign-in/Blocked-banned",
     "route": "home",
-    "scenario": "listRestaurants=error_account_banned",
+    "scenario": "listRestaurants=error_account_banned,getPublicConfig=public_config_board_support",
     "device": "light-390-100"
   },
   {
     "board": "sign-in/Blocked-unavailable",
     "route": "home",
-    "scenario": "listRestaurants=error_account_not_active",
+    "scenario": "listRestaurants=error_account_not_active,getPublicConfig=public_config_board_support",
     "device": "light-390-100"
   },
   {
     "board": "sign-in/Blocked-midsession",
     "route": "home",
-    "scenario": "listRestaurants=error_account_suspended",
+    "scenario": "listRestaurants=error_account_suspended,getPublicConfig=public_config_board_support",
     "device": "light-390-100"
   },
   {
     "board": "sign-in/Blocked-expired",
     "route": "home",
-    "scenario": "listRestaurants=@status=401,refreshSession=error_session_expired",
+    "scenario": "listRestaurants=@status=401,refreshSession=error_session_expired,getPublicConfig=public_config_board_support",
     "device": "light-390-100"
   },
   {
     "board": "sign-in/Blocked-revoked",
     "route": "home",
-    "scenario": "listRestaurants=@status=401,refreshSession=error_session_revoked",
+    "scenario": "listRestaurants=@status=401,refreshSession=error_session_revoked,getPublicConfig=public_config_board_support",
     "device": "light-390-100"
   },
   {
     "board": "sign-in/Blocked-security",
     "route": "home",
-    "scenario": "listRestaurants=@status=401,refreshSession=error_refresh_reuse_detected",
+    "scenario": "listRestaurants=@status=401,refreshSession=error_refresh_reuse_detected,getPublicConfig=public_config_board_support",
     "device": "light-390-100"
   },
   {
     "board": "discover-order/Home-loading",
     "route": "home",
-    "scenario": "listRestaurants=@stall",
+    "scenario": "listRestaurants=@stall,getActiveOrder=order_no_active,getCart=cart_empty",
     "device": "light-390-100"
   },
   {
     "board": "discover-order/Home-error",
     "route": "home",
-    "scenario": "listRestaurants=@status=500",
+    "scenario": "listRestaurants=@status=500,getActiveOrder=order_no_active,getCart=cart_empty",
     "device": "light-390-100"
   },
   {
     "board": "discover-order/Home-nothing-in-range",
     "route": "home",
-    "scenario": "listRestaurants=restaurant_list_empty",
+    "scenario": "listRestaurants=restaurant_list_empty,getActiveOrder=order_no_active,getCart=cart_empty,listAddresses=addresses_cottage",
     "device": "light-390-100"
   },
   {
     "board": "discover-order/Browse-loading",
     "route": "browse",
-    "scenario": "listRestaurants=@stall",
+    "scenario": "listRestaurants=@stall,getActiveOrder=order_no_active,getCart=cart_empty",
     "device": "light-390-100"
   },
   {
     "board": "discover-order/Browse-error",
     "route": "browse",
-    "scenario": "listRestaurants=@status=500",
+    "scenario": "listRestaurants=@status=500,getActiveOrder=order_no_active,getCart=cart_empty",
     "device": "light-390-100"
   },
   {
@@ -86,31 +86,31 @@
   {
     "board": "account/Addresses-loading",
     "route": "addresses",
-    "scenario": "listAddresses=@stall",
+    "scenario": "listAddresses=@stall,getActiveOrder=order_no_active,getCart=cart_empty",
     "device": "light-390-100"
   },
   {
     "board": "account/Addresses-error",
     "route": "addresses",
-    "scenario": "listAddresses=@status=500",
+    "scenario": "listAddresses=@status=500,getActiveOrder=order_no_active,getCart=cart_empty",
     "device": "light-390-100"
   },
   {
     "board": "account/Addresses-empty",
     "route": "addresses",
-    "scenario": "listAddresses=addresses_empty",
+    "scenario": "listAddresses=addresses_empty,getActiveOrder=order_no_active,getCart=cart_empty",
     "device": "light-390-100"
   },
   {
     "board": "account/Account-loading",
     "route": "account",
-    "scenario": "getCustomerProfile=@stall",
+    "scenario": "getCustomerProfile=@stall,getActiveOrder=order_no_active,getCart=cart_empty",
     "device": "light-390-100"
   },
   {
     "board": "account/Account-error",
     "route": "account",
-    "scenario": "getCustomerProfile=@status=500",
+    "scenario": "getCustomerProfile=@status=500,getActiveOrder=order_no_active,getCart=cart_empty",
     "device": "light-390-100"
   }
 ]

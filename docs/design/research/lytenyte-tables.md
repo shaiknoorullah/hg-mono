@@ -7,6 +7,8 @@ reviewed: 2026-10-24
 
 # DataTable on LyteNyte Grid, and the cell component set — spec draft
 
+> **2026-10-24:** the older `DataTable` in `packages/ui-web/src/data/` takes `compactHeader` (11/16.5 labels in a 33 px row, as the restaurant live-orders board draws its table header), `AppBar` on the chrome tone sets its title at line height 1.5 (18/27), and the halal badge's label has line height 1; the tables in this draft are unchanged.
+
 > **2026-10-23:** `AppBar`, `SideNav` and `Switch` in `packages/ui-web/src/ds/` now draw the restaurant
 > boards' type: 13/19.5 rail labels with no tracking, 1.5 line height on the app bar's title and
 > subtitle (warm off-white on the chrome bar), and a 13/19.5 bold state word on the switch. The tables

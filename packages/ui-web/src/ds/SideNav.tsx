@@ -103,6 +103,8 @@ export interface SideNavProps {
   collapseText?: string;
   /** The toggle's border: `plain` (default, the admin rail) or `outline` (the restaurant boards). */
   toggleEmphasis?: 'outline' | 'plain';
+  /** On the collapsed rail, sets the label of an item that has an icon 1 px lower (the restaurant boards draw it so). */
+  nudgeIconLabels?: boolean;
   /** The toggle's names. Defaults "Collapse menu" and "Expand menu". */
   collapseLabel?: string;
   expandLabel?: string;
@@ -179,6 +181,7 @@ export function SideNav({
   collapseLabel = 'Collapse menu',
   collapseText,
   toggleEmphasis = 'plain',
+  nudgeIconLabels = false,
   expandLabel = 'Expand menu',
   railHeader,
   onNavigate,
@@ -255,7 +258,7 @@ export function SideNav({
                 const content = (
                   <>
                     {glyph(item.icon, active)}
-                    <span className={cn('min-w-0', collapsed ? 'max-w-18 hyphens-auto' : 'flex-1 truncate')}>{visible}</span>
+                    <span className={cn('min-w-0', collapsed ? 'max-w-18 hyphens-auto' : 'flex-1 truncate', collapsed && nudgeIconLabels && item.icon != null && 'translate-y-px')}>{visible}</span>
                     {count}
                   </>
                 );

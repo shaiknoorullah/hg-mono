@@ -1,0 +1,46 @@
+{
+  "scenario": "offer_pending_tip_hidden",
+  "domain": "dispatch",
+  "schema": "DispatchOffer",
+  "describes": "A live offer with 24 seconds left that pays CAD 7.34 and has no tip yet (`tip_so_far_cents: 0`): the tip row is hidden, never `$0.00`.",
+  "operations": [
+    "getCurrentOffer"
+  ],
+  "status": 200,
+  "tags": [
+    "rider",
+    "edge",
+    "money"
+  ],
+  "payload": {
+    "offer_id": "b00fb5de-19c7-4f6c-a3e6-c90e3449be17",
+    "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+    "state": "PENDING",
+    "wave": 2,
+    "expires_at": "2026-08-10T18:42:35.412Z",
+    "server_time": "2026-08-10T18:42:11.412Z",
+    "pickup": {
+      "restaurant_name": "Zaytoun Grill",
+      "address_short": "Ellesmere Rd, Scarborough",
+      "latitude": 43.7731,
+      "longitude": -79.2575
+    },
+    "dropoff": {
+      "area": "South Scarborough",
+      "latitude": 43.7352,
+      "longitude": -79.2625,
+      "radius_m": 300
+    },
+    "distance_m": 4800,
+    "est_duration_s": 840,
+    "earnings": {
+      "base_cents": 350,
+      "distance_cents": 384,
+      "surge_cents": 0,
+      "tip_so_far_cents": 0,
+      "estimated_total_cents": 734,
+      "currency": "CAD"
+    },
+    "items_count": 3
+  }
+}

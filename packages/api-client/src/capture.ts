@@ -22,6 +22,8 @@ export interface CaptureQuery {
   scenario: string | undefined;
   /** An ISO date for the phone's clock, or undefined to ask the mock for its own. */
   clock: string | undefined;
+  /** True to hold the clock still at `clock` (a countdown reads the board's second), not let it tick on from there. */
+  hold: boolean;
 }
 
 /** `readCaptureQuery`'s answer: the query's values, or why the link is refused. */
@@ -33,7 +35,7 @@ export const captureRefusal = (board: string | null, why: string): { ok: false; 
   why: `${board ?? 'capture link'}: ${why}`,
 });
 
-/** Read `board`, `params`, `scenario` and `clock`. Pure: a bad link changes nothing. */
+/** Read `board`, `params`, `scenario`, `clock` and `hold`. Pure: a bad link changes nothing. */
 export function readCaptureQuery(query: URLSearchParams): CaptureQueryResult {
   const board = query.get('board');
   let params: Record<string, unknown> | undefined;
@@ -49,7 +51,9 @@ export function readCaptureQuery(query: URLSearchParams): CaptureQueryResult {
   }
   const clock = query.get('clock') ?? undefined;
   if (clock !== undefined && Number.isNaN(Date.parse(clock))) return captureRefusal(board, '`clock` is not a date');
-  return { ok: true, board, params, scenario: query.get('scenario') || undefined, clock };
+  const hold = query.get('hold') === '1';
+  if (hold && clock === undefined) return captureRefusal(board, '`hold` needs a `clock` to hold at');
+  return { ok: true, board, params, scenario: query.get('scenario') || undefined, clock, hold };
 }
 
 const RealDate = Date;
@@ -75,6 +79,25 @@ export function offsetClockTo(target: number): void {
   });
 }
 
+/**
+ * Hold the phone's clock still at `target` (epoch ms): `Date.now()` and `new Date()` answer it
+ * every time, so a countdown built from them reads the same second until the screenshot is taken.
+ * Timers are not affected (`setTimeout` and the animation frame run on their own clocks).
+ */
+export function holdClockAt(target: number): void {
+  globalThis.Date = new Proxy(RealDate, {
+    construct(real, args, newTarget) {
+      return Reflect.construct(real, args.length === 0 ? [target] : args, newTarget);
+    },
+    apply() {
+      return new RealDate(target).toString();
+    },
+    get(real, prop, receiver) {
+      return prop === 'now' ? () => target : Reflect.get(real, prop, receiver);
+    },
+  });
+}
+
 /** Back to the phone's own clock. */
 export function restoreClock(): void {
   globalThis.Date = RealDate;
@@ -92,12 +115,12 @@ async function mockFrozenClock(baseUrl: string): Promise<string | null> {
 }
 
 /**
- * Move the clock to `clock`, else to the mock's frozen clock. When neither gives a time the
+ * Move the clock to `clock`, else to the mock's frozen clock; with `hold`, keep it still there. When neither gives a time the
  * phone's clock stays and a warning says so (the capture's provenance will show it).
  */
-export async function adoptCaptureClock(baseUrl: string, clock: string | undefined): Promise<void> {
+export async function adoptCaptureClock(baseUrl: string, clock: string | undefined, hold = false): Promise<void> {
   const at = clock ?? (await mockFrozenClock(baseUrl));
-  if (at && !Number.isNaN(Date.parse(at))) offsetClockTo(Date.parse(at));
+  if (at && !Number.isNaN(Date.parse(at))) (hold ? holdClockAt : offsetClockTo)(Date.parse(at));
   // eslint-disable-next-line no-console
   else console.warn("[capture] the clock stays the phone's: no `clock` in the link and the mock gave none");
 }

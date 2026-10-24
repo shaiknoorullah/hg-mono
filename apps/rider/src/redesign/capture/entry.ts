@@ -56,6 +56,7 @@ export interface CaptureRequest {
   target: CaptureTarget | null;
   scenario: string | undefined;
   clock: string | undefined;
+  hold: boolean;
 }
 
 export type Parsed = { ok: true; request: CaptureRequest } | { ok: false; why: string };
@@ -82,7 +83,7 @@ export function parseCaptureUrl(url: string | null | undefined): Parsed | null {
   const read = readCaptureQuery(query);
   if (!read.ok) return read;
   const target = name === 'signIn' ? null : { name, params: read.params };
-  return { ok: true, request: { board, target, scenario: read.scenario, clock: read.clock } };
+  return { ok: true, request: { board, target, scenario: read.scenario, clock: read.clock, hold: read.hold } };
 }
 
 /* The route waiting for the navigator. A one-slot store: the follower takes it and empties it. */
@@ -110,10 +111,10 @@ export async function openCapture(url: string | null | undefined): Promise<boole
     console.warn(`[capture] nothing opened. ${parsed.why}`);
     return false;
   }
-  const { board, target, scenario, clock } = parsed.request;
+  const { board, target, scenario, clock, hold } = parsed.request;
 
   setMockScenario(scenario);
-  await adoptCaptureClock(API_BASE_URL, clock);
+  await adoptCaptureClock(API_BASE_URL, clock, hold);
   // Logged before any return below, the sign-in screen included: the native capture runner
   // (tools/e2e/native/capture/run.mjs) reads this line from the phone's log to know the link was
   // acted on, and `nothing opened` above to know it was refused.

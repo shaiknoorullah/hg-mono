@@ -41,6 +41,9 @@ describe('parseManifest', () => {
     assert.match(problemsOf({ ...ok, route: '' })[0], /"route" must be the name of a route/);
     assert.match(problemsOf({ ...ok, params: [] })[0], /"params" must be an object/);
     assert.match(problemsOf({ ...ok, clock: 'tomorrow' })[0], /"clock" must be an ISO date/);
+    assert.deepEqual(problemsOf({ ...ok, clock: '2026-08-10T18:42:11.412Z', hold: true }), []);
+    assert.match(problemsOf({ ...ok, hold: true })[0], /"hold" needs a "clock"/);
+    assert.match(problemsOf({ ...ok, clock: '2026-08-10T18:42:11.412Z', hold: 'yes' })[0], /"hold" must be true/);
     assert.match(problemsOf({ ...ok, volatile: ['('] })[0], /invalid regular expression/);
     assert.match(problemsOf({ ...ok, colour: 'red' })[0], /unknown key "colour"/);
   });
@@ -93,6 +96,8 @@ describe('captureUrl', () => {
     assert.deepEqual(JSON.parse(q.get('params')), entry.params);
     assert.equal(q.get('scenario'), entry.scenario);
     assert.equal(q.get('clock'), entry.clock);
+    assert.equal(q.get('hold'), null);
+    assert.equal(new URL(captureUrl('rider', { ...entry, hold: true }).replace('hgrider://', 'http://')).searchParams.get('hold'), '1');
   });
   it('leaves out what an entry does not have, and uses the customer scheme for the customer', () => {
     assert.equal(captureUrl('customer', { board: 'a/B', route: 'home' }), 'hgcustomer://__capture?board=a%2FB&route=home');

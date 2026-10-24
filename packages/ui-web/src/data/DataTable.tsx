@@ -90,6 +90,11 @@ export interface DataTableProps<Row> {
 
   density?: Density;
   stickyHeader?: boolean;
+  /**
+   * Draw the header the way the restaurant console boards do: 11/16.5 semibold labels in a 33 px
+   * sunken row, instead of the body's cell padding and 13 px type.
+   */
+  compactHeader?: boolean;
   /** Sticks the first data column (after the checkbox), for wide admin tables. */
   stickyFirstColumn?: boolean;
 
@@ -191,6 +196,7 @@ export function DataTable<Row>({
   pagination,
   density = 'compact',
   stickyHeader = true,
+  compactHeader = false,
   stickyFirstColumn = false,
   loading = false,
   loadingMore = false,
@@ -366,8 +372,14 @@ export function DataTable<Row>({
                     style={column.width ? { inlineSize: column.width } : undefined}
                     {...grid.cellProps(0, leadingCols + columnIndex)}
                     className={cx(
-                      'border-b border-line-decorative text-label-md font-semibold text-fg-secondary',
-                      DENSITY_CELL_PADDING,
+                      'border-b border-line-decorative font-semibold text-fg-secondary',
+                      compactHeader
+                        ? cx(
+                            'whitespace-nowrap bg-surface-subtle py-2 text-label-sm leading-[16.5px] tracking-[0.4px]',
+                            // The first and last labels sit 16 px in from the table's edges, the rest 12.
+                            columnIndex === 0 ? 'ps-4 pe-3' : columnIndex === visibleColumns.length - 1 ? 'ps-3 pe-4' : 'px-3',
+                          )
+                        : cx('text-label-md', DENSITY_CELL_PADDING),
                       ALIGN_CLASS[defaultAlign(column as DataTableColumn<unknown>)],
                       stickyFirstColumn && columnIndex === 0 && 'sticky start-0 bg-surface-subtle',
                       'hg-focus-inset',

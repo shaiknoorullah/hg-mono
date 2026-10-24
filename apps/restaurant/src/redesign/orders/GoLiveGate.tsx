@@ -28,7 +28,7 @@ function GoLiveGate() {
         data-testid="go-live-gate"
         className="flex w-[560px] max-w-full flex-col gap-3.5 rounded-xl border border-line-decorative bg-surface-raised p-7 shadow-md"
       >
-        <Icon name="bell" size={40} weight="bold" className="text-brand-600" />
+        <Icon name="bell" size={56} weight="bold" className="-my-1 text-brand-600" />
         <h2 id="gate-title" className="text-[24px] font-bold tracking-[-0.01em]">
           Turn on order sound and go live
         </h2>
@@ -50,6 +50,7 @@ function GoLiveGate() {
           variant="primary"
           size="xl"
           fullWidth
+          className="leading-[1.2] [&_span]:leading-[1.2]"
           loading={busy}
           iconStart={<Icon name="bell" size={22} />}
           onPress={() => {

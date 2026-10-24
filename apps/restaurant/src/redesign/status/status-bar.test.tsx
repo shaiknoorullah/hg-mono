@@ -167,7 +167,7 @@ describe('open state, switch and pause', () => {
     expect(within(sus).getByText(/^Reason from HalalGoes: Repeated orders not handed to riders\. Orders already in progress can still be finished\./)).toBeTruthy();
     expect(within(sus).getByRole('link', { name: 'Call support on +1 800 555 0199' })).toBeTruthy();
     const region = await screen.findByRole('region', { name: 'Service status' });
-    expect(within(region).getByRole('switch', { name: /^Orders/ }).hasAttribute('disabled')).toBe(true);
+    expect(within(region).getByRole('switch', { name: /^Orders/ }).getAttribute('aria-disabled')).toBe('true');
   });
 
   it('first load of the open state failed: Unknown, nothing shown as if known', async () => {
@@ -176,7 +176,7 @@ describe('open state, switch and pause', () => {
     const region = await screen.findByRole('region', { name: 'Service status' });
     await waitFor(() => expect(within(region).getByTestId('open-state-badge').textContent).toBe('Unknown'));
     expect(within(region).getByTestId('health-badge').textContent).toBe('Not connected');
-    expect(within(region).getByRole('switch', { name: /^Orders/ }).hasAttribute('disabled')).toBe(true);
+    expect(within(region).getByRole('switch', { name: /^Orders/ }).getAttribute('aria-disabled')).toBe('true');
     expect(within(region).getByText('Available once orders load')).toBeTruthy();
   });
 });

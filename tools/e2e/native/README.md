@@ -27,8 +27,7 @@ and the reasons: [issue 1141](https://github.com/shaiknoorullah/hg-mono/issues/1
 
 | Path | What |
 |---|---|
-| [`boards/<app>.json`](boards) | One entry per board the entry opens: `board` (`<area>/<Board>`), `route`, `params` (the rider's `home` also reads `backFromTrip: [<assignment id>]`: Home opens the trip once per assignment, and the Home-on-a-delivery boards draw Home after Back from it), `scenario` (a per-operation map of fixtures and the mock's `@stall`, `@delay`, `@reset`, `@status` directives, [tools/mock-server/README.md](../../mock-server/README.md#picking-a-state)), `clock`, `device` (`<light\|dark>-390-100`), `volatile` (text that changes by itself, such as an offer's countdown, blanked when deciding the screen has settled) and `note` |
-| [`capture/run.mjs`](capture/run.mjs) | The runner: `node tools/e2e/native/capture/run.mjs --app rider --out <dir> [--apk <capture apk>] [--shard 1/2] [--only <regex>] [--list]` |
+>>>>>>> origin/main
 | [`capture/lib.mjs`](capture/lib.mjs) | Its pure parts (manifest, link, the app's log, "settled"), tested by `capture/lib.test.mjs` (`pnpm e2e:boards:check`) |
 
 The `native-captures` job of the [e2e workflow](../../../.github/workflows/e2e.yml) runs it on an emulator, one
