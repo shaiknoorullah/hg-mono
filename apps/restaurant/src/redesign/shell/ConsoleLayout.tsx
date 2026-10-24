@@ -240,9 +240,14 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
                 {compactFrame ? <ServiceBadges /> : null}
                 <Menu
                   label="Account"
-                  triggerLabel={accountName}
                   iconOnly
-                  trigger={<Icon name="profile" size={22} />}
+                  // The board draws the name as text in the button (read by screen readers, not seen).
+                  trigger={
+                    <>
+                      <Icon name="profile" size={22} />
+                      <span className="sr-only">{accountName}</span>
+                    </>
+                  }
                   variant="plain"
                   align="end"
                   items={accountItems}

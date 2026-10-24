@@ -374,7 +374,7 @@ export function DataTable<Row>({
                     className={cx(
                       'border-b border-line-decorative font-semibold text-fg-secondary',
                       compactHeader
-                        ? 'whitespace-nowrap px-3 py-2 text-label-sm leading-[16.5px]'
+                        ? 'whitespace-nowrap bg-surface-subtle px-3 py-2 text-label-sm leading-[16.5px]'
                         : cx('text-label-md', DENSITY_CELL_PADDING),
                       ALIGN_CLASS[defaultAlign(column as DataTableColumn<unknown>)],
                       stickyFirstColumn && columnIndex === 0 && 'sticky start-0 bg-surface-subtle',

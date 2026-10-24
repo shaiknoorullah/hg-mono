@@ -498,7 +498,7 @@ export function LiveOrdersPage() {
             stickyHeader
             compactHeader
             loading={list.status === 'loading'}
-            className="rounded-lg bg-surface-raised"
+            className="rounded-[16px] bg-surface-raised"
             emptyState={
               <EmptyState
                 variant="table"

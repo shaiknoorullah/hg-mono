@@ -179,7 +179,7 @@ export function StatusBar() {
         </span>
       ) : null}
 
-      <span className="flex min-w-0 items-center gap-2">
+      <span className="flex min-w-0 items-center gap-3.5">
         <ShellBadge size="lg" variant={view.badge.variant} style={boardBadge(view.badge.variant)} icon={view.badge.icon as DsIconName | undefined} label={view.badge.label} testId="open-state-badge" />
         {view.reason ? (
           <span className="max-w-[150px] truncate text-[15px] text-fg-secondary xl:max-w-[240px]" title={view.reason} data-testid="open-state-reason">
