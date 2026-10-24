@@ -245,7 +245,7 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
                   trigger={
                     <>
                       <Icon name="profile" size={22} />
-                      <span className="sr-only">{accountName}</span>
+                      <span className="absolute inset-0 overflow-hidden text-[1px] leading-none text-transparent">{accountName}</span>
                     </>
                   }
                   variant="plain"

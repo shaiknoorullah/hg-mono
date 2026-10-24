@@ -460,7 +460,7 @@ export function LiveOrdersPage() {
             description="Nothing is lost: your orders are safe on the server. New orders can’t ring on this screen until it loads. Check the connection, then try again."
             testId="orders-first-load-error"
           />
-          <Button variant="primary" size="xl" fullWidth className="mt-1.5" iconStart={<GlyphIcon name="refresh" size="md" />} onPress={reloadList}>
+          <Button variant="primary" size="lg" fullWidth className="mt-1.5" iconStart={<GlyphIcon name="refresh" size="md" />} onPress={reloadList}>
             Try again
           </Button>
         </div>
@@ -499,7 +499,7 @@ export function LiveOrdersPage() {
             stickyHeader
             compactHeader
             loading={list.status === 'loading'}
-            className="rounded-[16px] bg-surface-raised"
+            className="rounded-[16px]! bg-surface-raised"
             emptyState={
               <EmptyState
                 variant="table"
