@@ -118,7 +118,7 @@ export function SetupRail() {
         >
           <Icon name="back" size={20} />
           {/* The board draws the name as text in the button (read by screen readers, not seen). */}
-          <span className="absolute inset-0 overflow-hidden text-[1px] leading-none text-transparent">Collapse the setup checklist</span>
+          <span className="sr-only">Collapse the setup checklist</span>
         </button>
       </div>
       {paused ? (
