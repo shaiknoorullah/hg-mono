@@ -59,7 +59,7 @@ describe('check your email', () => {
     expect(alert.getAttribute('role')).toBe('status');
     expect(within(alert).getByText("You've asked for 5 links today")).toBeTruthy();
     expect(within(alert).getByText("That's the daily limit. Use the newest email you have, or call partner support.")).toBeTruthy();
-    expect(screen.getByRole('timer', { name: 'until tomorrow's limit resets' }).querySelector('[data-wait-time]')!.textContent).toBe('24:00:00');
+    expect(screen.getByRole('timer', { name: "until tomorrow's limit resets" }).querySelector('[data-wait-time]')!.textContent).toBe('24:00:00');
   });
 
   it('a reload ages the wait kept in history state: after the minute it is Default, within it the rest of the minute', async () => {
