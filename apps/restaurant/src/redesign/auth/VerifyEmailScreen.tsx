@@ -130,7 +130,7 @@ function VerifyError({ wait, onRetry, onWaitOver }: { wait: ServerWait | null; o
   }, [onWaitOver, announce]);
   return (
     <StateCard testId="verify-error">
-      <div ref={ref} role="alert" tabIndex={-1} className="hg-focus flex flex-col gap-5 rounded-[12px]">
+      <div ref={ref} role="alert" tabIndex={-1} className="flex flex-col gap-5 rounded-[12px] outline-none">
         <StateCardIcon name="warning" />
         <StateCardHeading title={VERIFY.errorTitle} intro={VERIFY.errorBody} />
       </div>

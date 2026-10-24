@@ -113,6 +113,16 @@ async function fillSignIn(page: Page, email: string, password: string) {
   await page.getByLabel(/^Password/).fill(password);
 }
 
+/** Capture state: the boards draw the business name in "Open the link we sent to …", which the sign-in flows do not carry. Router state survives a reload, so name the business in place. */
+async function nameTheBusiness(page: Page) {
+  await page.evaluate(() => {
+    const state = window.history.state as { usr?: Record<string, unknown> } | null;
+    if (state?.usr) state.usr.business_name = 'Zaytoun Grill';
+    window.history.replaceState(state, '');
+  });
+  await page.reload();
+}
+
 test.describe('restaurant redesign · sign in (mock)', () => {
   test.skip(MODE === 'real', 'mock-mode states');
 
@@ -164,6 +174,9 @@ test.describe('restaurant redesign · sign in (mock)', () => {
   });
 
   test('Unverified: Send a new link opens Check your email in its wait', async ({ page }, info) => {
+    // CheckEmail-Cooldown draws the minute 8 seconds in: 0:52. The clock stands still.
+    await frozenClock(page);
+    await page.route('**/v1/auth/email/resend', error('RATE_LIMITED', 429, { headers: { 'Retry-After': '52' } }));
     await page.route('**/v1/auth/login', error('INVALID_CREDENTIALS', 401, { details: { email_verification_required: true } }));
     await page.goto('/login');
     await fillSignIn(page, 'samir@zaytoungrill.ca', 'correct-horse-battery');
@@ -173,6 +186,7 @@ test.describe('restaurant redesign · sign in (mock)', () => {
     await page.getByRole('button', { name: 'Send a new link' }).click();
     await expect(page).toHaveURL(/\/check-email$/);
     await expect(page.getByText('A new link is on its way. Earlier links no longer work, so use the newest email.')).toBeVisible();
+    await nameTheBusiness(page);
     await expect(page.locator('#wait-reason')).toContainText('You can send another in');
     await check(page, info, 'check-email-cooldown');
   });
@@ -383,11 +397,16 @@ test.describe('restaurant redesign · sign in (mock)', () => {
     await submitForm(page);
     await page.getByRole('button', { name: 'Send a new link' }).click();
     await expect(page.getByText("You've asked for 5 links today")).toBeVisible();
+    await nameTheBusiness(page);
+    await expect(page.getByText("You've asked for 5 links today")).toBeVisible();
     await check(page, info, 'check-email-daily');
     await page.unroute('**/v1/auth/email/resend');
     await page.route('**/v1/auth/email/resend', (route) => route.abort('internetdisconnected'));
     // A later visit in the same tab (no router state, the address remembered for this tab).
-    await page.evaluate(() => window.history.replaceState(null, '', '/check-email'));
+    await page.evaluate(() => {
+      window.sessionStorage.setItem('hg_restaurant_check_email_v1', JSON.stringify({ email: 'samir@zaytoungrill.ca', business_name: 'Zaytoun Grill' }));
+      window.history.replaceState(null, '', '/check-email');
+    });
     await page.reload();
     await page.getByRole('button', { name: 'Send a new link' }).click();
     await expect(page.getByTestId('InlineAlert')).toContainText("We couldn't send a new link");

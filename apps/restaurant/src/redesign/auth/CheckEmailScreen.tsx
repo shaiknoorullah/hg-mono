@@ -8,7 +8,7 @@
 import { useCallback, useState, type FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { client } from '../data/client';
-import { Button, GlyphIcon, InlineAlert, StateCard, StateCardIcon, TextLink, usePageAnnouncer, WaitLine } from '../ds';
+import { Button, GlyphIcon, InlineAlert, StateCard, TextLink, usePageAnnouncer, WaitLine } from '../ds';
 import { agedWait, attempt, serverWait, supportFrom, usePublicConfig, type ServerWait } from './api';
 import { CHECK_EMAIL, COMMON } from './copy';
 
@@ -111,7 +111,7 @@ export function CheckEmailScreen() {
   return (
     <StateCard testId="check-email-card">
       <form noValidate onSubmit={send} aria-busy={sending || undefined} className="flex flex-col gap-5" aria-label={CHECK_EMAIL.title}>
-        <StateCardIcon name="letter" />
+        <div className="flex flex-col gap-2">
         <h1 className="m-0 text-heading-xl text-fg-primary">{CHECK_EMAIL.title}</h1>
         <p className="m-0 text-body-md leading-normal text-fg-primary">
           {entry?.email ? (
@@ -129,6 +129,7 @@ export function CheckEmailScreen() {
           <TextLink to="/register">{CHECK_EMAIL.wrongLink}</TextLink>
         </p>
         <p className="m-0 text-body-md leading-normal text-fg-secondary">{CHECK_EMAIL.help}</p>
+        </div>
 
         {phase.kind === 'daily' ? (
           <InlineAlert tone="warning" icon="clock" title={CHECK_EMAIL.dailyTitle}>
@@ -146,7 +147,7 @@ export function CheckEmailScreen() {
           </p>
         ) : null}
 
-        <div className="flex flex-wrap items-center justify-center gap-4">
+        <div className="flex flex-wrap items-center justify-start gap-4">
           {entry?.email ? (
             <Button
               variant="tertiary"

@@ -24,11 +24,11 @@ import { reportUnknownStep } from './report';
 
 /**
  * The card the setup boards `Onb-LoadError`, `Onb-UnknownStep` and the loading page draw: 560 wide,
- * bordered, on the cream page 121 px under the top bar, its content centred.
+ * bordered, on the cream page 120 px under the top bar, its content centred.
  */
 function Center({ children, testId }: { children: React.ReactNode; testId?: string }) {
   return (
-    <div className="flex justify-center px-4 pt-[121px]">
+    <div className="flex justify-center px-4 pt-[120px]">
       <div
         className="flex w-[560px] max-w-full flex-col items-center gap-4 rounded-lg border border-line-decorative bg-surface-raised px-8 py-10 text-center"
         data-testid={testId}
